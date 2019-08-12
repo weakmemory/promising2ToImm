@@ -1,14 +1,14 @@
 From hahn Require Import Hahn.
 From PromisingLib Require Import Basic DenseOrder Loc.
 
-Require Import Events.
-Require Import Execution.
-Require Import imm_s.
-Require Import imm_s_hb.
-Require Import imm_common.
-Require Import CombRelations.
-Require Import CombRelationsMore.
-Require Import TraversalConfig.
+From imm Require Import Events.
+From imm Require Import Execution.
+From imm Require Import imm_s.
+From imm Require Import imm_s_hb.
+From imm Require Import imm_common.
+From imm Require Import CombRelations.
+From imm Require Import CombRelationsMore.
+From imm Require Import TraversalConfig.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.

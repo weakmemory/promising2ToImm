@@ -1,12 +1,11 @@
 Require Import ClassicalDescription Omega.
-
 From hahn Require Import Hahn.
 From Promising Require Import Event.
-Require Import Events.
-Require Import Execution.
-Require Import Prog.
-Require Import ProgToExecution.
-Require Import ProgToExecutionProperties.
+From imm Require Import Events.
+From imm Require Import Execution.
+From imm Require Import Prog.
+From imm Require Import ProgToExecution.
+From imm Require Import ProgToExecutionProperties.
 
 Set Implicit Arguments.
 

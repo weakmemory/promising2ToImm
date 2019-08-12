@@ -1,10 +1,10 @@
 From hahn Require Import Hahn.
 From Promising Require Import Language.
 
-Require Import Events Execution.
-Require Import ProgToExecution.
-Require Import ProgToExecutionProperties.
-Require Import PromiseLTS.
+From imm Require Import Events Execution.
+From imm Require Import ProgToExecution.
+From imm Require Import ProgToExecutionProperties.
+From imm Require Import PromiseLTS.
 
 Set Implicit Arguments.
 

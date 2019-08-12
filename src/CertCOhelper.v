@@ -1,7 +1,7 @@
 From hahn Require Import Hahn.
 
-Require Import Events.
-Require Import Execution.
+From imm Require Import Events.
+From imm Require Import Execution.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.

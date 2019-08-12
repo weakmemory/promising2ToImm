@@ -1,23 +1,22 @@
+Require Import PArith Setoid.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
 From Promising Require Import TView View Time Event Cell Thread Memory Configuration.
 
-Require Import Events Execution.
-Require Import imm_s_hb.
-Require Import imm_s.
+From imm Require Import Events Execution.
+From imm Require Import imm_s_hb.
+From imm Require Import imm_s.
 
-Require Import PArith.
-Require Import CombRelations.
-Require Import TraversalConfig.
-Require Import Setoid.
-Require Import MaxValue.
-Require Import ViewRel.
-Require Import Event_imm_promise.
-Require Import PromiseLTS.
-Require Import ProgToExecution.
-Require Import ProgToExecutionProperties.
-Require Import SimState.
-Require Import MemoryAux.
+From imm Require Import CombRelations.
+From imm Require Import TraversalConfig.
+From imm Require Import MaxValue.
+From imm Require Import ViewRel.
+From imm Require Import Event_imm_promise.
+From imm Require Import PromiseLTS.
+From imm Require Import ProgToExecution.
+From imm Require Import ProgToExecutionProperties.
+From imm Require Import SimState.
+From imm Require Import MemoryAux.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.

@@ -1,17 +1,17 @@
 From hahn Require Import Hahn.
 
-Require Import Events.
-Require Import Execution.
-Require Import Execution_eco.
-Require Import imm_common.
-Require Import imm_s_hb.
-Require Import imm_s.
-Require Import imm_common_more.
-Require Import CertCOhelper.
+From imm Require Import Events.
+From imm Require Import Execution.
+From imm Require Import Execution_eco.
+From imm Require Import imm_common.
+From imm Require Import imm_s_hb.
+From imm Require Import imm_s.
+From imm Require Import imm_common_more.
+From imm Require Import CertCOhelper.
 
-Require Import CombRelations.
-Require Import TraversalConfig.
-Require Import TraversalConfigAlt.
+From imm Require Import CombRelations.
+From imm Require Import TraversalConfig.
+From imm Require Import TraversalConfigAlt.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.

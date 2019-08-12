@@ -2,39 +2,38 @@
 (** * A compilation correctness proof from the Promise memory model to
       the IMM memory model. *)
 (******************************************************************************)
-
+Require Import Omega.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
 From Promising Require Import TView View Time Event Cell Thread Memory Configuration.
-Require Import Prog.
-Require Import ProgToExecution.
-Require Import Events.
-Require Import Execution.
-Require Import imm_s.
-Require Import Traversal.
-Require Import TraversalConfig.
-Require Import SimTraversal.
-Require Import SimulationRel.
-Require Import PlainStepBasic.
-Require Import SimulationPlainStep.
-Require Import MaxValue.
-Require Import CombRelations.
+From imm Require Import Prog.
+From imm Require Import ProgToExecution.
+From imm Require Import Events.
+From imm Require Import Execution.
+From imm Require Import imm_s.
+From imm Require Import Traversal.
+From imm Require Import TraversalConfig.
+From imm Require Import SimTraversal.
+From imm Require Import SimulationRel.
+From imm Require Import PlainStepBasic.
+From imm Require Import SimulationPlainStep.
+From imm Require Import MaxValue.
+From imm Require Import CombRelations.
 
-Require Import SimState.
-Require Import Event_imm_promise.
-Require Import PromiseLTS.
-Require Import PromiseOutcome.
+From imm Require Import SimState.
+From imm Require Import Event_imm_promise.
+From imm Require Import PromiseLTS.
+From imm Require Import PromiseOutcome.
 
-Require Import SimTraversalProperties.
-Require Import ProgToExecutionProperties.
-Require Import TraversalCounting.
+From imm Require Import SimTraversalProperties.
+From imm Require Import ProgToExecutionProperties.
+From imm Require Import TraversalCounting.
 
-Require Import SimulationPlainStepAux.
-Require Import CertGraphInit.
-Require Import PromiseFuture.
+From imm Require Import SimulationPlainStepAux.
+From imm Require Import CertGraphInit.
+From imm Require Import PromiseFuture.
 
-Require Import Omega.
-Require Import MemoryAux.
+From imm Require Import MemoryAux.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
