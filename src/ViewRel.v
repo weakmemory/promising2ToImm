@@ -61,8 +61,8 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Definition sim_msg f_to b rel :=
   forall l, max_value f_to 
-              (fun a => msg_rel sc l a b \/ Loc_ l b /\ a = b) 
-              (LocFun.find l rel.(View.rlx)).
+              (fun a => msg_rel sc (FLoc.loc l) a b \/ Loc_ (FLoc.loc l) b /\ a = b) 
+              (FLocFun.find l rel.(View.rlx)).
 
 Definition sim_mem_helper f_to b from v rel :=
   ⟪ VAL: Some v = val lab b ⟫ /\
@@ -72,21 +72,21 @@ Definition sim_mem_helper f_to b from v rel :=
 
 Definition sim_rel C f_to rel i :=
   forall l' l, max_value f_to 
-    (t_rel i l l' C ∪₁
-     if Loc.eq_dec l l'
-     then W_ l' ∩₁ Tid_ i ∩₁ C
+    (t_rel i (FLoc.loc l) (FLoc.loc l') C ∪₁
+     if Loc.eq_dec (FLoc.loc l) (FLoc.loc l')
+     then W_ (FLoc.loc l') ∩₁ Tid_ i ∩₁ C
      else ∅)
-    (LocFun.find l (LocFun.find l' rel).(View.rlx)).
+    (FLocFun.find l (FLocFun.find l' rel).(View.rlx)).
 
 Definition sim_cur C f_to cur i :=
   forall l,
-    max_value f_to (t_cur i l C) 
-    (LocFun.find l cur.(View.rlx)).
+    max_value f_to (t_cur i (FLoc.loc l) C)
+              (FLocFun.find l cur.(View.rlx)).
 
 Definition sim_acq C f_to acq i :=
   forall l,
-    max_value f_to (t_acq i l C) 
-    (LocFun.find l acq.(View.rlx)).
+    max_value f_to (t_acq i (FLoc.loc l) C) 
+    (FLocFun.find l acq.(View.rlx)).
 
 Definition sim_tview C f_to tview i :=
   ⟪ CUR: sim_cur C f_to tview.(TView.cur) i ⟫ /\
@@ -105,9 +105,9 @@ Lemma sim_tview_read_step
       (PRC : doma (sb ⨾ ⦗ eq r ⦘) C)
       (RF : rf w r)
       (TID : tid r = thread)
-      (RPARAMS : lab r = Aload xrmw ordr locr valr)
+      (RPARAMS : lab r = Aload xrmw ordr (FLoc.loc locr) valr)
       (GET : Memory.get locr (f_to w) mem =
-             Some (f_from w, Message.mk valr rel))
+             Some (f_from w, Message.full valr rel))
       (HELPER : sim_mem_helper f_to w (f_from w) valr rel.(View.unwrap)) :
   sim_tview
     (C ∪₁ eq r) f_to
@@ -116,14 +116,14 @@ Lemma sim_tview_read_step
 Proof.
   assert (R r) as RR by type_solver.
   assert (W w) as WW by (apply (wf_rfD WF) in RF; revert RF; basic_solver).
-  assert (Loc_ locr w) as WLOC.
+  assert (Loc_ (FLoc.loc locr) w) as WLOC.
   { assert (loc lab w = loc lab r) as H.
     { eapply loceq_rf; eauto. }
     by rewrite H; unfold loc; rewrite RPARAMS. }
   assert (~ is_init r) as RNINIT.
   { intros INIT. apply (init_w WF) in INIT. type_solver. }
   assert (E r) as RACTS by (apply (wf_rfE WF) in RF; revert RF; basic_solver).
-  assert (loc lab r = Some locr) as RLOC.
+  assert (loc lab r = Some (FLoc.loc locr)) as RLOC.
   { by unfold loc; rewrite RPARAMS. }
 
   assert (~ F r) as NF.
@@ -175,10 +175,11 @@ Proof.
   cdes HELPER; clear FROM.
   red in SIMMSG; desf.
   red; splits; intros l; simpls;
-    unfold LocFun.find, TimeMap.join in *;
+    unfold FLocFun.find, TimeMap.join in *;
     (try rewrite ORDRLX); try (rewrite ORDACQ).
   { eapply max_value_same_set.
     2: apply t_cur_urr_union_eqv; auto; revert PRC; basic_solver.
+    simpls.
     rewrite Time.join_assoc.
     unfold CombRelations.t_cur, CombRelations.c_cur in CUR.
     eapply max_value_join; eauto.
@@ -186,9 +187,9 @@ Proof.
     { eapply max_value_same_set; [|by apply DR].
       eapply max_value_same_set; [|by eapply dom_rel_r; eauto].
       unfold TimeMap.singleton, LocFun.add, LocFun.find, LocFun.init.
-      destruct (LocSet.Facts.eq_dec l locr); simpls; subst.
+      destruct (LocSet.Facts.eq_dec (FLoc.loc l) (FLoc.loc locr)); simpls; subst.
       all: unfold TimeMap.singleton, LocFun.add, LocFun.find, LocFun.init.
-      { by apply max_value_singleton; rewrite Loc.eq_dec_eq. }
+      { apply max_value_singleton. rewrite Loc.eq_dec_eq. }
       rewrite Loc.eq_dec_neq; auto.
       apply max_value_empty; intros x HH; desf. }
     specialize (MSGALT l (Acq)).
