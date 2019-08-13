@@ -16,8 +16,8 @@ From imm Require Import TraversalConfig.
 From imm Require Import Traversal.
 From imm Require Import SimTraversal.
 
-From imm Require Import SimState.
-From imm Require Import MaxValue.
+Require Import SimState.
+Require Import MaxValue.
 From imm Require Import ViewRel.
 From imm Require Import ViewRelHelpers.
 From imm Require Import SimulationRel.

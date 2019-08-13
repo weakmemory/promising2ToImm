@@ -17,10 +17,10 @@ From imm Require Import SimTraversal.
 From imm Require Import SimulationRel.
 From imm Require Import PlainStepBasic.
 From imm Require Import SimulationPlainStep.
-From imm Require Import MaxValue.
+Require Import MaxValue.
 From imm Require Import CombRelations.
 
-From imm Require Import SimState.
+Require Import SimState.
 Require Import Event_imm_promise.
 Require Import PromiseOutcome.
 From imm Require Import SimTraversalProperties.
@@ -30,7 +30,7 @@ From imm Require Import TraversalCounting.
 From imm Require Import SimulationPlainStepAux.
 From imm Require Import CertGraphInit.
 From imm Require Import PromiseFuture.
-From imm Require Import MemoryAux.
+Require Import MemoryAux.
 
 Require Import PromiseLTS.
 

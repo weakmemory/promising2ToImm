@@ -16,14 +16,14 @@ From imm Require Import TraversalConfig.
 From imm Require Import Traversal.
 From imm Require Import SimTraversal.
 
-From imm Require Import MaxValue.
+Require Import MaxValue.
 From imm Require Import ViewRel.
 From imm Require Import ViewRelHelpers.
 From imm Require Import SimulationRel.
 From imm Require Import SimulationPlainStepAux.
 From imm Require Import SimulationRelAux.
-From imm Require Import MemoryAux.
-From imm Require Import SimState.
+Require Import MemoryAux.
+Require Import SimState.
 
 Set Implicit Arguments.
 

@@ -9,14 +9,14 @@ From imm Require Import imm_s.
 
 From imm Require Import CombRelations.
 From imm Require Import TraversalConfig.
-From imm Require Import MaxValue.
+Require Import MaxValue.
 From imm Require Import ViewRel.
 Require Import Event_imm_promise.
 Require Import PromiseLTS.
 From imm Require Import ProgToExecution.
 From imm Require Import ProgToExecutionProperties.
-From imm Require Import SimState.
-From imm Require Import MemoryAux.
+Require Import SimState.
+Require Import MemoryAux.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.

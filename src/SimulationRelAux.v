@@ -13,13 +13,13 @@ From imm Require Import imm_common.
 From imm Require Import CombRelations.
 From imm Require Import TraversalConfig.
 From imm Require Import Traversal.
-From imm Require Import MaxValue.
+Require Import MaxValue.
 From imm Require Import ViewRel.
 Require Import Event_imm_promise.
 From imm Require Import SimulationRel.
-From imm Require Import SimState.
+Require Import SimState.
 From imm Require Import ViewRelHelpers.
-From imm Require Import MemoryAux.
+Require Import MemoryAux.
 
 Set Implicit Arguments.
 

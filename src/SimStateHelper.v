@@ -1,17 +1,17 @@
 Require Import PArith Omega Setoid.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising Require Import TView View Time Event Cell Thread Memory Configuration.
+From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration.
 
 From imm Require Import Events Execution.
 From imm Require Import TraversalConfig.
-From imm Require Import MaxValue.
+Require Import MaxValue.
 From imm Require Import ViewRel.
 Require Import PromiseLTS.
 From imm Require Import ProgToExecution.
 Require Import Event_imm_promise.
 From imm Require Import SimulationRel.
-From imm Require Import SimState.
+Require Import SimState.
 From imm Require Import ProgToExecutionProperties.
 
 Set Implicit Arguments.
