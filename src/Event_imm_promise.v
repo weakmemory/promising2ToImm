@@ -44,17 +44,17 @@ Definition lab_imm_promise (lbls : list label) (ev : ProgramEvent.t) :=
   match lbls, ev with
   | nil, ProgramEvent.silent => True
   | Aload _ o l v :: nil, ProgramEvent.read l' v' o' =>
-    ⟪ SAME_LOC : l = l' ⟫ /\
+    ⟪ SAME_LOC : l = FLoc.loc l' ⟫ /\
     ⟪ SAME_VAL : v = v' ⟫ /\
     ⟪ SAME_MOD : o' = rmod o ⟫
   | Astore x o l v :: nil, ProgramEvent.write l' v' o' =>
-    ⟪ SAME_LOC : l = l' ⟫ /\
+    ⟪ SAME_LOC : l = FLoc.loc l' ⟫ /\
     ⟪ SAME_VAL : v = v' ⟫ /\
     ⟪ SAME_MOD : o' = wmod o ⟫
 
   | Astore x o l v :: Aload _ o' l' v' :: nil,
     ProgramEvent.update l'' valr valw ordr ordw =>
-    ⟪ SAME_LOC : l = l' /\ l' = l'' ⟫ /\
+    ⟪ SAME_LOC : l = l' /\ l' = FLoc.loc l'' ⟫ /\
     ⟪ SAME_VAL : v = valw /\ v' = valr ⟫ /\
     ⟪ SAME_MOD : ordw = wmod o /\
                   ordr = rmod o' ⟫

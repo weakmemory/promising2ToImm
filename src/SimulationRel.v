@@ -12,7 +12,7 @@ From imm Require Import TraversalConfig.
 From imm Require Import MaxValue.
 From imm Require Import ViewRel.
 Require Import Event_imm_promise.
-From imm Require Import PromiseLTS.
+Require Import PromiseLTS.
 From imm Require Import ProgToExecution.
 From imm Require Import ProgToExecutionProperties.
 From imm Require Import SimState.

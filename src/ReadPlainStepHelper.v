@@ -26,7 +26,7 @@ From imm Require Import SimulationPlainStepAux.
 From imm Require Import SimulationRelAux.
 From imm Require Import MemoryAux.
 
-From imm Require Import PromiseLTS.
+Require Import PromiseLTS.
 From imm Require Import SimState.
 
 Set Implicit Arguments.

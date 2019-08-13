@@ -22,7 +22,7 @@ From imm Require Import CombRelations.
 
 From imm Require Import SimState.
 Require Import Event_imm_promise.
-From imm Require Import PromiseOutcome.
+Require Import PromiseOutcome.
 From imm Require Import SimTraversalProperties.
 From imm Require Import ProgToExecutionProperties.
 From imm Require Import TraversalCounting.

@@ -7,7 +7,7 @@ From imm Require Import Events Execution.
 From imm Require Import MaxValue.
 From imm Require Import ViewRel.
 From imm Require Import SimulationRel.
-From imm Require Import PromiseLTS.
+Require Import PromiseLTS.
 From imm Require Import ProgToExecution.
 
 Lemma rtc_lang_tau_step_rtc_thread_tau_step

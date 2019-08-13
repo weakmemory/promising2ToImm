@@ -28,7 +28,7 @@ From imm Require Import ReadPlainStepHelper.
 
 From imm Require Import SimState.
 From imm Require Import SimStateHelper.
-From imm Require Import PromiseLTS.
+Require Import PromiseLTS.
 From imm Require Import ProgToExecution.
 From imm Require Import MemoryAux.
 
