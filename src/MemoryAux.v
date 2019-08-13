@@ -1,6 +1,6 @@
 From hahn Require Import Hahn.
-From PromisingLib Require Import Basic DenseOrder.
-From Promising Require Import Memory View Time Cell TView.
+Require Import PromisingLib.
+From Promising2 Require Import Memory View Time Cell TView.
 
 Definition memory_close tview memory :=
   ⟪ CLOSED_CUR :
@@ -11,6 +11,26 @@ Definition memory_close tview memory :=
     forall loc,
       Memory.closed_timemap (View.rlx (TView.rel tview loc)) memory ⟫.
 
+Lemma memory_closed_timemap_le view memory memory'
+      (MEM_LE : Memory.le memory memory')
+      (MEM_CLOS : Memory.closed_timemap view memory) :
+  Memory.closed_timemap view memory'.
+Proof.
+  red; ins. specialize (MEM_CLOS loc). desf.
+  apply MEM_LE in MEM_CLOS.
+  eauto.
+Qed.
+
+Lemma memory_close_le tview memory memory'
+      (MEM_LE : Memory.le memory memory')
+      (MEM_CLOS : memory_close tview memory) :
+  memory_close tview memory'.
+Proof.
+  cdes MEM_CLOS.
+  red; splits; ins.
+  all: eapply memory_closed_timemap_le; eauto.
+Qed.
+
 Lemma loc_ts_eq_dec_eq {A} {a b : A} l ts :
   (if loc_ts_eq_dec (l, ts) (l, ts) then a else b) = a.
 Proof. edestruct loc_ts_eq_dec; desf. Qed.
@@ -20,19 +40,18 @@ Lemma loc_ts_eq_dec_neq {A} {a b : A} {l ts l' ts'}
   (if loc_ts_eq_dec (l, ts) (l', ts') then a else b) = b.
 Proof. edestruct loc_ts_eq_dec; desf. Qed.
 
-
-Lemma memory_add_le memory memory' loc from to val released
-      (ADD : Memory.add memory loc from to val released memory'):
+Lemma memory_add_le memory memory' loc from to msg 
+      (ADD : Memory.add memory loc from to msg memory'):
   Memory.le memory memory'.
 Proof.
   red. ins. erewrite Memory.add_o; eauto.
   destruct (loc_ts_eq_dec (loc0, to0) (loc, to)); [simpls; desf|done].
-  exfalso. erewrite Memory.add_get0 in LHS; eauto.
-  desf.
+  exfalso. eapply Memory.add_get0 in ADD. desf.
+  rewrite ADD in LHS. inv LHS.
 Qed.
 
-Lemma memory_remove_le memory memory' loc from to val released
-      (ADD : Memory.remove memory loc from to val released memory'):
+Lemma memory_remove_le memory memory' loc from to msg
+      (ADD : Memory.remove memory loc from to msg memory'):
   Memory.le memory' memory.
 Proof.
   red. ins. erewrite Memory.remove_o in LHS; eauto.
@@ -45,24 +64,24 @@ Remove Hints plus_n_O.
 Lemma inhabited_init : Memory.inhabited Memory.init.
 Proof. red. ins. Qed.
 
-Lemma inhabited_future memory memory'
-      (INHAB : Memory.inhabited memory)
-      (FUTURE : Memory.future memory memory') :
-  Memory.inhabited memory'.
-Proof.
-  destruct FUTURE; auto.
-  apply clos_rt1n_rt in FUTURE.
-  apply clos_rt_rtn1 in FUTURE.
-  induction FUTURE; auto.
-  { destruct H.
-    eapply Memory.op_future0; eauto. }
-  destruct H0.
-  eapply Memory.op_future0; eauto.
-Qed.
+(* Lemma inhabited_future memory memory' *)
+(*       (INHAB : Memory.inhabited memory) *)
+(*       (FUTURE : Memory.future memory memory') : *)
+(*   Memory.inhabited memory'. *)
+(* Proof. *)
+(*   destruct FUTURE; auto. *)
+(*   apply clos_rt1n_rt in FUTURE. *)
+(*   apply clos_rt_rtn1 in FUTURE. *)
+(*   induction FUTURE; auto. *)
+(*   { destruct H. *)
+(*     eapply Memory.op_future0; eauto. } *)
+(*   destruct H0. *)
+(*   eapply Memory.op_future0; eauto. *)
+(* Qed. *)
 
-Lemma inhabited_future_init memory (FUTURE : Memory.future Memory.init memory) :
-  Memory.inhabited memory.
-Proof. eapply inhabited_future; eauto. apply inhabited_init. Qed.
+(* Lemma inhabited_future_init memory (FUTURE : Memory.future Memory.init memory) : *)
+(*   Memory.inhabited memory. *)
+(* Proof. eapply inhabited_future; eauto. apply inhabited_init. Qed. *)
 
 Definition ts_lt_or_bot memory :=
   forall loc to from msg (GET : Memory.get loc to memory = Some (from, msg)),
@@ -96,9 +115,9 @@ Proof.
   desf. by left.
 Qed.
 
-Lemma ts_lt_or_bot_add loc from to val released memory memory_add
+Lemma ts_lt_or_bot_add loc from to msg memory memory_add
       (TLOB : ts_lt_or_bot memory)
-      (ADD : Memory.add memory loc from to val released memory_add) :
+      (ADD : Memory.add memory loc from to msg memory_add) :
   ts_lt_or_bot memory_add.
 Proof.
   red. ins.
@@ -108,9 +127,9 @@ Proof.
   all: by eapply TLOB; eauto.
 Qed.
 
-Lemma message_disjoint_add loc from to val released memory memory_add
+Lemma message_disjoint_add loc from to msg memory memory_add
       (MD : message_disjoint memory)
-      (ADD : Memory.add memory loc from to val released memory_add) :
+      (ADD : Memory.add memory loc from to msg memory_add) :
   message_disjoint memory_add.
 Proof.
   red. ins.
@@ -126,9 +145,9 @@ Proof.
   all: by eapply MD; eauto.
 Qed.
 
-Lemma ts_lt_or_bot_lower loc from to val released released' memory memory_lower
+Lemma ts_lt_or_bot_lower loc from to msg released' memory memory_lower
       (TLOB : ts_lt_or_bot memory)
-      (LOWER : Memory.lower memory loc from to val released released' memory_lower) :
+      (LOWER : Memory.lower memory loc from to msg released' memory_lower) :
   ts_lt_or_bot memory_lower.
 Proof.
   red. ins.
@@ -138,9 +157,9 @@ Proof.
   all: by eapply TLOB; eauto.
 Qed.
 
-Lemma message_disjoint_lower loc from to val released released' memory memory_lower
+Lemma message_disjoint_lower loc from to msg released' memory memory_lower
       (MD : message_disjoint memory)
-      (LOWER : Memory.lower memory loc from to val released released' memory_lower) :
+      (LOWER : Memory.lower memory loc from to msg released' memory_lower) :
   message_disjoint memory_lower.
 Proof.
   red. ins.
@@ -151,9 +170,9 @@ Proof.
   all: inv LOWER; inv LOWER0; eapply MD; eauto.
 Qed.
 
-Lemma ts_lt_or_bot_split loc from to to' val val' released released' memory memory_split
+Lemma ts_lt_or_bot_split loc from to to' msg msg' memory memory_split
       (TLOB : ts_lt_or_bot memory)
-      (SPLIT : Memory.split memory loc from to to' val val' released released' memory_split) :
+      (SPLIT : Memory.split memory loc from to to' msg msg' memory_split) :
   ts_lt_or_bot memory_split.
 Proof.
   red. ins.
@@ -163,9 +182,9 @@ Proof.
   all: eapply TLOB; eauto.
 Qed.
 
-Lemma ts_lt_or_bot_op loc from to val released kind memory memory'
+Lemma ts_lt_or_bot_op loc from to msg kind memory memory'
       (TLOB : ts_lt_or_bot memory)
-      (OP : Memory.op memory loc from to val released memory' kind) :
+      (OP : Memory.op memory loc from to msg memory' kind) :
   ts_lt_or_bot memory'.
 Proof.
   destruct OP.
@@ -191,13 +210,13 @@ Lemma ts_lt_or_bot_future_init memory
   ts_lt_or_bot memory.
 Proof. eapply ts_lt_or_bot_future; eauto. apply ts_lt_or_bot_init. Qed.
 
-Lemma message_disjoint_split loc from to to' val val' released released' memory memory_split
+Lemma message_disjoint_split loc from to to' msg msg' memory memory_split
       (MD : message_disjoint memory)
-      (SPLIT : Memory.split memory loc from to to' val val' released released' memory_split) :
+      (SPLIT : Memory.split memory loc from to to' msg msg' memory_split) :
   message_disjoint memory_split.
 Proof.
   assert (exists msg, Memory.get loc to' memory = Some (from, msg))
-    as [msg GETI].
+    as [msg'' GETI].
   { inv SPLIT. inv SPLIT0. eexists. apply GET2. }
   assert (Time.lt from to /\ Time.lt to to') as [LTF LTT].
   { inv SPLIT. inv SPLIT0. }
@@ -230,9 +249,9 @@ Proof.
   all: desf.
 Qed.
 
-Lemma message_disjoint_op loc from to val released memory memory' kind
+Lemma message_disjoint_op loc from to msg memory memory' kind
       (MD : message_disjoint memory)
-      (OP : Memory.op memory loc from to val released memory' kind) :
+      (OP : Memory.op memory loc from to msg memory' kind) :
   message_disjoint memory'.
 Proof.
   destruct OP.
@@ -285,9 +304,9 @@ Proof.
 Qed.
 
 Lemma memory_split_get_old memory memory_split
-      loc from to ts val val' released released'
-      (SP : Memory.split memory loc from to ts val val' released released' memory_split) :
-  Memory.get loc ts memory = Some (from, Message.mk val' released').
+      loc from to ts msg msg' 
+      (SP : Memory.split memory loc from to ts msg msg' memory_split) :
+  Memory.get loc ts memory = Some (from, msg').
 Proof. inv SP. inv SPLIT. Qed.
 
 Lemma interval_le_not_disjoint la ra lb rb
@@ -313,132 +332,6 @@ Proof.
   all: specialize (RLX loc); desc.
   all: apply LE in RLX; eauto.
 Qed.
-
-(*********************************************)
-(* TODO: explanation. Maybe a separate file. *)
-(*********************************************)
-Definition message_view_wf memory :=
-  forall loc to from val released
-         (GET : Memory.get loc to memory = 
-                Some (from, Message.mk val released)),
-    View.opt_wf released.
-
-Lemma message_view_wf_add
-      memory loc from to val released memory'
-      (REL_WF : message_view_wf memory)
-      (PROM : Memory.add memory loc from to val released memory') :
-  message_view_wf memory'.
-Proof.
-  red. ins.
-  erewrite Memory.add_o in GET; eauto.
-  desf.
-  2: by eapply REL_WF; eauto.
-  simpls; desf.
-  inv PROM. inv ADD.
-Qed.
-
-Lemma message_view_wf_split
-      memory loc from to to' val val' released released' memory'
-      (REL_WF : message_view_wf memory)
-      (PROM : Memory.split memory loc from to to' val val' released released' memory') :
-  message_view_wf memory'.
-Proof.
-  red. ins.
-  erewrite Memory.split_o in GET; eauto.
-  desf.
-  3: by eapply REL_WF; eauto.
-  all: simpls; desf.
-  { inv PROM. inv SPLIT. }
-  inv PROM. inv SPLIT.
-  eapply REL_WF.
-  apply GET2.
-Qed.
-
-Lemma message_view_wf_lower
-      memory loc from to val released released' memory'
-      (REL_WF : message_view_wf memory)
-      (PROM : Memory.lower memory loc from to val released released' memory') :
-  message_view_wf memory'.
-Proof.
-  red. ins.
-  erewrite Memory.lower_o in GET; eauto.
-  desf.
-  2: by eapply REL_WF; eauto.
-  simpls; desf.
-  inv PROM. inv LOWER.
-Qed.
-
-Lemma message_view_wf_op
-      memory loc from to val released memory' kind
-      (REL_WF : message_view_wf memory)
-      (PROM : Memory.op memory loc from to val released memory' kind) :
-  message_view_wf memory'.
-Proof.
-  destruct PROM.
-  { eapply message_view_wf_add; eauto. }
-  { eapply message_view_wf_split; eauto. }
-  eapply message_view_wf_lower; eauto.
-Qed.
-
-Lemma message_view_wf_promise
-      promises memory loc from to val released promises' memory' kind
-      (REL_WF : message_view_wf memory)
-      (PROM : Memory.promise promises memory loc from to
-                             val released promises' memory' kind) :
-  message_view_wf memory'.
-Proof.
-  destruct PROM.
-  { eapply message_view_wf_add; eauto. }
-  { eapply message_view_wf_split; eauto. }
-  eapply message_view_wf_lower; eauto.
-Qed.
-
-Lemma message_view_wf_init : message_view_wf Memory.init.
-Proof.
-  red. ins. apply memory_init_o in GET. desf.
-  unfold Message.elt in *. desf.
-  apply View.opt_wf_none.
-Qed.
-
-Lemma message_view_wf_future memory memory'
-      (MVW    : message_view_wf memory)
-      (FUTURE : Memory.future memory memory') :
-  message_view_wf memory'.
-Proof.
-  induction FUTURE; auto.
-  apply IHFUTURE.
-  destruct H.
-  eapply message_view_wf_op; eauto.
-Qed.
-
-Lemma message_view_wf_future_init memory
-      (FUTURE : Memory.future Memory.init memory) :
-  message_view_wf memory.
-Proof.
-  eapply message_view_wf_future; eauto.
-  apply message_view_wf_init.
-Qed.
-
-Lemma memory_closed_timemap_le view memory memory'
-      (MEM_LE : Memory.le memory memory')
-      (MEM_CLOS : Memory.closed_timemap view memory) :
-  Memory.closed_timemap view memory'.
-Proof.
-  red; ins. specialize (MEM_CLOS loc). desf.
-  apply MEM_LE in MEM_CLOS.
-  eauto.
-Qed.
-
-Lemma memory_close_le tview memory memory'
-      (MEM_LE : Memory.le memory memory')
-      (MEM_CLOS : memory_close tview memory) :
-  memory_close tview memory'.
-Proof.
-  cdes MEM_CLOS.
-  red; splits; ins.
-  all: eapply memory_closed_timemap_le; eauto.
-Qed.
-
 
 (*********************************************)
 (* TODO: explanation. Maybe a separate file. *)

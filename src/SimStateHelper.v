@@ -9,7 +9,7 @@ From imm Require Import MaxValue.
 From imm Require Import ViewRel.
 From imm Require Import PromiseLTS.
 From imm Require Import ProgToExecution.
-From imm Require Import Event_imm_promise.
+Require Import Event_imm_promise.
 From imm Require Import SimulationRel.
 From imm Require Import SimState.
 From imm Require Import ProgToExecutionProperties.

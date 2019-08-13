@@ -4,7 +4,7 @@ From Promising Require Import Event Cell Memory Configuration Thread.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution.
 From imm Require Import Events.
-From imm Require Import Event_imm_promise.
+Require Import Event_imm_promise.
 From imm Require Import PromiseLTS.
 
 Set Implicit Arguments.

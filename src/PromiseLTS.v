@@ -1,6 +1,6 @@
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising Require Import Event.
+From Promising2 Require Import Event.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution.
 From imm Require Import Events.

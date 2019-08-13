@@ -1,6 +1,6 @@
 From hahn Require Import Hahn.
 From PromisingLib Require Import Loc.
-From Promising Require Import View Time Event.
+From Promising2 Require Import View Time Event.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -156,7 +156,7 @@ Lemma timemap_same_max_value_implies_eq f S (a b : TimeMap.t)
       (H : forall l, max_value f (S l) (a l)) (B : forall l, max_value f (S l) (b l)):
   a = b.
 Proof.
-  apply LocFun.ext.
+  apply FLocFun.ext.
   intros l. specialize (H l). specialize (B l).
   eapply max_value_same_value; eauto.
 Qed.

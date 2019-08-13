@@ -21,7 +21,7 @@ From imm Require Import MaxValue.
 From imm Require Import CombRelations.
 
 From imm Require Import SimState.
-From imm Require Import Event_imm_promise.
+Require Import Event_imm_promise.
 From imm Require Import PromiseOutcome.
 From imm Require Import SimTraversalProperties.
 From imm Require Import ProgToExecutionProperties.

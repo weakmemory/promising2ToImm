@@ -9,7 +9,7 @@ From imm Require Import imm_s.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_common.
 
-From imm Require Import Event_imm_promise.
+Require Import Event_imm_promise.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import TraversalConfig.
