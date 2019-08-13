@@ -22,9 +22,7 @@ From imm Require Import CombRelations.
 
 From imm Require Import SimState.
 From imm Require Import Event_imm_promise.
-From imm Require Import PromiseLTS.
 From imm Require Import PromiseOutcome.
-
 From imm Require Import SimTraversalProperties.
 From imm Require Import ProgToExecutionProperties.
 From imm Require Import TraversalCounting.
@@ -32,8 +30,9 @@ From imm Require Import TraversalCounting.
 From imm Require Import SimulationPlainStepAux.
 From imm Require Import CertGraphInit.
 From imm Require Import PromiseFuture.
-
 From imm Require Import MemoryAux.
+
+Require Import PromiseLTS.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -633,9 +632,9 @@ Proof.
 Qed.
 
 Definition thread_is_terminal ths tid :=
-  forall lang st lc
+  forall (lang : Language.t ProgramEvent.t) st lc
          (LLH : IdentMap.find tid ths =
-                Some (existT (fun lang : Language.t => Language.state lang) lang st, lc)),
+                Some (existT (fun lang => Language.state lang) lang st, lc)),
     ⟪ NOTS : Language.is_terminal lang st ⟫ /\
     ⟪ NOPROM : Local.is_terminal lc ⟫.
 

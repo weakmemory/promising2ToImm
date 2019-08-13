@@ -1,3 +1,4 @@
+Require Import Logic.IndefiniteDescription.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
 From Promising Require Import Configuration TView View Time Event Cell Thread Memory.
@@ -55,8 +56,6 @@ Lemma exists_all_conj_disj (A B : Type) (P Q R : A -> B -> Prop)
   exists f, (forall a : A, P a f) /\ (forall a : A, Q a f) /\
             (forall a : A, R a f).
 Proof. desf. exists f. splits; apply HH. Qed.
-
-From imm Require Import Logic.IndefiniteDescription.
 
 Lemma up_memory_closed_bigger_timemap memory memory' tmap
       (FUTURE  : Memory.future Memory.init memory)
