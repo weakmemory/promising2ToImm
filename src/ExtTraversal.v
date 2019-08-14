@@ -131,7 +131,8 @@ Definition ext_itrav_step (e : actid) T T' :=
   (⟪ COVER :
        ⟪ NCOV : ~ ecovered T e ⟫ /\
        ⟪ COVEQ: ecovered T' ≡₁ ecovered T ∪₁ eq e ⟫ /\
-       ⟪ ISSEQ: eissued  T' ≡₁ eissued  T ⟫
+       ⟪ ISSEQ: eissued  T' ≡₁ eissued  T ⟫ /\
+       ⟪ RESEQ: reserved T' ≡₁ reserved T ⟫
    ⟫ \/
    ⟪ ISSUE :
        ⟪ NISS : ~ eissued T e ⟫ /\

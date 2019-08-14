@@ -200,7 +200,7 @@ Inductive ext_isim_trav_step : thread_id -> ext_trav_config -> ext_trav_config -
 Definition ext_sim_trav_step T T' :=
   exists thread, ext_isim_trav_step thread T T'.
 
-Lemma exists_sim_trav_step T (ETCCOH : etc_coherent G sc T)
+Lemma exists_ext_sim_trav_step T (ETCCOH : etc_coherent G sc T)
       (RELCOV :  W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
       (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w)
       T' (TS : ext_trav_step G sc T T') :
@@ -210,20 +210,23 @@ Proof.
   cdes TS. desf.
   { destruct (lab_rwf lab e) as [RE|[WE|FE]].
     3: { eexists; eexists. eapply ext_fence_trav_step; eauto.
-         eapply itrav_step_more.
+         eapply ext_itrav_step_more.
          4: by eauto.
          { done. }
-         { apply same_tc_Reflexive. }
-         red. rewrite COVEQ. rewrite ISSEQ. by split. }
+         { apply same_ext_trav_config_refl. }
+         red. unfold ecovered, eissued in *; simpls.
+         rewrite COVEQ, ISSEQ, RESEQ. eauto. }
     { destruct (classic (dom_rel rmw e)) as [RMW|NRMW].
-      2: { eexists; eexists. eapply read_trav_step; eauto.
-           eapply itrav_step_more.
+      2: { eexists; eexists. eapply ext_read_trav_step; eauto.
+           eapply ext_itrav_step_more.
            4: by eauto.
            { done. }
-           { apply same_tc_Reflexive. }
-           red. rewrite COVEQ. rewrite ISSEQ. by split. }
+           { apply same_ext_trav_config_refl. }
+           red. unfold ecovered, eissued in *; simpls.
+           rewrite COVEQ, ISSEQ, RESEQ. eauto. }
+      (* TODO: continue from here. *)
       destruct RMW as [w RMW].
-      assert (~ covered T w) as COVW.
+      assert (~ ecovered T w) as COVW.
       { intros WCOV. apply NEXT. apply TCCOH in WCOV.
         apply WCOV. eexists. apply seq_eqv_r. split; eauto.
           by apply rmw_in_sb. }
