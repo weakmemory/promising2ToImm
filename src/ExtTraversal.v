@@ -153,6 +153,13 @@ Definition ext_itrav_step (e : actid) T T' :=
 
 Definition ext_trav_step T T' := exists e, ext_itrav_step e T T'.
 
+Lemma rppo_in_sb : rppo ⊆ sb.
+Proof.
+  unfold rppo. rewrite ctrl_in_sb, addr_in_sb, rmw_dep_in_sb; auto.
+  generalize (@sb_trans G).
+  basic_solver.
+Qed.
+
 Lemma rppo_sb_in_rppo : rppo ;; sb ;; <|W|> ⊆ rppo.
 Proof.
   unfold rppo.

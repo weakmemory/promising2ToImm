@@ -11,6 +11,7 @@ From imm Require Import TraversalConfig.
 From imm Require Import TraversalConfigAlt.
 From imm Require Import Traversal.
 Require Import ExtTraversal.
+Require Import AuxRel AuxRel2.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -18,7 +19,6 @@ Remove Hints plus_n_O.
 Section ExtSimTraversal.
   Variable G : execution.
   Variable WF : Wf G.
-  Variable COM : complete G.
   Variable sc : relation actid.
   Variable IMMCON : imm_consistent G sc.
 
@@ -201,6 +201,77 @@ Inductive ext_isim_trav_step : thread_id -> ext_trav_config -> ext_trav_config -
 Definition ext_sim_trav_step T T' :=
   exists thread, ext_isim_trav_step thread T T'.
 
+(* TODO: move to imm/TraveralConfig.v *)
+Lemma coverable_add_eq_iff T (WFSC : wf_sc G sc) e:
+  coverable G sc T e <-> coverable G sc (mkTC (covered T ∪₁ eq e) (issued T)) e.
+Proof.
+  split.
+  { eapply traversal_mon; simpls. eauto with hahn. }
+  unfold coverable; simpls. 
+  intros [[EE COVE] HH].
+  split.
+  { clear HH. split; auto.
+    unfolder in *. ins. desf.
+    edestruct COVE.
+    { eexists; eauto. }
+    { done. }
+    exfalso. desf. eapply sb_irr; eauto. }
+  destruct HH as [[HH|HH]|[AA HH]]; [do 2 left| left;right|right]; auto.
+  split; auto.
+  unfolder in *. ins. desf. edestruct HH.
+  { eexists; eauto. }
+  { done. }
+  exfalso. desf. eapply sc_irr; eauto.
+Qed.
+
+(* TODO: move to imm/TraveralConfig.v *)
+Lemma issuable_add_eq_iff T e :
+  issuable G T e <-> issuable G (mkTC (covered T) (issued T ∪₁ eq e)) e.
+Proof.
+  cdes IMMCON.
+  split.
+  { eapply traversal_mon; simpls. eauto with hahn. }
+  unfold issuable; simpls. 
+  intros [[EE ISSE] HH].
+  unfold dom_cond in *.
+  split; [split|]; auto.
+  all: intros x BB; set (CC:=BB).
+  2: apply HH in CC.
+  apply ISSE in CC.
+  all: destruct CC; desf.
+  all: exfalso; clear -BB WF Cext.
+  all: unfolder in *; desf.
+  5: by eapply sb_irr; eauto.
+  all: eapply Cext.
+  all: apply ct_unit; eexists; split; [apply ct_step|]; unfold ar, ar_int; basic_solver 10.
+Qed.
+
+(* TODO: move to ExtTraversal.v *)
+Lemma ext_trav_step_in_trav_step (WFSC : wf_sc G sc) :
+  ext_trav_step G sc ⊆ etc_TC ⋄ (same_trav_config ∪ trav_step G sc).
+Proof.
+  unfold ext_trav_step, ext_itrav_step, map_rel.
+  intros T T'. ins. desf.
+  3: { left. red. by split; symmetry. }
+  all: right; exists e; red; unnw.
+  all: unfold ecovered, eissued in *.
+  2: right.
+  left.
+  all: splits; auto.
+  { apply coverable_add_eq_iff; auto.
+    apply covered_in_coverable; [|basic_solver].
+    eapply tc_coherent_more.
+    4: apply ETCCOH'.
+    1,2: done.
+    red; splits; simpls; by symmetry. }
+  apply issuable_add_eq_iff; auto. 
+  eapply issued_in_issuable; [|basic_solver].
+  eapply tc_coherent_more.
+  4: apply ETCCOH'.
+  1,2: done.
+  red; splits; simpls; by symmetry.
+Qed.
+
 Lemma exists_ext_sim_trav_step T (ETCCOH : etc_coherent G sc T)
       (WFSC : wf_sc G sc)
       (RELCOV :  W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
@@ -208,6 +279,14 @@ Lemma exists_ext_sim_trav_step T (ETCCOH : etc_coherent G sc T)
       T' (TS : ext_trav_step G sc T T') :
   exists T'', ext_sim_trav_step T T''.
 Proof.
+  assert (tc_coherent G sc (etc_TC T)) as TCCOH.
+  { apply ETCCOH. }
+  assert (tc_coherent_alt G sc (etc_TC T)) as TCCOHalt.
+  { eapply tc_coherent_implies_tc_coherent_alt; eauto. }
+  assert (tc_coherent_alt G sc (etc_TC T')) as TCCOHalt'.
+  { eapply tc_coherent_implies_tc_coherent_alt; eauto.
+    destruct TS as [e TS]. apply TS. }
+
   destruct TS as [e TS].
   cdes TS. desf.
   { destruct (lab_rwf lab e) as [RE|[WE|FE]].
@@ -277,7 +356,7 @@ Proof.
         { red. by rewrite COVEQ. }
         do 2 left. split.
         2: by apply ISSEQ.
-        eapply issuedW; eauto. apply ETCCOH. }
+        eapply issuedW; eauto. }
       assert (W_ex w) as WEXW.
       { red. basic_solver. }
       destruct (classic (reserved T w)) as [RES|NRES].
@@ -285,10 +364,47 @@ Proof.
            apply ext_reserve_trav_step.
            red. splits.
            { do 2 right. splits; eauto. }
+
+           assert (dom_rel (⦗W⦘ ⨾ sb ⨾ ⦗eq w⦘) ⊆₁ issued (etc_TC T)) as WSBW.
+           { etransitivity; [|by eapply tc_W_C_in_I; eauto].
+             rewrite dom_eqv1. rewrite SBW; unfold ecovered.
+             arewrite (eq e ⊆₁ R) by basic_solver.
+             type_solver. }
+           
+           assert (dom_rel ((detour ∪ rfe) ⨾ sb ⨾ ⦗eq w⦘) ⊆₁ issued (etc_TC T)) as AA.
+           { rewrite !seq_union_l, dom_union. unionL.
+             { rewrite (dom_l WF.(wf_detourD)), !seqA.
+               rewrite detour_in_sb.
+               arewrite (sb ⨾ sb ⊆ sb) by (generalize (@sb_trans G); basic_solver). }
+             rewrite <- ISSEQ.
+             arewrite (rfe ⊆ rf).
+             etransitivity.
+             2: eapply tc_rf_C; eauto.
+             unfolder. ins. desf.
+             eexists. splits; eauto.
+             eapply COVEQ. apply SBW. basic_solver 10. }
+
            constructor.
            { apply ETCCOH. }
            all: unfold eissued, ecovered; simpls.
+           { rewrite ETCCOH.(etc_I_in_S). eauto with hahn. }
+           { rewrite set_minus_union_l. rewrite ETCCOH.(etc_S_I_in_W_ex).
+             basic_solver. }
+           all: rewrite id_union, !seq_union_r, dom_union; unionL.
+           5,6: unionR left.
+           all: try by apply ETCCOH.
 
+           { arewrite_id ⦗R ∩₁ Acq⦘. by rewrite seq_id_l. }
+           { arewrite (W_ex_acq ⊆₁ W); auto. rewrite WF.(W_ex_in_W); basic_solver. }
+           { rewrite <- etc_I_in_S; eauto; rewrite WF.(W_ex_in_W); auto. }
+           arewrite ((data ∪ rfi)＊ ⨾ rppo G ⊆ sb); [|done].
+           arewrite (rfi ⊆ sb).
+           rewrite WF.(data_in_sb), unionK.
+           rewrite rppo_in_sb.
+           rewrite rt_of_trans.
+           all: generalize (@sb_trans G); auto.
+           basic_solver 10. }
+      (* TODO: continue from here *)
 
       destruct (classic (Rel w)) as [REL|NREL].
       2: { eexists; eexists. 
