@@ -8,6 +8,7 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_common.
 From imm Require Import CombRelations.
 From imm Require Import TraversalConfig.
+From imm Require Import TraversalConfigAlt.
 From imm Require Import Traversal.
 Require Import ExtTraversal.
 
@@ -201,6 +202,7 @@ Definition ext_sim_trav_step T T' :=
   exists thread, ext_isim_trav_step thread T T'.
 
 Lemma exists_ext_sim_trav_step T (ETCCOH : etc_coherent G sc T)
+      (WFSC : wf_sc G sc)
       (RELCOV :  W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
       (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w)
       T' (TS : ext_trav_step G sc T T') :
@@ -224,40 +226,77 @@ Proof.
            { apply same_ext_trav_config_refl. }
            red. unfold ecovered, eissued in *; simpls.
            rewrite COVEQ, ISSEQ, RESEQ. eauto. }
-      (* TODO: continue from here. *)
       destruct RMW as [w RMW].
       assert (~ ecovered T w) as COVW.
-      { intros WCOV. apply NEXT. apply TCCOH in WCOV.
+      { intros WCOV. apply NCOV. apply ETCCOH in WCOV.
         apply WCOV. eexists. apply seq_eqv_r. split; eauto.
           by apply rmw_in_sb. }
       assert (is_w lab w) as WW.
       { apply (dom_r WF.(wf_rmwD)) in RMW.
         apply seq_eqv_r in RMW. desf. }
-      assert (dom_rel (sb ⨾ ⦗eq w⦘) ⊆₁ covered T ∪₁ eq e) as SBW.
+      assert (dom_rel (sb ⨾ ⦗eq w⦘) ⊆₁ ecovered T ∪₁ eq e) as SBW.
       { hahn_rewrite (rmw_from_non_init WF) in RMW.
         hahn_rewrite WF.(wf_rmwi) in RMW.
         hahn_rewrite (sb_immediate_adjacent WF) in RMW.
         unfold adjacent in *; unfolder in *; ins; desf.
         apply LA_ca in H; desf; eauto.
-        generalize (sb_coverable TCCOH); unfolder; ins; desf.
-        left; eapply H0; eauto. }
+        eapply tc_sb_C with (T:=mkTC (ecovered T ∪₁ eq e) (eissued T)).
+        2: by unfolder; ins; eauto 10.
+        eapply tc_coherent_implies_tc_coherent_alt; eauto.
+        eapply tc_coherent_more.
+        4: by apply ETCCOH'.
+        1,2: done.
+        destruct T'; simpls. }
       assert (E w) as EW.
       { apply (dom_r WF.(wf_rmwE)) in RMW.
         apply seq_eqv_r in RMW. desf. }
-      assert (~ (covered T ∪₁ eq e) w) as C1.
+      assert (~ (ecovered T ∪₁ eq e) w) as C1.
       { intros [H|H]; desf. type_solver. }
-      destruct (classic (issued T w)) as [ISS|NISS].
+      destruct (classic (eissued T w)) as [ISS|NISS].
       { eexists; eexists. 
-        eapply rlx_rmw_cover_step; eauto.
+        eapply ext_rlx_rmw_cover_step; eauto.
         { intros REL. apply COVW. apply RELCOV.
             by split; [split|]. }
-        { red. left. splits; simpls. }
-        red. left. splits; simpls.
-        split; [split|left; left; split]; auto. }
+        { red. splits; eauto.
+          eapply etc_coherent_more; eauto.
+          red. unfold ecovered, eissued in *. simpls.
+          splits; by symmetry. }
+        red. splits; eauto.
+        (* TODO: introduce a lemma. *)
+        constructor; unfold ecovered, eissued; simpls.
+        all: try apply ETCCOH.
+        eapply trav_step_coherence.
+        2: apply ETCCOH'.
+        red. exists w. 
+        red. unnw. left; simpls.
+        rewrite COVEQ, ISSEQ.
+        unfold ecovered, eissued in *.
+        splits; simpls.
+        { intros HH. apply COVEQ in HH. red in HH. desf. }
+        red. split; [split|]; auto.
+        { red. by rewrite COVEQ. }
+        do 2 left. split.
+        2: by apply ISSEQ.
+        eapply issuedW; eauto. apply ETCCOH. }
+      assert (W_ex w) as WEXW.
+      { red. basic_solver. }
+      destruct (classic (reserved T w)) as [RES|NRES].
+      2: { eexists. red. eexists.
+           apply ext_reserve_trav_step.
+           red. splits.
+           { do 2 right. splits; eauto. }
+           constructor.
+           { apply ETCCOH. }
+           all: unfold eissued, ecovered; simpls.
+
+
       destruct (classic (Rel w)) as [REL|NREL].
       2: { eexists; eexists. 
-           eapply rlx_write_promise_step; eauto.
-           red. right. splits; auto.
+           eapply ext_rlx_write_promise_step; eauto.
+           red. unfold ecovered, eissued in *.
+           splits; auto; simpls.
+           { right. left.
+
            red. split; [split; [split; [split|]|]|]; auto.
            { red. intros y H.
              specialize (SBW y).

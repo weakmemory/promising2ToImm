@@ -4,6 +4,8 @@ From imm Require Import Events Execution Execution_eco
      TraversalConfig Traversal imm_common imm_s imm_s_hb CombRelations.
 Require Import AuxRel AuxRel2.
 
+Set Implicit Arguments.
+
 (* TODO: move to imm/TraversalConfig.v *)
 Add Parametric Morphism : issuable with signature
     eq ==> same_trav_config ==> set_equiv as issuable_more.
