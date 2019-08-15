@@ -581,8 +581,13 @@ Proof.
   { eapply issuedW.
     2: { apply ISSEQ. basic_solver. }
     eauto.  }
-  assert (issuable G (etc_TC T') e) as ISS.
+  assert (issuable G (etc_TC T') e) as ISS'.
   { eapply issued_in_issuable; eauto. apply ISSEQ. basic_solver. }
+  assert (issuable G (etc_TC T) e) as ISS.
+  { eapply issuable_add_eq_iff.
+    eapply issuable_more; eauto.
+    unfold ecovered, eissued in *.
+    red. simpls. splits; by symmetry. }
 
   assert (~ covered (etc_TC T) e) as NCOV.
   { intros AA. apply NISS. eapply tc_W_C_in_I; eauto. by split. }
@@ -599,7 +604,7 @@ Proof.
   { intros [r RMW]. apply NISS.
     eapply w_covered_issued; eauto. split; auto.
     apply (RMWCOV _ _ RMW).
-    red in ISS. apply COVEQ. eapply ISS.
+    red in ISS. apply COVEQ. eapply ISS'.
     eexists. apply seq_eqv_r. split; eauto.
     red. repeat left. apply seq_eqv_r. split.
     { by apply rmw_in_sb. }
@@ -609,7 +614,43 @@ Proof.
     red. rewrite COVEQ. rewrite ISSEQ. splits; simpls. by symmetry. }
   red; unfold eissued, ecovered; simpls; splits.
   { left. by splits. }
+
+  assert (dom_rel (sb ⨾ ⦗eq e⦘) ⊆₁ covered (etc_TC T)) as SBE.
+  { destruct ISS as [[[_ ISS] _] _].
+    admit. }
+  (* { set (AA:=TCCOHalt'). *)
+  (*   apply tc_sb_C in AA. *)
+  (*   unfold ecovered in *. rewrite COVEQ in AA. *)
+  (*   rewrite id_union in AA. rewrite seq_union_r in AA. *)
+  (*   rewrite dom_union in AA. *)
+  (*   apply set_subset_union_l in AA. destruct AA as [_ AA]. *)
+  (*   clear -AA. unfolder in *. ins. desf. *)
+  (*   edestruct AA. *)
+  (*   { eauto. } *)
+  (*   { done. } *)
+  (*   subst. exfalso. eapply sb_irr; eauto. } *)
+
   constructor; unfold eissued, ecovered; simpls.
+  3: { rewrite set_minus_union_l. unionL.
+       2: { unfolder. intros x [AA HH]. exfalso. apply HH. eauto. }
+       erewrite set_minus_mori.
+       { apply ETCCOH.(etc_S_I_in_W_ex). }
+       { done. }
+       unfold eissued. red. by unionR left. }
+  2: { apply set_union_mori; [|done]. apply ETCCOH. }
+  { admit. }
+  all: unionR left.
+  all: rewrite id_union, !seq_union_r, dom_union; unionL; [by apply ETCCOH|].
+
+  red. splits; simpls.
+  { apply ETCCOH. }
+  { etransitivity.
+    2: { eapply traversal_mon with (T:=etc_TC T); basic_solver. }
+    apply ETCCOH. }
+  etransitivity.
+  2: { eapply traversal_mon with (T:=etc_TC T); basic_solver. }
+  unionL; auto; [apply ETCCOH|basic_solver]. }
+  2: { apply 
   all: admit.
 Admitted.
 
