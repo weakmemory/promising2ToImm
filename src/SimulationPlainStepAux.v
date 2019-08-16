@@ -5,7 +5,7 @@ From Promising Require Import TView View Time Event Cell Thread Memory Configura
 
 From imm Require Import Events Execution.
 Require Import MaxValue.
-From imm Require Import ViewRel.
+Require Import ViewRel.
 From imm Require Import SimulationRel.
 Require Import PromiseLTS.
 From imm Require Import ProgToExecution.

@@ -14,7 +14,7 @@ From imm Require Import CombRelations.
 From imm Require Import TraversalConfig.
 From imm Require Import Traversal.
 Require Import MaxValue.
-From imm Require Import ViewRel.
+Require Import ViewRel.
 Require Import Event_imm_promise.
 From imm Require Import SimulationRel.
 Require Import SimState.

@@ -10,7 +10,7 @@ From imm Require Import imm_s.
 From imm Require Import CombRelations.
 From imm Require Import TraversalConfig.
 Require Import MaxValue.
-From imm Require Import ViewRel.
+Require Import ViewRel.
 Require Import Event_imm_promise.
 Require Import PromiseLTS.
 From imm Require Import ProgToExecution.
