@@ -28,7 +28,7 @@ From imm Require Import ProgToExecutionProperties.
 From imm Require Import TraversalCounting.
 
 From imm Require Import SimulationPlainStepAux.
-From imm Require Import CertGraphInit.
+Require Import CertGraphInit.
 From imm Require Import PromiseFuture.
 Require Import MemoryAux.
 
