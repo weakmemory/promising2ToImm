@@ -14,7 +14,7 @@ Lemma closedness_preserved_id memory :
 Proof. by intros view. Qed.
 
 Lemma closedness_preserved_add memory memory'
-      loc from to msg 
+      loc from to msg
       (ADD : Memory.add memory loc from to msg memory'):
   closedness_preserved memory memory'.
 Proof.
@@ -22,26 +22,32 @@ Proof.
   intros loc'.
   erewrite Memory.add_o; eauto.
   destruct (loc_ts_eq_dec (loc', view loc') (loc, to)) as [[A B]|NEQ]; simpls.
-  subst; eexists; eexists; eexists; eauto.
+  subst.
+  exfalso.
+  apply Memory.add_get0 in ADD. desf.
+  specialize (CP loc). desf. rewrite ADD in CP. inv CP.
 Qed.
 
 Lemma closedness_preserved_split memory memory'
-      loc from to to' val val' rel rel'
-      (SPLIT : Memory.split memory loc from to to' val val' rel rel' memory'):
+      loc from to to' msg msg'
+      (SPLIT : Memory.split memory loc from to to' msg msg' memory'):
   closedness_preserved memory memory'.
 Proof.
   intros view CP. red.
   intros loc'.
+  set (MM:=SPLIT).
+  apply Memory.split_get0 in MM. desf.
   erewrite Memory.split_o; eauto.
-  destruct (loc_ts_eq_dec (loc', view loc') (loc, to)) as [[A B]|NEQ]; simpls.
-  { eexists; eexists; eexists; eauto. }
-  destruct (loc_ts_eq_dec (loc', view loc') (loc, to')) as [[A B]|NEQ']; simpls.
-  eexists; eexists; eexists; eauto.
+  destruct (loc_ts_eq_dec (loc', view loc') (loc, to)) as [[A B]|NEQ]; simpls; subst.
+  { specialize (CP loc). desf. rewrite MM in CP. inv CP. }
+  destruct (loc_ts_eq_dec (loc', view loc') (loc, to')) as [[A B]|NEQ']; simpls; desf.
+  specialize (CP loc). desf. rewrite MM0 in CP. inv CP.
+  eauto.
 Qed.
 
 Lemma tview_closedness_preserved_add tview memory memory'
-      loc from to val rel
-      (ADD : Memory.add memory loc from to val rel memory')
+      loc from to msg 
+      (ADD : Memory.add memory loc from to msg memory')
       (MEM_CLOSE : memory_close tview memory) :
   memory_close tview memory'.
 Proof.
