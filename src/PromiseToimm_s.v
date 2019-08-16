@@ -14,7 +14,7 @@ From imm Require Import imm_s.
 From imm Require Import Traversal.
 From imm Require Import TraversalConfig.
 From imm Require Import SimTraversal.
-From imm Require Import SimulationRel.
+Require Import SimulationRel.
 From imm Require Import PlainStepBasic.
 From imm Require Import SimulationPlainStep.
 Require Import MaxValue.

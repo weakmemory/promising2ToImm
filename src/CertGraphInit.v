@@ -22,7 +22,7 @@ From imm Require Import Receptiveness.
 From imm Require Import ProgToExecution ProgToExecutionProperties.
 
 Require Import MaxValue ViewRel.
-From imm Require Import SimulationRel.
+Require Import SimulationRel.
 Require Import SimState.
 
 Set Implicit Arguments.

@@ -1,20 +1,21 @@
 Require Import PArith Setoid.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising Require Import TView View Time Event Cell Thread Memory Configuration.
+Require Import FLocHelper.
+From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration Local.
 
 From imm Require Import Events Execution.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
-
 From imm Require Import CombRelations.
 From imm Require Import TraversalConfig.
+From imm Require Import ProgToExecution.
+From imm Require Import ProgToExecutionProperties.
+
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import Event_imm_promise.
 Require Import PromiseLTS.
-From imm Require Import ProgToExecution.
-From imm Require Import ProgToExecutionProperties.
 Require Import SimState.
 Require Import MemoryAux.
 
@@ -242,25 +243,25 @@ Definition sim_prom
            promises :=
   forall l to from v rel
          (PROM  : Memory.get l to promises =
-                  Some (from, Message.mk v rel)),
+                  Some (from, Message.full v rel)),
   exists b,
     ⟪ ACTS : E b ⟫ /\
     ⟪ TID  : tid b = thread ⟫ /\
     ⟪ ISS  : issued T b ⟫ /\
     ⟪ NCOV : ~ covered T b ⟫ /\
-    ⟪ LOC  : Loc_ l b ⟫ /\
+    ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
     ⟪ FROM : f_from b = from ⟫ /\
     ⟪ TO   : f_to b = to ⟫ /\
     ⟪ HELPER : sim_mem_helper G sc f_to b from v rel.(View.unwrap) ⟫.
 
 Definition message_to_event (f_to f_from : actid -> Time.t) I (memory : Memory.t) :=
   forall l to from v rel
-         (MSG : Memory.get l to memory = Some (from, Message.mk v rel)),
+         (MSG : Memory.get l to memory = Some (from, Message.full v rel)),
     (to = Time.bot /\ from = Time.bot) \/
     exists b,
     ⟪ ACTS : E b ⟫ /\
     ⟪ ISS  : I b ⟫ /\
-    ⟪ LOC  : Loc_ l b ⟫ /\
+    ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
     ⟪ FROM : f_from b = from ⟫ /\
     ⟪ TO   : f_to b = to ⟫.
 
@@ -294,12 +295,12 @@ Definition sim_mem
            (thread : thread_id)
            (local : Local.t)
            mem :=
-    forall l b (EB: E b) (ISSB: issued T b) (LOC: Loc_ l b)
+    forall l b (EB: E b) (ISSB: issued T b) (LOC: Loc_ (FLoc.loc l) b)
                    v (VAL: val lab b = Some v) ,
     exists rel_opt,
       let rel := rel_opt.(View.unwrap) in
       ⟪ INMEM : Memory.get l (f_to b) mem =
-                 Some (f_from b, Message.mk v rel_opt) ⟫ /\
+                 Some (f_from b, Message.full v rel_opt) ⟫ /\
 
       ⟪ HELPER : sim_mem_helper G sc f_to b (f_from b) v rel ⟫ /\
       ⟪ REL_PLN_RLX : TimeMap.eq (View.pln rel) (View.rlx rel) ⟫ /\
@@ -308,7 +309,7 @@ Definition sim_mem
       (⟪ TID  : tid b = thread ⟫ ->
        ⟪ NCOV : ~ covered T b ⟫ ->
        ⟪ PROM: Memory.get l (f_to b) local.(Local.promises) =
-          Some (f_from b, Message.mk v rel_opt) ⟫ /\
+          Some (f_from b, Message.full v rel_opt) ⟫ /\
        ⟪ REL_REPR :
          exists p_rel,
            ⟪ REL : rel_opt =
@@ -323,7 +324,7 @@ Definition sim_mem
              exists p_v,
                 ⟪ P_VAL : val lab p = Some p_v ⟫ /\
                 ⟪ P_INMEM : Memory.get l (f_to p) mem =
-                            Some (f_from p, Message.mk p_v p_rel) ⟫))
+                            Some (f_from p, Message.full p_v p_rel) ⟫))
        ⟫).
 
 Definition pln_rlx_eq tview :=
@@ -371,8 +372,8 @@ Definition simrel_common
 
   ⟪ SC_COV : smode = sim_certification -> E∩₁F∩₁Sc ⊆₁ covered T ⟫ /\ 
   ⟪ SC_REQ : smode = sim_normal -> 
-         forall (l : Loc.t),
-         max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view) ⟫ /\
+         forall l,
+         max_value f_to (S_tm G (FLoc.loc l) (covered T)) (FLocFun.find l sc_view) ⟫ /\
 
   ⟪ RESERVED_TIME: reserved_time f_to f_from (issued T) memory smode ⟫ /\
                     
@@ -447,9 +448,9 @@ Definition simrel
     intros l'.
     specialize (CUR l').
     specialize (REL l l').
-    unfold LocFun.find in *.
-    set (srel := t_rel G sc thread l' l (covered T)).
-    set (scur := t_cur G sc thread l' (covered T)).
+    unfold FLocFun.find in *.
+    set (srel := t_rel G sc thread (FLoc.loc l') (FLoc.loc l) (covered T)).
+    set (scur := t_cur G sc thread (FLoc.loc l') (covered T)).
     assert (srel ⊆₁ scur) as SS.
     { unfold scur, srel.
       intros x H.
@@ -467,7 +468,7 @@ Definition simrel
     apply UB0.
     destruct INam as [|INam]; [by apply SS|].
     destruct (classic (l' = l)) as [LL|NLL]; subst.
-    2: by rewrite Loc.eq_dec_neq in INam; desf.
+    2: { rewrite Loc.eq_dec_neq in INam; desf; by apply floc_inj_neq. }
     rewrite Loc.eq_dec_eq in INam.
     destruct INam as [[[X Y] Z] U].
     red. exists a_max.

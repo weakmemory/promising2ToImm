@@ -19,7 +19,7 @@ From imm Require Import SimTraversal.
 Require Import MaxValue.
 Require Import ViewRel.
 From imm Require Import ViewRelHelpers.
-From imm Require Import SimulationRel.
+Require Import SimulationRel.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution.
 From imm Require Import SimulationPlainStepAux.
