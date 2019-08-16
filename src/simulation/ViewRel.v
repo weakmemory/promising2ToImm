@@ -13,6 +13,7 @@ From imm Require Import CombRelationsMore.
 From imm Require Import TraversalConfig.
 From imm Require Import ViewRelHelpers.
 
+Require Import FLocHelper.
 Require Import MaxValue.
 Require Import Event_imm_promise.
 
@@ -186,13 +187,13 @@ Proof.
     eapply max_value_join; eauto.
     { eapply max_value_same_set; [|by apply DR].
       eapply max_value_same_set; [|by eapply dom_rel_r; eauto].
-      unfold TimeMap.singleton, LocFun.add, LocFun.find, LocFun.init.
-      destruct (LocSet.Facts.eq_dec (FLoc.loc l) (FLoc.loc locr)); simpls; subst.
-      all: unfold TimeMap.singleton, LocFun.add, LocFun.find, LocFun.init.
-      { apply max_value_singleton. rewrite Loc.eq_dec_eq. }
+      unfold TimeMap.singleton, FLocFun.add, FLocFun.find, FLocFun.init.
+      destruct (FLoc.eq_dec l locr) as [EQ|NEQ]; simpls; subst.
+      { rewrite Loc.eq_dec_eq. by apply max_value_singleton. }
       rewrite Loc.eq_dec_neq; auto.
+      2: by apply floc_inj_neq.
       apply max_value_empty; intros x HH; desf. }
-    specialize (MSGALT l (Acq)).
+    specialize (MSGALT (FLoc.loc l) (Acq)).
     eapply max_value_same_set; [|by apply MSGALT].
     destruct (Acq r) eqn: RACQ; unfold View.rlx; simpls.
     by apply max_value_empty; intros x HH; desf. }
@@ -203,14 +204,17 @@ Proof.
     eapply max_value_join; eauto.
     eapply max_value_join; eauto.
     { eapply max_value_same_set; [|by apply DR].
-      eapply max_value_same_set; [|by eapply (dom_rel_r WF l); eauto].
-      destruct (LocSet.Facts.eq_dec l locr); simpls; subst;
-        unfold TimeMap.singleton, LocFun.add, LocFun.find, LocFun.init.
-      { by rewrite Loc.eq_dec_eq; apply max_value_singleton. }
-      rewrite Loc.eq_dec_neq; auto.
+      eapply max_value_same_set; [|by eapply (dom_rel_r WF (FLoc.loc l)); eauto].
+      destruct (LocSet.Facts.eq_dec (FLoc.loc l) (FLoc.loc locr)); simpls; subst;
+        unfold TimeMap.singleton, FLocFun.add, FLocFun.find, FLocFun.init.
+      { rewrite floc_eq_dec_eq_eq.
+        { by apply max_value_singleton. }
+          by apply floc_inj_eq. }
+      rewrite floc_eq_dec_neq.
+      2: by apply floc_inj_neq.
       apply max_value_empty; intros x HH; desf. }
     apply set_equiv_union; [reflexivity|].
-    specialize (MSGALT l (fun x => true)).
+    specialize (MSGALT (FLoc.loc l) (fun x => true)).
     simpl in MSGALT. rewrite <- MSGALT.
     arewrite (⦗fun _ : actid => true⦘ ≡ ⦗fun _ : actid => True⦘).
     { split; intros x y H; red; red in H; desf. }
@@ -232,9 +236,9 @@ Lemma sim_tview_write_step f_to f_from
       (TID : tid w = thread)
       (NINIT : ~ is_init w)
       (WACTS : E w)
-      (WPARAMS : lab w = Astore xmw ordw locw valw)
+      (WPARAMS : lab w = Astore xmw ordw (FLoc.loc locw) valw)
       (GET : Memory.get locw (f_to w) mem =
-             Some (f_from w, Message.mk valw rel))
+             Some (f_from w, Message.full valw rel))
       (HELPER : sim_mem_helper f_to w (f_from w) valw rel.(View.unwrap))
  : sim_tview
     (C ∪₁ eq w) f_to
@@ -244,7 +248,7 @@ Lemma sim_tview_write_step f_to f_from
 Proof.
   assert (W w) as WW.
   { by unfold is_w; rewrite WPARAMS. }
-  assert (loc lab w = Some locw) as LOC.
+  assert (loc lab w = Some (FLoc.loc locw)) as LOC.
   { by unfold loc; rewrite WPARAMS. }
   assert (~ F w) as NF.
   { intros H; type_solver. }
@@ -269,7 +273,7 @@ Proof.
   
   assert (forall l,
              W_ l ∩₁ eq w ≡₁
-             if LocSet.Facts.eq_dec l locw then eq w else ∅) as DR3.
+             if LocSet.Facts.eq_dec l (FLoc.loc locw) then eq w else ∅) as DR3.
     by basic_solver.
 
   assert (Ordering.le Ordering.acqrel (wmod ordw) = Rel w)
@@ -291,9 +295,11 @@ Proof.
     eapply max_value_same_set; [|eapply DR2].
     eapply max_value_same_set; [|eapply DR1].
     eapply max_value_same_set; [|eapply DR3].
-    unfold TimeMap.singleton, LocFun.add, LocFun.find, LocFun.init.
-    destruct (LocSet.Facts.eq_dec l locw); simpls; subst.
-    { by apply max_value_singleton. }
+    unfold TimeMap.singleton, FLocFun.add, FLocFun.find, FLocFun.init.
+    destruct (FLoc.eq_dec l locw) as [EQ|NEQ]; simpls; subst.
+    { rewrite Loc.eq_dec_eq. by apply max_value_singleton. }
+    rewrite Loc.eq_dec_neq; auto.
+    2: by apply floc_inj_neq.
     apply max_value_empty; intros x HH; desf. }
   { eapply max_value_same_set.
     2: apply t_acq_urr_union_eqv; auto; revert PRC; basic_solver.
@@ -302,26 +308,32 @@ Proof.
     eapply max_value_same_set; [|eapply DR5].
     eapply max_value_same_set; [|eapply DR1].
     eapply max_value_same_set; [|eapply DR3].
-    unfold TimeMap.singleton, LocFun.add, LocFun.find, LocFun.init.
-    destruct (LocSet.Facts.eq_dec l locw); simpls; subst.
-    { by apply max_value_singleton. }
+    unfold TimeMap.singleton, FLocFun.add, FLocFun.find, FLocFun.init.
+    destruct (FLoc.eq_dec l locw) as [EQ|NEQ]; simpls; subst.
+    { rewrite Loc.eq_dec_eq. by apply max_value_singleton. }
+    rewrite Loc.eq_dec_neq; auto.
+    2: by apply floc_inj_neq.
     apply max_value_empty; intros x HH; desf. }
-  { intros l0; eapply max_value_same_set; [|eapply t_rel_w_union_eqv; eauto]; cycle 2.
-    3: by apply urr_refl.
-{
-ins.
-rewrite ((urr_rel_n_f_alt_union_eqv WF) sc Wf_sc l1 l' C w (tid w)); eauto.
-basic_solver 42.
-revert PRC; basic_solver 42.
-}
-    unfold TimeMap.join, TimeMap.singleton,View.singleton_ur,
-    LocFun.add, LocFun.find, LocFun.init.
-    destruct (LocSet.Facts.eq_dec l locw); simpls; subst.
-    destruct (Rel w); simpls; eapply max_value_join; eauto.
-    all: unfold LocFun.find, LocFun.init, TimeMap.singleton, LocFun.add.
-    all: destruct (Loc.eq_dec l0 locw).
-    1,3: by apply max_value_singleton; auto.
-    all: by apply max_value_empty; auto. }
+  intros l0; eapply max_value_same_set; [|eapply t_rel_w_union_eqv; eauto]; cycle 2.
+  3: by apply urr_refl.
+  { ins.
+    rewrite ((urr_rel_n_f_alt_union_eqv WF) sc Wf_sc l1 l' C w (tid w)); eauto.
+    basic_solver 42.
+    revert PRC; basic_solver 42. }
+  unfold TimeMap.join, TimeMap.singleton, View.singleton_ur,
+  FLocFun.add, FLocFun.find, FLocFun.init.
+  destruct (FLoc.eq_dec l locw); simpls; subst.
+  rewrite Loc.eq_dec_eq.
+  2: rewrite Loc.eq_dec_neq; [|by apply floc_inj_neq].
+  destruct (Rel w); simpls; eapply max_value_join; eauto.
+  all: unfold TimeMap.singleton, FLocFun.add, FLocFun.find, FLocFun.init.
+  all: destruct (FLoc.eq_dec l0 locw); subst.
+  all: try rewrite Loc.eq_dec_eq.
+  all: try by apply max_value_singleton.
+  all: try (rewrite Loc.eq_dec_neq; [|by apply floc_inj_neq]).
+  all: try by apply max_value_empty; auto.
+  { specialize (REL l locw). by unfold FLocFun.find in REL. }
+  specialize (REL l l0). by unfold FLocFun.find in REL.
 Qed.
 
 Lemma sim_tview_f_issued f_to f_to' T tview thread
@@ -340,7 +352,7 @@ Proof.
   intros x [H|H].
   { apply t_rel_covered in H; auto. }
   destruct (classic (l = l')) as [LEQ|LNEQ].
-  2: by rewrite Loc.eq_dec_neq in H; desf.
+  2: { rewrite Loc.eq_dec_neq in H; desf. by apply floc_inj_neq. }
   apply ISSEQ.
   subst; rewrite Loc.eq_dec_eq in H.
   generalize (w_covered_issued TCCOH).
@@ -359,11 +371,12 @@ Lemma sim_sc_fence_step
       (SAME_MOD : fmod ordf ordr ordw)
       (SIMTVIEW : sim_tview (covered T) f_to tview thread)
       (SC_VIEW :
-         forall (l : Loc.t),
-           max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view)) :
-  forall l : Loc.t,
-    max_value f_to (S_tm G l (covered T ∪₁ eq f))
-              (LocFun.find
+         forall (l : FLoc.t),
+           max_value f_to (S_tm G (FLoc.loc l) (covered T))
+                     (FLocFun.find l sc_view)) :
+  forall l : FLoc.t,
+    max_value f_to (S_tm G (FLoc.loc l) (covered T ∪₁ eq f))
+              (FLocFun.find
                  l (TView.write_fence_sc
                       (TView.read_fence_tview tview ordr) 
                       sc_view ordw)).
@@ -417,8 +430,8 @@ Lemma sim_tview_fence_step T
       (SIMTVIEW : sim_tview (covered T) f_to tview thread)
       (SC_VIEW :
          ~ (E∩₁F∩₁Sc ⊆₁ (covered T)) ->
-         forall (l : Loc.t),
-           max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view)) :
+         forall (l : FLoc.t),
+           max_value f_to (S_tm G (FLoc.loc l) (covered T)) (FLocFun.find l sc_view)) :
   sim_tview (covered T ∪₁ eq f) f_to
     (TView.write_fence_tview
        (TView.read_fence_tview tview ordr) 
