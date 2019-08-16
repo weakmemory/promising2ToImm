@@ -1,5 +1,5 @@
 COQMODULE    := promise2ToImm 
-COQTHEORIES  := src/lib/*.v src/ext_traversal/*.v src/promise_basics/*.v src/simulation/*.v src/*.v
+COQTHEORIES  := src/lib/*.v src/ext_traversal/*.v src/promise_basics/*.v src/simulation/*.v
 
 .PHONY: all theories clean tounicode
 

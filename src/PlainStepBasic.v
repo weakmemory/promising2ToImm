@@ -1,27 +1,26 @@
 Require Import PArith.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising Require Import Configuration TView View Time Event Cell Thread Memory.
+From Promising2 Require Import Configuration TView View Time Event Cell Thread Memory Local.
+
 From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import Execution_eco.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 From imm Require Import imm_common.
-
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
-
 From imm Require Import TraversalConfig.
 From imm Require Import Traversal.
 From imm Require Import SimTraversal.
+From imm Require Import ViewRelHelpers.
 
+From imm Require Import SimulationPlainStepAux.
+(* From imm Require Import SimulationRelAux. *)
 Require Import MaxValue.
 Require Import ViewRel.
-From imm Require Import ViewRelHelpers.
 Require Import SimulationRel.
-From imm Require Import SimulationPlainStepAux.
-From imm Require Import SimulationRelAux.
 Require Import MemoryAux.
 Require Import SimState.
 
@@ -30,15 +29,15 @@ Set Implicit Arguments.
 (* It's a version of Configuration.step which doesn't require
    consistency of the new configuration. *)
 Inductive plain_step :
-  forall (e:option Event.t) (tid:Ident.t)
+  forall (e:MachineEvent.t) (tid:Ident.t)
          (c1 c2:Configuration.t), Prop :=
 | plain_step_intro
     pf e tid c1 lang st1 lc1 e2 st3 lc3 sc3 memory3
     (TID: IdentMap.find tid c1.(Configuration.threads) = Some (existT _ lang st1, lc1))
     (STEPS: rtc (@Thread.tau_step _) (Thread.mk _ st1 lc1 c1.(Configuration.sc) c1.(Configuration.memory)) e2)
-    (STEP: Thread.step pf e e2 (Thread.mk _ st3 lc3 sc3 memory3)):
-    plain_step (ThreadEvent.get_event e) tid c1 (Configuration.mk (IdentMap.add tid (existT _ _ st3, lc3) c1.(Configuration.threads)) sc3 memory3)
-.
+    (STEP: Thread.step pf e e2 (Thread.mk _ st3 lc3 sc3 memory3))
+    (EVENT: e <> ThreadEvent.abort) :
+    plain_step (ThreadEvent.get_machine_event e) tid c1 (Configuration.mk (IdentMap.add tid (existT _ _ st3, lc3) c1.(Configuration.threads)) sc3 memory3).
 
 Lemma pair_app :
   forall (A B : Prop), A -> (A -> A /\ B) -> A /\ B.
@@ -104,16 +103,14 @@ Definition msg_preserved memory memory' :=
 Definition msg_preserved_refl memory : msg_preserved memory memory.
 Proof. red. ins. eauto. Qed.
 
-Definition msg_preserved_add memory memory' loc from to val released
-           (ADD : Memory.add memory loc from to val released memory') :
+Definition msg_preserved_add memory memory' loc from to msg 
+           (ADD : Memory.add memory loc from to msg memory') :
   msg_preserved memory memory'.
 Proof. red. ins. exists from0. eapply memory_add_le; eauto. Qed.
 
 Definition msg_preserved_split memory memory'
-           loc ts1 ts2 ts3 val2 val3 released2 release3
-           (SPLIT : Memory.split
-                      memory loc ts1 ts2 ts3
-                      val2 val3 released2 release3 memory'):
+           loc ts1 ts2 ts3 msg1 msg2 
+           (SPLIT : Memory.split memory loc ts1 ts2 ts3 msg1 msg2 memory'):
   msg_preserved memory memory'.
 Proof.
   red. ins.
