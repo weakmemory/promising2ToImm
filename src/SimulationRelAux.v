@@ -1,7 +1,7 @@
 Require Import Setoid PArith.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising Require Import TView View Time Event Cell Thread Memory Configuration.
+From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration.
 
 From imm Require Import Events.
 From imm Require Import Execution.
@@ -225,9 +225,9 @@ Lemma sc_view_f_issued f_to f_to' T sc_view
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
       (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
       (SC_REQ : forall l,
-          max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view)):
+          max_value f_to (S_tm G (FLoc.loc l) (covered T)) (FLocFun.find l sc_view)):
   forall l,
-    max_value f_to' (S_tm G l (covered T)) (LocFun.find l sc_view).
+    max_value f_to' (S_tm G (FLoc.loc l) (covered T)) (FLocFun.find l sc_view).
 Proof.
   intros l; specialize (SC_REQ l).
   eapply max_value_new_f; eauto.
@@ -248,7 +248,7 @@ Proof.
   cdes SIMREL.
   red; splits; auto.
   { by eapply f_to_coherent_f_issued; eauto. }
-  { by ins; eapply sc_view_f_issued; eauto. }
+  { ins. eapply sc_view_f_issued; eauto. }
     by eapply rintervals_f_issued; eauto.
 Qed.
 
