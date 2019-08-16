@@ -57,8 +57,8 @@ Proof.
 Qed.
 
 Lemma tview_closedness_preserved_split tview memory memory'
-      loc from to to' val val' rel rel'
-      (SPLIT : Memory.split memory loc from to to' val val' rel rel' memory')
+      loc from to to' msg msg' 
+      (SPLIT : Memory.split memory loc from to to' msg msg' memory')
       (MEM_CLOSE : memory_close tview memory) :
   memory_close tview memory'.
 Proof.

@@ -17,7 +17,7 @@ From imm Require Import CombRelations CombRelationsMore.
 From imm Require Import ViewRelHelpers.
 
 From imm Require Import SimulationPlainStepAux.
-From imm Require Import PlainStepBasic.
+Require Import PlainStepBasic.
 From imm Require Import SimulationRelAux.
 
 Require Import MemoryAux.

@@ -15,7 +15,7 @@ From imm Require Import Traversal.
 From imm Require Import TraversalConfig.
 From imm Require Import SimTraversal.
 Require Import SimulationRel.
-From imm Require Import PlainStepBasic.
+Require Import PlainStepBasic.
 From imm Require Import SimulationPlainStep.
 Require Import MaxValue.
 From imm Require Import CombRelations.

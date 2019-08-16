@@ -16,8 +16,7 @@ From imm Require Import Traversal.
 From imm Require Import SimTraversal.
 From imm Require Import ViewRelHelpers.
 
-From imm Require Import SimulationPlainStepAux.
-(* From imm Require Import SimulationRelAux. *)
+Require Import MemoryClosedness.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import SimulationRel.
@@ -248,7 +247,7 @@ Proof.
   right. exists p; splits; auto.
   assert (issued T' p) as ISSP'.
   { apply ISSIN. apply ISSP. }
-  assert (loc lab p = Some l) as LOCP.
+  assert (loc lab p = Some (FLoc.loc l)) as LOCP.
   { simpls. erewrite wf_rfrmwl; eauto. }
   assert (exists p_v', val lab p = Some p_v') as [p_v' VALP].
   { apply WF.(wf_rfrmwD) in INRMW.
@@ -267,11 +266,11 @@ Lemma max_event_cur PC T f_to f_from l e thread foo local smode
       (SIMREL_THREAD : simrel_thread G sc PC thread T f_to f_from smode)
       (NEXT : next G (covered T) e)
       (TID_E : tid e = thread)
-      (LOC : loc lab e = Some l)
+      (LOC : loc lab e = Some (FLoc.loc l))
       (TID: IdentMap.find thread PC.(Configuration.threads) = Some (foo, local)):
   exists p_max,
     ⟪ NEQ : p_max <> e ⟫ /\
-    ⟪ CCUR : urr G sc l p_max e ⟫ /\
+    ⟪ CCUR : urr G sc (FLoc.loc l) p_max e ⟫ /\
     ⟪ LB : Time.le
       (View.rlx (TView.cur (Local.tview local)) l)
       (f_to p_max) ⟫.
@@ -287,9 +286,9 @@ Proof.
   { intros HH. apply NEXT. by apply TCCOH. }
 
   destruct MAX as [[MAX MAX'] | MAX].
-  { unfold LocFun.find in MAX'.
+  { unfold FLocFun.find in MAX'.
     rewrite MAX'; ins.
-    exists (InitEvent l); splits; [ | | by apply Time.bot_spec].
+    exists (InitEvent (FLoc.loc l)); splits; [ | | by apply Time.bot_spec].
     { intros H; subst; simpls. }
     apply hb_in_urr.
     apply seq_eqv_l; split; red; [|right].
@@ -317,7 +316,7 @@ Proof.
     { apply TCCOH in Y'.
       apply Y'. eexists; apply seq_eqv_r; split; eauto. }
       by apply NEXT in Z. }
-  assert ((urr G sc l ⨾ hb) a_max e) as UH.
+  assert ((urr G sc (FLoc.loc l) ⨾ hb) a_max e) as UH.
   { exists y; split; auto. }
   splits.
   { intros H; subst; eapply urr_hb_irr; eauto.

@@ -22,7 +22,7 @@ From imm Require Import ViewRelHelpers.
 Require Import SimulationRel.
 From imm Require Import SimulationPlainStepAux.
 From imm Require Import SimulationRelAux.
-From imm Require Import PlainStepBasic.
+Require Import PlainStepBasic.
 
 Require Import SimState.
 Require Import SimStateHelper.

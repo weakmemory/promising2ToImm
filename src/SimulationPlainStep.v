@@ -25,7 +25,7 @@ From imm Require Import Prog ProgToExecution.
 From imm Require Import SimulationPlainStepAux.
 From imm Require Import SimulationRelAux.
 
-From imm Require Import PlainStepBasic.
+Require Import PlainStepBasic.
 From imm Require Import FencePlainStep.
 From imm Require Import WritePlainStep.
 From imm Require Import ReadPlainStep.
