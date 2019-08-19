@@ -20,9 +20,11 @@ From imm Require Import Prog.
 From imm Require Import Receptiveness.
 From imm Require Import ProgToExecution ProgToExecutionProperties.
 
-Require Import MaxValue ViewRel.
+Require Import MaxValue.
+Require Import ViewRel.
 Require Import SimulationRel.
 Require Import SimState.
+Require Import ExtTraversal.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -32,29 +34,27 @@ Section Cert.
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 
-Lemma cert_graph_init Gf sc T PC f_to f_from thread
+Lemma cert_graph_init Gf sc T S PC f_to f_from thread
       (WF : Wf Gf)
       (IMMCON : imm_consistent Gf sc)
-      (SIMREL : simrel_thread Gf sc PC thread T f_to f_from sim_normal) :
-  exists G' sc' T',
+      (SIMREL : simrel_thread Gf sc PC T S f_to f_from thread sim_normal) :
+  exists G' sc' T' S',
     ⟪ WF : Wf G' ⟫ /\
     ⟪ IMMCON : imm_consistent G' sc' ⟫ /\
     ⟪ NTID  : NTid_ thread ∩₁ G'.(acts_set) ⊆₁ covered T' ⟫ /\
-    ⟪ SIMREL : simrel_thread G' sc' PC thread T' f_to f_from sim_certification ⟫.
+    ⟪ SIMREL : simrel_thread G' sc' PC T' S' f_to f_from thread sim_certification ⟫.
 Proof.
 assert (exists G, G = rstG Gf T thread) by eauto; desc.
 
 assert (WF_SC: wf_sc Gf sc).
 by apply IMMCON.
 
-assert (TCCOH: tc_coherent Gf sc T).
-by cdes SIMREL; cdes COMMON.
+assert (ETCCOH: etc_coherent Gf sc (mkETC T S)).
+{ by cdes SIMREL; cdes COMMON. }
+assert (TCCOH: tc_coherent Gf sc T) by apply ETCCOH.
 
 assert (RELCOV: (fun a : actid => is_w (lab Gf) a) ∩₁ (fun a : actid => is_rel (lab Gf) a) ∩₁ issued T
 ⊆₁ covered T).
-by cdes SIMREL; cdes COMMON.
-
-assert (ACQEX: W_ex Gf ⊆₁ W_ex Gf ∩₁ (fun a : actid => is_xacq (lab Gf) a)).
 by cdes SIMREL; cdes COMMON.
 
 remember (⦗E0 Gf T thread⦘ ⨾ sc ⨾ ⦗E0 Gf T thread⦘) as Gsc.
@@ -216,7 +216,7 @@ assert (exists ctindex,
   simpls. rewrite CTTID in *.
   assert (acts_set Gf (ThreadEvent thread mindex)) as EEM.
   { by apply CTEE. }
-  exists (S mindex). splits.
+  exists (1 + mindex). splits.
   { ins. apply CTALT in CTMAX.
     apply CTALT. split; auto. 
     apply le_lt_or_eq in LT. destruct LT as [LT|LT].
@@ -664,6 +664,8 @@ assert (((rf G ⨾ ⦗D G T thread⦘ ∪ new_rf G Gsc T thread) ⨾ rmw G) ⨾ 
 exists (certG G Gsc T thread lab').
 exists Gsc.
 exists (mkTC (T.(covered) ∪₁ (G.(acts_set) ∩₁ NTid_ thread)) T.(issued)).
+exists S.
+
 splits.
 { by apply WF_cert. }
 { by apply cert_imm_consistent. }

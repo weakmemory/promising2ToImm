@@ -123,7 +123,7 @@ Proof.
   eauto.
 Qed.
 
-Lemma full_simrel_step thread PC PC' T T' label f_to f_from
+Lemma full_simrel_step thread PC PC' T S T' S' label f_to f_from
       (COVE  : covered T' ⊆₁ E)
       (ISSE  : issued  T' ⊆₁ E)
       (COVIN : covered T ⊆₁ covered T')
@@ -138,9 +138,9 @@ Lemma full_simrel_step thread PC PC' T T' label f_to f_from
       (TPEQ : forall thread,
           IdentMap.In thread PC.(Configuration.threads) <->
           IdentMap.In thread PC'.(Configuration.threads))
-      (SIMREL_THREAD : simrel_thread G sc PC' thread T' f_to f_from sim_normal)
-      (SIMREL : simrel G sc PC T f_to f_from) :
-  simrel G sc PC' T' f_to f_from.
+      (SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread sim_normal)
+      (SIMREL : simrel G sc PC T S f_to f_from) :
+  simrel G sc PC' T' S' f_to f_from.
 Proof.
   red. splits; auto.
   { apply SIMREL_THREAD. }

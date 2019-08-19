@@ -8,9 +8,9 @@ From imm Require Import Events Execution.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 From imm Require Import CombRelations.
-From imm Require Import TraversalConfig.
 From imm Require Import ProgToExecution.
 From imm Require Import ProgToExecutionProperties.
+From imm Require Import TraversalConfig.
 
 Require Import MaxValue.
 Require Import ViewRel.
@@ -19,16 +19,19 @@ Require Import PromiseLTS.
 Require Import SimState.
 Require Import MemoryAux.
 Require Import FtoCoherent.
+Require Import ExtTraversal.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
 
 Section SimRel.
-  Variable G : execution.
-  Variable WF : Wf G.
-  Variable sc : relation actid.
-  Variable T : trav_config.
-  Variables f_to f_from : actid -> Time.t.
+Variable G : execution.
+Variable WF : Wf G.
+Variable sc : relation actid.
+Variable PC : Configuration.t.
+Variable T : trav_config.
+Variable S : actid -> Prop. (* A set of reserved events *)
+Variables f_to f_from : actid -> Time.t.
 
 Notation "'acts'" := G.(acts).
 Notation "'co'" := G.(co).
@@ -62,6 +65,9 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Notation "'W_ex'" := G.(W_ex).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
+
+Notation "'C'" := (covered T).
+Notation "'I'" := (issued T).
   
 Definition sim_prom (thread : thread_id) promises :=
   forall l to from v rel
@@ -70,27 +76,26 @@ Definition sim_prom (thread : thread_id) promises :=
   exists b,
     ⟪ ACTS : E b ⟫ /\
     ⟪ TID  : tid b = thread ⟫ /\
-    ⟪ ISS  : issued T b ⟫ /\
+    ⟪ ISS  : I b ⟫ /\
     ⟪ NCOV : ~ covered T b ⟫ /\
     ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
     ⟪ FROM : f_from b = from ⟫ /\
     ⟪ TO   : f_to b = to ⟫ /\
     ⟪ HELPER : sim_mem_helper G sc f_to b from v rel.(View.unwrap) ⟫.
 
-Definition message_to_event I (memory : Memory.t) :=
-  forall l to from v rel
-         (MSG : Memory.get l to memory = Some (from, Message.full v rel)),
-    (to = Time.bot /\ from = Time.bot) \/
-    exists b,
-    ⟪ ACTS : E b ⟫ /\
-    ⟪ ISS  : I b ⟫ /\
+Definition sim_half_prom (thread : thread_id) promises :=
+  forall l to from (RES : Memory.get l to promises = Some (from, Message.half)),
+  exists b b',
     ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
-    ⟪ FROM : f_from b = from ⟫ /\
-    ⟪ TO   : f_to b = to ⟫.
+    ⟪ RFRMWS : (<| Tid_ thread ∩₁ S \₁ I |> ;; (rf ;; rmw)^* ;; <| S \₁ I |>) b b' ⟫ /\
+    ⟪ FROM    : f_from b = from ⟫ /\
+    ⟪ TO      : f_to b' = to ⟫ /\
+    ⟪ NOBEF   : codom_rel (<|I|> ;; rf ;; rmw) b  ⟫ /\
+    ⟪ NOAFT   : ~ dom_rel (rf ;; rmw ;; <|S|>) b' ⟫.
 
 Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
-    forall l b (EB: E b) (ISSB: issued T b) (LOC: Loc_ (FLoc.loc l) b)
-                   v (VAL: val lab b = Some v) ,
+    forall l b (EB: E b) (ISSB: I b) (LOC: Loc_ (FLoc.loc l) b)
+           v (VAL: val lab b = Some v),
     exists rel_opt,
       let rel := rel_opt.(View.unwrap) in
       ⟪ INMEM : Memory.get l (f_to b) mem =
@@ -107,13 +112,13 @@ Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
        ⟪ REL_REPR :
          exists p_rel,
            ⟪ REL : rel_opt =
-                    Some (View.join (View.join (TView.rel (Local.tview local) l)
-                                               p_rel.(View.unwrap))
-                                    (View.singleton_ur l (f_to b))) ⟫ /\
-           ((⟪ NINRMW : ~ codom_rel (⦗ issued T ⦘ ⨾ rf ⨾ rmw) b ⟫ /\
+                   Some (View.join (View.join (TView.rel (Local.tview local) l)
+                                              p_rel.(View.unwrap))
+                                   (View.singleton_ur l (f_to b))) ⟫ /\
+           ((⟪ NINRMW : ~ codom_rel (⦗ I ⦘ ⨾ rf ⨾ rmw) b ⟫ /\
              ⟪ PREL : p_rel = None ⟫) \/
             (exists p,
-                ⟪ ISSP  : issued T p ⟫ /\
+                ⟪ ISSP  : I p ⟫ /\
                 ⟪ INRMW : (rf ⨾ rmw) p b ⟫ /\
              exists p_v,
                 ⟪ P_VAL : val lab p = Some p_v ⟫ /\
@@ -121,37 +126,49 @@ Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
                             Some (f_from p, Message.full p_v p_rel) ⟫))
        ⟫).
 
-Definition pln_rlx_eq tview :=
-  ⟪ EQ_CUR : TimeMap.eq (View.pln (TView.cur tview)) (View.rlx (TView.cur tview)) ⟫ /\
-  ⟪ EQ_ACQ : TimeMap.eq (View.pln (TView.acq tview)) (View.rlx (TView.acq tview)) ⟫ /\
-  ⟪ EQ_REL :
-    forall l, TimeMap.eq (View.pln (TView.rel tview l)) (View.rlx (TView.rel tview l)) ⟫.
+Definition message_to_event (memory : Memory.t) :=
+  forall l to from v rel
+         (MSG : Memory.get l to memory = Some (from, Message.full v rel)),
+    (to = Time.bot /\ from = Time.bot) \/
+    exists b,
+    ⟪ ACTS : E b ⟫ /\
+    ⟪ ISS  : I b ⟫ /\
+    ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
+    ⟪ FROM : f_from b = from ⟫ /\
+    ⟪ TO   : f_to b = to ⟫.
 
-Definition reserved_time I memory smode :=
+Definition half_message_to_events (memory : Memory.t) :=
+  forall l to from
+         (MSG : Memory.get l to memory = Some (from, Message.half)),
+  exists b b',
+    ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
+    ⟪ RFRMWS : (<| S \₁ I |> ;; (rf ;; rmw)^* ;; <| S \₁ I |>) b b' ⟫ /\
+    ⟪ FROM    : f_from b = from ⟫ /\
+    ⟪ TO      : f_to b' = to ⟫ /\
+    ⟪ NOBEF   : codom_rel (<|I|> ;; rf ;; rmw) b  ⟫ /\
+    ⟪ NOAFT   : ~ dom_rel (rf ;; rmw ;; <|S|>) b' ⟫.
+
+Definition reserved_time smode memory :=
   match smode with
   | sim_normal =>
-    (* During normal simulation: for adding *)
-    (⟪ MEM : message_to_event I memory ⟫ /\
-     ⟪ TFRMW : forall x y, I x -> I y -> ~ is_init y -> co x y ->
+    (* During normal simulation *)
+    (⟪ MEM : message_to_event memory ⟫ /\
+     ⟪ TFRMW : forall x y, S x -> S y -> ~ is_init y -> co x y ->
                            f_to x = f_from y -> (rf ⨾ rmw) x y ⟫)
   | sim_certification => 
-    (* During certification: for splitting *)
-    (⟪ FOR_SPLIT  : ⦗ set_compl I ⦘ ⨾ (immediate co) ⊆ sb ⟫ /\
-     ⟪ RMW_ISSUED : codom_rel rmw ⊆₁ I ⟫)
+    (* During certification *)
+    (⟪ FOR_SPLIT    : ⦗ set_compl S ⦘ ⨾ (immediate co) ⊆ sb ⟫ /\
+     ⟪ RMW_RESERVED : codom_rel rmw ⊆₁ S ⟫)
   end.
 
 Definition simrel_common
-           (PC : Configuration.t)
-           (T : trav_config)
-           (f_to f_from : actid -> Time.t)
            (smode : sim_mode) :=
   let memory := PC.(Configuration.memory) in
   let threads := PC.(Configuration.threads) in
   let sc_view := PC.(Configuration.sc) in
-  ⟪ ACQEX : W_ex ⊆₁ W_ex_acq ⟫ /\
   ⟪ ALLRLX: E \₁ is_init ⊆₁ Rlx ⟫ /\
-  ⟪ TCCOH : tc_coherent G sc T ⟫ /\
-  ⟪ RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T ⟫ /\
+  ⟪ TCCOH : etc_coherent G sc (mkETC T S) ⟫ /\
+  ⟪ RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C ⟫ /\
   ⟪ RMWCOV : forall r w (RMW : rmw r w), covered T r <-> covered T w ⟫ /\
 
   ⟪ THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
@@ -162,30 +179,30 @@ Definition simrel_common
             (TID : IdentMap.find thread' threads = Some (langst, local)),
            Memory.le local.(Local.promises) memory ⟫ /\
 
-  ⟪ FCOH: f_to_coherent G (issued T) f_to f_from ⟫ /\
+  ⟪ FCOH: f_to_coherent G S f_to f_from ⟫ /\
 
   ⟪ SC_COV : smode = sim_certification -> E∩₁F∩₁Sc ⊆₁ covered T ⟫ /\ 
   ⟪ SC_REQ : smode = sim_normal -> 
          forall l,
          max_value f_to (S_tm G (FLoc.loc l) (covered T)) (FLocFun.find l sc_view) ⟫ /\
 
-  ⟪ RESERVED_TIME: reserved_time (issued T) memory smode ⟫ /\
+  ⟪ RESERVED_TIME: reserved_time smode memory ⟫ /\
                     
   ⟪ CLOSED_SC : Memory.closed_timemap sc_view memory ⟫ /\
   ⟪ FUTURE : Memory.future Memory.init memory ⟫.
 
-Definition simrel_thread_local
-           (PC : Configuration.t)
-           (thread : thread_id)
-           (T : trav_config)
-           (f_to f_from : actid -> Time.t)
-           (smode : sim_mode) :=
+Definition pln_rlx_eq tview :=
+  ⟪ EQ_CUR : TimeMap.eq (View.pln (TView.cur tview)) (View.rlx (TView.cur tview)) ⟫ /\
+  ⟪ EQ_ACQ : TimeMap.eq (View.pln (TView.acq tview)) (View.rlx (TView.acq tview)) ⟫ /\
+  ⟪ EQ_REL :
+    forall l, TimeMap.eq (View.pln (TView.rel tview l)) (View.rlx (TView.rel tview l)) ⟫.
+
+Definition simrel_thread_local (thread : thread_id) (smode : sim_mode) :=
   let memory := PC.(Configuration.memory) in
   let threads := PC.(Configuration.threads) in
   exists state local,
     ⟪ TNNULL : thread <> tid_init ⟫ /\
     ⟪ GPC : wf_thread_state thread state ⟫ /\
-    ⟪ XACQIN : rmw_is_xacq_instrs state.(instrs) ⟫ /\
     ⟪ LLH : IdentMap.find thread threads =
              Some (existT _ (thread_lts thread) state, local) ⟫ /\
     ⟪ PROM_DISJOINT :
@@ -196,26 +213,22 @@ Definition simrel_thread_local
           Memory.get loc to local .(Local.promises) = None \/
           Memory.get loc to local'.(Local.promises) = None ⟫ /\
 
-    ⟪ SIM_PROM : sim_prom thread local.(Local.promises) ⟫ /\
+    ⟪ SIM_PROM  : sim_prom      thread local.(Local.promises) ⟫ /\
+    ⟪ SIM_HPROM : sim_half_prom thread local.(Local.promises) ⟫ /\
+
     ⟪ SIM_MEM : sim_mem thread local memory ⟫ /\
     ⟪ SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread ⟫ /\
     ⟪ PLN_RLX_EQ : pln_rlx_eq local.(Local.tview) ⟫ /\
     ⟪ MEM_CLOSE : memory_close local.(Local.tview) memory ⟫ /\
     ⟪ STATE : @sim_state G smode (covered T) thread state ⟫.
 
-Definition simrel_thread
-           (PC : Configuration.t)
-           (thread : thread_id)
-           (T : trav_config)
-           (f_to f_from : actid -> Time.t)
-           (smode : sim_mode) :=
-  ⟪ COMMON : simrel_common PC T f_to f_from smode ⟫ /\
-  ⟪ LOCAL  : simrel_thread_local PC thread T f_to f_from smode ⟫.
+Definition simrel_thread (thread : thread_id) (smode : sim_mode) :=
+  ⟪ COMMON : simrel_common smode ⟫ /\
+  ⟪ LOCAL  : simrel_thread_local thread smode ⟫.
 
-Definition simrel
-           (PC : Configuration.t) (T : trav_config) (f_to f_from : actid -> Time.t) :=
-  ⟪ COMMON : simrel_common PC T f_to f_from sim_normal ⟫ /\
+Definition simrel :=
+  ⟪ COMMON : simrel_common sim_normal ⟫ /\
   ⟪ THREADS : forall thread (TP : IdentMap.In thread PC.(Configuration.threads)),
-      simrel_thread_local PC thread T f_to f_from sim_normal ⟫.
+      simrel_thread_local thread sim_normal ⟫.
 
 End SimRel.
