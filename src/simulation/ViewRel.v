@@ -74,7 +74,7 @@ Definition sim_mem_helper f_to b from v rel :=
 Definition sim_rel C f_to rel i :=
   forall l' l, max_value f_to 
     (t_rel i (FLoc.loc l) (FLoc.loc l') C ∪₁
-     if Loc.eq_dec (FLoc.loc l) (FLoc.loc l')
+     if FLoc.eq_dec l l'
      then W_ (FLoc.loc l') ∩₁ Tid_ i ∩₁ C
      else ∅)
     (FLocFun.find l (FLocFun.find l' rel).(View.rlx)).
@@ -220,7 +220,8 @@ Proof.
     { split; intros x y H; red; red in H; desf. }
     by rewrite seq_id_l. }
   intros l'.
-  by eapply max_value_same_set; [apply REL| apply RELALT].
+  eapply max_value_same_set; [by apply REL|].
+  rewrite !loc_floc_ite. apply RELALT.
 Qed.
 
 Lemma sim_tview_write_step f_to f_from
@@ -314,23 +315,22 @@ Proof.
     rewrite Loc.eq_dec_neq; auto.
     2: by apply floc_inj_neq.
     apply max_value_empty; intros x HH; desf. }
-  intros l0; eapply max_value_same_set; [|eapply t_rel_w_union_eqv; eauto]; cycle 2.
+  intros l0.
+  rewrite loc_floc_ite.
+  eapply max_value_same_set; [|eapply t_rel_w_union_eqv; eauto]; cycle 2.
   3: by apply urr_refl.
   { ins.
     rewrite ((urr_rel_n_f_alt_union_eqv WF) sc Wf_sc l1 l' C w (tid w)); eauto.
     basic_solver 42.
     revert PRC; basic_solver 42. }
+  rewrite <- !loc_floc_ite.
   unfold TimeMap.join, TimeMap.singleton, View.singleton_ur,
   FLocFun.add, FLocFun.find, FLocFun.init.
-  destruct (FLoc.eq_dec l locw); simpls; subst.
-  rewrite Loc.eq_dec_eq.
-  2: rewrite Loc.eq_dec_neq; [|by apply floc_inj_neq].
+  destruct (FLoc.eq_dec l locw) as [EQ|NEQ]; simpls; subst.
   destruct (Rel w); simpls; eapply max_value_join; eauto.
   all: unfold TimeMap.singleton, FLocFun.add, FLocFun.find, FLocFun.init.
   all: destruct (FLoc.eq_dec l0 locw); subst.
-  all: try rewrite Loc.eq_dec_eq.
   all: try by apply max_value_singleton.
-  all: try (rewrite Loc.eq_dec_neq; [|by apply floc_inj_neq]).
   all: try by apply max_value_empty; auto.
   { specialize (REL l locw). by unfold FLocFun.find in REL. }
   specialize (REL l l0). by unfold FLocFun.find in REL.
@@ -352,9 +352,9 @@ Proof.
   intros x [H|H].
   { apply t_rel_covered in H; auto. }
   destruct (classic (l = l')) as [LEQ|LNEQ].
-  2: { rewrite Loc.eq_dec_neq in H; desf. by apply floc_inj_neq. }
-  apply ISSEQ.
-  subst; rewrite Loc.eq_dec_eq in H.
+  2: { rewrite floc_eq_dec_neq in H; desf. }
+  apply ISSEQ; subst.
+  rewrite floc_eq_dec_eq in H.
   generalize (w_covered_issued TCCOH).
   revert H; basic_solver 21.
 Qed.
@@ -479,9 +479,11 @@ Proof.
     intros H. apply NCOV. apply H; split; [split|]; auto.
     unfold is_sc, mod. by rewrite FPARAMS. }
   intros l' l.
+  rewrite !loc_floc_ite.
   eapply max_value_same_set; [| by eapply t_rel_fence_step].
   red in SAME_MOD.
-  unfold is_sc, is_acq, is_acqrel, is_rel, mod; rewrite FPARAMS in *.
+  rewrite <- !loc_floc_ite.
+  unfold is_sc, is_acq, is_acqrel, is_rel, mod, mode_le; rewrite FPARAMS in *.
   destruct ordf; simpls; destruct SAME_MOD; subst.
   all: cdes SIMTVIEW; red in REL.
   all: desf; simpls.
@@ -506,6 +508,7 @@ Proof.
   all: try by (apply SIMTVIEW).
   { apply t_cur_other_thread; eauto. }
   { apply t_acq_other_thread; eauto. }
+  rewrite !loc_floc_ite.
   apply t_rel_if_other_thread; eauto.
 Qed.
 

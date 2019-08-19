@@ -64,24 +64,24 @@ Remove Hints plus_n_O.
 Lemma inhabited_init : Memory.inhabited Memory.init.
 Proof. red. ins. Qed.
 
-(* Lemma inhabited_future memory memory' *)
-(*       (INHAB : Memory.inhabited memory) *)
-(*       (FUTURE : Memory.future memory memory') : *)
-(*   Memory.inhabited memory'. *)
-(* Proof. *)
-(*   destruct FUTURE; auto. *)
-(*   apply clos_rt1n_rt in FUTURE. *)
-(*   apply clos_rt_rtn1 in FUTURE. *)
-(*   induction FUTURE; auto. *)
-(*   { destruct H. *)
-(*     eapply Memory.op_future0; eauto. } *)
-(*   destruct H0. *)
-(*   eapply Memory.op_future0; eauto. *)
-(* Qed. *)
+Lemma inhabited_future memory memory'
+      (INHAB : Memory.inhabited memory)
+      (FUTURE : Memory.future memory memory') :
+  Memory.inhabited memory'.
+Proof.
+  destruct FUTURE; auto.
+  apply clos_rt1n_rt in FUTURE.
+  apply clos_rt_rtn1 in FUTURE.
+  induction FUTURE; auto.
+  { destruct H.
+    eapply Memory.op_inhabited; eauto. }
+  destruct H0.
+  eapply Memory.op_inhabited; eauto.
+Qed.
 
-(* Lemma inhabited_future_init memory (FUTURE : Memory.future Memory.init memory) : *)
-(*   Memory.inhabited memory. *)
-(* Proof. eapply inhabited_future; eauto. apply inhabited_init. Qed. *)
+Lemma inhabited_future_init memory (FUTURE : Memory.future Memory.init memory) :
+  Memory.inhabited memory.
+Proof. eapply inhabited_future; eauto. apply inhabited_init. Qed.
 
 Definition ts_lt_or_bot memory :=
   forall loc to from msg (GET : Memory.get loc to memory = Some (from, msg)),

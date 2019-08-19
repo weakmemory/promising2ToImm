@@ -28,4 +28,14 @@ Lemma floc_eq_dec_neq {A} (l1 l2 : FLoc.t) (a1 a2 : A) (NEQ : l1 <> l2) :
   (if FLoc.eq_dec l1 l2 then a1 else a2) = a2.
 Proof. destruct (FLoc.eq_dec l1 l2) as [EQ|NEQ']; intuition. Qed.
 
+Lemma loc_floc_ite {A} (l1 l2 : FLoc.t) (a1 a2 : A) :
+  (if FLoc.eq_dec l1 l2 then a1 else a2) = 
+  if Loc.eq_dec (FLoc.loc l1) (FLoc.loc l2) then a1 else a2.
+Proof.
+  destruct (FLoc.eq_dec l1 l2) as [EQ|NEQ]; subst.
+  { rewrite Loc.eq_dec_eq. auto. }
+  rewrite Loc.eq_dec_neq; auto.
+  apply floc_inj_neq; auto.
+Qed.
+
 (* TODO: <> on FLoc.t should be declared as symmetric relation. *)

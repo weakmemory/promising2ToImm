@@ -467,14 +467,13 @@ Definition simrel
     cdes CUR.
     apply UB0.
     destruct INam as [|INam]; [by apply SS|].
-    destruct (classic (l' = l)) as [LL|NLL]; subst.
-    2: { rewrite Loc.eq_dec_neq in INam; desf; by apply floc_inj_neq. }
-    rewrite Loc.eq_dec_eq in INam.
-    destruct INam as [[[X Y] Z] U].
-    red. exists a_max.
-    red. hahn_rewrite <- seqA.
-    apply seq_eqv_r. split; auto.
-    apply seq_eqv_r. split; [|by left].
-      by apply urr_refl.
+    destruct (FLoc.eq_dec l' l) as [LL|NLL]; subst.
+    2:  by red in INam.
+    exists a_max. red.
+    hahn_rewrite <- seqA.
+    unfolder in INam; desc.
+    do 2 (apply seq_eqv_r; split; auto).
+    { by apply urr_refl. }
+      by left.
   Qed.
 End SimRel.

@@ -866,8 +866,7 @@ all: eauto.
   eapply max_value_same_set.
   { by apply REL. }
   apply set_equiv_union; auto.
-  destruct (Loc.eq_dec (FLoc.loc l) (FLoc.loc l')).
-  2: done.
+  destruct (FLoc.eq_dec l l'); [|done].
   erewrite same_lab_u2v_loc; eauto.
   erewrite same_lab_u2v_is_w; eauto.
   rewrite <- lab_G_eq_lab_Gf; eauto. 
