@@ -18,6 +18,7 @@ Require Import Event_imm_promise.
 Require Import PromiseLTS.
 Require Import SimState.
 Require Import MemoryAux.
+Require Import FtoCoherent.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -26,6 +27,8 @@ Section SimRel.
   Variable G : execution.
   Variable WF : Wf G.
   Variable sc : relation actid.
+  Variable T : trav_config.
+  Variables f_to f_from : actid -> Time.t.
 
 Notation "'acts'" := G.(acts).
 Notation "'co'" := G.(co).
@@ -60,187 +63,7 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 Notation "'W_ex'" := G.(W_ex).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
   
-  Definition f_to_coherent (I : actid -> Prop) (f_to f_from : actid -> Time.t) :=
-    (* ⟪ NW  : forall a, ~ is_w lab a -> f_to a = tid_init ⟫ /\ *)
-    ⟪ TINITTO : forall x, (is_init ∩₁ E) x -> f_to x = tid_init ⟫ /\
-    ⟪ TINITFROM : forall x, (is_init ∩₁ E) x -> f_from x = tid_init ⟫ /\
-    ⟪ TTOFROM : forall x,
-         I x -> ~ is_init x -> Time.lt (f_from x) (f_to x) ⟫ /\
-    ⟪ TCO : forall x y,
-        I x -> I y ->
-        co x y -> Time.le (f_to x) (f_from y) ⟫ /\
-    ⟪ TRMW : forall x y,
-        I x -> I y -> (rf ⨾ rmw) x y -> f_to x = f_from y ⟫
-  .
-
-Lemma f_to_co_mon (IMMCON : imm_consistent G sc)
-      I f_to f_from (FCOH : f_to_coherent I f_to f_from)
-      e e' (CO : co e e') (ISS : I e) (ISS' : I e') :
-  Time.lt (f_to e) (f_to e').
-Proof.
-  eapply TimeFacts.le_lt_lt.
-  2: eapply FCOH; auto.
-  { by apply FCOH. }
-  apply Execution_eco.no_co_to_init in CO; auto.
-  { apply seq_eqv_r in CO. desf. }
-  apply coherence_sc_per_loc.
-  apply IMMCON.
-Qed.
-
-Lemma f_from_co_mon I f_to f_from (FCOH : f_to_coherent I f_to f_from)
-      e e' (NINIT : ~ is_init e) (CO : co e e') (ISS : I e) (ISS' : I e') :
-  Time.lt (f_from e) (f_from e').
-Proof.
-  eapply TimeFacts.lt_le_lt.
-  { eapply FCOH; eauto. }
-    by apply FCOH.
-Qed.
-
-Lemma f_to_coherent_strict (IMMCON : imm_consistent G sc)
-      f_to f_from T
-      (TCCOH : tc_coherent G sc T)
-      (FCOH: f_to_coherent (issued T) f_to f_from)
-      x y z (ISSX : issued T x) (ISSY : issued T y) (ISSZ : issued T z)
-      (COXY: co x y) (COYZ: co y z) :
-  Time.lt (f_to x) (f_from z).
-Proof.
-  eapply TimeFacts.le_lt_lt.
-  { apply FCOH.
-    3: by apply COXY.
-    all: eauto. }
-  eapply f_from_co_mon; eauto.
-  apply Execution_eco.no_co_to_init in COXY; auto.
-  { apply seq_eqv_r in COXY. desf. }
-  apply coherence_sc_per_loc.
-  apply IMMCON.
-Qed.
-
-Lemma lt_init_ts T f_to f_from
-      (CON : imm_consistent G sc)
-      (TCCOH : tc_coherent G sc T)
-      (FCOH : f_to_coherent (issued T) f_to f_from) e (EE : E e)
-      (WW : W e) (ISS : issued T e) (NINIT : ~ is_init e) :
-  Time.lt tid_init (f_to e).
-Proof.
-  unfold is_w in *.
-  destruct e; desf.
-  cdes FCOH.
-  assert (E (InitEvent l)) as EL.
-  { apply WF.(wf_init). eexists.
-    split; eauto. unfold loc. desf. }
-  assert ((is_init ∩₁ E) (InitEvent l)) as LL.
-  { by split; eauto. }
-  erewrite <- TINITTO; eauto.
-  eapply f_to_co_mon; eauto.
-  2: { eapply w_covered_issued; eauto.
-       split; eauto; [by apply init_w|]. 
-         by apply TCCOH. }
-  eapply init_co_w; eauto.
-  { unfold is_w. desf. }
-  red. unfold loc. rewrite WF.(wf_init_lab).
-  desf.
-Qed.
-
-Lemma le_init_ts T f_to f_from
-      (CON : imm_consistent G sc)
-      (TCCOH : tc_coherent G sc T)
-      (FCOH : f_to_coherent (issued T) f_to f_from) e (EE : E e)
-      (WW : W e) (ISS : issued T e) :
-  Time.le tid_init (f_to e).
-Proof.
-  unfold is_w in *.
-  destruct e; desf.
-  { apply Time.le_lteq. right.
-    symmetry. cdes FCOH. apply TINITTO.
-    split; auto. }
-  apply Time.le_lteq. left.
-  eapply lt_init_ts; eauto.
-  unfold is_w. desf.
-Qed.
-
-Lemma le_init_ts_from T f_to f_from
-      (CON : imm_consistent G sc)
-      (TCCOH : tc_coherent G sc T)
-      (FCOH : f_to_coherent (issued T) f_to f_from) e (EE : E e)
-      (WW : W e) (ISS : issued T e) (NINIT : ~ is_init e) :
-  Time.le tid_init (f_from e).
-Proof.
-  unfold is_w in *.
-  destruct e; desf.
-  cdes FCOH.
-  assert (E (InitEvent l)) as EL.
-  { apply WF.(wf_init). eexists.
-    split; eauto. unfold loc. desf. }
-  assert ((is_init ∩₁ E) (InitEvent l)) as LL.
-  { by split; eauto. }
-  erewrite <- TINITTO; eauto.
-  apply FCOH; eauto.
-  { eapply w_covered_issued; eauto.
-    split; eauto; [by apply init_w|]. 
-      by apply TCCOH. }
-  eapply init_co_w; eauto.
-  { unfold is_w. desf. }
-  red. unfold loc. rewrite WF.(wf_init_lab).
-  desf.
-Qed.
-
-Lemma f_to_eq (IMMCON : imm_consistent G sc) T (TCCOH : tc_coherent G sc T)
-      f_to f_from (FCOH : f_to_coherent (issued T) f_to f_from)
-      e e' (SAME_LOC : same_loc lab e e') (ISS : issued T e) (ISS' : issued T e')
-      (FEQ : f_to e = f_to e') :
-  e = e'.
-Proof.
-  assert (E e /\ E e') as [EE EE']. 
-  { by split; apply TCCOH. }
-  assert (W e /\ W e') as [WE WE']. 
-  { by split; apply TCCOH. }
-  destruct (classic (e = e')) as [|NEQ]; auto.
-  exfalso.
-  edestruct (wf_co_total WF); eauto.
-  1,2: split; [split|]; eauto.
-  { assert (Time.lt (f_to e) (f_to e')) as HH.
-    { eapply f_to_co_mon; eauto. }
-    rewrite FEQ in *.
-      by apply DenseOrder.lt_strorder in HH. }
-  assert (Time.lt (f_to e') (f_to e)) as HH.
-  { eapply f_to_co_mon; eauto. }
-  rewrite FEQ in *.
-    by apply DenseOrder.lt_strorder in HH.
-Qed.
-
-Lemma f_from_eq (IMMCON : imm_consistent G sc) T (TCCOH : tc_coherent G sc T)
-      f_to f_from (FCOH : f_to_coherent (issued T) f_to f_from)
-      e e' (SAME_LOC : same_loc lab e e') (ISS : issued T e) (ISS' : issued T e')
-      (NINIT : ~ is_init e) (NINIT' : ~ is_init e')
-      (FEQ : f_from e = f_from e') :
-  e = e'.
-Proof.
-  assert (E e /\ E e') as [EE EE']. 
-  { by split; apply TCCOH. }
-  assert (W e /\ W e') as [WE WE']. 
-  { by split; apply TCCOH. }
-  destruct (classic (e = e')) as [|NEQ]; auto.
-  exfalso.
-  edestruct (wf_co_total WF); eauto.
-  1,2: split; [split|]; eauto.
-  { assert (Time.lt (f_from e) (f_from e')) as HH.
-    { eapply f_from_co_mon; eauto. }
-    rewrite FEQ in *.
-      by apply DenseOrder.lt_strorder in HH. }
-  assert (Time.lt (f_from e') (f_from e)) as HH.
-  { eapply f_from_co_mon; eauto. }
-  rewrite FEQ in *.
-    by apply DenseOrder.lt_strorder in HH.
-Qed.
- 
-  Definition nth {A} (r : relation A) n :=
-    codom_rel r ^^ (n + 1) \₁ codom_rel r ^^ n.
-  
-Definition sim_prom
-           (thread : thread_id)
-           (T : trav_config)
-           (f_to f_from : actid -> Time.t)
-           promises :=
+Definition sim_prom (thread : thread_id) promises :=
   forall l to from v rel
          (PROM  : Memory.get l to promises =
                   Some (from, Message.full v rel)),
@@ -254,7 +77,7 @@ Definition sim_prom
     ⟪ TO   : f_to b = to ⟫ /\
     ⟪ HELPER : sim_mem_helper G sc f_to b from v rel.(View.unwrap) ⟫.
 
-Definition message_to_event (f_to f_from : actid -> Time.t) I (memory : Memory.t) :=
+Definition message_to_event I (memory : Memory.t) :=
   forall l to from v rel
          (MSG : Memory.get l to memory = Some (from, Message.full v rel)),
     (to = Time.bot /\ from = Time.bot) \/
@@ -265,36 +88,7 @@ Definition message_to_event (f_to f_from : actid -> Time.t) I (memory : Memory.t
     ⟪ FROM : f_from b = from ⟫ /\
     ⟪ TO   : f_to b = to ⟫.
 
-(* Definition intervals_for_issue f_to f_from I mem := *)
-  (* ⟪ INTERVAL : *)
-    (* forall l x y *)
-    (*        (LOCX : loc lab x = Some l) *)
-    (*        (NIMM : immediate (⦗ I ⦘ ⨾ co ⨾ ⦗ I ⦘) x y) *)
-    (*        (INTERVAL_NEEDED : exists z, *)
-    (*            ⟪ NISS : ~ I z ⟫ /\ ⟪ COXZ : co x z ⟫ /\ ⟪ COZY : co z y ⟫), *)
-    (* forall to from msg (INMEM : Memory.get l to mem = Some (from, msg)), *)
-    (*   Interval.disjoint (from, to) (f_to x, f_from y) ⟫ /\ *)
-  (* ⟪ MEM : *)
-  (* message_to_event f_to f_from I mem. *)
-  (* ⟫. *)
-
-  (* forall w l (WNISS : ~ I w) (LOC : loc lab w = Some l), *)
-  (*   exists to from, *)
-  (*     let f_to'   := upd f_to   w to   in *)
-  (*     let f_from' := upd f_from w from in *)
-  (*     ⟪ FCOH' : f_to_coherent (I ∪₁ eq w) f_to' f_from' ⟫ /\ *)
-  (*     ⟪ LT : Time.lt from to ⟫ /\ *)
-  (*     ⟪ DISJOINT : *)
-  (*       forall m_to m_from msg (INMEM : Memory.get l to mem = Some (from, msg)), *)
-  (*         Interval.disjoint (from, to) (m_from, m_to)  *)
-  (*     ⟫. *)
-
-Definition sim_mem
-           (T : trav_config)
-           (f_to f_from : actid -> Time.t)
-           (thread : thread_id)
-           (local : Local.t)
-           mem :=
+Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
     forall l b (EB: E b) (ISSB: issued T b) (LOC: Loc_ (FLoc.loc l) b)
                    v (VAL: val lab b = Some v) ,
     exists rel_opt,
@@ -333,11 +127,11 @@ Definition pln_rlx_eq tview :=
   ⟪ EQ_REL :
     forall l, TimeMap.eq (View.pln (TView.rel tview l)) (View.rlx (TView.rel tview l)) ⟫.
 
-Definition reserved_time f_to f_from I memory smode :=
+Definition reserved_time I memory smode :=
   match smode with
   | sim_normal =>
     (* During normal simulation: for adding *)
-    (⟪ MEM : message_to_event f_to f_from I memory ⟫ /\
+    (⟪ MEM : message_to_event I memory ⟫ /\
      ⟪ TFRMW : forall x y, I x -> I y -> ~ is_init y -> co x y ->
                            f_to x = f_from y -> (rf ⨾ rmw) x y ⟫)
   | sim_certification => 
@@ -368,14 +162,14 @@ Definition simrel_common
             (TID : IdentMap.find thread' threads = Some (langst, local)),
            Memory.le local.(Local.promises) memory ⟫ /\
 
-  ⟪ FCOH: f_to_coherent (issued T) f_to f_from ⟫ /\
+  ⟪ FCOH: f_to_coherent G (issued T) f_to f_from ⟫ /\
 
   ⟪ SC_COV : smode = sim_certification -> E∩₁F∩₁Sc ⊆₁ covered T ⟫ /\ 
   ⟪ SC_REQ : smode = sim_normal -> 
          forall l,
          max_value f_to (S_tm G (FLoc.loc l) (covered T)) (FLocFun.find l sc_view) ⟫ /\
 
-  ⟪ RESERVED_TIME: reserved_time f_to f_from (issued T) memory smode ⟫ /\
+  ⟪ RESERVED_TIME: reserved_time (issued T) memory smode ⟫ /\
                     
   ⟪ CLOSED_SC : Memory.closed_timemap sc_view memory ⟫ /\
   ⟪ FUTURE : Memory.future Memory.init memory ⟫.
@@ -402,8 +196,8 @@ Definition simrel_thread_local
           Memory.get loc to local .(Local.promises) = None \/
           Memory.get loc to local'.(Local.promises) = None ⟫ /\
 
-    ⟪ SIM_PROM : sim_prom thread T f_to f_from local.(Local.promises) ⟫ /\
-    ⟪ SIM_MEM : sim_mem T f_to f_from thread local memory ⟫ /\
+    ⟪ SIM_PROM : sim_prom thread local.(Local.promises) ⟫ /\
+    ⟪ SIM_MEM : sim_mem thread local memory ⟫ /\
     ⟪ SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread ⟫ /\
     ⟪ PLN_RLX_EQ : pln_rlx_eq local.(Local.tview) ⟫ /\
     ⟪ MEM_CLOSE : memory_close local.(Local.tview) memory ⟫ /\
@@ -424,56 +218,4 @@ Definition simrel
   ⟪ THREADS : forall thread (TP : IdentMap.In thread PC.(Configuration.threads)),
       simrel_thread_local PC thread T f_to f_from sim_normal ⟫.
 
-  Lemma prev_next e e' (SB : sb e e')
-        (T : trav_config)
-        (NEXT : next G (covered T) e')
-        (NCOV : forall e'', sb e e'' -> tid e'' = tid e' -> ~ covered T e'') :
-    immediate sb e e'.
-  Proof.
-    red; splits; eauto.
-    red in NEXT; unfold dom_cond in *; unfolder in *; desf.
-    ins; eapply NCOV; eauto 10.
-    hahn_rewrite sb_tid_init' in R2.
-    hahn_rewrite no_sb_to_init in R1.
-    unfold same_tid in *; unfolder in *; desf.
-  Qed.
-
-  Lemma rel_le_cur PC thread T f_to l langst local
-        (SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread)
-        (TID : IdentMap.find thread PC.(Configuration.threads) = Some (langst, local)) :
-    TimeMap.le (View.rlx (TView.rel (Local.tview local) l))
-               (View.rlx (TView.cur (Local.tview local))).
-  Proof.
-    cdes SIM_TVIEW.
-    intros l'.
-    specialize (CUR l').
-    specialize (REL l l').
-    unfold FLocFun.find in *.
-    set (srel := t_rel G sc thread (FLoc.loc l') (FLoc.loc l) (covered T)).
-    set (scur := t_cur G sc thread (FLoc.loc l') (covered T)).
-    assert (srel ⊆₁ scur) as SS.
-    { unfold scur, srel.
-      intros x H.
-      unfold t_rel in H; unfold t_cur.
-      eapply dom_rel_mori; [|apply H].
-      unfold c_rel, c_cur.
-      rewrite inclusion_seq_eqv_l.
-        by rewrite inclusion_seq_eqv_l. }
-    cdes REL.
-    destruct MAX as [[MAX MAX'] | MAX].
-    { rewrite MAX'. apply Time.bot_spec. }
-    desc.
-    etransitivity; [apply LB'|].
-    cdes CUR.
-    apply UB0.
-    destruct INam as [|INam]; [by apply SS|].
-    destruct (FLoc.eq_dec l' l) as [LL|NLL]; subst.
-    2:  by red in INam.
-    exists a_max. red.
-    hahn_rewrite <- seqA.
-    unfolder in INam; desc.
-    do 2 (apply seq_eqv_r; split; auto).
-    { by apply urr_refl. }
-      by left.
-  Qed.
 End SimRel.

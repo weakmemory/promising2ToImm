@@ -1,7 +1,7 @@
 Require Import PArith.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration.
+From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration Local.
 
 From imm Require Import Events.
 From imm Require Import Execution.
@@ -510,6 +510,46 @@ Proof.
   { apply t_acq_other_thread; eauto. }
   rewrite !loc_floc_ite.
   apply t_rel_if_other_thread; eauto.
+Qed.
+
+
+Lemma rel_le_cur PC thread T f_to l langst local
+      (SIM_TVIEW : sim_tview (covered T) f_to local.(Local.tview) thread)
+      (TID : IdentMap.find thread PC.(Configuration.threads) = Some (langst, local)) :
+  TimeMap.le (View.rlx (TView.rel (Local.tview local) l))
+             (View.rlx (TView.cur (Local.tview local))).
+Proof.
+  cdes SIM_TVIEW.
+  intros l'.
+  specialize (CUR l').
+  specialize (REL l l').
+  unfold FLocFun.find in *.
+  set (srel := t_rel thread (FLoc.loc l') (FLoc.loc l) (covered T)).
+  set (scur := t_cur thread (FLoc.loc l') (covered T)).
+  assert (srel ⊆₁ scur) as SS.
+  { unfold scur, srel.
+    intros x H.
+    red in H. red.
+    eapply dom_rel_mori; [|apply H].
+    unfold c_rel, c_cur.
+    rewrite inclusion_seq_eqv_l.
+      by rewrite inclusion_seq_eqv_l. }
+  cdes REL.
+  destruct MAX as [[MAX MAX'] | MAX].
+  { rewrite MAX'. apply Time.bot_spec. }
+  desc.
+  etransitivity; [apply LB'|].
+  cdes CUR.
+  apply UB0.
+  destruct INam as [|INam]; [by apply SS|].
+  destruct (FLoc.eq_dec l' l) as [LL|NLL]; subst.
+  2:  by red in INam.
+  exists a_max. red.
+  hahn_rewrite <- seqA.
+  unfolder in INam; desc.
+  do 2 (apply seq_eqv_r; split; auto).
+  { by apply urr_refl. }
+    by left.
 Qed.
 
 End ViewRel.
