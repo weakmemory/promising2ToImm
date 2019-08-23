@@ -152,8 +152,9 @@ Definition reserved_time smode memory :=
   match smode with
   | sim_normal =>
     (* During normal simulation *)
-    (⟪ MEM : message_to_event memory ⟫ /\
-     ⟪ TFRMW : forall x y, S x -> S y -> ~ is_init y -> co x y ->
+    (⟪ MEM   : message_to_event memory ⟫ /\
+     ⟪ HMEM  : half_message_to_events memory ⟫ /\
+     ⟪ TFRMW : forall x y, S x -> S y -> co x y ->
                            f_to x = f_from y -> (rf ⨾ rmw) x y ⟫)
   | sim_certification => 
     (* During certification *)
