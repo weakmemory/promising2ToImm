@@ -1,8 +1,9 @@
 Require Import Setoid.
 From hahn Require Import Hahn.
-From imm Require Import Events Execution Execution_eco
+From imm Require Import AuxDef Events Execution Execution_eco
      TraversalConfig Traversal imm_common imm_s imm_s_hb CombRelations.
 Require Import AuxRel AuxRel2.
+Require Import rppo.
 
 Set Implicit Arguments.
 
@@ -106,8 +107,6 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 (** **   *)
 (******************************************************************************)
 
-Definition rppo := (ctrl ∪ addr;;sb^? ∪ rmw_dep^? ;; <| R_ex |> ;; sb) ;; <| W |>.
-
 Record ext_trav_config :=
   mkETC { etc_TC : trav_config; reserved : actid -> Prop; }.
 
@@ -118,6 +117,7 @@ Record etc_coherent (T : ext_trav_config) :=
   mkETCC {
       etc_tccoh  : tc_coherent G sc (etc_TC T);
 
+      etc_S_in_E : reserved T ⊆₁ E;
       etc_I_in_S : eissued T ⊆₁ reserved T;
       etc_S_I_in_W_ex : reserved T \₁ eissued T ⊆₁ W_ex;
 
@@ -128,7 +128,7 @@ Record etc_coherent (T : ext_trav_config) :=
       etc_rppo_S :
         dom_rel ((detour ∪ rfe) ;; (data ∪ rfi)^* ;; rppo ;; <| reserved T |>) ⊆₁ eissued T;
     }.
-  
+
 Definition ext_itrav_step (e : actid) T T' :=
   (⟪ COVER :
        ⟪ NCOV : ~ ecovered T e ⟫ /\
@@ -153,52 +153,16 @@ Definition ext_itrav_step (e : actid) T T' :=
 
 Definition ext_trav_step T T' := exists e, ext_itrav_step e T T'.
 
-Lemma rppo_in_sb : rppo ⊆ sb.
-Proof.
-  unfold rppo. rewrite ctrl_in_sb, addr_in_sb, rmw_dep_in_sb; auto.
-  generalize (@sb_trans G).
-  basic_solver.
-Qed.
+Lemma eissuedW T (ETCCOH : etc_coherent T) : eissued T ⊆₁ W.
+Proof. unfold eissued. eapply issuedW. apply ETCCOH. Qed.
 
-Lemma rppo_sb_in_rppo : rppo ;; sb ;; <|W|> ⊆ rppo.
+Lemma reservedW T (ETCCOH : etc_coherent T) : reserved T ⊆₁ W.
 Proof.
-  unfold rppo.
-  hahn_frame. arewrite_id ⦗W⦘. rewrite seq_id_l.
-  rewrite !seq_union_l, !seqA.
-  rewrite WF.(ctrl_sb).
-  arewrite (sb^? ⨾ sb ⊆ sb^?).
-  { generalize (@sb_trans G). basic_solver. }
-  arewrite (sb ⨾ sb ⊆ sb).
-  2: done.
-  apply transitiveI. apply sb_trans.
-Qed.
-
-Lemma rppo_cr_sb_in_rppo : rppo ;; sb^? ;; <|W|> ⊆ rppo.
-Proof.
-  rewrite crE. rewrite seq_union_l, seq_union_r. rewrite rppo_sb_in_rppo.
-  basic_solver.
-Qed.
-
-Lemma data_rfi_rppo_in_ppo : ⦗R⦘ ⨾ (data ∪ rfi)＊ ⨾ rppo ⊆ ppo.
-Proof.
-  unfold rppo, imm_common.ppo.
-  hahn_frame.
-  rewrite <- rt_ct.
-  apply seq_mori.
-  { apply clos_refl_trans_mori; eauto 10 with hahn. }
-  unionL.
-  1,2: by rewrite <- ct_step; eauto 10 with hahn.
-  rewrite <- cr_ct, <- ct_step.
-  basic_solver 10.
-Qed.
-
-Lemma detour_rfe_data_rfi_rppo_in_detour_rfe_ppo :
-  (detour ∪ rfe) ⨾ (data ∪ rfi)＊ ⨾ rppo ⊆ (detour ∪ rfe) ⨾ ppo.
-Proof.
-  rewrite (dom_r WF.(wf_detourD)) at 1.
-  rewrite (dom_r WF.(wf_rfeD)) at 1.
-  rewrite <- seq_union_l, !seqA.
-    by rewrite data_rfi_rppo_in_ppo.
+  arewrite (reserved T ⊆₁ reserved T \₁ eissued T ∪₁ reserved T ∩₁ eissued T).
+  2: { rewrite eissuedW at 2; auto. rewrite etc_S_I_in_W_ex; auto.
+       rewrite W_ex_in_W; auto. basic_solver. }
+  unfolder. ins.
+  destruct (classic (eissued T x)); eauto.
 Qed.
 
 Lemma exists_next_to_reserve w T
@@ -258,7 +222,7 @@ Proof.
       generalize RES. basic_solver. }
     unnw. constructor; unfold eissued, ecovered; simpls.
     all: try by (unionR left; apply ETCCOH).
-    4: by apply ETCCOH.
+    2,5: by apply ETCCOH.
     { eapply trav_step_coherence.
       2: by apply ETCCOH. 
       eapply trav_step_more_Proper.
@@ -277,9 +241,15 @@ Proof.
   { destruct SBB as [|AA]; desf. apply seq_eqv_l in AA. apply AA. }
   assert (~ eissued T w) as NISSW.
   { intros AA. apply NRESW. apply etc_I_in_S; eauto. }
+  assert (E e) as EE.
+  { apply ISS. }
   assert (W e) as WE.
   { eapply issuableW; eauto. apply ETCCOH. }
-  
+  assert (E w) as EW.
+  { destruct SBB as [|SBB]; desf.
+    destruct_seq_l SBB as AA.
+    apply (dom_l G.(wf_sbE)) in SBB.
+      by destruct_seq_l SBB as BB. }
   destruct (classic (W_ex w)) as [WEX|NEWX].
   { exists (mkETC (etc_TC T) (reserved T ∪₁ eq w)).
     red. exists w. red.
@@ -287,6 +257,8 @@ Proof.
     { do 2 right. splits; simpls. }
     constructor; unfold eissued, ecovered; simpls.
     { apply ETCCOH. }
+    { unionL; [by apply ETCCOH|].
+      red. ins; desf. }
     { etransitivity.
       { by apply etc_I_in_S. }
       basic_solver. }
@@ -326,6 +298,8 @@ Proof.
     3: by eexists; eauto.
     { apply same_tc_Reflexive. }
     red. simpls. split; by symmetry. }
+  { unionL; [by apply ETCCOH|]. 
+    basic_solver. }
   { apply set_union_mori; [|done].
     apply ETCCOH. }
   { rewrite set_minus_union_l. unionL.
