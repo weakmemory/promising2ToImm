@@ -89,14 +89,6 @@ Notation "'S'" := (reserved T).
 Notation "'C'" := (ecovered T).
 Notation "'I'" := (eissued  T).
 
-Lemma rmw_in_rppo : rmw ⊆ rppo.
-Proof.
-  unfold ExtTraversal.rppo.
-  rewrite WF.(wf_rmwD).
-  rewrite WF.(rmw_in_sb).
-  basic_solver 10.
-Qed.
-
 Lemma rf_rmw_S : <|W_ex|> ;; rf ;; rmw ;; <|S|> ≡
                  <|S|> ;; <| W_ex |> ;;  rf ;; rmw ;; <|S|>.
 Proof.
@@ -108,7 +100,7 @@ Proof.
     { apply transitiveI. apply sb_trans. }
     apply ETCCOH. }
   arewrite_id ⦗W_ex⦘. rewrite seq_id_l.
-  rewrite rmw_in_rppo.
+  rewrite WF.(rmw_in_rppo).
   etransitivity.
   2: by apply ETCCOH.(etc_I_in_S).
   etransitivity.

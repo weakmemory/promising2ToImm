@@ -10,7 +10,6 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 From imm Require Import SubExecution.
 From imm Require Import CertCOhelper.
-From imm Require Import CertExecution1.
 From imm Require Import CertExecution2.
 
 From imm Require Import CombRelations.
@@ -25,6 +24,7 @@ Require Import ViewRel.
 Require Import SimulationRel.
 Require Import SimState.
 Require Import ExtTraversal.
+Require Import CertExecution1.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -79,7 +79,7 @@ assert (TCCOH_G : tc_coherent G Gsc T).
 subst; eapply TCCOH_rst; edone.
 
 assert (TCCOH_rst_new_T : tc_coherent G Gsc (mkTC ( T.(covered) ∪₁ (G.(acts_set) ∩₁ NTid_ thread))  T.(issued))).
-subst; eapply TCCOH_rst_new_T; edone.
+{ subst; eapply TCCOH_rst_new_T; eauto. edone. }
 
 assert (ACQEX_G : G.(W_ex) ⊆₁ (G.(W_ex) ∩₁ (fun a => is_true (is_xacq G.(lab) a)))).
 { cut (W_ex G ⊆₁ (fun a : actid => is_xacq (lab G) a)).

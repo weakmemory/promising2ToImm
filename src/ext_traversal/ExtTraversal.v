@@ -3,7 +3,7 @@ From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution Execution_eco
      TraversalConfig Traversal imm_common imm_s imm_s_hb CombRelations.
 Require Import AuxRel AuxRel2.
-Require Import rppo.
+Require Export ExtTravRelations.
 
 Set Implicit Arguments.
 
@@ -53,6 +53,7 @@ Notation "'eco'" := G.(eco).
 Notation "'bob'" := G.(bob).
 Notation "'fwbob'" := G.(fwbob).
 Notation "'ppo'" := G.(ppo).
+Notation "'rppo'" := G.(rppo).
 Notation "'fre'" := G.(fre).
 Notation "'rfi'" := G.(rfi).
 Notation "'rfe'" := G.(rfe).
@@ -280,8 +281,8 @@ Proof.
     1,3: arewrite (sb ;; sb^? ⊆ sb) by (generalize (@sb_trans G); basic_solver).
     { by arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ ppo ∪ bob). }
     arewrite (⦗eq e⦘ ⊆ ⦗W⦘ ⨾ ⦗eq e⦘) at 1 by basic_solver.
-    sin_rewrite rppo_cr_sb_in_rppo.
-    sin_rewrite detour_rfe_data_rfi_rppo_in_detour_rfe_ppo.
+    sin_rewrite WF.(rppo_cr_sb_in_rppo).
+    sin_rewrite WF.(detour_rfe_data_rfi_rppo_in_detour_rfe_ppo).
       by arewrite (ppo ⊆ ppo ∪ bob) at 1. }
   assert (w = e); subst.
   { destruct SBB as [|SBB]; desf.
@@ -314,7 +315,7 @@ Proof.
   2: by etransitivity; [|by apply ISS]; rewrite !seqA.
   all: etransitivity; [|by destruct ISS as [[_ ISS] _]; apply ISS].
   { by arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ ppo ∪ bob). }
-  sin_rewrite detour_rfe_data_rfi_rppo_in_detour_rfe_ppo.
+  sin_rewrite WF.(detour_rfe_data_rfi_rppo_in_detour_rfe_ppo).
     by arewrite (ppo ⊆ ppo ∪ bob) at 1.
 Qed.
 

@@ -35,7 +35,7 @@ Inductive plain_step :
     (TID: IdentMap.find tid c1.(Configuration.threads) = Some (existT _ lang st1, lc1))
     (STEPS: rtc (@Thread.tau_step _) (Thread.mk _ st1 lc1 c1.(Configuration.sc) c1.(Configuration.memory)) e2)
     (STEP: Thread.step pf e e2 (Thread.mk _ st3 lc3 sc3 memory3))
-    (EVENT: e <> ThreadEvent.abort) :
+    (EVENT: e <> ThreadEvent.failure) :
     plain_step (ThreadEvent.get_machine_event e) tid c1 (Configuration.mk (IdentMap.add tid (existT _ _ st3, lc3) c1.(Configuration.threads)) sc3 memory3).
 
 Lemma pair_app :
@@ -170,13 +170,13 @@ Proof.
   2: { red. ins.
        edestruct SIM_PROM as [w H]; eauto.
        des. exists w; splits; auto. }
-  5: { eapply sim_state_other_thread_step; eauto; desf. }
-  4: { by red; splits; ins; apply CLOSED_PRES; apply MEM_CLOSE. }
-  3: { destruct T as [C I]. destruct T' as [C' I'].
+  6: { eapply sim_state_other_thread_step; eauto; desf. }
+  5: { by red; splits; ins; apply CLOSED_PRES; apply MEM_CLOSE. }
+  4: { destruct T as [C I]. destruct T' as [C' I'].
        eapply sim_tview_other_thread_step.
        2: by apply COVIN.
        all: eauto.
-       etransitivity; [apply TCCOH|]. done. }
+       etransitivity; [by apply TCCOH|]. done. }
   { clear TNNULL0 TNNULL.
     ins. destruct (classic (thread'0 = thread)) as [|TNEQ']; subst.
     { apply or_comm. cdes SIMREL_THREAD.

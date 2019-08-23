@@ -448,6 +448,7 @@ Proof.
            constructor.
            { apply ETCCOH. }
            all: unfold eissued, ecovered; simpls.
+           { unionL; [by apply ETCCOH|]. basic_solver. }
            { rewrite ETCCOH.(etc_I_in_S). eauto with hahn. }
            { rewrite set_minus_union_l. rewrite ETCCOH.(etc_S_I_in_W_ex).
              basic_solver. }
@@ -474,6 +475,7 @@ Proof.
            splits; eauto 10; simpls.
            constructor; unfold eissued, ecovered; simpls.
            all: try by (unionR left; auto).
+           2: { unionL; [by apply ETCCOH|]. basic_solver. }
            3: { generalize ETCCOH.(etc_S_I_in_W_ex). basic_solver 10. }
            2: { apply set_union_mori; [|done]. apply ETCCOH. }
            red. splits; simpls.
@@ -490,6 +492,7 @@ Proof.
         { right. left. splits; auto. }
         constructor; unfold ecovered, eissued; simpls.
         all: try by (unionR left; auto).
+        2: { unionL; [by apply ETCCOH|]. basic_solver. }
         3: { generalize ETCCOH.(etc_S_I_in_W_ex). basic_solver 10. }
         2: { apply set_union_mori; [|done]. apply ETCCOH. }
         red. simpls; splits.
@@ -522,6 +525,7 @@ Proof.
       splits; eauto.
       constructor; unfold eissued, ecovered; simpls.
       all: try by (unionR left; auto).
+      2: { unionL; [by apply ETCCOH|]. basic_solver. }
       3: { generalize ETCCOH.(etc_S_I_in_W_ex). basic_solver 10. }
       2: { apply set_union_mori; [|done]. apply ETCCOH. }
       red. simpls; splits.
@@ -646,6 +650,7 @@ Proof.
     arewrite (sb ⨾ sb ⊆ sb) by (generalize (@sb_trans G); basic_solver). }
 
   constructor; unfold eissued, ecovered; simpls.
+  2: { unionL; [by apply ETCCOH|]. basic_solver. }
   3: { rewrite set_minus_union_l. unionL.
        2: { unfolder. intros x [AA HH]. exfalso. apply HH. eauto. }
        erewrite set_minus_mori.
