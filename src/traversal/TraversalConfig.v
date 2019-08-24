@@ -1,13 +1,7 @@
 Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
-Require Import AuxDef.
-Require Import Events.
-Require Import Execution.
-Require Import Execution_eco.
-Require Import imm_s_hb.
-Require Import imm_s.
-Require Import imm_common.
-Require Import CombRelations.
+From imm Require Import AuxDef Events Execution
+     Execution_eco imm_s_hb imm_s imm_common CombRelations.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -107,13 +101,19 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 
   Definition issuable T := E ∩₁ W ∩₁
                            (dom_cond fwbob (covered T)) ∩₁
-                           (dom_cond (<|W|> ;; ar⁺) (issued T)).
+                           (dom_cond (<|W|> ;; (ar ∪ rf ;; rmw)⁺) (issued T)).
 
   Definition tc_coherent (T : trav_config) :=
     ⟪ ICOV  : Init ∩₁ E ⊆₁ covered T ⟫ /\
     ⟪ CC    : covered T ⊆₁ coverable T ⟫ /\
     ⟪ II    : issued  T ⊆₁ issuable T ⟫.
-
+  
+  Lemma ar_ct_issuable_is_issued T (TCCOH : tc_coherent T) : 
+    dom_rel (<|W|> ;; ar⁺ ;; <|issuable T|>) ⊆₁ issued T.
+  Proof.
+    arewrite (ar ⊆ ar ∪ rf ;; rmw).
+    unfold issuable. basic_solver 20.
+  Qed.
 
   Lemma same_trav_config_refl : reflexive same_trav_config.
   Proof. split; basic_solver. Qed.
@@ -350,14 +350,28 @@ basic_solver.
     rewrite TCCOH.(sc_covered).
     basic_solver.
   Qed.
-  
-  Lemma ar_ct_I_in_I T (TCCOH : tc_coherent T) :
-    dom_rel (⦗W⦘ ⨾ ar⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
+
+  Lemma ar_rfrmw_ct_I_in_I T (TCCOH : tc_coherent T) :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw)⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof.
     unfolder. ins; desf.
     assert (issuable T y) as AA by (by apply issued_in_issuable).
     apply AA.
     basic_solver 10.
+  Qed.
+
+  Lemma ar_rfrmw_rt_I_in_I T (TCCOH : tc_coherent T) :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw)^* ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite rtE. rewrite !seq_union_l, !seq_union_r, dom_union; unionL.
+    { basic_solver. }
+      by apply ar_rfrmw_ct_I_in_I.
+  Qed.
+
+  Lemma ar_ct_I_in_I T (TCCOH : tc_coherent T) :
+    dom_rel (⦗W⦘ ⨾ ar⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof.
+    arewrite (ar ⊆ ar ∪ rf ;; rmw). by apply ar_rfrmw_ct_I_in_I.
   Qed.
 
   Lemma ar_I_in_I T (TCCOH : tc_coherent T) :
@@ -372,7 +386,39 @@ basic_solver.
     rewrite rtE, !seq_union_l, !seq_union_r, seq_id_l, dom_union.
     unionL; [basic_solver|]. by apply ar_ct_I_in_I.
   Qed.
+  
+  (* TODO: move to a more appropriate place. *)
+  Lemma dom_W_sb_C_in_I T (TCCOH : tc_coherent T) :
+    dom_rel (⦗W⦘ ⨾ sb ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite sb_covered; auto.
+    etransitivity.
+    2: by apply TCCOH.(w_covered_issued).
+    basic_solver.
+  Qed.
 
+  Lemma rfrmw_C_in_I T (TCCOH : tc_coherent T) :
+    dom_rel (rf ;; rmw ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite (dom_l WF.(wf_rfD)), seqA.
+    rewrite rfi_union_rfe, !seq_union_l, !seq_union_r, dom_union.
+    unionL.
+    2: { rewrite (dom_r WF.(wf_rmwD)), !seqA.
+         rewrite <- id_inter.
+         rewrite TCCOH.(w_covered_issued).
+         sin_rewrite rfe_rmw_in_ar_ct; auto.
+           by apply ar_ct_I_in_I. }
+    arewrite (rfi ⊆ sb).
+    rewrite WF.(rmw_in_sb). sin_rewrite sb_sb.
+    rewrite dom_W_sb_C_in_I; auto.
+  Qed.
+
+  Lemma ar_rfrmw_C_in_CI T (TCCOH : tc_coherent T) :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw) ⨾ ⦗covered T⦘) ⊆₁ covered T ∪₁ issued T.
+
+  Lemma ar_rfrmw_rt_C_in_I T (TCCOH : tc_coherent T) :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw)^* ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  
   Lemma ar_rt_C_in_I T (TCCOH : tc_coherent T) :
     dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗covered T⦘) ⊆₁ issued T.
   Proof.
@@ -392,6 +438,14 @@ basic_solver.
     exists y. unfolder; splits; auto.
     apply dom_rf_covered; auto.
     eexists. apply seq_eqv_r. by split; [apply AA|].
+  Qed.
+
+  Lemma ar_rt_CI_in_I T (TCCOH : tc_coherent T) :
+    dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite id_union, !seq_union_r, dom_union; unionL.
+    { by apply ar_rt_C_in_I. }
+      by apply ar_rt_I_in_I.
   Qed.
 
   Lemma sbCsbI_CsbI  T (TCCOH : tc_coherent T) :
@@ -417,6 +471,10 @@ basic_solver.
     intros e [WW [HH DD]]. red in DD. red.
     arewrite (⦗eq e⦘ ⊆ ⦗W⦘ ⨾ ⦗eq e⦘) by basic_solver.
     rewrite ct_end, !seqA.
+    arewrite (ar ∪ rf ;; rmw ⊆ (ar ∪ sb)^? ;; ar) at 2.
+    { apply inclusion_union_l; [basic_solver|].
+      rewrite rfi_union_rfe. rewrite rfe_in_ar, WF.(rmw_in_ppo), ppo_in_ar.
+      arewrite (rfi ⊆ sb). basic_solver 10. }
     arewrite (ar ⨾ ⦗W⦘ ⊆ sb).
     { unfold imm_s.ar.
       rewrite !seq_union_l. rewrite WF.(ar_int_in_sb).
@@ -424,6 +482,7 @@ basic_solver.
       rewrite WF.(wf_rfeD). type_solver. }
     apply dom_rel_helper_in in DD.
     rewrite DD.
+    arewrite ().
     arewrite (dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗covered T⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁
               dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗covered T⦘)) by basic_solver 20.
       by apply ar_rt_C_in_I.
