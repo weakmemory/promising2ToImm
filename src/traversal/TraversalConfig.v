@@ -394,16 +394,17 @@ basic_solver.
     dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗covered T⦘) ⊆₁ issued T.
   Proof.
     rewrite dom_eqv1. rewrite ar_C_in_CI.
-    rewrite 
-    apply dom_rel_helper.
-
+    rewrite set_inter_union_r; unionL.
+    2: basic_solver.
+    apply w_covered_issued.
+  Qed.
 
   Lemma ar_CI_in_CI  :
     dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
   Proof.
     rewrite id_union, !seq_union_r, dom_union; unionL.
-    { by apply ar_C_in_I.
-    rewrite id_union. 
+    { by apply W_ar_C_in_I. }
+    apply ar_I_in_I.
   Qed.
 
   Lemma ar_rt_I_in_I  :
@@ -419,7 +420,7 @@ basic_solver.
   Proof.
     rewrite sb_covered; auto.
     etransitivity.
-    2: by apply TCCOH.(w_covered_issued).
+    2: by apply w_covered_issued.
     basic_solver.
   Qed.
 
@@ -431,7 +432,7 @@ basic_solver.
     unionL.
     2: { rewrite (dom_r WF.(wf_rmwD)), !seqA.
          rewrite <- id_inter.
-         rewrite TCCOH.(w_covered_issued).
+         rewrite w_covered_issued.
          sin_rewrite rfe_rmw_in_ar_ct; auto.
            by apply ar_ct_I_in_I. }
     arewrite (rfi ⊆ sb).
@@ -463,9 +464,10 @@ basic_solver.
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw) ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
   Proof.
     rewrite seq_union_l, seq_union_r, dom_union; unionL.
-
-    intros x [y HH].
-    destruct_seq HH as [AA BB].
+    { apply ar_CI_in_CI. }
+    arewrite_id ⦗W⦘. rewrite seq_id_l.
+    apply rfrmw_CI_in_I.
+  Qed.
 
   Lemma ar_rfrmw_ct_CI_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw)⁺ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
@@ -473,64 +475,38 @@ basic_solver.
     intros x [y HH].
     destruct_seq HH as [AA BB].
     apply clos_trans_tn1 in HH.
-    induction HH as [y [HH|HH]|HH].
-    { eapply ar_
-
-    unfolder.
-    ins. desc.
-    apply clos_rt_rtn1 in H0.
-    induction H0.
-    { desf.
-      apply w_covered_issued; basic_solver. }
-    apply clos_rtn1_rt in H2.
-    destruct H0 as [[[AA|AA]|AA]|AA].
-    4: { apply IHclos_refl_trans_n1.
-         eapply rfrmw_CI_in_I; eauto.
-         basic_solver 10. }
-    3: { apply ar_int_in_sb in AA; auto.
-         apply IHclos_refl_trans_n1.
-         eapply dom_sb_covered; basic_solver 10. }
-    { apply IHclos_refl_trans_n1.
-      eapply dom_sc_covered; basic_solver 10. }
-    apply ar_rt_I_in_I; auto.
-    exists y. unfolder; splits; auto.
-    apply dom_rf_covered; auto.
-
-
-    rewrite id_union, !seq_union_r, dom_union.
-    unionL.
-    2: { by apply ar_rfrmw_ct_I_in_I. }
-    rewrite ct_end, !seqA.
-
+    induction HH as [y HH|y z QQ].
+    { eapply ar_rfrmw_CI_in_I. basic_solver 10. }
+    apply clos_tn1_trans in HH.
+    destruct QQ as [QQ|QQ].
+    2: { apply IHHH. right.
+         apply rfrmw_CI_in_I.
+         exists z. apply seqA. basic_solver. }
+    destruct BB as [BB|BB].
+    2: { apply ar_rfrmw_ct_I_in_I. exists z.
+         apply seq_eqv_lr. splits; auto.
+         apply ct_end. exists y. split; auto.
+         { by apply clos_trans_in_rt. }
+           by left. }
+    apply IHHH.
+    destruct QQ as [[QQ|QQ]|QQ].
+    { left. 
+      apply dom_sc_covered. exists z. basic_solver. }
+    { right.
+      apply dom_rf_covered. exists z.
+      do 2 red in QQ. basic_solver. }
+    left. apply dom_sb_covered. exists z.
+    apply seq_eqv_r. split; auto. by apply ar_int_in_sb.
+  Qed.
 
   Lemma ar_rfrmw_rt_CI_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw)^* ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
   Proof.
-    rewrite id_union, !seq_union_r, dom_union.
+    rewrite rtE. rewrite !seq_union_l, !seq_union_r, dom_union, seq_id_l.
     unionL.
-    2: { by apply ar_rfrmw_rt_I_in_I. }
-
-    unfolder.
-    ins. desc.
-    apply clos_rt_rtn1 in H0.
-    induction H0.
-    { desf.
-      apply w_covered_issued; basic_solver. }
-    apply clos_rtn1_rt in H2.
-    destruct H0 as [[[AA|AA]|AA]|AA].
-    4: { apply IHclos_refl_trans_n1.
-         eapply rfrmw_CI_in_I; eauto.
-         basic_solver 10. }
-    3: { apply ar_int_in_sb in AA; auto.
-         apply IHclos_refl_trans_n1.
-         eapply dom_sb_covered; basic_solver 10. }
-    { apply IHclos_refl_trans_n1.
-      eapply dom_sc_covered; basic_solver 10. }
-    apply ar_rt_I_in_I; auto.
-    exists y. unfolder; splits; auto.
-    apply dom_rf_covered; auto.
-    eexists. apply seq_eqv_r. by split; [apply AA|].
-
+    { generalize w_covered_issued. basic_solver. }
+    apply ar_rfrmw_ct_CI_in_I.
+  Qed.
   
   Lemma ar_rt_C_in_I  :
     dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗covered T⦘) ⊆₁ issued T.
@@ -595,10 +571,15 @@ basic_solver.
       rewrite WF.(wf_rfeD). type_solver. }
     apply dom_rel_helper_in in DD.
     rewrite DD.
-    arewrite ().
-    arewrite (dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗covered T⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁
-              dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗covered T⦘)) by basic_solver 20.
-      by apply ar_rt_C_in_I.
+    arewrite ((ar ∪ sb)^? ⨾ ⦗covered T⦘ ⊆ ⦗covered T ∪₁ issued T⦘ ;; (ar ∪ sb)^? ⨾ ⦗covered T⦘).
+    2: { etransitivity.
+         2: by apply ar_rfrmw_rt_CI_in_I.
+         basic_solver 20. }
+    apply dom_rel_helper_in.
+    rewrite crE, !seq_union_l, !dom_union, seq_id_l.
+    unionL; [basic_solver| |].
+    2: rewrite dom_sb_covered; basic_solver.
+    apply ar_C_in_CI.
   Qed.
   
   (* TODO: move to a more appropriate place *)
@@ -635,9 +616,16 @@ basic_solver.
     { rewrite <- seq_eqvK at 1.
       rewrite WF.(W_ex_in_W) at 1. basic_solver. }
     arewrite (⦗issued T⦘ ⊆ ⦗W⦘ ;; ⦗issued T⦘).
-    { rewrite <- seq_eqvK at 1. by rewrite TCCOH.(issuedW) at 1. }
+    { rewrite <- seq_eqvK at 1. by rewrite issuedW at 1. }
     arewrite (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ar).
       by apply ar_I_in_I.
+  Qed.
+  
+  (* TODO: move to imm/imm_common.v *)
+  Lemma R_ex_sb_in_ppo : ⦗R_ex⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ppo.
+  Proof.
+    arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ;; ⦗R_ex⦘) by type_solver.
+    unfold imm_common.ppo. hahn_frame. rewrite <- ct_step. eauto with hahn.
   Qed.
 
   Lemma rf_rmw_issued_rfi_rmw_issued : 
@@ -657,7 +645,7 @@ basic_solver.
                   ⦗issued T⦘ ⨾ rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊ ⨾ ⦗issued T⦘).
     { apply dom_rel_helper.
       rewrite (rmw_in_sb WF) at 2; arewrite (rfi ⊆ sb) at 1.
-      arewrite (sb ;; sb ⊆ sb).
+      sin_rewrite sb_sb.
       rewrite (dom_l (wf_rmwD WF)) at 1; rewrite !seqA.
       rewrite WF.(rmw_in_sb).
       arewrite (sb ;; sb＊ ⊆ sb⁺).
@@ -693,13 +681,17 @@ basic_solver.
         rewrite WF.(W_ex_in_W) at 1. basic_solver. }
       arewrite (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ar).
       rewrite ct_step with (r:=ar).
-      unfold issuable. basic_solver 10. }
+      unfold issuable.
+      arewrite (ar ⊆ ar ∪ rf ;; rmw) at 1.
+      basic_solver 10. }
     rewrite WF.(rmw_in_ppo).
     arewrite (ppo ⊆ ar).
     rewrite (dom_l WF.(wf_rfeD)), !seqA.
     arewrite (rfe ⊆ ar).
     sin_rewrite ar_ar_in_ar_ct.
-    unfold issuable. basic_solver 10. 
+    unfold issuable.
+    arewrite (ar ⊆ ar ∪ rf ;; rmw) at 1.
+    basic_solver 10. 
   Qed.
 
   Lemma wex_rfi_rfe_rmw_issued_is_issued :
@@ -717,42 +709,27 @@ basic_solver.
       by apply wex_rfi_rfe_rmw_issued_is_issued.
   Qed.
 
-  Lemma rf_rmw_issued 
-        (ACQEX : W_ex ⊆₁ W_ex_acq) :
+  Lemma rf_rmw_issued :
     (rf ⨾ rmw)＊ ⨾ ⦗issued T⦘ ⊆ (rf ⨾ rmw ⨾ ⦗issued T⦘)＊.
   Proof.
-    rewrite rmw_W_ex at 1.
-    rewrite ACQEX.
-    rewrite rt_begin.
-    relsf; unionL; [basic_solver|].
-    rewrite !seqA.
-    rewrite <- !(seqA rf rmw).
-    arewrite (⦗W_ex_acq⦘ ⨾ ((rf ⨾ rmw) ⨾ ⦗W_ex_acq⦘)＊ ⨾ ⦗issued T⦘ ⊆
-              ⦗issued T⦘ ⨾ ((rf ⨾ rmw) ⨾ ⦗issued T⦘)＊).
-    2: { rewrite <- !seqA.
-         rewrite <- ct_begin.
-         apply inclusion_t_rt. }
-    intros x y HH.
-    apply seq_eqv_l in HH. destruct HH as [WX HH].
-    apply seq_eqv_r in HH. destruct HH as [HH IY].
-    apply clos_rt_rt1n in HH.
-    induction HH as [|z v w [o [AA [BB CC]]]]; desf.
-    { apply seq_eqv_l. split; auto. apply rt_refl. }
-    specialize (IHHH CC IY).
-    apply seq_eqv_l in IHHH. destruct IHHH as [ISSV DD].
-    apply seq_eqv_l. split.
-    2: { apply rt_rt.
-         exists v. split; auto.
-         apply rt_step. basic_solver. }
-    eapply wex_rf_rmw_issued_is_issued; auto.
-    exists v. apply seq_eqv_l. split; auto.
-    apply seqA. basic_solver.
+    intros x y HH. destruct_seq_r HH as II.
+    apply clos_rt_rtn1 in HH.
+    induction HH as [|y z TT].
+    { apply rt_refl. }
+    apply rt_end. right. exists y.
+    split.
+    2: apply seqA; basic_solver.
+    apply IHHH.
+    apply ar_rfrmw_I_in_I. exists z.
+    apply seq_eqv_lr. splits; auto.
+    2: by right.
+    red in TT. desf. apply WF.(wf_rfD) in TT. unfolder in TT. desf.
   Qed.
 
   Lemma dom_sb_loc_issued :
     dom_rel (⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⨾ ⦗issued T⦘) ⊆₁ covered T.
   Proof.
-    rewrite (issued_in_issuable TCCOH).
+    rewrite issued_in_issuable.
     arewrite (⦗issuable T⦘ ⊆ ⦗dom_cond fwbob (covered T)⦘).
     { unfold issuable. basic_solver 10. }
     rewrite <- !seqA.
@@ -765,14 +742,14 @@ basic_solver.
     ⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⨾ ⦗issued T⦘ ⊆ 
                ⦗covered T⦘ ⨾ ⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘.
   Proof.
-    seq_rewrite (dom_rel_helper (dom_sb_loc_issued TCCOH)).
+    seq_rewrite (dom_rel_helper dom_sb_loc_issued).
     basic_solver.
   Qed.
 
   Lemma dom_F_sb_issued :
     dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ covered T.
   Proof.
-    rewrite (issued_in_issuable TCCOH).
+    rewrite issued_in_issuable.
     arewrite (⦗issuable T⦘ ⊆ ⦗dom_cond fwbob (covered T)⦘).
     { unfold issuable. basic_solver 10. }
     rewrite <- !seqA.
@@ -784,17 +761,18 @@ basic_solver.
   Lemma F_sb_issued  :
     ⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⨾ ⦗issued T⦘ ⊆ ⦗covered T⦘ ⨾ ⦗F ∩₁ Acq/Rel⦘ ⨾ sb.
   Proof.
-    seq_rewrite (dom_rel_helper (dom_F_sb_issued TCCOH)).
+    seq_rewrite (dom_rel_helper dom_F_sb_issued).
     basic_solver.
   Qed.
+  
+  Variable RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T.
 
-  Lemma dom_release_issued 
-        (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T):
+  Lemma dom_release_issued :
     dom_rel (release ⨾ ⦗ issued T ⦘) ⊆₁ covered T.
   Proof.
     unfold imm_s_hb.release, imm_s_hb.rs.
     rewrite !seqA.
-    sin_rewrite rf_rmw_issued_rfi_rmw_issued; [|done].
+    sin_rewrite rf_rmw_issued_rfi_rmw_issued.
     rewrite (dom_r (wf_rmwD WF)) at 1.
     arewrite (⦗W⦘ ⨾ (rfi ⨾ rmw ⨾ ⦗W⦘)＊ ⊆ (rfi ⨾ rmw)＊ ⨾ ⦗W⦘).
     { rewrite rtE; relsf; unionL; [basic_solver|].
@@ -803,51 +781,47 @@ basic_solver.
     generalize (@sb_same_loc_trans G); ins; relsf.
     rewrite !crE; relsf; unionL; splits.
     - revert RELCOV; basic_solver 21.
-    - generalize (dom_sb_loc_issued TCCOH); basic_solver 21.
+    - generalize dom_sb_loc_issued; basic_solver 21.
     - arewrite (Rel ⊆₁ Acq/Rel) by mode_solver.
-      generalize (dom_F_sb_issued TCCOH);  basic_solver 40.
+      generalize dom_F_sb_issued;  basic_solver 40.
     - arewrite (Rel ⊆₁ Acq/Rel) by mode_solver.
       generalize (@sb_trans G).
-      generalize (dom_F_sb_issued TCCOH);  basic_solver 40.
+      generalize dom_F_sb_issued;  basic_solver 40.
   Qed.
 
-  Lemma release_issued 
-        (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T):
+  Lemma release_issued :
     release ⨾ ⦗ issued T ⦘ ⊆ ⦗covered T⦘ ⨾ release.
   Proof.
-    seq_rewrite (dom_rel_helper (dom_release_issued TCCOH RELCOV)).
+    seq_rewrite (dom_rel_helper dom_release_issued).
     basic_solver.
   Qed.
 
-  Lemma dom_release_rf_coverable 
-        (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T):
+  Lemma dom_release_rf_coverable :
     dom_rel (release ⨾ rf ⨾ ⦗ coverable T ⦘) ⊆₁ covered T.
   Proof.
-    generalize (dom_release_issued TCCOH RELCOV).
-    generalize (dom_rf_coverable TCCOH).
+    generalize dom_release_issued.
+    generalize dom_rf_coverable.
     basic_solver 21.
   Qed.
 
-  Lemma release_rf_coverable 
-        (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T):
+  Lemma release_rf_coverable :
     release ⨾ rf ⨾ ⦗ coverable T ⦘ ⊆ ⦗ covered T ⦘ ⨾ release ⨾ rf.
   Proof.
-    seq_rewrite (dom_rel_helper (dom_release_rf_coverable TCCOH RELCOV)).
+    seq_rewrite (dom_rel_helper dom_release_rf_coverable).
     basic_solver.
   Qed.
 
-  Lemma release_rf_covered 
-        (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T):
+  Lemma release_rf_covered :
     release ⨾ rf ⨾ ⦗ covered T ⦘ ⊆ ⦗ covered T ⦘ ⨾ release ⨾ rf.
   Proof.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable at 1.
       by apply release_rf_coverable.
   Qed.
 
   Lemma dom_sb_W_rel_issued  :
     dom_rel (sb ⨾ ⦗W ∩₁ Rel⦘ ⨾ ⦗issued T⦘) ⊆₁ covered T.
   Proof.
-    rewrite (issued_in_issuable TCCOH).
+    rewrite issued_in_issuable.
     arewrite (⦗issuable T⦘ ⊆ ⦗dom_cond fwbob (covered T)⦘).
     { unfold issuable. basic_solver 10. }
     rewrite <- !seqA.
@@ -859,47 +833,43 @@ basic_solver.
   Lemma sb_W_rel_issued  :
     sb ⨾ ⦗W ∩₁ Rel⦘ ⨾ ⦗issued T⦘ ⊆ ⦗covered T⦘ ⨾ sb ⨾ ⦗W ∩₁ Rel⦘.
   Proof.
-    seq_rewrite (dom_rel_helper (dom_sb_W_rel_issued TCCOH)).
+    seq_rewrite (dom_rel_helper dom_sb_W_rel_issued).
     basic_solver.
   Qed.
 
-  Lemma dom_sw_coverable 
-        (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T):
+  Lemma dom_sw_coverable :
     dom_rel (sw ⨾ ⦗ coverable T ⦘) ⊆₁ covered T.
   Proof.
     unfold imm_s_hb.sw.
-    generalize (dom_sb_coverable TCCOH).
-    generalize (dom_release_rf_coverable TCCOH RELCOV).
-    generalize (covered_in_coverable TCCOH).
+    generalize dom_sb_coverable.
+    generalize dom_release_rf_coverable.
+    generalize covered_in_coverable.
     basic_solver 21.
   Qed.
 
-  Lemma sw_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T):
-    sw ⨾ ⦗ coverable T ⦘ ⊆ ⦗covered T⦘ ⨾ sw.
+  Lemma sw_coverable : sw ⨾ ⦗ coverable T ⦘ ⊆ ⦗covered T⦘ ⨾ sw.
   Proof.
-    seq_rewrite (dom_rel_helper (dom_sw_coverable TCCOH RELCOV)).
+    seq_rewrite (dom_rel_helper dom_sw_coverable).
     basic_solver.
   Qed.
 
-  Lemma sw_covered  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T):
-    sw ⨾ ⦗ covered T ⦘ ⊆ ⦗covered T⦘ ⨾ sw.
+  Lemma sw_covered : sw ⨾ ⦗ covered T ⦘ ⊆ ⦗covered T⦘ ⨾ sw.
   Proof.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable at 1.
       by apply sw_coverable.
   Qed.
 
-  Lemma hb_coverable   (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T):
-    hb ⨾ ⦗ coverable T ⦘ ⊆ ⦗covered T⦘ ⨾ hb.
+  Lemma hb_coverable : hb ⨾ ⦗ coverable T ⦘ ⊆ ⦗covered T⦘ ⨾ hb.
   Proof.
     unfold imm_s_hb.hb.
     assert (A: (sb ∪ sw) ⨾ ⦗coverable T⦘ ⊆ ⦗covered T⦘ ⨾ (sb ∪ sw)⁺).
     { relsf.
-      rewrite (sb_coverable TCCOH), (sw_coverable TCCOH RELCOV).
+      rewrite sb_coverable, sw_coverable.
       rewrite <- ct_step; basic_solver. }
     unfold imm_s_hb.hb.
     eapply ct_ind_left with (P:= fun r => r ⨾ ⦗coverable T⦘); eauto with hahn.
     intros k H; rewrite !seqA, H.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable at 1.
     sin_rewrite A.
     arewrite ((sb ∪ sw)⁺ ⊆ (sb ∪ sw)＊) at 1.
     relsf.
@@ -925,211 +895,192 @@ Proof.
   mode_solver.
 Qed.
 
-  Lemma dom_hb_coverable 
-        (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T):
+  Lemma dom_hb_coverable :
     dom_rel (hb ⨾ ⦗ coverable T ⦘) ⊆₁ covered T.
   Proof.
-    rewrite (hb_coverable TCCOH RELCOV); basic_solver 10.
+    rewrite hb_coverable; basic_solver 10.
   Qed.
 
-  Lemma hb_covered   (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T):
+  Lemma hb_covered :
     hb ⨾ ⦗ covered T ⦘ ⊆ ⦗covered T⦘ ⨾ hb.
   Proof.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable at 1.
       by apply hb_coverable.
   Qed.
 
-  Lemma dom_urr_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T) l:
+  Lemma dom_urr_coverable l:
     dom_rel (urr l ⨾ ⦗ coverable T ⦘) ⊆₁ issued T.
   Proof.
     unfold CombRelations.urr.
-    generalize (dom_hb_coverable TCCOH RELCOV).
-    generalize (dom_sc_coverable TCCOH).
-    generalize (dom_rf_coverable TCCOH).
-    generalize (covered_in_coverable TCCOH).
-    generalize (w_coverable_issued TCCOH).
+    generalize dom_hb_coverable.
+    generalize dom_sc_coverable.
+    generalize dom_rf_coverable.
+    generalize covered_in_coverable.
+    generalize w_coverable_issued.
     basic_solver 21.
   Qed.
 
-  Lemma urr_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T) l:
+  Lemma urr_coverable l:
     urr l ⨾ ⦗ coverable T ⦘ ⊆ ⦗issued T⦘ ⨾ urr l.
   Proof.
-    seq_rewrite (dom_rel_helper (@dom_urr_coverable T TCCOH RELCOV l)).
+    rewrite (dom_rel_helper (@dom_urr_coverable l)).
     basic_solver.
   Qed.
 
-  Lemma urr_covered  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T) l:
+  Lemma urr_covered l:
     urr l ⨾ ⦗ covered T ⦘ ⊆ ⦗issued T⦘ ⨾ urr l.
   Proof.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable at 1.
       by apply urr_coverable.
   Qed.
 
-  Lemma dom_c_acq_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        i l A:
+  Lemma dom_c_acq_coverable i l A:
     dom_rel (c_acq i l A ⨾ ⦗ coverable T ⦘) ⊆₁ issued T.
   Proof.
     unfold CombRelations.c_acq.
-    generalize (@dom_urr_coverable T TCCOH RELCOV l).
-    generalize (covered_in_coverable TCCOH).
-    generalize (dom_release_issued TCCOH RELCOV).
-    generalize (dom_rf_coverable TCCOH).
+    generalize (@dom_urr_coverable l).
+    generalize covered_in_coverable.
+    generalize dom_release_issued.
+    generalize dom_rf_coverable.
     basic_solver 21.
   Qed.
 
-  Lemma c_acq_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        i l A:
+  Lemma c_acq_coverable i l A:
     c_acq i l A ⨾ ⦗ coverable T ⦘ ⊆ ⦗issued T⦘ ⨾ c_acq i l A.
   Proof.
-    seq_rewrite (dom_rel_helper (@dom_c_acq_coverable T TCCOH RELCOV i l A)).
+    rewrite (dom_rel_helper (@dom_c_acq_coverable i l A)).
     basic_solver.
   Qed.
 
-  Lemma c_acq_covered  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        i l A:
+  Lemma c_acq_covered i l A:
     c_acq i l A ⨾ ⦗ covered T ⦘ ⊆ ⦗issued T⦘ ⨾ c_acq i l A.
   Proof.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable  at 1.
       by apply c_acq_coverable.
   Qed.
 
-
-  Lemma dom_c_cur_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        i l A:
+  Lemma dom_c_cur_coverable i l A:
     dom_rel (c_cur i l A ⨾ ⦗ coverable T ⦘) ⊆₁ issued T.
   Proof.
     unfold CombRelations.c_cur.
-    generalize (@dom_urr_coverable T TCCOH RELCOV l).
+    generalize (@dom_urr_coverable l).
     basic_solver 21.
   Qed.
 
-  Lemma c_cur_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        i l A:
+  Lemma c_cur_coverable i l A:
     c_cur i l A ⨾ ⦗ coverable T ⦘ ⊆ ⦗issued T⦘ ⨾ c_cur i l A.
   Proof.
-    seq_rewrite (dom_rel_helper (@dom_c_cur_coverable T TCCOH RELCOV i l A)).
+    seq_rewrite (dom_rel_helper (@dom_c_cur_coverable i l A)).
     basic_solver.
   Qed.
 
 
-  Lemma c_cur_covered  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        i l A:
+  Lemma c_cur_covered i l A:
     c_cur i l A ⨾ ⦗ covered T ⦘ ⊆ ⦗issued T⦘ ⨾ c_cur i l A.
   Proof.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable at 1.
       by apply c_cur_coverable.
   Qed.
 
-  Lemma dom_c_rel_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        i l l' A:
+  Lemma dom_c_rel_coverable i l l' A:
     dom_rel (c_rel i l l' A ⨾ ⦗ coverable T ⦘) ⊆₁ issued T.
   Proof.
     unfold CombRelations.c_rel.
-    generalize (@dom_urr_coverable T TCCOH RELCOV l).
+    generalize (@dom_urr_coverable l).
     basic_solver 21.
   Qed.
 
 
-  Lemma c_rel_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        i l l' A:
+  Lemma c_rel_coverable i l l' A:
     c_rel i l l' A ⨾ ⦗ coverable T ⦘ ⊆ ⦗issued T⦘ ⨾ c_rel i l l' A.
   Proof.
-    seq_rewrite (dom_rel_helper (@dom_c_rel_coverable T TCCOH RELCOV i l l' A)).
+    seq_rewrite (dom_rel_helper (@dom_c_rel_coverable i l l' A)).
     basic_solver.
   Qed.
 
 
-  Lemma c_rel_covered  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        i l l' A:
+  Lemma c_rel_covered i l l' A:
     c_rel i l l' A ⨾ ⦗ covered T ⦘ ⊆ ⦗issued T⦘ ⨾ c_rel i l l' A.
   Proof.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable at 1.
       by apply c_rel_coverable.
   Qed.
 
-  Lemma t_acq_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        l thread:
+  Lemma t_acq_coverable l thread:
     t_acq thread l (coverable T) ⊆₁ issued T.
   Proof.
     unfold CombRelations.t_acq.
     rewrite (dom_r (wf_c_acqD G sc thread l (coverable T))).
     arewrite (⦗(Tid_ thread ∪₁ Init) ∩₁ coverable T⦘ ⊆ ⦗coverable T⦘) by basic_solver.
-    rewrite (c_acq_coverable TCCOH RELCOV).
+    rewrite c_acq_coverable.
     basic_solver.
   Qed.
 
-  Lemma t_acq_covered  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        l thread:
+  Lemma t_acq_covered l thread:
     t_acq thread l (covered T) ⊆₁ issued T.
   Proof.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable at 1.
       by apply t_acq_coverable.
   Qed.
 
-  Lemma t_cur_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        l thread:
+  Lemma t_cur_coverable l thread:
     t_cur thread l (coverable T) ⊆₁ issued T.
   Proof.
     etransitivity; [by apply t_cur_in_t_acq|].
       by apply t_acq_coverable.
   Qed.
 
-  Lemma t_cur_covered  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        l thread:
+  Lemma t_cur_covered l thread:
     t_cur thread l (covered T) ⊆₁ issued T.
   Proof.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable at 1.
       by apply t_cur_coverable.
   Qed.
 
-  Lemma t_rel_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        l l' thread:
+  Lemma t_rel_coverable l l' thread:
     t_rel thread l l' (coverable T) ⊆₁ issued T.
   Proof.
     etransitivity; [by apply t_rel_in_t_cur|].
       by apply t_cur_coverable.
   Qed.
 
-  Lemma t_rel_covered  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        l l' thread:
+  Lemma t_rel_covered l l' thread:
     t_rel thread l l' (covered T) ⊆₁ issued T.
   Proof.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable at 1.
       by apply t_rel_coverable.
   Qed.
 
-  Lemma S_tm_coverable  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T) l:
+  Lemma S_tm_coverable l :
     S_tm l (coverable T) ⊆₁ issued T.
   Proof.
     unfold CombRelations.S_tm, CombRelations.S_tmr.
-    generalize (@dom_hb_coverable T TCCOH RELCOV).
-    generalize (w_coverable_issued TCCOH).
-    generalize (covered_in_coverable TCCOH).
-    generalize (dom_release_issued TCCOH RELCOV).
-    generalize (dom_rf_coverable TCCOH).
+    generalize dom_hb_coverable.
+    generalize w_coverable_issued.
+    generalize covered_in_coverable.
+    generalize dom_release_issued.
+    generalize dom_rf_coverable.
     basic_solver 21.
   Qed.
 
-
-  Lemma S_tm_covered  (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T) l:
+  Lemma S_tm_covered l:
     S_tm l (covered T) ⊆₁ issued T.
   Proof.
-    rewrite (covered_in_coverable TCCOH) at 1.
+    rewrite covered_in_coverable at 1.
       by apply S_tm_coverable.
   Qed.
 
-  Lemma msg_rel_issued 
-        (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T) l:
+  Lemma msg_rel_issued l:
     dom_rel (msg_rel l ⨾ ⦗ issued T ⦘) ⊆₁ issued T.
   Proof.
     unfold CombRelations.msg_rel.
-    generalize (dom_release_issued TCCOH RELCOV).
-    generalize (@dom_urr_coverable T TCCOH RELCOV l).
-    generalize (covered_in_coverable TCCOH).
+    generalize dom_release_issued.
+    generalize (@dom_urr_coverable l).
+    generalize covered_in_coverable.
     basic_solver 21.
   Qed.
 
-Lemma exists_ncov T thread (TCCOH : tc_coherent T) :
+Lemma exists_ncov thread :
   exists n, ~ covered T (ThreadEvent thread n).
 Proof.
   destruct (exists_nE G thread) as [n HH].
@@ -1138,13 +1089,11 @@ Proof.
 Qed.
 
 Section HbProps.
-Variable T : trav_config.
-Variable TCCOH : tc_coherent T.
 
 Notation "'C'" := (covered T).
 Notation "'I'" := (issued  T).
 
-Lemma sw_in_Csw_sb (RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C) :
+Lemma sw_in_Csw_sb :
   sw ⨾ ⦗C ∪₁ dom_rel (sb^? ⨾ ⦗ I ⦘)⦘ ⊆ ⦗ C ⦘ ⨾ sw ∪ sb.
 Proof.
   assert (forall (s : actid -> Prop), s ∪₁ set_compl s ≡₁ fun _ => True) as AA.
@@ -1167,7 +1116,7 @@ Proof.
               ⦗ C ⦘ ⨾ sb ⨾ ⦗F ∩₁ Acq ∩₁ dom_rel (sb^? ⨾ ⦗I⦘)⦘).
     { unfolder. ins. desf; splits; auto.
       2,4: by do 2 eexists; splits; eauto.
-      2: eapply TCCOH.(dom_sb_covered).
+      2: eapply dom_sb_covered.
       2: eexists; apply seq_eqv_r; split; eauto.
       all: match goal with H : I _ |- _ => apply TCCOH in H; apply H end.
       all: eexists; apply seq_eqv_r; split; eauto.
@@ -1189,7 +1138,7 @@ Proof.
        2: basic_solver.
        seq_rewrite <- !id_inter.
        unfolder. ins. desf.
-       { match goal with H : I _ |- _ => apply TCCOH.(issuedW) in H end.
+       { match goal with H : I _ |- _ => apply issuedW in H end.
          match goal with H : rfe _ _ |- _ =>
                          apply wf_rfeD in H; auto; (destruct_seq H as [XX YY])
          end.
@@ -1273,7 +1222,9 @@ Proof.
     apply seq_eqv_r. split; eauto.
     apply seq_eqv_l. split; eauto.
     { apply (dom_l WF.(wf_rfeD)) in RF. apply seq_eqv_l in RF. desf. }
-    apply rfe_ppo_in_ar_ct; auto.
+    eapply clos_trans_mori.
+    2: apply rfe_ppo_in_ar_ct; auto.
+    { basic_solver. }
     eexists. split; eauto.
     red. apply seq_eqv_l. split; eauto.
     { apply (dom_r WF.(wf_rfeD)) in RF. apply seq_eqv_r in RF. desf. }
@@ -1290,7 +1241,7 @@ Proof.
   apply IHHH1. generalize VV (@sb_trans G) IHHH2. basic_solver 10.
 Qed.
 
-Lemma hb_in_Chb_sb (RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C) :
+Lemma hb_in_Chb_sb :
   hb ⨾ ⦗C ∪₁ dom_rel (sb^? ⨾ ⦗ I ⦘)⦘ ⊆ ⦗ C ⦘ ⨾ hb ∪ sb.
 Proof.
   unfold imm_s_hb.hb.
