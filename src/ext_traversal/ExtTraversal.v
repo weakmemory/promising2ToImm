@@ -1,33 +1,12 @@
 Require Import Setoid.
 From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution Execution_eco
-     TraversalConfig Traversal imm_common imm_s imm_s_hb CombRelations.
+     imm_common imm_s imm_s_hb CombRelations.
+Require Import TraversalConfig Traversal.
 Require Import AuxRel AuxRel2.
 Require Export ExtTravRelations.
 
 Set Implicit Arguments.
-
-(* TODO: move to imm/TraversalConfig.v *)
-Add Parametric Morphism : issuable with signature
-    eq ==> same_trav_config ==> set_equiv as issuable_more.
-Proof.
-  unfold issuable, same_trav_config; split; ins; desf.
-  all: unnw; try first [ rewrite <- H, <- H0 | rewrite H, H0].
-  all: unfold set_equiv in *; unnw; intuition; basic_solver 12.
-Qed.
-
-(* TODO: move to imm/TraversalConfig.v *)
-Add Parametric Morphism : tc_coherent with signature
-    eq ==> eq ==> same_trav_config ==> iff as tc_coherent_more.
-Proof.
-  intros G sc T T' EQ.
-  split; [apply same_tc_Symmetric in EQ|];
-    intros HH; cdes HH; red; splits.
-  all: try erewrite covered_more; eauto.
-  all: try erewrite coverable_more; eauto.
-  all: try erewrite issued_more; eauto.
-  all: erewrite issuable_more; eauto.
-Qed.
 
 Section ExtTraversalConfig.
 Variable G : execution.
@@ -245,12 +224,15 @@ Proof.
   assert (E e) as EE.
   { apply ISS. }
   assert (W e) as WE.
-  { eapply issuableW; eauto. apply ETCCOH. }
+  { eapply issuableW; eauto. }
   assert (E w) as EW.
   { destruct SBB as [|SBB]; desf.
     destruct_seq_l SBB as AA.
     apply (dom_l G.(wf_sbE)) in SBB.
       by destruct_seq_l SBB as BB. }
+  assert (eq e ⊆₁ issuable G sc (etc_TC T)) as EISS.
+  { basic_solver. }
+
   destruct (classic (W_ex w)) as [WEX|NEWX].
   { exists (mkETC (etc_TC T) (reserved T ∪₁ eq w)).
     red. exists w. red.
@@ -271,19 +253,19 @@ Proof.
     4: { unionR left. unfolder. ins. desf.
          apply NNPP. intros HH. apply NB. basic_solver 10. }
     3: { unionR left. apply ETCCOH. }
-    2: etransitivity; [|by apply ISS].
-    1,3: etransitivity; [|by destruct ISS as [[_ ISS] _]; apply ISS].
     all: rewrite <- !seqA.
     all: rewrite dom_eqv_seq with (r':=sb^? ;; <|eq e|>) at 1;
       [|exists e; generalize SBB; basic_solver 10].
     all: rewrite !seqA.
     all: arewrite_id ⦗eq w⦘; rewrite seq_id_l.
-    1,3: arewrite (sb ;; sb^? ⊆ sb) by (generalize (@sb_trans G); basic_solver).
-    { by arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ ppo ∪ bob). }
-    arewrite (⦗eq e⦘ ⊆ ⦗W⦘ ⨾ ⦗eq e⦘) at 1 by basic_solver.
+    1,2: arewrite (sb ;; sb^? ⊆ sb) by (generalize (@sb_trans G); basic_solver).
+    3: arewrite (⦗eq e⦘ ⊆ ⦗W⦘ ⨾ ⦗eq e⦘) at 1 by basic_solver.
+    all: rewrite EISS.
+    { eapply dom_detour_rfe_acq_sb_issuable; eauto. }
+    { by apply dom_wex_sb_issuable. }
     sin_rewrite WF.(rppo_cr_sb_in_rppo).
     sin_rewrite WF.(detour_rfe_data_rfi_rppo_in_detour_rfe_ppo).
-      by arewrite (ppo ⊆ ppo ∪ bob) at 1. }
+    rewrite !seqA. by apply dom_detour_rfe_ppo_issuable. }
   assert (w = e); subst.
   { destruct SBB as [|SBB]; desf.
     unfolder in SBB. desf. }
@@ -312,11 +294,11 @@ Proof.
   all: try by apply ETCCOH.
   3: { unfolder. ins. desf.
        apply NNPP. intros HH. apply NB. basic_solver 10. }
-  2: by etransitivity; [|by apply ISS]; rewrite !seqA.
-  all: etransitivity; [|by destruct ISS as [[_ ISS] _]; apply ISS].
-  { by arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ ppo ∪ bob). }
+  all: rewrite EISS.
+  { eapply dom_detour_rfe_acq_sb_issuable; eauto. }
+  { by apply dom_wex_sb_issuable. }
   sin_rewrite WF.(detour_rfe_data_rfi_rppo_in_detour_rfe_ppo).
-    by arewrite (ppo ⊆ ppo ∪ bob) at 1.
+  rewrite !seqA. by apply dom_detour_rfe_ppo_issuable.
 Qed.
 
 Lemma exists_ext_trav_step T (ETCCOH : etc_coherent T)

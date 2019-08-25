@@ -156,6 +156,25 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
     all: unfold set_equiv in *; unnw; intuition; basic_solver 12.
   Qed.
 
+  Add Parametric Morphism : issuable with signature
+      same_trav_config ==> set_equiv as issuable_more.
+  Proof.
+    unfold issuable, same_trav_config; split; ins; desf.
+    all: unnw; try first [ rewrite <- H, <- H0 | rewrite H, H0].
+    all: unfold set_equiv in *; unnw; intuition; basic_solver 12.
+  Qed.
+
+  Add Parametric Morphism : tc_coherent with signature
+      same_trav_config ==> iff as tc_coherent_more.
+  Proof.
+    intros T T' EQ.
+    split; [apply same_tc_Symmetric in EQ|];
+      intros HH; cdes HH; red; splits.
+    all: try erewrite covered_more; eauto.
+    all: try erewrite coverable_more; eauto.
+    all: try erewrite issued_more; eauto.
+    all: erewrite issuable_more; eauto.
+  Qed.
 
 (******************************************************************************)
 (** **   *)
@@ -254,6 +273,12 @@ Section Properties.
     unfold issuable. basic_solver 20.
   Qed.
 
+  Lemma ar_issuable_is_issued  : 
+    dom_rel (<|W|> ;; ar ;; <|issuable T|>) ⊆₁ issued T.
+  Proof.
+    rewrite ct_step with (r:=ar).
+    apply ar_ct_issuable_is_issued.
+  Qed.
 
   Lemma dom_sb_coverable :
     dom_rel (sb ⨾ ⦗ coverable T ⦘) ⊆₁ covered T.
@@ -598,27 +623,85 @@ basic_solver.
       by apply ar_ct_I_in_I.
   Qed.
 
-  Lemma dom_rfe_acq_sb_issued :
-    dom_rel (rfe ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Lemma dom_ar_ct_issuable : dom_rel (⦗W⦘ ⨾ ar⁺ ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof.
+    arewrite (ar ⊆ ar ∪ rf ;; rmw).
+    unfold issuable.
+    basic_solver 20.
+  Qed.
+
+  Lemma dom_detour_rfe_ppo_issuable :
+    dom_rel ((detour ∪ rfe) ⨾ ppo ⨾ ⦗issuable T⦘) ⊆₁ issued T.
   Proof.
     rewrite (dom_l WF.(wf_rfeD)).
+    rewrite (dom_l WF.(wf_detourD)).
     arewrite (rfe ⊆ ar).
+    arewrite (detour ⊆ ar).
+    relsf.
+    arewrite (ppo ⊆ ar).
+    sin_rewrite ar_ar_in_ar_ct.
+    apply dom_ar_ct_issuable.
+  Qed.
+
+  Lemma dom_detour_rfe_ppo_issued :
+    dom_rel ((detour ∪ rfe) ⨾ ppo ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite issued_in_issuable at 1.
+    apply dom_detour_rfe_ppo_issuable.
+  Qed.
+
+  Lemma dom_detour_rfe_acq_sb_issuable :
+    dom_rel ((detour ∪ rfe) ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite (dom_l WF.(wf_detourD)).
+    rewrite (dom_l WF.(wf_rfeD)).
+    arewrite (rfe ⊆ ar).
+    arewrite (detour ⊆ ar).
+    relsf.
     arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ ar).
     { arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ bob). unfold imm_s.ar, ar_int. eauto with hahn. }
     sin_rewrite ar_ar_in_ar_ct.
-      by apply ar_ct_I_in_I.
+    apply dom_ar_ct_issuable.
+  Qed.
+
+  Lemma dom_detour_rfe_acq_sb_issued :
+    dom_rel ((detour ∪ rfe) ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite issued_in_issuable at 1.
+    apply dom_detour_rfe_acq_sb_issuable.
+  Qed.
+
+  Lemma dom_rfe_acq_sb_issuable :
+    dom_rel (rfe ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof.
+    arewrite (rfe ⊆ detour ∪ rfe).
+    apply dom_detour_rfe_acq_sb_issuable.
+  Qed.
+
+  Lemma dom_rfe_acq_sb_issued :
+    dom_rel (rfe ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite issued_in_issuable at 1.
+    apply dom_rfe_acq_sb_issuable.
+  Qed.
+
+  Lemma dom_wex_sb_issuable :
+    dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof.
+    arewrite (⦗W_ex_acq⦘ ⊆ ⦗W⦘ ;; ⦗W_ex_acq⦘).
+    { rewrite <- seq_eqvK at 1.
+      rewrite WF.(W_ex_in_W) at 1. basic_solver. }
+    arewrite (⦗issuable T⦘ ⊆ ⦗W⦘ ;; ⦗issuable T⦘).
+    { unfold issuable. basic_solver 10. }
+    arewrite (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ar).
+    apply ar_issuable_is_issued.
   Qed.
 
   Lemma dom_wex_sb_issued :
     dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof.
-    arewrite (⦗W_ex_acq⦘ ⊆ ⦗W⦘ ;; ⦗W_ex_acq⦘).
-    { rewrite <- seq_eqvK at 1.
-      rewrite WF.(W_ex_in_W) at 1. basic_solver. }
-    arewrite (⦗issued T⦘ ⊆ ⦗W⦘ ;; ⦗issued T⦘).
-    { rewrite <- seq_eqvK at 1. by rewrite issuedW at 1. }
-    arewrite (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ar).
-      by apply ar_I_in_I.
+    rewrite issued_in_issuable at 1.
+    apply dom_wex_sb_issuable.
   Qed.
   
   (* TODO: move to imm/imm_common.v *)
