@@ -4,12 +4,13 @@ From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import Execution_eco.
 From imm Require Import imm_s.
+From imm Require Import imm_s_rfrmw.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_common.
 From imm Require Import CombRelations.
-From imm Require Import TraversalConfig.
-From imm Require Import TraversalConfigAlt.
-From imm Require Import Traversal.
+Require Import TraversalConfig.
+Require Import TraversalConfigAlt.
+Require Import Traversal.
 Require Import ExtTraversal.
 Require Import AuxRel AuxRel2.
 
@@ -226,7 +227,7 @@ Qed.
 
 (* TODO: move to imm/TraveralConfig.v *)
 Lemma issuable_add_eq_iff T e :
-  issuable G T e <-> issuable G (mkTC (covered T) (issued T ∪₁ eq e)) e.
+  issuable G sc T e <-> issuable G sc (mkTC (covered T) (issued T ∪₁ eq e)) e.
 Proof.
   cdes IMMCON.
   split.
@@ -236,14 +237,12 @@ Proof.
   unfold dom_cond in *.
   split; [split|]; auto.
   all: intros x BB; set (CC:=BB).
-  2: apply HH in CC.
-  apply ISSE in CC.
-  all: destruct CC; desf.
-  all: exfalso; clear -BB WF Cext.
-  all: unfolder in *; desf.
-  5: by eapply sb_irr; eauto.
-  all: eapply Cext.
-  all: apply ct_unit; eexists; split; [apply ct_step|]; unfold ar, ar_int; basic_solver 10.
+  apply HH in CC.
+  destruct CC; desf.
+  exfalso; clear -BB WF IMMCON.
+  unfolder in *; desf.
+  eapply ar_rfrmw_acyclic; eauto.
+  apply IMMCON.
 Qed.
 
 (* TODO: move to ExtTraversal.v *)
@@ -261,14 +260,12 @@ Proof.
   { apply coverable_add_eq_iff; auto.
     apply covered_in_coverable; [|basic_solver].
     eapply tc_coherent_more.
-    4: apply ETCCOH'.
-    1,2: done.
+    2: apply ETCCOH'.
     red; splits; simpls; by symmetry. }
   apply issuable_add_eq_iff; auto. 
   eapply issued_in_issuable; [|basic_solver].
   eapply tc_coherent_more.
-  4: apply ETCCOH'.
-  1,2: done.
+  2: apply ETCCOH'.
   red; splits; simpls; by symmetry.
 Qed.
 
@@ -343,8 +340,7 @@ Proof.
         2: by unfolder; ins; eauto 10.
         eapply tc_coherent_implies_tc_coherent_alt; eauto.
         eapply tc_coherent_more.
-        4: by apply ETCCOH'.
-        1,2: done.
+        2: by apply ETCCOH'.
         destruct T'; simpls. }
 
       assert (E e /\ E w) as [ER EW].
@@ -454,7 +450,7 @@ Proof.
              basic_solver. }
            unionR left; auto. }
       destruct (classic (Rel w)) as [REL|NREL].
-      2: { assert (issuable G (etc_TC T) w) as WISS.
+      2: { assert (issuable G sc (etc_TC T) w) as WISS.
            { red. unfold set_inter. splits; auto; red.
              3: { arewrite ((fun x => W_ex x /\ is_xacq lab x) ⊆₁ W). 
                   2: done.
