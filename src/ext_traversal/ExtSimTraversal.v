@@ -269,6 +269,13 @@ Proof.
   red; splits; simpls; by symmetry.
 Qed.
 
+(* TODO: move to a more appropriate place. *)
+Lemma ar_W_in_ar_int : ar G sc ;; <|W|> ⊆ ar_int G.
+Proof.
+  unfold ar. erewrite wf_scD with (sc:=sc); [|by apply IMMCON].
+  rewrite WF.(wf_rfeD). type_solver.
+Qed.
+
 Lemma exists_ext_sim_trav_step T (ETCCOH : etc_coherent G sc T)
       (WFSC : wf_sc G sc)
       (RELCOV :  W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
@@ -452,10 +459,20 @@ Proof.
       destruct (classic (Rel w)) as [REL|NREL].
       2: { assert (issuable G sc (etc_TC T) w) as WISS.
            { red. unfold set_inter. splits; auto; red.
-             3: { arewrite ((fun x => W_ex x /\ is_xacq lab x) ⊆₁ W). 
-                  2: done.
-                  generalize WF.(W_ex_in_W). basic_solver. }
-             2: { rewrite WF.(ppo_in_sb). rewrite bob_in_sb. by rewrite unionK, !seqA. }
+             2: { rewrite ct_end.
+                  rewrite !seq_union_r, !seq_union_l, dom_union, !seqA.
+                  unionL.
+                  2: { rewrite WF.(rmw_in_sb) at 2.
+                       rewrite (dom_rel_helper RFSB).
+                       rewrite <- !seqA. do 3 rewrite dom_seq.
+                       rewrite !seqA.
+                         by apply ar_rfrmw_rt_I_in_I. }
+                  arewrite (⦗eq w⦘ ⊆ ⦗W⦘ ;; ⦗eq w⦘) by basic_solver.
+                  sin_rewrite ar_W_in_ar_int.
+                  rewrite ar_int_in_sb; auto.
+                       rewrite (dom_rel_helper RFSB).
+
+rewrite WF.(ppo_in_sb). rewrite bob_in_sb. by rewrite unionK, !seqA. }
              arewrite
                (fwbob ⨾ ⦗eq w⦘ ⊆
                       (⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ∪ ⦗F ∩₁ Acq/Rel⦘ ⨾ sb) ⨾ ⦗eq w⦘).
