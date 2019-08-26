@@ -312,6 +312,14 @@ Proof.
       { done. }
       subst. exfalso. eapply sb_irr; eauto. }
 
+    assert (coverable G sc (etc_TC T) e) as COVERABLEE.
+    { eapply coverable_add_eq_iff; eauto.
+      apply covered_in_coverable. 
+      2: basic_solver.
+      eapply tc_coherent_more.
+      2: by apply TCCOH'.
+      red. simpls. unfold eissued, ecovered in *. by split; symmetry. }
+
     destruct (lab_rwf lab e) as [RE|[WE|FE]].
     3: { eexists; eexists. eapply ext_fence_trav_step; eauto.
          eapply ext_itrav_step_more.
@@ -456,23 +464,32 @@ Proof.
            { rewrite set_minus_union_l. rewrite ETCCOH.(etc_S_I_in_W_ex).
              basic_solver. }
            unionR left; auto. }
+      assert 
+      (dom_rel ((⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺) ⨾ ⦗eq w⦘) ⊆₁ issued (etc_TC T))
+        as PP4.
+      { rewrite ct_end.
+        rewrite !seq_union_r, !seq_union_l, dom_union, !seqA.
+        unionL.
+        2: { rewrite WF.(rmw_in_sb) at 2.
+             rewrite (dom_rel_helper RFSB).
+             rewrite <- !seqA. do 3 rewrite dom_seq.
+             rewrite !seqA.
+               by apply ar_rfrmw_rt_I_in_I. }
+        arewrite (⦗eq w⦘ ⊆ ⦗W⦘ ;; ⦗eq w⦘) by basic_solver.
+        sin_rewrite ar_W_in_ar_int.
+        rewrite ar_int_in_sb; auto.
+        arewrite (sb ⨾ ⦗eq w⦘ ⊆ ⦗coverable G sc (etc_TC T)⦘ ⨾ sb ⨾ ⦗eq w⦘).
+        { apply dom_rel_helper.
+          rewrite SBW.
+          unfold ecovered. rewrite covered_in_coverable; eauto.
+          unionL; auto.
+          red. by ins; subst. }
+        rewrite <- !seqA. do 2 rewrite dom_seq. rewrite !seqA.
+          by apply ar_rfrmw_rt_coverable_in_I. }
+
       destruct (classic (Rel w)) as [REL|NREL].
       2: { assert (issuable G sc (etc_TC T) w) as WISS.
            { red. unfold set_inter. splits; auto; red.
-             2: { rewrite ct_end.
-                  rewrite !seq_union_r, !seq_union_l, dom_union, !seqA.
-                  unionL.
-                  2: { rewrite WF.(rmw_in_sb) at 2.
-                       rewrite (dom_rel_helper RFSB).
-                       rewrite <- !seqA. do 3 rewrite dom_seq.
-                       rewrite !seqA.
-                         by apply ar_rfrmw_rt_I_in_I. }
-                  arewrite (⦗eq w⦘ ⊆ ⦗W⦘ ;; ⦗eq w⦘) by basic_solver.
-                  sin_rewrite ar_W_in_ar_int.
-                  rewrite ar_int_in_sb; auto.
-                       rewrite (dom_rel_helper RFSB).
-
-rewrite WF.(ppo_in_sb). rewrite bob_in_sb. by rewrite unionK, !seqA. }
              arewrite
                (fwbob ⨾ ⦗eq w⦘ ⊆
                       (⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ∪ ⦗F ∩₁ Acq/Rel⦘ ⨾ sb) ⨾ ⦗eq w⦘).
@@ -529,11 +546,7 @@ rewrite WF.(ppo_in_sb). rewrite bob_in_sb. by rewrite unionK, !seqA. }
         intros x HH; subst.
         red; simpls. unfold set_inter. splits; auto; red.
         { by rewrite fwbob_in_sb. }
-        all: unionR left.
-        { rewrite WF.(ppo_in_sb). rewrite bob_in_sb. by rewrite unionK, !seqA. }
-        arewrite ((fun x => W_ex x /\ is_xacq lab x) ⊆₁ W). 
-        2: done.
-        generalize WF.(W_ex_in_W). basic_solver. }
+        rewrite PP4. eauto with hahn. }
       red; unfold ecovered, eissued; simpls.
       splits; eauto.
       constructor; unfold eissued, ecovered; simpls.
@@ -563,11 +576,7 @@ rewrite WF.(ppo_in_sb). rewrite bob_in_sb. by rewrite unionK, !seqA. }
       intros x HH; subst.
       red; simpls. unfold set_inter. splits; auto; red.
       { rewrite fwbob_in_sb. rewrite SBW. eauto with hahn. }
-      all: unionR left.
-      { rewrite WF.(ppo_in_sb). rewrite bob_in_sb. by rewrite unionK, !seqA. }
-      arewrite ((fun x => W_ex x /\ is_xacq lab x) ⊆₁ W). 
-      2: done.
-      generalize WF.(W_ex_in_W). basic_solver. }
+      rewrite PP4. eauto with hahn. }
     
     assert (E e) as EE.
     { eapply tc_C_in_E.
@@ -598,9 +607,9 @@ rewrite WF.(ppo_in_sb). rewrite bob_in_sb. by rewrite unionK, !seqA. }
   { eapply issuedW.
     2: { apply ISSEQ. basic_solver. }
     eauto.  }
-  assert (issuable G (etc_TC T') e) as ISS'.
+  assert (issuable G sc (etc_TC T') e) as ISS'.
   { eapply issued_in_issuable; eauto. apply ISSEQ. basic_solver. }
-  assert (issuable G (etc_TC T) e) as ISS.
+  assert (issuable G sc (etc_TC T) e) as ISS.
   { eapply issuable_add_eq_iff.
     eapply issuable_more; eauto.
     unfold ecovered, eissued in *.
@@ -633,7 +642,7 @@ rewrite WF.(ppo_in_sb). rewrite bob_in_sb. by rewrite unionK, !seqA. }
   { left. by splits. }
 
   assert (dom_rel (sb ⨾ ⦗eq e⦘) ⊆₁ covered (etc_TC T)) as SBE.
-  { destruct ISS as [[[_ ISS] _] _]. red in ISS.
+  { destruct ISS as [[_ ISS] _]. red in ISS.
     arewrite (sb ⨾ ⦗eq e⦘ ⊆ fwbob ⨾ ⦗eq e⦘); auto.
     unfold imm_common.fwbob.
     basic_solver 10. }
