@@ -1,8 +1,9 @@
 Require Import Setoid.
 From hahn Require Import Hahn.
 From imm Require Import Events Execution Execution_eco
-     TraversalConfig Traversal imm_common imm_s imm_s_hb CombRelations.
+     imm_common imm_s imm_s_hb CombRelations.
 Require Import AuxRel AuxRel2.
+Require Import TraversalConfig Traversal.
 Require Import ExtTraversal.
 
 Set Implicit Arguments.
@@ -108,7 +109,5 @@ Proof.
   rewrite <- inclusion_id_rt, seq_id_l.
   basic_solver 10.
 Qed.
-
-(* Lemma rf_rmw_S_rt *)
 
 End ExtTraversalProperties.

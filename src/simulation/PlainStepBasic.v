@@ -11,11 +11,10 @@ From imm Require Import imm_s.
 From imm Require Import imm_common.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
-From imm Require Import TraversalConfig.
-From imm Require Import Traversal.
-From imm Require Import SimTraversal.
 From imm Require Import ViewRelHelpers.
 
+Require Import TraversalConfig.
+Require Import Traversal.
 Require Import MemoryClosedness.
 Require Import MaxValue.
 Require Import ViewRel.

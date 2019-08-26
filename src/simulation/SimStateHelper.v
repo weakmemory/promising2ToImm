@@ -4,10 +4,10 @@ Require Import PromisingLib.
 From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration.
 
 From imm Require Import Events Execution.
-From imm Require Import TraversalConfig.
 From imm Require Import ProgToExecution.
-From imm Require Import SimulationRel.
 From imm Require Import ProgToExecutionProperties.
+Require Import SimulationRel.
+Require Import TraversalConfig.
 Require Import Event_imm_promise.
 Require Import SimState.
 Require Import MaxValue.

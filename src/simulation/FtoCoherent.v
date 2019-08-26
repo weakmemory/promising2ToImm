@@ -2,15 +2,11 @@ Require Import PArith Setoid.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
 Require Import FLocHelper.
-From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration Local.
+From Promising2 Require Import Time.
 
 From imm Require Import Events Execution.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
-From imm Require Import CombRelations.
-From imm Require Import TraversalConfig.
-From imm Require Import ProgToExecution.
-From imm Require Import ProgToExecutionProperties.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -25,14 +21,11 @@ Variable I : actid -> Prop.
 Notation "'acts'" := G.(acts).
 Notation "'co'" := G.(co).
 Notation "'coi'" := G.(coi).
-Notation "'sw'" := G.(sw).
 Notation "'sb'" := G.(sb).
 Notation "'rf'" := G.(rf).
 Notation "'rfe'" := G.(rfe).
 Notation "'rmw'" := G.(rmw).
 Notation "'lab'" := G.(lab).
-Notation "'msg_rel'" := (msg_rel G sc).
-Notation "'urr'" := (urr G sc).
 
 Notation "'E'" := G.(acts_set).
 Notation "'R'" := (fun a => is_true (is_r lab a)).

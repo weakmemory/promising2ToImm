@@ -11,14 +11,12 @@ From imm Require Import imm_s.
 From imm Require Import SubExecution.
 From imm Require Import CertCOhelper.
 From imm Require Import CertExecution2.
-
 From imm Require Import CombRelations.
-From imm Require Import TraversalConfig.
-
 From imm Require Import Prog.
 From imm Require Import Receptiveness.
 From imm Require Import ProgToExecution ProgToExecutionProperties.
 
+Require Import TraversalConfig.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import SimulationRel.

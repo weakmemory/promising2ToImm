@@ -5,11 +5,10 @@ From imm Require Import Execution.
 From imm Require Import Execution_eco.
 From imm Require Import imm_common imm_s_hb imm_s.
 From imm Require Import SubExecution.
-
 From imm Require Import CombRelations.
-From imm Require Import TraversalConfig.
-From imm Require Import TraversalConfigAlt.
 
+Require Import TraversalConfig.
+Require Import TraversalConfigAlt.
 Require Import ExtTraversal.
 Require Import AuxRel.
 
@@ -241,7 +240,7 @@ Proof.
   basic_solver 40.
 Qed.
 
-Lemma rfe_rmw_E   :  dom_rel (Frfe ⨾ Frmw ⨾ ⦗E⦘) ⊆₁ E.
+Lemma rfe_rmw_E : dom_rel (Frfe ⨾ Frmw ⨾ ⦗E⦘) ⊆₁ E.
 Proof.
 rewrite E_E0; unfold E0.
 rewrite !id_union; relsf; unionL; splits.

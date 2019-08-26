@@ -10,8 +10,8 @@ From imm Require Import imm_s.
 From imm Require Import CombRelations.
 From imm Require Import ProgToExecution.
 From imm Require Import ProgToExecutionProperties.
-From imm Require Import TraversalConfig.
 
+Require Import TraversalConfig.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import Event_imm_promise.
