@@ -242,15 +242,21 @@ Qed.
 
 Lemma rfe_rmw_E : dom_rel (Frfe ⨾ Frmw ⨾ ⦗E⦘) ⊆₁ E.
 Proof.
-rewrite E_E0; unfold E0.
-rewrite !id_union; relsf; unionL; splits.
-- rewrite (rmw_in_sb WF) at 1.
-  generalize TCCOH, dom_sb_covered, dom_rf_covered; ie_unfolder; basic_solver 21.
-- rewrite (issued_in_issuable TCCOH) at 1.
-  unfold issuable.
-  rewrite (rmw_in_ppo WF) at 1.
-  unfold dom_cond; basic_solver 21.
-- unionR left -> left -> right.
+  rewrite E_E0 at 1; unfold E0.
+  rewrite !id_union; relsf; unionL; splits.
+  4: { rewrite (dom_r (wf_rmwD WF)) at 1.
+       rewrite (dom_l (wf_rmwD WF)) at 2.
+       type_solver. }
+  { rewrite <- I_in_E.
+    rewrite (rmw_in_sb WF) at 1.
+    rewrite (dom_rel_helper TCCOH.(dom_sb_covered)).
+    arewrite (Frfe ⊆ Frf). rewrite <- !seqA.
+    rewrite (dom_rel_helper (dom_rf_covered WF TCCOH)).
+    basic_solver. }
+  { rewrite <- I_in_E.
+    arewrite (Frfe ⊆ Frf).
+    eapply rfrmw_I_in_I; eauto. apply TCCOH. }
+  rewrite <- I_in_E.
   rewrite <- seqA, dom_rel_eqv_dom_rel, !seqA.
   arewrite (<|Tid_ thread ∩₁ S|> ⊆ <|FW|> ;; <|S|>).
   { arewrite (S ⊆₁ FW ∩₁ S) at 1.
@@ -260,17 +266,12 @@ rewrite !id_union; relsf; unionL; splits.
   etransitivity.
   2: by apply ETCCOH.(etc_rppo_S).
   rewrite <- inclusion_id_rt. basic_solver 20.
-- rewrite (dom_r (wf_rmwD WF)) at 1.
-  rewrite (dom_l (wf_rmwD WF)) at 2.
-  type_solver.
 Qed.
 
-Lemma rfe_rmw_I   :  dom_rel (Frfe ⨾ Frmw ⨾ ⦗I⦘) ⊆₁ I.
+Lemma rfe_rmw_I :dom_rel (Frfe ⨾ Frmw ⨾ ⦗I⦘) ⊆₁ I.
 Proof.
-  rewrite (issued_in_issuable TCCOH) at 1.
-  unfold issuable.
-  rewrite (rmw_in_ppo WF) at 1.
-  unfold dom_cond; basic_solver 21.
+  arewrite (Frfe ⊆ Frf).
+  eapply rfrmw_I_in_I; eauto. apply TCCOH.
 Qed.
 
 Lemma rmw_E_rfe :  dom_rel (Frmw ⨾ ⦗E⦘) ∩₁ codom_rel Frfe ⊆₁ E.
@@ -322,24 +323,6 @@ rewrite !id_union; relsf; unionL; splits.
   rewrite (dom_l (wf_rmwD WF)) at 2.
   type_solver.
 Qed.
-
-Lemma W_Rel_sb_loc_I : dom_rel (⦗FW ∩₁ FRel⦘ ⨾  (Fsb ∩  Fsame_loc) ⨾ ⦗FW ∩₁ I⦘) ⊆₁ I.
-Proof.
-  generalize (dom_sb_loc_issued TCCOH), (w_covered_issued TCCOH); basic_solver 21.
-Qed.
-
-(* TODO: next three lemmas belong to traversal_config.v *)
-
-Lemma F_sb_I : dom_rel (⦗FF ∩₁ FAcq/Rel⦘ ⨾  Fsb ⨾ ⦗I⦘) ⊆₁ C.
-Proof.
-generalize (dom_F_sb_issued TCCOH); basic_solver 21.
-Qed. 
-
-Lemma F_Rel_sb_I :  dom_rel (⦗FF ∩₁ FRel⦘ ⨾  Fsb ⨾ ⦗I⦘) ⊆₁ C.
-Proof. etransitivity; [|apply F_sb_I]; mode_solver 21. Qed.
-
-Lemma F_Acq_sb_I :  dom_rel (⦗FF ∩₁ FAcq⦘ ⨾  Fsb ⨾ ⦗I⦘) ⊆₁ C.
-Proof. etransitivity; [|apply F_sb_I]; mode_solver 12. Qed.
 
 Lemma rt_rf_rmw_S :
   (Frf ⨾ Frmw)＊ ⨾ ⦗S⦘ ⊆ ⦗S⦘ ⨾ (⦗E⦘ ⨾ Frf ⨾ ⦗E⦘ ⨾  Frmw ⨾ ⦗E⦘)＊ ⨾ ⦗E⦘.
@@ -414,14 +397,14 @@ Proof.
     generalize (@sb_same_loc_trans Gf); ins; relsf. }
   case_refl (⦗F⦘ ⨾ Fsb).
   { arewrite (⦗Rel⦘ ⨾ ⦗W⦘ ⨾ (Fsb ∩ Fsame_loc)^? ⨾ ⦗W⦘ ⨾ ⦗I⦘ ⊆ ⦗I⦘ ⨾ ⦗Rel⦘ ⨾ ⦗W⦘ ⨾ ((⦗E⦘ ⨾ Fsb ⨾ ⦗E⦘) ∩ Fsame_loc)^? ⨾ ⦗W⦘ ⨾ ⦗I⦘).
-    generalize W_Rel_sb_loc_I I_in_E; basic_solver 21.
+    generalize dom_W_Rel_sb_loc_I I_in_E; basic_solver 21.
 
     seq_rewrite <- (sub_sb SUB); revert RELCOV; basic_solver 40. }
   arewrite ((Fsb ∩ Fsame_loc)^? ⊆ Fsb^?) at 1.
   arewrite_id ⦗FW⦘ at 1.
   generalize (@sb_trans Gf); ins; relsf.
   arewrite (⦗Rel⦘ ⨾ ⦗F⦘ ⨾ Fsb ⨾ ⦗W⦘ ⨾ ⦗I⦘ ⊆ ⦗C⦘ ⨾ ⦗Rel⦘ ⨾ ⦗F⦘ ⨾ ⦗E⦘ ⨾ Fsb ⨾ ⦗E⦘ ⨾ ⦗W⦘ ⨾ ⦗E⦘).
-  generalize F_Rel_sb_I, C_in_E, I_in_E; basic_solver 21.
+  generalize dom_F_Rel_sb_I_in_C, C_in_E, I_in_E; basic_solver 21.
   remember (⦗E0⦘ ⨾ Frf ⨾ ⦗E0⦘ ⨾ ⦗E0⦘ ⨾ Frmw ⨾ ⦗E0⦘) as X.
   ins; seq_rewrite <- (sub_sb SUB); basic_solver 21.
 Qed.
@@ -447,18 +430,17 @@ Proof.
     generalize (@sb_same_loc_trans Gf); ins; relsf. }
   case_refl (⦗F⦘ ⨾ Fsb).
   { arewrite (⦗Rel⦘ ⨾ ⦗W⦘ ⨾ (Fsb ∩ Fsame_loc)^? ⨾ ⦗W⦘ ⨾ ⦗I⦘ ⊆ ⦗I⦘ ⨾ ⦗Rel⦘ ⨾ ⦗W⦘ ⨾ ((⦗E⦘ ⨾ Fsb ⨾ ⦗E⦘) ∩ Fsame_loc)^? ⨾ ⦗W⦘ ⨾ ⦗I⦘).
-    generalize W_Rel_sb_loc_I I_in_E; basic_solver 21.
+    generalize dom_W_Rel_sb_loc_I I_in_E; basic_solver 21.
 
     seq_rewrite <- (sub_sb SUB); revert RELCOV; basic_solver 40. }
   arewrite ((Fsb ∩ Fsame_loc)^? ⊆ Fsb^?) at 1.
   arewrite_id ⦗FW⦘ at 1.
   generalize (@sb_trans Gf); ins; relsf.
   arewrite (⦗Rel⦘ ⨾ ⦗F⦘ ⨾ Fsb ⨾ ⦗W⦘ ⨾ ⦗I⦘ ⊆ ⦗C⦘ ⨾ ⦗Rel⦘ ⨾ ⦗F⦘ ⨾ ⦗E⦘ ⨾ Fsb ⨾ ⦗E⦘ ⨾ ⦗W⦘ ⨾ ⦗E⦘).
-  generalize F_Rel_sb_I, C_in_E, I_in_E; basic_solver 21.
+  generalize dom_F_Rel_sb_I_in_C, C_in_E, I_in_E; basic_solver 21.
   remember (⦗E0⦘ ⨾ Frf ⨾ ⦗E0⦘ ⨾ ⦗E0⦘ ⨾ Frmw ⨾ ⦗E0⦘) as X.
   ins; seq_rewrite <- (sub_sb SUB); basic_solver 21.
 Qed.
-
 
 Lemma sb_F_E : dom_rel (Fsb ⨾ ⦗FF ∩₁ FAcq/Rel ∩₁ E⦘) ⊆₁ C ∪₁ I.
 Proof.
@@ -467,7 +449,7 @@ rewrite !set_inter_union_r.
 rewrite !id_union; relsf; unionL; splits.
 - generalize dom_sb_covered; ie_unfolder; basic_solver 21.
 - rewrite (issuedW TCCOH) at 1; type_solver.
-- generalize F_sb_I, (dom_sb_covered TCCOH); basic_solver 21.
+- generalize F_sb_I_in_C, (dom_sb_covered TCCOH); basic_solver 21.
 - rewrite (dom_l (wf_rmwD WF)) at 1; type_solver.
 Qed.
 
@@ -940,7 +922,7 @@ rewrite E_to_I.
 rewrite (sub_sb_in SUB).
 unfolder; ins; desf.
 apply (issuedW TCCOH) in H2; type_solver.
-generalize (dom_F_sb_issued TCCOH); basic_solver 21.
+generalize (dom_F_sb_I_in_C TCCOH); basic_solver 21.
 Qed.
 
 Lemma E_F_Sc_in_C: E ∩₁ F ∩₁ Sc ⊆₁ C.
@@ -1104,7 +1086,7 @@ rewrite (sub_sb_in SUB) at 1.
 rewrite (sub_F SUB), (sub_Rel SUB).
 unfolder; ins; desf; exfalso.
 generalize (dom_sb_covered TCCOH); unfolder; basic_solver 21.
-generalize F_Rel_sb_I; unfolder; basic_solver 21.
+generalize dom_F_Rel_sb_I_in_C; unfolder; basic_solver 21.
 -
 rewrite crE at 1; relsf; unionL; [basic_solver 12|].
 arewrite (⦗E⦘ ⊆ ⦗E \₁ (C ∪₁ I)⦘ ∪ ⦗C ∪₁ I⦘) at 1.
@@ -1116,7 +1098,7 @@ rewrite (sub_sb_in SUB) at 1.
 rewrite (sub_same_loc SUB), (sub_Rel SUB), (sub_W SUB).
 unfolder; ins; desf; exfalso.
 generalize (dom_sb_covered TCCOH); unfolder; basic_solver 21.
-generalize W_Rel_sb_loc_I; unfolder; basic_solver 21.
+generalize dom_W_Rel_sb_loc_I; unfolder; basic_solver 21.
 Qed.
 
 

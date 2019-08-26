@@ -535,15 +535,21 @@ basic_solver.
       by apply ar_rfrmw_issuable_in_I.
   Qed.
 
+  Lemma rfrmw_I_in_I  :
+    dom_rel (rf ;; rmw ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite (dom_l WF.(wf_rfD)), seqA.
+    arewrite (rf ;; rmw ⊆ ar ∪ rf ;; rmw).
+      by apply ar_rfrmw_I_in_I.
+  Qed.
+
   Lemma rfrmw_CI_in_I  :
     dom_rel (rf ;; rmw ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
   Proof.
     rewrite id_union, !seq_union_r, dom_union.
     unionL.
     { by apply rfrmw_C_in_I. }
-    rewrite (dom_l WF.(wf_rfD)), seqA.
-    arewrite (rf ;; rmw ⊆ ar ∪ rf ;; rmw).
-      by apply ar_rfrmw_I_in_I.
+      by apply rfrmw_I_in_I.
   Qed.
 
   Lemma ar_rfrmw_coverable_in_CI  :
@@ -915,7 +921,7 @@ basic_solver.
     red in TT. desf. apply WF.(wf_rfD) in TT. unfolder in TT. desf.
   Qed.
 
-  Lemma dom_sb_loc_issued :
+  Lemma dom_W_Rel_sb_loc_I_in_C :
     dom_rel (⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⨾ ⦗issued T⦘) ⊆₁ covered T.
   Proof.
     rewrite issued_in_issuable.
@@ -931,11 +937,11 @@ basic_solver.
     ⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⨾ ⦗issued T⦘ ⊆ 
                ⦗covered T⦘ ⨾ ⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘.
   Proof.
-    seq_rewrite (dom_rel_helper dom_sb_loc_issued).
+    seq_rewrite (dom_rel_helper dom_W_Rel_sb_loc_I_in_C).
     basic_solver.
   Qed.
 
-  Lemma dom_F_sb_issued :
+  Lemma dom_F_sb_I_in_C :
     dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ covered T.
   Proof.
     rewrite issued_in_issuable.
@@ -947,12 +953,18 @@ basic_solver.
     basic_solver 12.
   Qed.
 
-  Lemma F_sb_issued  :
+  Lemma F_sb_I_in_C  :
     ⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⨾ ⦗issued T⦘ ⊆ ⦗covered T⦘ ⨾ ⦗F ∩₁ Acq/Rel⦘ ⨾ sb.
   Proof.
-    seq_rewrite (dom_rel_helper dom_F_sb_issued).
+    seq_rewrite (dom_rel_helper dom_F_sb_I_in_C).
     basic_solver.
   Qed.
+
+  Lemma dom_F_Rel_sb_I_in_C :  dom_rel (⦗F ∩₁ Rel⦘ ⨾  sb ⨾ ⦗issued T⦘) ⊆₁ covered T.
+  Proof. etransitivity; [|apply dom_F_sb_I_in_C]; mode_solver 21. Qed.
+
+  Lemma dom_F_Acq_sb_I_in_C :  dom_rel (⦗F ∩₁ Acq⦘ ⨾  sb ⨾ ⦗issued T⦘) ⊆₁ covered T.
+  Proof. etransitivity; [|apply dom_F_sb_I_in_C]; mode_solver 12. Qed.
   
   Variable RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T.
 
@@ -969,13 +981,10 @@ basic_solver.
     rewrite (rmw_in_sb_loc WF) at 1; rewrite (rfi_in_sbloc' WF).
     generalize (@sb_same_loc_trans G); ins; relsf.
     rewrite !crE; relsf; unionL; splits.
-    - revert RELCOV; basic_solver 21.
-    - generalize dom_sb_loc_issued; basic_solver 21.
-    - arewrite (Rel ⊆₁ Acq/Rel) by mode_solver.
-      generalize dom_F_sb_issued;  basic_solver 40.
-    - arewrite (Rel ⊆₁ Acq/Rel) by mode_solver.
-      generalize (@sb_trans G).
-      generalize dom_F_sb_issued;  basic_solver 40.
+    { revert RELCOV; basic_solver 21. }
+    { generalize dom_W_Rel_sb_loc_I_in_C. basic_solver 21. }
+    2: generalize (@sb_trans G).
+    all: generalize dom_F_Rel_sb_I_in_C; basic_solver 40.
   Qed.
 
   Lemma release_issued :
