@@ -367,25 +367,37 @@ basic_solver.
       by apply sc_coverable.
   Qed.
 
-  Lemma ar_C_in_CI  :
-    dom_rel (ar ⨾ ⦗covered T⦘) ⊆₁ covered T ∪₁ issued T.
+  Lemma ar_coverable_in_CI  :
+    dom_rel (ar ⨾ ⦗coverable T⦘) ⊆₁ covered T ∪₁ issued T.
   Proof.
     unfold imm_s.ar.
     rewrite !seq_union_l.
     rewrite WF.(ar_int_in_sb).
     arewrite (rfe ⊆ rf).
-    rewrite sb_covered, rf_covered.
-    rewrite sc_covered.
+    rewrite sb_coverable, rf_coverable.
+    rewrite sc_coverable.
     basic_solver.
+  Qed.
+
+  Lemma ar_C_in_CI  :
+    dom_rel (ar ⨾ ⦗covered T⦘) ⊆₁ covered T ∪₁ issued T.
+  Proof.
+    rewrite covered_in_coverable at 1.
+    apply ar_coverable_in_CI.
+  Qed.
+
+  Lemma ar_rfrmw_ct_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw)⁺ ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof.
+    unfold issuable.
+    basic_solver 10.
   Qed.
 
   Lemma ar_rfrmw_ct_I_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw)⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof.
-    unfolder. ins; desf.
-    assert (issuable T y) as AA by (by apply issued_in_issuable).
-    apply AA.
-    basic_solver 10.
+    rewrite issued_in_issuable at 1.
+    apply ar_rfrmw_ct_issuable_in_I.
   Qed.
 
   Lemma ar_rfrmw_rt_I_in_I  :
@@ -396,11 +408,24 @@ basic_solver.
       by apply ar_rfrmw_ct_I_in_I.
   Qed.
 
+  Lemma ar_rfrmw_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw) ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite ct_step with (r := ar ∪ rf ⨾ rmw).
+      by apply ar_rfrmw_ct_issuable_in_I.
+  Qed.
+
   Lemma ar_rfrmw_I_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw) ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof.
     rewrite ct_step with (r := ar ∪ rf ⨾ rmw).
       by apply ar_rfrmw_ct_I_in_I.
+  Qed.
+
+  Lemma ar_ct_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ ar⁺ ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof.
+    arewrite (ar ⊆ ar ∪ rf ;; rmw). by apply ar_rfrmw_ct_issuable_in_I.
   Qed.
 
   Lemma ar_ct_I_in_I  :
@@ -409,19 +434,40 @@ basic_solver.
     arewrite (ar ⊆ ar ∪ rf ;; rmw). by apply ar_rfrmw_ct_I_in_I.
   Qed.
 
+  Lemma ar_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite ct_step with (r:=ar). by apply ar_ct_issuable_in_I.
+  Qed.
+
   Lemma ar_I_in_I  :
     dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof.
     rewrite ct_step with (r:=ar). by apply ar_ct_I_in_I.
   Qed.
 
-  Lemma W_ar_C_in_I  :
-    dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Lemma W_ar_coverable_in_I  :
+    dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗coverable T⦘) ⊆₁ issued T.
   Proof.
-    rewrite dom_eqv1. rewrite ar_C_in_CI.
+    rewrite dom_eqv1. rewrite ar_coverable_in_CI.
     rewrite set_inter_union_r; unionL.
     2: basic_solver.
     apply w_covered_issued.
+  Qed.
+
+  Lemma W_ar_C_in_I  :
+    dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite covered_in_coverable.
+    apply W_ar_coverable_in_I.
+  Qed.
+
+  Lemma W_ar_coverable_issuable_in_CI  :
+    dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite id_union, !seq_union_r, dom_union; unionL.
+    { by apply W_ar_coverable_in_I. }
+    apply ar_issuable_in_I.
   Qed.
 
   Lemma ar_CI_in_CI  :
@@ -438,31 +484,55 @@ basic_solver.
     rewrite rtE, !seq_union_l, !seq_union_r, seq_id_l, dom_union.
     unionL; [basic_solver|]. by apply ar_ct_I_in_I.
   Qed.
-  
-  (* TODO: move to a more appropriate place. *)
-  Lemma dom_W_sb_C_in_I  :
-    dom_rel (⦗W⦘ ⨾ sb ⨾ ⦗covered T⦘) ⊆₁ issued T.
+
+  Lemma dom_W_sb_coverable_in_I  :
+    dom_rel (⦗W⦘ ⨾ sb ⨾ ⦗coverable T⦘) ⊆₁ issued T.
   Proof.
-    rewrite sb_covered; auto.
+    rewrite sb_coverable; auto.
     etransitivity.
     2: by apply w_covered_issued.
     basic_solver.
   Qed.
+  
+  Lemma dom_W_sb_C_in_I  :
+    dom_rel (⦗W⦘ ⨾ sb ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite covered_in_coverable.
+    apply dom_W_sb_coverable_in_I.
+  Qed.
 
-  Lemma rfrmw_C_in_I  :
-    dom_rel (rf ;; rmw ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Lemma rfrmw_coverable_in_I  :
+    dom_rel (rf ;; rmw ⨾ ⦗coverable T⦘) ⊆₁ issued T.
   Proof.
     rewrite (dom_l WF.(wf_rfD)), seqA.
     rewrite rfi_union_rfe, !seq_union_l, !seq_union_r, dom_union.
     unionL.
     2: { rewrite (dom_r WF.(wf_rmwD)), !seqA.
          rewrite <- id_inter.
-         rewrite w_covered_issued.
+         rewrite w_coverable_issued.
          sin_rewrite rfe_rmw_in_ar_ct; auto.
            by apply ar_ct_I_in_I. }
     arewrite (rfi ⊆ sb).
     rewrite WF.(rmw_in_sb). sin_rewrite sb_sb.
-    rewrite dom_W_sb_C_in_I; auto.
+    rewrite dom_W_sb_coverable_in_I; auto.
+  Qed.
+
+  Lemma rfrmw_C_in_I  :
+    dom_rel (rf ;; rmw ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite covered_in_coverable.
+    apply rfrmw_coverable_in_I.
+  Qed.
+
+  Lemma rfrmw_coverable_issuable_in_I  :
+    dom_rel (rf ;; rmw ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite id_union, !seq_union_r, dom_union.
+    unionL.
+    { apply rfrmw_coverable_in_I. }
+    rewrite (dom_l WF.(wf_rfD)), !seqA.
+    arewrite (rf ;; rmw ⊆ ar ∪ rf ;; rmw).
+      by apply ar_rfrmw_issuable_in_I.
   Qed.
 
   Lemma rfrmw_CI_in_I  :
@@ -476,13 +546,29 @@ basic_solver.
       by apply ar_rfrmw_I_in_I.
   Qed.
 
-  Lemma ar_rfrmw_C_in_CI  :
-    dom_rel ((ar ∪ rf ;; rmw) ⨾ ⦗covered T⦘) ⊆₁ covered T ∪₁ issued T.
+  Lemma ar_rfrmw_coverable_in_CI  :
+    dom_rel ((ar ∪ rf ;; rmw) ⨾ ⦗coverable T⦘) ⊆₁ covered T ∪₁ issued T.
   Proof.
     rewrite seq_union_l, dom_union, !seqA.
     unionL.
-    { by apply ar_C_in_CI. }
-    rewrite rfrmw_C_in_I; eauto with hahn.
+    { by apply ar_coverable_in_CI. }
+    rewrite rfrmw_coverable_in_I; eauto with hahn.
+  Qed.
+
+  Lemma ar_rfrmw_C_in_CI  :
+    dom_rel ((ar ∪ rf ;; rmw) ⨾ ⦗covered T⦘) ⊆₁ covered T ∪₁ issued T.
+  Proof.
+    rewrite covered_in_coverable at 1.
+    apply ar_rfrmw_coverable_in_CI.
+  Qed.
+
+  Lemma ar_rfrmw_coverable_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw) ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite seq_union_l, seq_union_r, dom_union; unionL.
+    { apply W_ar_coverable_issuable_in_CI. }
+    arewrite_id ⦗W⦘. rewrite seq_id_l.
+    apply rfrmw_coverable_issuable_in_I.
   Qed.
 
   Lemma ar_rfrmw_CI_in_I  :
@@ -494,34 +580,54 @@ basic_solver.
     apply rfrmw_CI_in_I.
   Qed.
 
-  Lemma ar_rfrmw_ct_CI_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw)⁺ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Lemma ar_rfrmw_ct_coverable_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw)⁺ ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
   Proof.
     intros x [y HH].
     destruct_seq HH as [AA BB].
     apply clos_trans_tn1 in HH.
     induction HH as [y HH|y z QQ].
-    { eapply ar_rfrmw_CI_in_I. basic_solver 10. }
+    { eapply ar_rfrmw_coverable_issuable_in_I. basic_solver 10. }
     apply clos_tn1_trans in HH.
     destruct QQ as [QQ|QQ].
     2: { apply IHHH. right.
-         apply rfrmw_CI_in_I.
+         apply issued_in_issuable.
+         apply rfrmw_coverable_issuable_in_I.
          exists z. apply seqA. basic_solver. }
     destruct BB as [BB|BB].
-    2: { apply ar_rfrmw_ct_I_in_I. exists z.
+    2: { apply ar_rfrmw_ct_issuable_in_I. exists z.
          apply seq_eqv_lr. splits; auto.
          apply ct_end. exists y. split; auto.
          { by apply clos_trans_in_rt. }
            by left. }
     apply IHHH.
     destruct QQ as [[QQ|QQ]|QQ].
-    { left. 
-      apply dom_sc_covered. exists z. basic_solver. }
-    { right.
-      apply dom_rf_covered. exists z.
+    { left. apply covered_in_coverable.
+      apply dom_sc_coverable. exists z. basic_solver. }
+    { right. apply issued_in_issuable.
+      apply dom_rf_coverable. exists z.
       do 2 red in QQ. basic_solver. }
-    left. apply dom_sb_covered. exists z.
+    left. apply covered_in_coverable.
+    apply dom_sb_coverable. exists z.
     apply seq_eqv_r. split; auto. by apply ar_int_in_sb.
+  Qed.
+
+  Lemma ar_rfrmw_ct_CI_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw)⁺ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite covered_in_coverable.
+    rewrite issued_in_issuable at 1.
+    apply ar_rfrmw_ct_coverable_issuable_in_I.
+  Qed.
+
+  Lemma ar_rfrmw_rt_coverable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ;; rmw)^* ⨾ ⦗coverable T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite rtE. rewrite !seq_union_l, !seq_union_r, dom_union, seq_id_l.
+    unionL.
+    { generalize w_coverable_issued. basic_solver. }
+    arewrite (coverable T ⊆₁ coverable T ∪₁ issuable T).
+    apply ar_rfrmw_ct_coverable_issuable_in_I.
   Qed.
 
   Lemma ar_rfrmw_rt_CI_in_I  :
