@@ -10,8 +10,8 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_common.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
-From imm Require Import ViewRelHelpers.
 
+Require Import ViewRelHelpers.
 Require Import TraversalConfig.
 Require Import FLocHelper.
 Require Import MaxValue.

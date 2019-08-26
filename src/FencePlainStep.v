@@ -14,11 +14,11 @@ From imm Require Import TraversalConfig.
 From imm Require Import Traversal.
 From imm Require Import SimTraversal.
 From imm Require Import CombRelations CombRelationsMore.
-From imm Require Import ViewRelHelpers.
 
 (* From imm Require Import SimulationPlainStepAux. *)
 (* From imm Require Import SimulationRelAux. *)
 
+Require Import ViewRelHelpers.
 Require Import PlainStepBasic.
 Require Import MemoryAux.
 Require Import SimulationRel.
