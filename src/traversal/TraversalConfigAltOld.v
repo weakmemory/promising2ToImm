@@ -6,6 +6,8 @@ From imm Require Import Execution_eco.
 From imm Require Import imm_common.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
+From imm Require Import imm_s_rfrmw.
+From imm Require Import AuxDef.
 
 Require Import TraversalConfig TraversalConfigAlt.
 
@@ -79,6 +81,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 
 Implicit Type WF : Wf G.
 Implicit Type WF_SC : wf_sc G sc.
+Implicit Type IMMCON : imm_consistent G sc.
 
 Record tc_coherent_alt_old :=
   { otc_init : Init ∩₁ E ⊆₁ C ;
@@ -95,7 +98,7 @@ Record tc_coherent_alt_old :=
     otc_rfirmw_I  : dom_rel (rfi ;; rmw ;; ⦗I⦘) ⊆₁ I ;
   }.
 
-Lemma otc_rfrwm_I WF (tc_old : tc_coherent_alt_old) :
+Lemma otc_rfrmw_I WF (tc_old : tc_coherent_alt_old) :
   dom_rel (rf ;; rmw ;; ⦗I⦘) ⊆₁ I.
 Proof.
   rewrite rfi_union_rfe. rewrite !seq_union_l, dom_union.
@@ -266,6 +269,56 @@ Proof.
   rewrite detour_in_sb.
   generalize (otc_sb_C tc_old) (otc_W_C_in_I tc_old).
   basic_solver 21.
+Qed.
+
+Lemma otc_rfrmw_ct_I WF (tc_old : tc_coherent_alt_old) :
+  dom_rel ((rf ;; rmw)⁺ ;; <|I|>) ⊆₁ I.
+Proof.
+  intros x [y HH]. destruct_seq_r HH as IY.
+  induction HH as [x y AA|x y z AA BB].
+  2: by intuition.
+  apply otc_rfrmw_I; auto. eexists. apply seqA.
+  apply seq_eqv_r. split; eauto.
+Qed.
+
+(* TODO: move to imm.imm_s_rfrmw.v *)
+Lemma ar_ct_rfrmw_ct_in_ar_ct WF IMMCON : ar⁺ ⨾ (rf ⨾ rmw)⁺ ⊆ ar⁺.
+Proof.
+  intros x y [z [AA BB]].
+  apply clos_trans_t1n in BB.
+  induction BB.
+  2: apply IHBB.
+  all: apply ar_ct_rfrmw_in_ar_ct; auto.
+  all: basic_solver.
+Qed.
+
+(* TODO: move to imm.imm_s_rfrmw.v *)
+Lemma ar_rfrmw_ct_in_ar_ct WF IMMCON : ar ⨾ (rf ⨾ rmw)⁺ ⊆ ar⁺.
+Proof.
+  rewrite ct_step with (r:=ar) at 1. by apply ar_ct_rfrmw_ct_in_ar_ct.
+Qed.
+
+Lemma otc_I_ar_rfrmw_I_implied_helper_2  WF IMMCON (tc_old : tc_coherent_alt_old) :
+   dom_rel (<|W|> ;; (ar ∪ rf ;; rmw)⁺ ;; <|I|>) ⊆₁ I.
+Proof.
+  assert (wf_sc G sc) as WFS by apply IMMCON.
+  rewrite ct_step with (r:=ar) at 1.
+  rewrite unionC.
+  rewrite path_absorb1.
+  2: { apply ar_ct_rfrmw_in_ar_ct; auto. }
+  rewrite !seq_union_l, !seq_union_r, !dom_union.
+  unionL.
+  { arewrite_id ⦗W⦘. rewrite seq_id_l. by apply otc_rfrmw_ct_I. }
+  { rewrite ct_of_ct. apply otc_I_ar_I_implied_helper_2; auto. }
+  rewrite ct_of_ct; rewrite seqA.
+  arewrite ((rf ⨾ rmw)⁺ ⊆ (rf ⨾ rmw)⁺ ;; <|W|>).
+  { rewrite (dom_r WF.(wf_rmwD)) at 1.
+    rewrite <- !seqA. by rewrite inclusion_ct_seq_eqv_r. }
+  rewrite (dom_rel_helper (otc_I_ar_I_implied_helper_2 WF WFS tc_old)).
+  arewrite_id ⦗W⦘. rewrite !seq_id_l.
+  rewrite <- !seqA.
+  rewrite (dom_rel_helper (otc_rfrmw_ct_I WF tc_old)).
+  basic_solver.
 Qed.
 
 End TCCOH_ALT_OLD.
