@@ -474,11 +474,17 @@ Proof.
   basic_solver.
 Qed.
 
-Lemma I_co_in_cert_co : ⦗ I ⦘ ⨾ Gco ⊆ cert_co.
+Lemma S_co_in_cert_co : ⦗ S ⦘ ⨾ Gco ⊆ cert_co.
 Proof.
-apply I_co_in_new_co.
+  apply I_co_in_new_co.
   apply IT_new_co.
   all: apply WF.
+Qed.
+
+Lemma I_co_in_cert_co : ⦗ I ⦘ ⨾ Gco ⊆ cert_co.
+Proof.
+  rewrite ETCCOH.(etc_I_in_S).
+  apply S_co_in_cert_co.
 Qed.
 
 Lemma cert_co_for_split: ⦗set_compl I⦘ ⨾ (immediate cert_co) ⊆ Gsb.
