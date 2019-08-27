@@ -13,6 +13,7 @@ From imm Require Import CombRelations.
 Require Import TraversalConfig.
 Require Import TraversalConfigAlt.
 Require Import TraversalConfigAltOld.
+Require Import ExtTraversal.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -88,6 +89,7 @@ Notation "'Sc'" := (fun a => is_true (is_sc Glab a)).
 Notation "'xacq'" := (fun a => is_true (is_xacq Glab a)).
 
 Variable T : trav_config.
+Variable S : actid -> Prop.
 
 Notation "'I'" := (issued T).
 Notation "'C'" := (covered T).
@@ -101,12 +103,13 @@ Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
 Hypothesis TCCOH : tc_coherent G sc T.
+Hypothesis ETCCOH : etc_coherent G sc (mkETC T S).
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
 Hypothesis AT : rmw_atomicity G.
 
-Hypothesis IT_new_co: I ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
+Hypothesis IT_new_co: S ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
 Hypothesis E_to_I: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗I⦘).
 Hypothesis Grfe_E : dom_rel Grfe ⊆₁ I.
 Hypothesis W_ex_E: GW_ex ∩₁ E ⊆₁ I.
@@ -298,7 +301,7 @@ rewrite !id_union; relsf; unionL; splits.
   arewrite (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb^? ⨾ ⦗I⦘ ⊆ ⦗C⦘ ⨾ Gsb).
   case_refl _.
   rewrite (issuedW TCCOH); type_solver.
-  generalize (dom_F_sb_issued TCCOH). basic_solver 12.
+  generalize (dom_F_sb_I_in_C TCCOH). basic_solver 12.
   generalize dom_sb_covered; basic_solver 21.
 Qed.
 
@@ -417,7 +420,7 @@ Qed.
 (**  new co relation  *)
 (******************************************************************************)
 
-Definition cert_co := new_co G I (E ∩₁ W ∩₁ Tid_ thread).
+Definition cert_co := new_co G S (E ∩₁ W ∩₁ Tid_ thread).
 
 
 Lemma wf_cert_coE : cert_co ≡ ⦗E⦘ ⨾ cert_co ⨾ ⦗E⦘.
@@ -456,11 +459,19 @@ apply new_co_irr.
   all: apply WF.
 Qed.
 
-Lemma cert_co_I : cert_co ⨾ ⦗ I ⦘  ⊆ Gco ⨾ ⦗ I ⦘.
+Lemma cert_co_S : cert_co ⨾ ⦗ S ⦘  ⊆ Gco ⨾ ⦗ S ⦘.
 Proof.
-apply new_co_I.
+  apply new_co_I.
   apply IT_new_co.
   all: apply WF.
+Qed.
+
+Lemma cert_co_I : cert_co ⨾ ⦗ I ⦘  ⊆ Gco ⨾ ⦗ I ⦘.
+Proof.
+  arewrite (⦗I⦘ ⊆ ⦗S⦘ ;; ⦗I⦘) at 1.
+  { generalize ETCCOH.(etc_I_in_S). basic_solver. }
+  sin_rewrite cert_co_S.
+  basic_solver.
 Qed.
 
 Lemma I_co_in_cert_co : ⦗ I ⦘ ⨾ Gco ⊆ cert_co.
