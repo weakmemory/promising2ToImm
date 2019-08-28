@@ -86,6 +86,50 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 
 Definition rppo := (ctrl ∪ addr;;sb^? ∪ rmw_dep^? ;; <| R_ex |> ;; sb) ;; <| W |>.
 
+Lemma wf_rppoE : rppo ≡ <|E|> ;; rppo ;; <|E|>.
+Proof.
+  split; [|basic_solver].
+  unfold rppo.
+  rewrite WF.(wf_ctrlE) at 1.
+  rewrite WF.(wf_addrE) at 1.
+  rewrite wf_sbE at 1 2.
+  rewrite WF.(wf_rmw_depE) at 1.
+  basic_solver 10.
+Qed.
+
+Lemma wf_rppoD : rppo ≡ <|R|> ;; rppo ;; <|W|>.
+Proof.
+  split; [|basic_solver].
+  unfold rppo.
+  arewrite (R_ex ⊆₁ R_ex ∩₁ R) at 1.
+  { generalize (R_ex_in_R). basic_solver. }
+  rewrite WF.(wf_ctrlD) at 1.
+  rewrite WF.(wf_addrD) at 1.
+  rewrite WF.(wf_rmw_depD) at 1.
+  basic_solver 10.
+Qed.
+
+Lemma addr_sb_W_in_rppo : addr ;; sb^? ;; <| W |> ⊆ rppo.
+Proof.
+  unfold rppo. basic_solver 10.
+Qed.
+
+Lemma ctrl_W_in_rppo : ctrl ;; <| W |> ⊆ rppo.
+Proof.
+  unfold rppo. basic_solver 10.
+Qed.
+
+Lemma rmw_dep_sb_W_in_rppo : rmw_dep ⨾ sb ⨾ ⦗W⦘ ⊆ rppo.
+Proof.
+  rewrite (dom_r WF.(wf_rmw_depD)).
+  unfold rppo. basic_solver 10.
+Qed.
+
+Lemma R_ex_sb_W_in_rppo : ⦗R_ex⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ rppo.
+Proof.
+  unfold rppo. basic_solver 10.
+Qed.
+
 Lemma rppo_in_ppo : rppo ⊆ ppo.
 Proof.
   unfold rppo, imm_common.ppo. hahn_frame.
