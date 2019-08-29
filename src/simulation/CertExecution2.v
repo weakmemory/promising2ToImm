@@ -646,22 +646,28 @@ Qed.
 
 Lemma wf_new_rff : functional new_rf⁻¹.
 Proof.
-rewrite wf_new_rfD, wf_new_rfE.
-red; ins.
-assert (exists l, Gloc y = Some l).
-by generalize (is_w_loc Glab); unfolder in *; basic_solver 12.
-desc.
+  rewrite wf_new_rfD, wf_new_rfE.
+  red; ins.
+  assert (exists l, Gloc y = Some l).
+  { generalize (is_w_loc Glab). unfolder in *. basic_solver 12. }
+  desc.
 
-assert (Gloc z = Some l).
-{ hahn_rewrite wf_new_rfl in H; hahn_rewrite wf_new_rfl in H0.
-  unfold same_loc in *; unfolder in *; ins; desf; congruence. }
-unfolder in *.
-destruct (classic (y=z)) as [|X]; eauto; desf.
-exfalso; eapply wf_cert_co_total in X; try basic_solver 22.
-2: unfolder; splits; eauto; congruence.
+  assert (Gloc z = Some l).
+  { hahn_rewrite wf_new_rfl in H; hahn_rewrite wf_new_rfl in H0.
+    unfold same_loc in *. unfolder in *. ins; desf. congruence. }
+  unfolder in *.
+  destruct (classic (y=z)) as [|X]; eauto; desf.
+  exfalso.
+  (* Strange error...
+Error: wf_cert_co_total depends on the variable W_hb_sc_hb_to_I_NTid which is not declared
+in the context.
+*)
+  eapply wf_cert_co_total in X.
+  try basic_solver 22.
+  2: unfolder; splits; eauto; congruence.
 
 
-unfold new_rf in *; desf; unfolder in *; basic_solver 40.
+    unfold new_rf in *; desf; unfolder in *; basic_solver 40.
 Qed.
 
 Lemma new_rf_comp : forall b (IN: ((E \₁ D) ∩₁ R) b) , exists a, new_rf a b.
