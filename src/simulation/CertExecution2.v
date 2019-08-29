@@ -1006,37 +1006,38 @@ Lemma sw_helper :
   Grelease ⨾ ⦗E ∩₁ I⦘ ⨾ new_rf ⨾ ⦗Acq⦘ ⊆ 
   Gsb ∪ (Grelease ⨾ Grf ⨾ ⦗Acq⦘ ∪ Grelease ⨾ Grf ⨾ Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘).
 Proof.
-unfold new_rf.
-unfolder; ins; desf.
-assert (A: exists w : actid, Grf w y); desc.
-  by eapply COMP_ACQ; basic_solver.
-destruct (classic (w=z)); subst; [eauto 20|].
-exfalso.
-unfold furr in *; desf; eauto.
-assert (Gloc z = Some l).
-  by hahn_rewrite (@wf_urrD G) in H1; unfolder in H1; desf.
-eapply (transp_rf_co_urr_irr WF WF_SC CSC COH).
-assert (W w).
-  by hahn_rewrite (wf_rfD WF) in A; unfolder in A; desf.
-assert (Loc_ l w).
-  by hahn_rewrite (wf_rfl WF) in A; unfold same_loc in *; unfolder in A; desf; congruence.
-exists w; splits.
-basic_solver.
-exists z; split; eauto.
-exploit (new_co_I IT_new_co); try apply WF; [| basic_solver].
-unfolder; splits; eauto.
-eapply tot_ex.
-+ eapply (wf_new_co_total IT_new_co); try apply WF; try done.
-+ by unfolder; splits; eauto; apply (issuedW TCCOH).
-+ assert (E w).
-  by hahn_rewrite (wf_rfE WF) in A; unfolder in A; desf.
-  basic_solver 10.
-+ intro.
-  eapply H3. exists w. splits; eauto.
-  exists l; unfold urr.
-  apply (wf_urrE WF WF_SC) in H1.
-  basic_solver 12.
-+ intro; subst; eauto.
+  unfold new_rf.
+  unfolder; ins; desf.
+  assert (A: exists w : actid, Grf w y); desc.
+  { eapply COMP_ACQ. basic_solver. }
+  destruct (classic (w=z)); subst; [eauto 20|].
+  exfalso.
+  unfold furr in *; desf; eauto.
+  assert (Gloc z = Some l).
+  { hahn_rewrite (@wf_urrD G) in H1. unfolder in H1. desf. }
+  eapply (transp_rf_co_urr_irr WF WF_SC CSC COH).
+  assert (W w).
+  { hahn_rewrite (wf_rfD WF) in A; unfolder in A; desf. }
+  assert (Loc_ l w).
+  { hahn_rewrite (wf_rfl WF) in A; unfold same_loc in *.
+    unfolder in A; desf; congruence. }
+  exists w; splits.
+  basic_solver.
+  exists z; split; eauto.
+  exploit (new_co_I IST_new_co); try apply WF; [| basic_solver].
+  unfolder; splits; eauto.
+  eapply tot_ex.
+  { by eapply (wf_new_co_total IST_new_co); try apply WF. }
+  { by unfolder; splits; eauto; apply (issuedW TCCOH). }
+  { assert (E w).
+    { hahn_rewrite (wf_rfE WF) in A; unfolder in A; desf. }
+    basic_solver 10. }
+  { intro.
+    eapply H3. exists w. splits; eauto.
+    exists l; unfold urr.
+    apply (wf_urrE WF WF_SC) in H1.
+    basic_solver 12. }
+  intro; subst; eauto.
 Qed.
 
 Lemma cert_sb_sw : Gsb ∪ Csw ≡ Gsb ∪ Gsw.
@@ -1058,10 +1059,11 @@ relsf; split; unionL.
   * arewrite (⦗E \₁ I⦘ ⊆ ⦗E \₁ I⦘ ⨾ ⦗E \₁ I⦘).
     basic_solver.
     sin_rewrite non_I_new_rf.
+    (* TODO: continue from here *)
     arewrite (Grelease ⨾ ⦗E \₁ I⦘ ⊆ Gsb^?).
     { rewrite release_int at 1; relsf; unionL.
+      2,3: basic_solver 12.
       by revert W_ex_E; unfolder; ins; desf; exfalso; eauto.
-      all: basic_solver 12. }
     generalize (@sb_trans G).
     basic_solver.
 - arewrite (Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ≡ ⦗D⦘ ⨾ Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘).
