@@ -324,19 +324,21 @@ Proof.
   rewrite !set_inter_union_l.
   rewrite !id_union; relsf; unionL; splits.
   { generalize dom_sb_covered. basic_solver 21. }
-  - arewrite (⦗dom_rel (Gsb^? ⨾ ⦗I⦘) ∩₁ F ∩₁ Acq/Rel⦘ ⊆ ⦗dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb^? ⨾ ⦗I⦘)⦘).
-    basic_solver 12.
-    rewrite dom_rel_eqv_dom_rel.
-    arewrite (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb^? ⨾ ⦗I⦘ ⊆ ⦗C⦘ ⨾ Gsb).
-    case_refl _.
-    rewrite (issuedW TCCOH); type_solver.
-    generalize (dom_F_sb_I_in_C TCCOH). basic_solver 12.
-    generalize dom_sb_covered; basic_solver 21.
+  arewrite (⦗dom_rel (Gsb^? ⨾ ⦗S⦘) ∩₁ F ∩₁ Acq/Rel⦘ ⊆
+            ⦗dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb^? ⨾ ⦗S⦘)⦘).
+  { basic_solver 12. }
+  rewrite dom_rel_eqv_dom_rel.
+  arewrite (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb^? ⨾ ⦗S⦘ ⊆ ⦗C⦘ ⨾ Gsb).
+  2: generalize dom_sb_covered; basic_solver 21.
+  case_refl _.
+  { rewrite (reservedW WF ETCCOH). type_solver. }
+  generalize (etc_F_sb_S ETCCOH). unfold ecovered. simpls.
+  basic_solver 10.
 Qed.
 
 Lemma dom_sb_F_AcqRel_in_D : dom_rel (Gsb ⨾ ⦗E ∩₁ F ∩₁ Acq/Rel⦘) ⊆₁ D.
 Proof.
-rewrite dom_sb_F_AcqRel_in_CI, C_in_D, I_in_D; relsf.
+ rewrite dom_sb_F_AcqRel_in_CI, C_in_D, I_in_D; relsf.
 Qed.
 
 Lemma dom_sb_F_Acq_in_D : dom_rel (Gsb ⨾ ⦗E ∩₁ F ∩₁ Acq⦘) ⊆₁ D.
@@ -358,11 +360,11 @@ Qed.
 
 Lemma R_Acq_codom_W_ex_rfi : (R ∩₁ Acq ∩₁ codom_rel (⦗GW_ex⦘ ⨾ Grfi)) ⊆₁ D.
 Proof.
-rewrite (dom_l (wf_rfiE WF)).
-arewrite (⦗GW_ex⦘ ⨾ ⦗E⦘ ⊆ ⦗GW_ex ∩₁ E⦘) by basic_solver.
-rewrite W_ex_E.
-unfold D.
-basic_solver 21.
+  rewrite (dom_l (wf_rfiE WF)).
+  arewrite (⦗GW_ex⦘ ⨾ ⦗E⦘ ⊆ ⦗GW_ex ∩₁ E⦘) by basic_solver.
+  rewrite W_ex_E.
+  unfold D.
+  basic_solver 21.
 Qed.
 
 Lemma dom_rfi_D : dom_rel (Grfi ⨾ ⦗D⦘) ⊆₁ D.
