@@ -449,7 +449,7 @@ Qed.
 (**  new co relation  *)
 (******************************************************************************)
 
-Definition cert_co := new_co G S (E ∩₁ W ∩₁ Tid_ thread).
+Definition cert_co := new_co G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread).
 
 
 Lemma wf_cert_coE : cert_co ≡ ⦗E⦘ ⨾ cert_co ⨾ ⦗E⦘.
