@@ -649,66 +649,63 @@ Proof.
   rewrite wf_new_rfD, wf_new_rfE.
   red; ins.
   assert (exists l, Gloc y = Some l).
-  { generalize (is_w_loc Glab). unfolder in *. basic_solver 12. }
+  { generalize (is_w_loc Glab). generalize H. basic_solver 12. }
   desc.
 
   assert (Gloc z = Some l).
   { hahn_rewrite wf_new_rfl in H; hahn_rewrite wf_new_rfl in H0.
-    unfold same_loc in *. unfolder in *. ins; desf. congruence. }
-  unfolder in *.
+    generalize H H0. unfolder. ins. desf. congruence. }
+  unfolder in H. unfolder in H0.
   destruct (classic (y=z)) as [|X]; eauto; desf.
-  exfalso.
-  (* Strange error...
-Error: wf_cert_co_total depends on the variable W_hb_sc_hb_to_I_NTid which is not declared
-in the context.
-*)
-  eapply wf_cert_co_total in X.
-  try basic_solver 22.
+  exfalso. eapply wf_cert_co_total in X.
+  3: basic_solver 22.
   2: unfolder; splits; eauto; congruence.
-
-
-    unfold new_rf in *; desf; unfolder in *; basic_solver 40.
+  unfold new_rf in *. desf.
+  all: unfolder in H12; unfolder in H5.
+  all: basic_solver 40.
 Qed.
 
 Lemma new_rf_comp : forall b (IN: ((E \₁ D) ∩₁ R) b) , exists a, new_rf a b.
 Proof.
-ins; unfolder in *; desf.
-assert (exists l, Gloc b = Some l); desc.
-  by generalize (is_r_loc Glab); unfolder in *; basic_solver 12.
-assert (E (InitEvent l)).
-  by apply WF; eauto.
-assert (Glab (InitEvent l) = Astore Xpln Opln l 0).
-  by apply WF. 
-assert (Gloc (InitEvent l) = Some l).
-  by unfold loc; rewrite (wf_init_lab WF).
-assert (W_ l (InitEvent l)).
-  by unfolder; unfold is_w, loc; desf; eauto.
-assert (Gsb (InitEvent l) b).
-  by apply init_ninit_sb; eauto; eapply read_or_fence_is_not_init; eauto.
-assert (Gurr l (InitEvent l) b).
+  ins; unfolder in IN; desf.
+  assert (exists l, Gloc b = Some l); desc.
+  { generalize (is_r_loc Glab). basic_solver 12. }
+  assert (E (InitEvent l)).
+  { apply WF; eauto. }
+  assert (Glab (InitEvent l) = Astore Xpln Opln l 0) by apply WF. 
+  assert (Gloc (InitEvent l) = Some l).
+  { unfold loc. by rewrite (wf_init_lab WF). }
+  assert (W_ l (InitEvent l)).
+  { unfolder. unfold is_w, loc; desf; eauto. }
+  assert (Gsb (InitEvent l) b).
+  { apply init_ninit_sb; eauto. eapply read_or_fence_is_not_init; eauto. }
+  assert (Gurr l (InitEvent l) b).
   { exists (InitEvent l); splits.
     unfold eqv_rel; eauto.
     hahn_rewrite <- sb_in_hb.
     basic_solver 12. }
 
-forward (eapply last_exists with (s:=cert_co ⨾ ⦗fun x=> Gfurr x b⦘) 
- (dom:= filterP (W_ l) G.(acts)) (a:=(InitEvent l))).
-- eapply acyclic_mon.
-  apply trans_irr_acyclic; [apply cert_co_irr| apply cert_co_trans].
-  basic_solver.
-- ins.
-  assert (A: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)^? (InitEvent l) c).
-  { apply rt_of_trans; try done.
-    apply transitiveI; unfolder; ins; desf; splits; eauto.
-    eapply cert_co_trans; eauto. }
-  unfolder in A; desf.
-  by apply in_filterP_iff; split; auto.
-  apply in_filterP_iff.
-  hahn_rewrite wf_cert_coE in A.
-  hahn_rewrite wf_cert_coD in A.
-  hahn_rewrite wf_cert_col in A.
-   unfold same_loc in *; unfolder in *; desf; splits; eauto; congruence.
-- ins; desf.
+  forward (eapply last_exists with (s:=cert_co ⨾ ⦗fun x=> Gfurr x b⦘) 
+                                   (dom:= filterP (W_ l) G.(acts)) (a:=(InitEvent l))).
+  { eapply acyclic_mon.
+    apply trans_irr_acyclic; [apply cert_co_irr| apply cert_co_trans].
+    basic_solver. }
+  { ins.
+    assert (A: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)^? (InitEvent l) c).
+    { apply rt_of_trans; try done.
+      apply transitiveI; unfolder; ins; desf; splits; eauto.
+      eapply cert_co_trans; eauto. }
+    unfolder in A; desf.
+    { apply in_filterP_iff; split; auto. }
+    apply in_filterP_iff.
+    hahn_rewrite wf_cert_coE in A.
+    hahn_rewrite wf_cert_coD in A.
+    hahn_rewrite wf_cert_col in A.
+    unfold same_loc in *.
+    unfolder in A.
+    desf; splits; eauto. red. splits; auto.
+    congruence. }
+  ins; desf.
   assert (A: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)^? (InitEvent l) b0).
   { apply rt_of_trans; try done.
     apply transitiveI; unfolder; ins; desf; splits; eauto.
@@ -716,20 +713,25 @@ forward (eapply last_exists with (s:=cert_co ⨾ ⦗fun x=> Gfurr x b⦘)
   assert (Gloc b0 = Some l).
   { unfolder in A; desf.
     hahn_rewrite wf_cert_col in A.
-    unfold same_loc in *; desf; unfolder in *; congruence. }
+    unfold same_loc in *; desf. unfolder in H7; congruence. }
   exists b0; red; split.
-  * unfold furr, same_loc.
-    unfolder in A; desf; unfolder; ins; desf; splits; try basic_solver 21; congruence.
-  * unfold max_elt in *.
-    unfolder in *; ins; desf; intro; desf; basic_solver 11.
+  { unfold furr, same_loc.
+    unfolder in A; desf.
+    all: unfolder; ins; desf.
+    all: splits; try congruence.
+    all: basic_solver 21. }
+  unfold max_elt in *.
+  unfolder in H7; ins; desf; intro; desf.
+  unfolder in H9. desf.
+  eapply H7. eauto.
 Qed.
 
 Lemma new_rf_mod: (E \₁ D) ∩₁ is_r Glab ≡₁ codom_rel new_rf.
 Proof.
-split.
-unfolder; ins; desf.
-apply new_rf_comp; basic_solver.
-unfold new_rf; basic_solver.
+  split.
+  unfolder; ins; desf.
+  apply new_rf_comp; basic_solver.
+  unfold new_rf; basic_solver.
 Qed.
 
 Lemma new_rf_in_furr: new_rf ⊆ Gfurr.
