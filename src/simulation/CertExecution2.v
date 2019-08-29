@@ -180,6 +180,13 @@ Proof.
   unfold D. basic_solver 21.
 Qed.
 
+Lemma dom_data_rfi_rppo_S_in_D :
+  dom_rel ((Gdata ∪ Grfi)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ D.
+Proof.
+  unfold D. basic_solver 21.
+Qed.
+
+
 Lemma dom_addr_in_D : dom_rel Gaddr ⊆₁ D.
 Proof.
   rewrite (dom_r (wf_addrE WF)).
@@ -358,36 +365,48 @@ Proof.
 unfold D; basic_solver 21.
 Qed.
 
-Lemma R_Acq_codom_W_ex_rfi : (R ∩₁ Acq ∩₁ codom_rel (⦗GW_ex⦘ ⨾ Grfi)) ⊆₁ D.
-Proof.
-  rewrite (dom_l (wf_rfiE WF)).
-  arewrite (⦗GW_ex⦘ ⨾ ⦗E⦘ ⊆ ⦗GW_ex ∩₁ E⦘) by basic_solver.
-  rewrite W_ex_E.
-  unfold D.
-  basic_solver 21.
-Qed.
+(* It doesn't hold anymore since W_ex are
+   neither necessarily issued, nor necessarily have the same value as in
+   the original graph. *)
+(* Lemma R_Acq_codom_W_ex_rfi : (R ∩₁ Acq ∩₁ codom_rel (⦗GW_ex⦘ ⨾ Grfi)) ⊆₁ D. *)
+(* Proof. *)
+(*   rewrite (dom_l (wf_rfiE WF)). *)
+(*   arewrite (⦗GW_ex⦘ ⨾ ⦗E⦘ ⊆ ⦗GW_ex ∩₁ E⦘) by basic_solver. *)
+(*   rewrite W_ex_E. *)
+(*   unfold D. *)
+(*   basic_solver 21. *)
+(* Qed. *)
 
 Lemma dom_rfi_D : dom_rel (Grfi ⨾ ⦗D⦘) ⊆₁ D.
 Proof.
-unfold D.
-rewrite !id_union; relsf; unionL; splits.
-- ie_unfolder; generalize dom_rf_covered; basic_solver 21.
-- rewrite (dom_r (wf_rfiD WF)), (issuedW TCCOH) at 1; type_solver.
-- arewrite (Grfi ⊆ Gsb).
+  unfold D at 1.
+  rewrite !id_union, !seq_union_r, !dom_union.
+  unionL.
+  { arewrite (Grfi ⊆ Grf). rewrite <- I_in_D.
+    eapply dom_rf_covered; eauto. }
+  { rewrite (dom_r (wf_rfiD WF)), (issuedW TCCOH) at 1. type_solver. }
+  { arewrite (Grfi ⊆ Gsb).
     rewrite (dom_l (@wf_sbE G)).
     rewrite sb_tid_init'; relsf; unionL; splits.
-    unionR left -> left -> left -> right.
-    by unfold same_tid; unfolder; ins; desf; eauto.
+    { unfold D.
+      unionR left -> left -> left -> left.
+      unionR right.
+      unfold same_tid. basic_solver. }
     transitivity D; [|unfold D; basic_solver 21].
-    rewrite <- D_init; basic_solver.
-- rewrite dom_rel_eqv_dom_rel.
-  rewrite crE at 1; relsf; unionL; splits.
-  2: by rewrite (dom_r (wf_rfiD WF)), (dom_l (wf_rfiD WF)); type_solver.
-  basic_solver 12.
-- ie_unfolder; unfolder; ins; desf.
-  assert (x=z); subst; eauto 10.
-  eapply WF; basic_solver.
-- ie_unfolder; unfolder; ins; desc.
+    rewrite <- D_init; basic_solver. }
+  { rewrite dom_rel_eqv_dom_rel.
+    rewrite crE at 1; relsf; unionL; splits.
+    { unfold D. basic_solver 12. }
+    rewrite (dom_r (wf_rfiD WF)), (dom_l (wf_rfiD WF)). type_solver. }
+  { rewrite dom_rel_eqv_dom_rel.
+    arewrite (Grfi ⨾ (Gdata ∪ Grfi)＊ ⊆ (Gdata ∪ Grfi)＊).
+    2: by apply dom_data_rfi_rppo_S_in_D.
+    rewrite rt_begin at 2. unionR right.
+    basic_solver 10. }
+  { unfold D. ie_unfolder; unfolder; ins; desf.
+    assert (x=z); subst; eauto 15.
+    eapply WF; basic_solver. }
+  ie_unfolder; unfolder; ins; desc.
   assert (x=x0); subst.
   eapply WF; basic_solver.
   exfalso; auto.
@@ -403,17 +422,17 @@ Qed.
 
 Lemma complete_D : D ∩₁ R  ⊆₁ codom_rel Grf.
 Proof.
-unfold D.
-rewrite !set_inter_union_l.
-unionL.
-- apply COMP_C.
-- rewrite (issuedW TCCOH); type_solver.
-- apply COMP_NTID.
-- rewrite crE; relsf; unionL; splits.
-* apply COMP_PPO.
-* rewrite (dom_l (wf_rfiD WF)); type_solver.
-- ie_unfolder; basic_solver.
-- ie_unfolder; basic_solver.
+  unfold D.
+  rewrite !set_inter_union_l.
+  unionL.
+  { apply COMP_C. }
+  { rewrite (issuedW TCCOH); type_solver. }
+  { apply COMP_NTID. }
+  { rewrite crE; relsf; unionL; splits.
+    { apply COMP_PPO. }
+    rewrite (dom_l (wf_rfiD WF)); type_solver. }
+  { (* TODO: need something like COMP_PPO but for rppo? *)
+  all: ie_unfolder; basic_solver.
 Qed.
 
 Lemma dom_ppo_D : dom_rel (Gppo ⨾ ⦗D⦘) ⊆₁ D.
