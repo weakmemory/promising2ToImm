@@ -101,7 +101,7 @@ Record etc_coherent (T : ext_trav_config) :=
       etc_I_in_S : eissued T ⊆₁ reserved T;
       etc_S_I_in_W_ex : reserved T \₁ eissued T ⊆₁ W_ex;
 
-      etc_F_po_S : dom_rel (⦗F∩₁Acq/Rel⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ ecovered T ;
+      etc_F_sb_S : dom_rel (⦗F∩₁Acq/Rel⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ ecovered T ;
       etc_dr_R_acq_I :
         dom_rel ((detour ∪ rfe) ⨾ <|R∩₁Acq|> ;; sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
       etc_W_ex_sb_I : dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
@@ -188,6 +188,7 @@ Proof.
     { left. splits; auto. }
     constructor; unfold eissued, ecovered; simpls.
     all: try by apply ETCCOH.
+    2: by unionR left; apply ETCCOH.
     (* TODO: generalize to a lemma *)
     eapply trav_step_coherence.
     2: by apply ETCCOH. 
@@ -203,7 +204,7 @@ Proof.
       generalize RES. basic_solver. }
     unnw. constructor; unfold eissued, ecovered; simpls.
     all: try by (unionR left; apply ETCCOH).
-    2,5: by apply ETCCOH.
+    all: try by apply ETCCOH.
     { eapply trav_step_coherence.
       2: by apply ETCCOH. 
       eapply trav_step_more_Proper.
@@ -251,17 +252,19 @@ Proof.
       basic_solver. }
     all: rewrite id_union, !seq_union_r; rewrite dom_union; unionL.
     all: try by apply ETCCOH.
-    4: { unionR left. unfolder. ins. desf.
-         apply NNPP. intros HH. apply NB. basic_solver 10. }
-    3: { unionR left. apply ETCCOH. }
+    5: { unionR left. unfolder. ins. desf.
+         apply NNPP. intros HH. apply NB.  basic_solver 10. }
+    4: { unionR left. apply ETCCOH. }
     all: rewrite <- !seqA.
     all: rewrite dom_eqv_seq with (r':=sb^? ;; <|eq e|>) at 1;
       [|exists e; generalize SBB; basic_solver 10].
     all: rewrite !seqA.
     all: arewrite_id ⦗eq w⦘; rewrite seq_id_l.
-    1,2: arewrite (sb ;; sb^? ⊆ sb) by (generalize (@sb_trans G); basic_solver).
-    3: arewrite (⦗eq e⦘ ⊆ ⦗W⦘ ⨾ ⦗eq e⦘) at 1 by basic_solver.
+    1,2,3: arewrite (sb ;; sb^? ⊆ sb) by (generalize (@sb_trans G); basic_solver).
+    4: arewrite (⦗eq e⦘ ⊆ ⦗W⦘ ⨾ ⦗eq e⦘) at 1 by basic_solver.
     all: rewrite EISS.
+    { arewrite (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⊆ fwbob).
+      unfold issuable. basic_solver 10. }
     { eapply dom_detour_rfe_acq_sb_issuable; eauto. }
     { by apply dom_wex_sb_issuable. }
     sin_rewrite WF.(rppo_cr_sb_in_rppo).
@@ -291,11 +294,14 @@ Proof.
     etransitivity.
     2: by apply ETCCOH.
     basic_solver. }
-  all: rewrite id_union, !seq_union_r; rewrite dom_union; unionL; unionR left.
+  all: rewrite id_union, !seq_union_r; rewrite dom_union; unionL.
+  all: try unionR left.
   all: try by apply ETCCOH.
-  3: { unfolder. ins. desf.
+  4: { unfolder. ins. desf.
        apply NNPP. intros HH. apply NB. basic_solver 10. }
   all: rewrite EISS.
+  { arewrite (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⊆ fwbob).
+    unfold issuable. basic_solver 10. }
   { eapply dom_detour_rfe_acq_sb_issuable; eauto. }
   { by apply dom_wex_sb_issuable. }
   sin_rewrite WF.(detour_rfe_data_rfi_rppo_in_detour_rfe_ppo).

@@ -384,6 +384,7 @@ Proof.
         (* TODO: introduce a lemma. *)
         constructor; unfold ecovered, eissued; simpls.
         all: try apply ETCCOH.
+        2: by unionR left -> left; apply ETCCOH.
         eapply trav_step_coherence.
         2: apply ETCCOH'.
         red. exists w. 
@@ -449,6 +450,12 @@ Proof.
         { rewrite <- etc_I_in_S; eauto; rewrite WF.(W_ex_in_W); auto. }
         { arewrite (W_ex_acq ⊆₁ W); auto. rewrite WF.(W_ex_in_W); basic_solver. }
         arewrite_id ⦗R ∩₁ Acq⦘. by rewrite seq_id_l. }
+      assert (dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⨾ ⦗reserved T ∪₁ eq w⦘) ⊆₁
+                      covered (etc_TC T)) as PP5.
+      { rewrite id_union, !seq_union_r, dom_union. unionL.
+        { apply ETCCOH. }
+        arewrite (F ∩₁ Acq/Rel ⊆₁ FW); [|done].
+        type_solver. }
 
       destruct (classic (reserved T w)) as [RES|NRES].
       2: { eexists. red. eexists.
@@ -456,8 +463,7 @@ Proof.
            red. splits.
            { do 2 right. splits; eauto. }
 
-           constructor.
-           { apply ETCCOH. }
+           constructor; auto.
            all: unfold eissued, ecovered; simpls.
            { unionL; [by apply ETCCOH|]. basic_solver. }
            { rewrite ETCCOH.(etc_I_in_S). eauto with hahn. }
@@ -554,6 +560,7 @@ Proof.
       2: { unionL; [by apply ETCCOH|]. basic_solver. }
       3: { generalize ETCCOH.(etc_S_I_in_W_ex). basic_solver 10. }
       2: { apply set_union_mori; [|done]. apply ETCCOH. }
+      2: { rewrite PP5. eauto with hahn. }
       red. simpls; splits.
       { unionR left -> left. apply ETCCOH. }
       { unionL.
@@ -699,6 +706,7 @@ Proof.
     eapply traversal_mon with (T:=etc_TC T); basic_solver. }
   all: unionR left.
   all: rewrite id_union, !seq_union_r, dom_union; unionL; [by apply ETCCOH|].
+  { arewrite_id ⦗F ∩₁ Acq/Rel⦘. by rewrite seq_id_l. }
   { arewrite_id ⦗R ∩₁ Acq⦘. by rewrite seq_id_l. }
   { arewrite (W_ex_acq ⊆₁ W); auto. rewrite WF.(W_ex_in_W); basic_solver. }
   { rewrite <- etc_I_in_S; eauto; rewrite WF.(W_ex_in_W); auto. }
