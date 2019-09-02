@@ -1081,19 +1081,28 @@ Proof.
        2: { rewrite <- R_Acq_codom_rfe at 2.
             rewrite (dom_r (wf_rfeD WF)) at 1.
             basic_solver 21. }
-
-       arewrite (Grelease ⊆ Gsb^? ∪ Grelease ⨾ ⦗GW_ex⦘) at 1.
-       { unfold imm_s_hb.release, imm_s_hb.rs.
-         rewrite rtE at 1; relsf; unionL.
-         generalize (@sb_trans G); basic_solver 12.
-         rewrite rmw_W_ex at 1.
-         rewrite <- !seqA, inclusion_ct_seq_eqv_r, !seqA.
-         basic_solver 21. }
-       rewrite !seq_union_l.
+       arewrite (⦗Acq⦘ ⊆ (⦗D⦘ ∪ ⦗set_compl D⦘) ;; ⦗Acq⦘) at 1.
+       { unfolder. ins. desf. destruct (classic (D y)); eauto. }
+       rewrite !seq_union_l, !seq_union_r.
        unionL.
-       { unionR left.
-         arewrite (Grfi ⊆ Gsb).
-         generalize (@sb_trans G). basic_solver 12. }
+       { eauto with hahn. }
+       rewrite (dom_r WF.(wf_rfiE)) at 1.
+       rewrite (dom_r WF.(wf_rfiD)) at 1. rewrite !seqA.
+       arewrite (Grfi ⨾ ⦗R⦘ ⨾ ⦗E⦘ ⨾ ⦗set_compl D⦘ ⊆ new_rf).
+       2: by eauto with hahn.
+
+       (* arewrite (Grelease ⊆ Gsb^? ∪ Grelease ⨾ ⦗GW_ex⦘) at 1. *)
+       (* { unfold imm_s_hb.release, imm_s_hb.rs. *)
+       (*   rewrite rtE at 1; relsf; unionL. *)
+       (*   generalize (@sb_trans G); basic_solver 12. *)
+       (*   rewrite rmw_W_ex at 1. *)
+       (*   rewrite <- !seqA, inclusion_ct_seq_eqv_r, !seqA. *)
+       (*   basic_solver 21. } *)
+       (* rewrite !seq_union_l. *)
+       (* unionL. *)
+       (* { unionR left. *)
+       (*   arewrite (Grfi ⊆ Gsb). *)
+       (*   generalize (@sb_trans G). basic_solver 12. } *)
        (* rewrite <- R_Acq_codom_W_ex_rfi at 1; rewrite (dom_r (wf_rfiD WF)) at 1; basic_solver 21. *)
        admit. }
   2: { arewrite (Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ≡ ⦗D⦘ ⨾ Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘).
