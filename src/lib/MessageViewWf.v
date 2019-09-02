@@ -54,6 +54,18 @@ Proof.
   inv PROM. inv LOWER. inv MSG_WF.
 Qed.
 
+Lemma message_view_wf_remove
+      memory loc from to msg memory'
+      (REL_WF : message_view_wf memory)
+      (PROM : Memory.remove memory loc from to msg memory') :
+  message_view_wf memory'.
+Proof.
+  red. ins.
+  erewrite Memory.remove_o in GET; eauto.
+  desf. simpls.
+  eapply REL_WF; eauto.
+Qed.
+
 Lemma message_view_wf_op
       memory loc from to msg memory' kind
       (REL_WF : message_view_wf memory)
@@ -63,7 +75,8 @@ Proof.
   destruct PROM.
   { eapply message_view_wf_add; eauto. }
   { eapply message_view_wf_split; eauto. }
-  eapply message_view_wf_lower; eauto.
+  { eapply message_view_wf_lower; eauto. }
+  eapply message_view_wf_remove; eauto.
 Qed.
 
 Lemma message_view_wf_promise
@@ -76,7 +89,8 @@ Proof.
   destruct PROM.
   { eapply message_view_wf_add; eauto. }
   { eapply message_view_wf_split; eauto. }
-  eapply message_view_wf_lower; eauto.
+  { eapply message_view_wf_lower; eauto. }
+  eapply message_view_wf_remove; eauto.
 Qed.
 
 Lemma message_view_wf_init : message_view_wf Memory.init.

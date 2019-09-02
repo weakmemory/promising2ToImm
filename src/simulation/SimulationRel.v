@@ -84,7 +84,7 @@ Definition sim_prom (thread : thread_id) promises :=
     ⟪ HELPER : sim_mem_helper G sc f_to b from v rel.(View.unwrap) ⟫.
 
 Definition sim_half_prom (thread : thread_id) promises :=
-  forall l to from (RES : Memory.get l to promises = Some (from, Message.half)),
+  forall l to from (RES : Memory.get l to promises = Some (from, Message.reserve)),
   exists b b',
     ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
     ⟪ RFRMWS : (<| Tid_ thread ∩₁ S \₁ I |> ;; (rf ;; rmw)^* ;; <| S \₁ I |>) b b' ⟫ /\
@@ -139,7 +139,7 @@ Definition message_to_event (memory : Memory.t) :=
 
 Definition half_message_to_events (memory : Memory.t) :=
   forall l to from
-         (MSG : Memory.get l to memory = Some (from, Message.half)),
+         (MSG : Memory.get l to memory = Some (from, Message.reserve)),
   exists b b',
     ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
     ⟪ RFRMWS : (<| S \₁ I |> ;; (rf ;; rmw)^* ;; <| S \₁ I |>) b b' ⟫ /\

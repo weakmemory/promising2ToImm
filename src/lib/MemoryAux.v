@@ -182,6 +182,17 @@ Proof.
   all: eapply TLOB; eauto.
 Qed.
 
+Lemma ts_lt_or_bot_remove loc from to msg memory memory'
+      (REMOVE : Memory.remove memory loc from to msg memory')
+      (TLOB : ts_lt_or_bot memory) :
+  ts_lt_or_bot memory'.
+Proof.
+  red. ins.
+  erewrite Memory.remove_o in GET; eauto.
+  desf; simpls; desf.
+  all: eapply TLOB; eauto.
+Qed.
+
 Lemma ts_lt_or_bot_op loc from to msg kind memory memory'
       (TLOB : ts_lt_or_bot memory)
       (OP : Memory.op memory loc from to msg memory' kind) :
@@ -190,7 +201,8 @@ Proof.
   destruct OP.
   { eapply ts_lt_or_bot_add; eauto. }
   { eapply ts_lt_or_bot_split; eauto. }
-  eapply ts_lt_or_bot_lower; eauto.
+  { eapply ts_lt_or_bot_lower; eauto. }
+  eapply ts_lt_or_bot_remove; eauto.
 Qed.
 
 Lemma ts_lt_or_bot_future memory memory'
@@ -249,6 +261,18 @@ Proof.
   all: desf.
 Qed.
 
+Lemma message_disjoint_remove loc from to msg memory memory'
+      (MD : message_disjoint memory)
+      (SPLIT : Memory.remove memory loc from to msg memory') :
+  message_disjoint memory'.
+Proof.
+  red. ins.
+  erewrite Memory.remove_o in GET1; eauto.
+  erewrite Memory.remove_o in GET2; eauto.
+  desf; simpls; desf.
+  all: by eapply MD; eauto.
+Qed.
+
 Lemma message_disjoint_op loc from to msg memory memory' kind
       (MD : message_disjoint memory)
       (OP : Memory.op memory loc from to msg memory' kind) :
@@ -257,7 +281,8 @@ Proof.
   destruct OP.
   { eapply message_disjoint_add; eauto. }
   { eapply message_disjoint_split; eauto. }
-  eapply message_disjoint_lower; eauto.
+  { eapply message_disjoint_lower; eauto. }
+  eapply message_disjoint_remove; eauto.
 Qed.
 
 Lemma message_disjoint_future memory memory'
