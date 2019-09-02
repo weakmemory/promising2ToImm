@@ -2087,14 +2087,23 @@ Proof.
   { ins; rewrite cert_W_ex_acq.
     rewrite cert_sb. eapply tc_W_ex_sb_I; eauto.
     apply tc_coherent_implies_tc_coherent_alt; eauto. }
-  admit.
-Admitted.
+  simpls.
+  arewrite (Grmw ⨾ ⦗I⦘ ⊆ ⦗D⦘ ⨾ Grmw ⨾ ⦗I⦘).
+  { apply dom_rel_helper.
+    rewrite rmw_in_ppo; auto.
+    rewrite I_in_D.
+    apply dom_ppo_D. }
+  sin_rewrite cert_rfi_D. rewrite !seqA.
+  arewrite_id ⦗D⦘. rewrite !seq_id_l.
+  arewrite (Grfi ⊆ Grf).
+  eapply rfrmw_I_in_I; eauto.
+Qed.
 
-Lemma dom_cert_ar_I : dom_rel (⦗is_w certG.(lab)⦘ ⨾ Car⁺ ⨾ ⦗I⦘) ⊆₁ I.
+Lemma dom_cert_ar_rfrmw_I : dom_rel (⦗is_w certG.(lab)⦘ ⨾ (Car ∪ Crf ⨾ rmw certG)⁺ ⨾ ⦗I⦘) ⊆₁ I.
 Proof.
-  eapply otc_I_ar_I_implied_helper_2 with (T:=mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
+  eapply otc_I_ar_rfrmw_I_implied_helper_2 with (T:=mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
   { apply WF_cert. }
-  { apply WF_SC_cert. }
+  { apply cert_imm_consistent. }
   apply TCCOH_cert_old.
 Qed.
 
@@ -2113,8 +2122,7 @@ Proof.
     rewrite cert_rfe; basic_solver 21. }
   { ins; rewrite cert_W; done. }
   { ins; rewrite cert_fwbob; done. }
-  admit.
-  (* ins. apply dom_cert_ar_I. *)
-Admitted.
+  ins. apply dom_cert_ar_rfrmw_I.
+Qed.
 
 End CertExec.
