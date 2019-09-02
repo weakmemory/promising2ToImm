@@ -1431,79 +1431,82 @@ Qed.
 
 Lemma coh_helper : irreflexive (Chb ⨾ (sc ⨾ Chb)^? ⨾ Ceco^?).
 Proof.
-apply coh_helper_alt; rewrite cert_hb; relsf; unionL.
-- case_refl sc; [by apply hb_irr|].
-  rewrite (wf_scD WF_SC); rotate 1.
-  sin_rewrite (f_sc_hb_f_sc_in_ar sc WF).
-  unfolder; ins; desc.
-  eapply ACYC_EXT.
-  eapply t_trans; [edone| apply t_step].
-  by apply sc_in_ar.
-- rewrite cert_rfe; relsf; unionL.
-  * revert COH CSC; unfold coherence, coh_sc, eco; ie_unfolder; basic_solver 21.
-  * generalize new_rf_hb; basic_solver 12.
-- rewrite cert_co_alt'; relsf; unionL.
-  * revert COH CSC; unfold coherence, coh_sc, eco; basic_solver 21.
-  * revert W_hb_sc_hb_to_I_NTid; basic_solver 21.
-- rewrite cert_rfe; relsf; unionL.
-  * rewrite (dom_rel_helper Grfe_E).
-    unfold certG; ins; rewrite !seqA.
-    sin_rewrite cert_co_I.
-    revert COH CSC; unfold coherence, coh_sc, eco; ie_unfolder; basic_solver 21.
-  * rewrite cert_co_alt'; relsf; unionL.
-    + rewrite new_rf_in_furr.
-      rotate 1.
-      arewrite (Gfurr \ Gsb ⊆ Gfurr).
-      arewrite (Gfurr ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
-      by generalize (furr_hb_sc_hb WF WF_SC ACYC_EXT); basic_solver 21.
-      generalize (eco_furr_irr WF WF_SC CSC COH).
-      unfold eco; basic_solver 21.
-    + generalize non_I_new_rf; basic_solver 16.
-- unfold fr; rewrite cert_co_alt'; unfold certG; ins.
-  rewrite transp_union, transp_seq; relsf; unionL.
-  * revert COH CSC; unfold coherence, coh_sc, eco, fr; ie_unfolder; basic_solver 21.
-  * rotate 1.
-    arewrite (Gco ∩ cert_co ⊆ cert_co).
-    rewrite (dom_r (wf_cert_coD)), !seqA.
-    arewrite (⦗W⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
-    rewrite (furr_alt WF_SC); basic_solver 21.
-    unfold new_rf; basic_solver 21.
-  * rewrite !seqA; eapply cert_coherece_detour_helper.
-  * rotate 1.
+  apply coh_helper_alt; rewrite cert_hb; relsf; unionL.
+  { case_refl sc; [by apply hb_irr|].
+    rewrite (wf_scD WF_SC); rotate 1.
+    sin_rewrite (f_sc_hb_f_sc_in_ar sc WF).
+    unfolder; ins; desc.
+    eapply ACYC_EXT.
+    eapply t_trans; [edone| apply t_step].
+      by apply sc_in_ar. }
+  { rewrite cert_rfe; relsf; unionL.
+    { revert COH CSC; unfold coherence, coh_sc, eco.
+      ie_unfolder. basic_solver 21. }
+    generalize new_rf_hb. basic_solver 12. }
+  { rewrite cert_co_alt'; relsf; unionL.
+    { revert COH CSC. unfold coherence, coh_sc, eco. basic_solver 21. }
+    revert W_hb_sc_hb_to_I_NTid. basic_solver 21. }
+  { rewrite cert_rfe; relsf; unionL.
+    { rewrite (dom_rel_helper Grfe_E).
+      unfold certG; ins; rewrite !seqA.
+      arewrite (I ⊆₁ I ∪₁ S ∩₁ Tid_ thread) at 1.
+      sin_rewrite cert_co_I.
+      revert COH CSC. unfold coherence, coh_sc, eco.
+      ie_unfolder. basic_solver 21. }
+    rewrite cert_co_alt'; relsf; unionL.
+    2: { generalize non_I_new_rf. basic_solver 16. }
+    rewrite new_rf_in_furr.
+    rotate 1.
+    arewrite (Gfurr \ Gsb ⊆ Gfurr).
+    arewrite (Gfurr ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
+    { generalize (furr_hb_sc_hb WF WF_SC ACYC_EXT). basic_solver 21. }
+    generalize (eco_furr_irr WF WF_SC CSC COH).
+    unfold eco. basic_solver 21. }
+  { unfold fr; rewrite cert_co_alt'; unfold certG; ins.
+    rewrite transp_union, transp_seq; relsf; unionL.
+    { revert COH CSC. unfold coherence, coh_sc, eco, fr. ie_unfolder. basic_solver 21. }
+    { rotate 1.
+      arewrite (Gco ∩ cert_co ⊆ cert_co).
+      rewrite (dom_r (wf_cert_coD)), !seqA.
+      arewrite (⦗W⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
+      { rewrite (furr_alt WF_SC). basic_solver 21. }
+      unfold new_rf. basic_solver 21. }
+    { rewrite !seqA. eapply cert_coherece_detour_helper. }
+    rotate 1.
     arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ I⦘ ⊆ ⦗W⦘) by basic_solver.
     arewrite (⦗W⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
-    rewrite (furr_alt WF_SC); basic_solver 21.
-    unfold new_rf; basic_solver 21.
-- rewrite cert_rfe; relsf; unionL.
-  * unfold fr; unfold certG; ins.
+    { rewrite (furr_alt WF_SC). basic_solver 21. }
+    unfold new_rf. basic_solver 21. }
+  rewrite cert_rfe; relsf; unionL.
+  { unfold fr; unfold certG; ins.
     rewrite transp_union, transp_seq; relsf; unionL.
-    + rewrite (dom_rel_helper Grfe_E), !seqA.
+    { rewrite (dom_rel_helper Grfe_E), !seqA.
+      arewrite (I ⊆₁ I ∪₁ S ∩₁ Tid_ thread) at 1.
       sin_rewrite cert_co_I.
-      revert COH CSC; unfold coherence, coh_sc, eco, fr; ie_unfolder; basic_solver 21.
-    + arewrite (Grfe ⨾ ⦗D⦘ ⊆ Grf) by ie_unfolder; basic_solver.
-      rotate 1.
-      arewrite (Grf ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
-      rewrite (furr_alt WF_SC); rewrite (dom_l (wf_rfD WF)); basic_solver 21.
-      unfold new_rf; basic_solver 21.
-  * unfold fr; unfold certG; ins.
-    rewrite transp_union, transp_seq; relsf; unionL.
-    + rewrite cert_co_alt'; relsf; unionL.
-      -- rewrite new_rf_in_furr.
-         rotate 1.
-         arewrite (Gfurr \ Gsb ⊆ Gfurr).
-         arewrite (Gfurr ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
-         by generalize (furr_hb_sc_hb WF WF_SC ACYC_EXT); basic_solver 21.
-         generalize (eco_furr_irr WF WF_SC CSC COH).
-         unfold eco, fr; basic_solver 21.
-      -- generalize non_I_new_rf; basic_solver 16.
-    + rewrite cert_co_alt'; relsf; unionL.
-      -- rewrite new_rf_in_furr at 2.
-         rotate 1.
-         arewrite (Gfurr \ Gsb ⊆ Gfurr).
-         arewrite (Gfurr ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
-         by generalize (furr_hb_sc_hb WF WF_SC ACYC_EXT); basic_solver 21.
-         unfold new_rf; basic_solver 21.
-      -- generalize non_I_new_rf; basic_solver 16.
+      revert COH CSC. unfold coherence, coh_sc, eco, fr. ie_unfolder.
+      basic_solver 21. }
+    arewrite (Grfe ⨾ ⦗D⦘ ⊆ Grf) by ie_unfolder; basic_solver.
+    rotate 1.
+    arewrite (Grf ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
+    { rewrite (furr_alt WF_SC). rewrite (dom_l (wf_rfD WF)). basic_solver 21. }
+    unfold new_rf. basic_solver 21. }
+  unfold fr; unfold certG; ins.
+  rewrite transp_union, transp_seq; relsf; unionL.
+  all: rewrite cert_co_alt'; relsf; unionL.
+  2,4: generalize non_I_new_rf; basic_solver 16.
+  { rewrite new_rf_in_furr.
+    rotate 1.
+    arewrite (Gfurr \ Gsb ⊆ Gfurr).
+    arewrite (Gfurr ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
+    { generalize (furr_hb_sc_hb WF WF_SC ACYC_EXT). basic_solver 21. }
+    generalize (eco_furr_irr WF WF_SC CSC COH).
+    unfold eco, fr. basic_solver 21. }
+  rewrite new_rf_in_furr at 2.
+  rotate 1.
+  arewrite (Gfurr \ Gsb ⊆ Gfurr).
+  arewrite (Gfurr ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
+  { generalize (furr_hb_sc_hb WF WF_SC ACYC_EXT). basic_solver 21. }
+  unfold new_rf. basic_solver 21.
 Qed.
 
 Lemma cert_coherence : coherence certG.
