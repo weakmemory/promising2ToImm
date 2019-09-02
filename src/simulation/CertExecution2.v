@@ -767,6 +767,12 @@ Proof.
   generalize (@sb_in_hb G); basic_solver 12.
 Qed.
 
+Lemma non_S_new_rf: ⦗E \₁ S⦘ ⨾ new_rf ⊆ Gsb.
+Proof.
+  rewrite <- ETCCOH.(etc_I_in_S).
+  apply non_I_new_rf.
+Qed.
+
 Lemma new_rfe_Acq : (new_rf \ Gsb) ⨾ ⦗R∩₁Acq⦘ ⊆ ∅₂.
 Proof.
 rewrite wf_new_rfE.
@@ -1002,8 +1008,8 @@ rewrite (dom_rel_helper dom_rmw_in_D) at 2.
 by rewrite !seqA.
 Qed.
 
-Lemma sw_helper :
-  Grelease ⨾ ⦗E ∩₁ I⦘ ⨾ new_rf ⨾ ⦗Acq⦘ ⊆ 
+Lemma sw_helper_S :
+  Grelease ⨾ ⦗E ∩₁ S⦘ ⨾ new_rf ⨾ ⦗Acq⦘ ⊆ 
   Gsb ∪ (Grelease ⨾ Grf ⨾ ⦗Acq⦘ ∪ Grelease ⨾ Grf ⨾ Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘).
 Proof.
   unfold new_rf.
@@ -1022,22 +1028,40 @@ Proof.
   { hahn_rewrite (wf_rfl WF) in A; unfold same_loc in *.
     unfolder in A; desf; congruence. }
   exists w; splits.
-  basic_solver.
+  { basic_solver. }
+  assert (W z) as WZ.
+  { match goal with
+    | H : Grelease _ _ |- _ => rename H into REL
+    end.
+    apply (dom_r WF.(wf_releaseD)) in REL.
+    clear -REL. unfolder in REL. desf. }
+  assert (E w) as EW.
+  { hahn_rewrite (wf_rfE WF) in A; unfolder in A; desf. }
   exists z; split; eauto.
   exploit (new_co_I IST_new_co); try apply WF; [| basic_solver].
   unfolder; splits; eauto.
-  eapply tot_ex.
-  { by eapply (wf_new_co_total IST_new_co); try apply WF. }
-  { by unfolder; splits; eauto; apply (issuedW TCCOH). }
-  { assert (E w).
-    { hahn_rewrite (wf_rfE WF) in A; unfolder in A; desf. }
-    basic_solver 10. }
-  { intro.
-    eapply H3. exists w. splits; eauto.
-    exists l; unfold urr.
-    apply (wf_urrE WF WF_SC) in H1.
-    basic_solver 12. }
-  intro; subst; eauto.
+  { eapply tot_ex.
+    { by eapply (wf_new_co_total IST_new_co); try apply WF. }
+    { unfolder; splits; eauto. }
+    { basic_solver 10. }
+    { intro.
+      eapply H3. exists w. splits; eauto.
+      exists l; unfold urr.
+      apply (wf_urrE WF WF_SC) in H1.
+      basic_solver 12. }
+    intro; subst; eauto. }
+  assert ((E ∩₁ W) z) as AA. 
+  { split; auto. }
+  apply IT_new_co in AA. unfolder in AA.
+  desf; eauto.
+Qed.
+
+Lemma sw_helper :
+  Grelease ⨾ ⦗E ∩₁ I⦘ ⨾ new_rf ⨾ ⦗Acq⦘ ⊆ 
+  Gsb ∪ (Grelease ⨾ Grf ⨾ ⦗Acq⦘ ∪ Grelease ⨾ Grf ⨾ Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘).
+Proof.
+  rewrite ETCCOH.(etc_I_in_S).
+  apply sw_helper_S.
 Qed.
 
 Lemma cert_sb_sw : Gsb ∪ Csw ≡ Gsb ∪ Gsw.
@@ -1057,6 +1081,7 @@ Proof.
        2: { rewrite <- R_Acq_codom_rfe at 2.
             rewrite (dom_r (wf_rfeD WF)) at 1.
             basic_solver 21. }
+
        arewrite (Grelease ⊆ Gsb^? ∪ Grelease ⨾ ⦗GW_ex⦘) at 1.
        { unfold imm_s_hb.release, imm_s_hb.rs.
          rewrite rtE at 1; relsf; unionL.
@@ -1075,20 +1100,19 @@ Proof.
        { rewrite (dom_r (@wf_sbE G)). generalize dom_sb_F_Acq_in_D. basic_solver 12. }
        rewrite (dom_r wf_new_rfE). basic_solver. }
   rewrite (dom_l wf_new_rfE), !seqA.
-  arewrite (⦗E⦘ ⊆ ⦗E ∩₁ I⦘ ∪ ⦗E \₁ I⦘) at 1.
+  arewrite (⦗E⦘ ⊆ ⦗E ∩₁ S⦘ ∪ ⦗E \₁ S⦘) at 1.
   { unfolder. ins. desf; tauto. }
   rewrite !seq_union_l, !seq_union_r.
   unionL.
-  { apply sw_helper. }
-  arewrite (⦗E \₁ I⦘ ⊆ ⦗E \₁ I⦘ ⨾ ⦗E \₁ I⦘) by basic_solver.
-  sin_rewrite non_I_new_rf.
-  arewrite (Grelease ⨾ ⦗E \₁ I⦘ ⊆ Gsb^?).
+  { apply sw_helper_S. }
+  arewrite (⦗E \₁ S⦘ ⊆ ⦗E \₁ S⦘ ⨾ ⦗E \₁ S⦘) by basic_solver.
+  sin_rewrite non_S_new_rf.
+  arewrite (Grelease ⨾ ⦗E \₁ S⦘ ⊆ Gsb^?).
   2: { generalize (@sb_trans G). basic_solver. }
   rewrite release_int at 1.
   rewrite !seq_union_l. unionL. 
   2,3: basic_solver 12.
-  (* revert W_ex_E; unfolder; ins; desf; exfalso; eauto. *)
-  admit.
+  revert W_ex_E; unfolder; ins; desf; exfalso; eauto.
 Admitted.
 
 Lemma cert_hb : Chb ≡ Ghb.
@@ -1303,18 +1327,18 @@ all: try by apply WF.
   by unfolder; ins; eapply (wf_rff WF); basic_solver.
   by apply wf_new_rff.
   by unfolder; ins; desf; apply wf_new_rfE in H0; unfolder in H0; basic_solver.
-- apply wf_new_coE; [apply IT_new_co|apply (wf_coE WF)].
-- apply wf_new_coD; [apply IT_new_co|apply (wf_coD WF)].
-- apply wf_new_col; [apply IT_new_co|apply (wf_coD WF)].
+- apply wf_new_coE; [apply IST_new_co|apply (wf_coE WF)].
+- apply wf_new_coD; [apply IST_new_co|apply (wf_coD WF)].
+- apply wf_new_col; [apply IST_new_co|apply (wf_coD WF)].
 - apply new_co_trans.
-  apply IT_new_co.
+  apply IST_new_co.
   all: apply WF.
 - intros. erewrite same_lab_u2v_loc; try edone.
   apply wf_new_co_total. 
-  apply IT_new_co.
+  apply IST_new_co.
   all: apply WF.
 - apply new_co_irr. 
-  apply IT_new_co.
+  apply IST_new_co.
   all: apply WF.
 - ins; desf; apply cert_E.
   by apply (wf_init WF); exists b; splits; [apply cert_E| rewrite <- cert_loc].
