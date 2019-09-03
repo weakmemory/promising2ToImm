@@ -1595,67 +1595,73 @@ Proof.
   relsf; unionL.
   1,2: generalize (co_trans WF); revert AT'; unfold fr; basic_solver 12.
 
-  arewrite (⦗S⦘ ⊆ ⦗S \₁ E ∩₁ W ∩₁ Tid_ thread⦘ ∪ ⦗S ∩₁ E ∩₁ W ∩₁ Tid_ thread⦘).
-  { unfolder. ins. desf. tauto. }
   
   rewrite <- !set_minus_union_l.
   rewrite <- !set_minus_union_r.
+rewrite !seqA.
+
+ arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
+         ⨾ (new_co G (I ∪₁ S ∩₁ Tid_ thread)
+              (E ∩₁ W ∩₁ Tid_ thread) ∩ Gco \ Gsb) ⨾ ⦗S⦘ ⊆
+   ⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
+         ⨾ (new_co G (I ∪₁ S ∩₁ Tid_ thread)
+              (E ∩₁ W ∩₁ Tid_ thread)) ⨾ ⦗S \₁ Tid_ thread⦘).
+{ unfolder; ins; desf; splits; eauto.
+ intro; desf.
+ eapply same_thread in H5; desf; eauto.
+ destruct H5; desf; try subst z2; eauto. 
+ eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone.
+ apply (wf_coE WF) in H3; unfolder in H3; desf.
+ hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H3.
+ unfolder in H3; desf. }
+
+arewrite (S \₁ Tid_ thread ⊆₁
+         (I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread).
+admit.
+
+arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
+             ⨾ new_co G (I ∪₁ S ∩₁ Tid_ thread)
+                 (E ∩₁ W ∩₁ Tid_ thread)
+               ⨾ ⦗(I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread⦘
+⊆ 
+(⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
+             ⨾ new_co G (I ∪₁ S ∩₁ Tid_ thread)
+                 (E ∩₁ W ∩₁ Tid_ thread)
+               ⨾ ⦗(I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread⦘)
+∩
+(⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
+             ⨾ new_co G (I ∪₁ S ∩₁ Tid_ thread)
+                 (E ∩₁ W ∩₁ Tid_ thread)
+               ⨾ ⦗(I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread⦘)).
+
+rewrite (@T_I_new_co_I_T G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread)) at 1.
+2: by apply WF.
+
+ unfolder; ins; desc. subst z0 z3. 
+   assert (E z1). 
+   { by hahn_rewrite (dom_l (wf_rfE WF)) in H1; unfolder in H1; desf. }
+   assert (W z1).
+   { by hahn_rewrite (dom_l (wf_rfD WF)) in H1; unfolder in H1; desf. } 
+   assert (Gsame_loc z1 z4). 
+   { eapply same_loc_trans. 
+    eapply same_loc_trans. 
+    eby apply (wf_rfl WF). 
+    eby apply (wf_rmwl WF). 
+     eby apply same_loc_sym; apply (wf_col WF). } 
+   assert (K: Gco z4 z1 \/ Gco z1 z4).
+   { eapply WF.
+     unfolder; splits; eauto.
+     unfolder; splits; eauto.
+     intro; subst z4; eauto 10. }
+   destruct K.
+   2: revert AT'; unfold fr; basic_solver 12.
+   eapply (new_co_irr IST_new_co); try apply WF. 
+   eapply (new_co_trans IST_new_co); try apply WF. 
+   apply H3.
+ apply new_co_helper; try apply WF.
+unfolder; ins; desc; splits; eauto.
+eexists; splits; try edone.
 Admitted.
-(*   relsf; unionL; cycle 1. *)
-
-(*   { unfolder; ins; desf. *)
-(*     eapply (@same_thread G) in H7; desf. *)
-(*     { destruct H7; desf; try subst z2; eauto. *)
-(*   relsf; unionL; cycle 1. *)
-
-(*   { unfolder; ins; desf. *)
-(*     eapply (@same_thread G) in H7; desf. *)
-(*     { destruct H7; desf; try subst z2; eauto. *)
-(*       eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone. } *)
-(*     { intro. *)
-(*       hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H11. *)
-(*       unfolder in H11; desf. } *)
-(*     match goal with *)
-(*     | H : ~ ((E _ /\ _) /\ _) |- _ => rename H into AA *)
-(*     end. *)
-(*     apply AA. splits; auto. *)
-(*     { by apply ETCCOH.(etc_S_in_E). } *)
-(*     eapply reservedW; eauto. } *)
-
-
-(*   arewrite (new_co G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread) ∩ Gco \ Gsb ⊆ *)
-(*             new_co G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread)). *)
-(*   arewrite (⦗I \₁ E ∩₁ W ∩₁ Tid_ thread ∪₁ S ∩₁ Tid_ thread \₁ E ∩₁ W ∩₁ Tid_ thread⦘ *)
-(*               ⊆ *)
-(*             ⦗I \₁ E ∩₁ W ∩₁ Tid_ thread ∪₁ S ∩₁ Tid_ thread \₁ E ∩₁ W ∩₁ Tid_ thread⦘ ;; *)
-(*             ⦗I \₁ E ∩₁ W ∩₁ Tid_ thread ∪₁ S ∩₁ Tid_ thread \₁ E ∩₁ W ∩₁ Tid_ thread⦘) at 1. *)
-(*   { by basic_solver. } *)
-(*   sin_rewrite (T_I_new_co_I_T); [|apply WF]. *)
-(*   unfolder; ins; desc; subst z0 z3 z5. *)
-(*   assert (E z1). *)
-(*   { by hahn_rewrite (dom_l (wf_rfE WF)) in H1; unfolder in H1; desf. } *)
-(*   assert (W z1). *)
-(*   { by hahn_rewrite (dom_l (wf_rfD WF)) in H1; unfolder in H1; desf. } *)
-(*   assert (Gsame_loc z1 z4). *)
-(*   { eapply same_loc_trans. *)
-(*     eapply same_loc_trans. *)
-(*     eby apply (wf_rfl WF). *)
-(*     eby apply (wf_rmwl WF). *)
-(*     eby apply same_loc_sym; apply (wf_col WF). } *)
-(*   assert (K: Gco z4 z1 \/ Gco z1 z4). *)
-(*   { eapply WF. *)
-(*     unfolder; splits; eauto. *)
-(*     unfolder; splits; eauto. *)
-(*     intro; subst z4; eauto 10. } *)
-(*   destruct K. *)
-(*   2: revert AT'; unfold fr; basic_solver 12. *)
-(*   eapply (new_co_irr IT_new_co); try apply WF. *)
-(*   eapply (new_co_trans IT_new_co); try apply WF. *)
-(*   edone. *)
-(*   apply new_co_helper; try apply WF. *)
-(*   basic_solver 21. *)
-(* Qed. *)
-
 
 (******************************************************************************)
 (** **   *)
