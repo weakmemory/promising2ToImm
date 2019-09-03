@@ -1554,6 +1554,19 @@ red; case_refl _.
 - generalize coh_helper; basic_solver 21.
 Qed.
 
+(* TODO: move to Hahn ? *)
+
+Lemma dr {A : Type} (r r' : relation A) : 
+  r ⊆ r' -> r ⊆ r ∩ r'.
+Proof.
+basic_solver.
+Qed.
+
+Lemma de {A : Type} (r r' : relation A) : 
+  r ≡ r' -> r ≡ r ∩ r'.
+Proof.
+basic_solver.
+Qed.
 
 Lemma cert_rmw_atomicity : rmw_atomicity certG.
 Proof.
@@ -1619,48 +1632,25 @@ arewrite (S \₁ Tid_ thread ⊆₁
          (I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread).
 admit.
 
-arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
-             ⨾ new_co G (I ∪₁ S ∩₁ Tid_ thread)
-                 (E ∩₁ W ∩₁ Tid_ thread)
-               ⨾ ⦗(I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread⦘
-⊆ 
-(⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
-             ⨾ new_co G (I ∪₁ S ∩₁ Tid_ thread)
-                 (E ∩₁ W ∩₁ Tid_ thread)
-               ⨾ ⦗(I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread⦘)
-∩
-(⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
-             ⨾ new_co G (I ∪₁ S ∩₁ Tid_ thread)
-                 (E ∩₁ W ∩₁ Tid_ thread)
-               ⨾ ⦗(I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread⦘)).
 
-rewrite (@T_I_new_co_I_T G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread)) at 1.
-2: by apply WF.
+rewrite (dr (@T_I_new_co_I_T G (I ∪₁ S ∩₁ Tid_ thread) 
+(E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
 
+
+rewrite (de (wf_rfD WF)), (de (wf_rfE WF)), 
+        (dr (wf_rfl WF)), (dr (wf_rmwl WF)),
+        (dr (wf_col WF)).
  unfolder; ins; desc. subst z0 z3. 
-   assert (E z1). 
-   { by hahn_rewrite (dom_l (wf_rfE WF)) in H1; unfolder in H1; desf. }
-   assert (W z1).
-   { by hahn_rewrite (dom_l (wf_rfD WF)) in H1; unfolder in H1; desf. } 
-   assert (Gsame_loc z1 z4). 
-   { eapply same_loc_trans. 
-    eapply same_loc_trans. 
-    eby apply (wf_rfl WF). 
-    eby apply (wf_rmwl WF). 
-     eby apply same_loc_sym; apply (wf_col WF). } 
+   assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence).
    assert (K: Gco z4 z1 \/ Gco z1 z4).
-   { eapply WF.
-     unfolder; splits; eauto.
-     unfolder; splits; eauto.
-     intro; subst z4; eauto 10. }
+   { eapply WF; try basic_solver 2.
+     intro; subst z1; eauto. }
    destruct K.
    2: revert AT'; unfold fr; basic_solver 12.
    eapply (new_co_irr IST_new_co); try apply WF. 
    eapply (new_co_trans IST_new_co); try apply WF. 
    apply H3.
- apply new_co_helper; try apply WF.
-unfolder; ins; desc; splits; eauto.
-eexists; splits; try edone.
+ apply new_co_helper; [apply WF| apply WF| basic_solver 12].
 Admitted.
 
 (******************************************************************************)
