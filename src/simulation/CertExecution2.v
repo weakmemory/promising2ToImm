@@ -1086,11 +1086,27 @@ Proof.
        rewrite !seq_union_l, !seq_union_r.
        unionL.
        { eauto with hahn. }
-       rewrite (dom_r WF.(wf_rfiE)) at 1.
-       rewrite (dom_r WF.(wf_rfiD)) at 1. rewrite !seqA.
-       arewrite (Grfi ⨾ ⦗R⦘ ⨾ ⦗E⦘ ⨾ ⦗set_compl D⦘ ⊆ new_rf).
+       arewrite (Grfi ⨾ ⦗set_compl D⦘ ⊆ new_rf).
        2: by eauto with hahn.
-
+       unfold new_rf.
+       rewrite AuxRel.minus_inter_compl.
+       apply inclusion_inter_r.
+       - rewrite furr_alt; [|done].
+          arewrite (Grfi ⊆ Grf).
+          rewrite (dom_r WF.(wf_rfE)) at 1.
+          rewrite (WF.(wf_rfD)) at 1.
+          arewrite (Grf ⊆ Grf ∩ Grf) at 1.
+          rewrite (WF.(wf_rfl)) at 1.
+          basic_solver 21.
+       -  arewrite (Grfi ⨾ ⦗set_compl D⦘ ⊆ ⦗Tid_ thread⦘ ;; Grf).
+          + admit.
+          + rewrite cert_co_alt'.
+            unfolder; ins; desf.
+            intro; desf.
+            eapply eco_furr_irr; try edone.
+            exists z; splits; eauto.
+            red; right. unfolder; ins; desf.
+            exists z; splits; eauto; red; basic_solver.
        (* arewrite (Grelease ⊆ Gsb^? ∪ Grelease ⨾ ⦗GW_ex⦘) at 1. *)
        (* { unfold imm_s_hb.release, imm_s_hb.rs. *)
        (*   rewrite rtE at 1; relsf; unionL. *)
@@ -1104,7 +1120,7 @@ Proof.
        (*   arewrite (Grfi ⊆ Gsb). *)
        (*   generalize (@sb_trans G). basic_solver 12. } *)
        (* rewrite <- R_Acq_codom_W_ex_rfi at 1; rewrite (dom_r (wf_rfiD WF)) at 1; basic_solver 21. *)
-       admit. }
+      }
   2: { arewrite (Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ≡ ⦗D⦘ ⨾ Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘).
        { rewrite (dom_r (@wf_sbE G)). generalize dom_sb_F_Acq_in_D. basic_solver 12. }
        rewrite (dom_r wf_new_rfE). basic_solver. }
