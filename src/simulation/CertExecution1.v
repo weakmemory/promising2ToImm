@@ -436,13 +436,18 @@ Qed.
 
 Lemma sb_F_E : dom_rel (Fsb ⨾ ⦗FF ∩₁ FAcq/Rel ∩₁ E⦘) ⊆₁ C ∪₁ I.
 Proof.
-rewrite E_E0; unfold E0.
-rewrite !set_inter_union_r.
-rewrite !id_union; relsf; unionL; splits.
-- generalize (dom_sb_covered TCCOH); ie_unfolder; basic_solver 21.
-- rewrite (issuedW TCCOH) at 1; type_solver.
-- generalize (F_sb_I_in_C TCCOH), (dom_sb_covered TCCOH). basic_solver 21.
-- rewrite (dom_l (wf_rmwD WF)) at 1; type_solver.
+  rewrite E_E0; unfold E0.
+  rewrite !set_inter_union_r.
+  rewrite !id_union; relsf; unionL; splits.
+  { generalize (dom_sb_covered TCCOH); ie_unfolder; basic_solver 21. }
+  { rewrite (issuedW TCCOH) at 1; type_solver. }
+  2: { rewrite (dom_l (wf_rmwD WF)) at 1. type_solver. }
+  rewrite crE. rewrite !seq_union_l, !seq_id_l, dom_union, set_inter_union_r.
+  rewrite id_union, seq_union_r, dom_union.
+  unionL.
+  { rewrite (reservedW WF ETCCOH). type_solver. }
+  generalize ETCCOH.(etc_F_sb_S), (dom_sb_covered TCCOH). unfold ecovered; simpls.
+  basic_solver 21.
 Qed.
 
 Lemma rfe_E :  dom_rel (Frfe ⨾ ⦗E ∩₁ NTid_ thread⦘) ⊆₁ I.
