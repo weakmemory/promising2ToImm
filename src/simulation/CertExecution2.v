@@ -1064,6 +1064,50 @@ Proof.
   apply sw_helper_S.
 Qed.
 
+Lemma dom_Grfi_nD_in_thread :
+  dom_rel (Grfi ⨾ ⦗set_compl D⦘) ⊆₁ Tid_ thread.
+Proof.
+  unfolder. intros x [y [RFI ND]].
+  destruct (classic (I x)) as [IX|NIX].
+  { exfalso. apply ND.
+    do 2 red. left. right. basic_solver 10. }
+  destruct RFI as [RF SB].
+  apply WF.(wf_rfE) in RF.
+  unfolder in RF. desf.
+  assert (~ is_init x) as NINX.
+  { intros II. apply NIX. 
+    eapply init_issued; eauto. by split. }
+  apply sb_tid_init in SB. desf.
+  apply NNPP. intros NTX.
+  assert (tid y <> thread) as NTY.
+  { intros HH. apply NTX. by rewrite <- HH. }
+  apply ND. red. do 4 left. right. by split.
+Qed.
+
+Lemma Grfi_nD_in_new_rf : Grfi ⨾ ⦗set_compl D⦘ ⊆ new_rf.
+Proof.
+  unfold new_rf.
+  rewrite AuxRel.minus_inter_compl.
+  apply inclusion_inter_r.
+  { rewrite furr_alt; [|done].
+    arewrite (Grfi ⊆ Grf).
+    rewrite (dom_r WF.(wf_rfE)) at 1.
+    rewrite (WF.(wf_rfD)) at 1.
+    arewrite (Grf ⊆ Grf ∩ Grf) at 1.
+    rewrite (WF.(wf_rfl)) at 1.
+    basic_solver 21. }
+  rewrite (dom_rel_helper dom_Grfi_nD_in_thread).
+  arewrite (Grfi ⊆ Grf).
+  rewrite cert_co_alt'.
+  unfolder; ins; desf.
+  intro; desf.
+  eapply eco_furr_irr; try edone.
+  exists z; splits; eauto.
+  red; right. unfolder; ins; desf.
+  exists z; splits; eauto; red.
+  basic_solver.
+Qed.
+
 Lemma cert_sb_sw : Gsb ∪ Csw ≡ Gsb ∪ Gsw.
 Proof.
   unfold imm_s_hb.sw; ins.
@@ -1086,41 +1130,8 @@ Proof.
        rewrite !seq_union_l, !seq_union_r.
        unionL.
        { eauto with hahn. }
-       arewrite (Grfi ⨾ ⦗set_compl D⦘ ⊆ new_rf).
-       2: by eauto with hahn.
-       unfold new_rf.
-       rewrite AuxRel.minus_inter_compl.
-       apply inclusion_inter_r.
-       - rewrite furr_alt; [|done].
-          arewrite (Grfi ⊆ Grf).
-          rewrite (dom_r WF.(wf_rfE)) at 1.
-          rewrite (WF.(wf_rfD)) at 1.
-          arewrite (Grf ⊆ Grf ∩ Grf) at 1.
-          rewrite (WF.(wf_rfl)) at 1.
-          basic_solver 21.
-       -  arewrite (Grfi ⨾ ⦗set_compl D⦘ ⊆ ⦗Tid_ thread⦘ ;; Grf).
-          + admit.
-          + rewrite cert_co_alt'.
-            unfolder; ins; desf.
-            intro; desf.
-            eapply eco_furr_irr; try edone.
-            exists z; splits; eauto.
-            red; right. unfolder; ins; desf.
-            exists z; splits; eauto; red; basic_solver.
-       (* arewrite (Grelease ⊆ Gsb^? ∪ Grelease ⨾ ⦗GW_ex⦘) at 1. *)
-       (* { unfold imm_s_hb.release, imm_s_hb.rs. *)
-       (*   rewrite rtE at 1; relsf; unionL. *)
-       (*   generalize (@sb_trans G); basic_solver 12. *)
-       (*   rewrite rmw_W_ex at 1. *)
-       (*   rewrite <- !seqA, inclusion_ct_seq_eqv_r, !seqA. *)
-       (*   basic_solver 21. } *)
-       (* rewrite !seq_union_l. *)
-       (* unionL. *)
-       (* { unionR left. *)
-       (*   arewrite (Grfi ⊆ Gsb). *)
-       (*   generalize (@sb_trans G). basic_solver 12. } *)
-       (* rewrite <- R_Acq_codom_W_ex_rfi at 1; rewrite (dom_r (wf_rfiD WF)) at 1; basic_solver 21. *)
-      }
+       sin_rewrite Grfi_nD_in_new_rf.
+       eauto with hahn. }
   2: { arewrite (Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ≡ ⦗D⦘ ⨾ Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘).
        { rewrite (dom_r (@wf_sbE G)). generalize dom_sb_F_Acq_in_D. basic_solver 12. }
        rewrite (dom_r wf_new_rfE). basic_solver. }
@@ -1138,7 +1149,7 @@ Proof.
   rewrite !seq_union_l. unionL. 
   2,3: basic_solver 12.
   revert W_ex_E; unfolder; ins; desf; exfalso; eauto.
-Admitted.
+Qed.
 
 Lemma cert_hb : Chb ≡ Ghb.
 Proof.
