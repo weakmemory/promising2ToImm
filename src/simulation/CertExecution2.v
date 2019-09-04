@@ -111,7 +111,7 @@ Hypothesis COH : coherence G.
 Hypothesis AT : rmw_atomicity G.
 
 Hypothesis IT_new_co: I ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
-Hypothesis E_to_I: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘).
+Hypothesis E_to_S: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘).
 Hypothesis Grfe_E : dom_rel Grfe ⊆₁ I.
 Hypothesis W_ex_E: GW_ex ∩₁ E ⊆₁ S.
 Hypothesis E_F_AcqRel_in_C: E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
@@ -191,7 +191,7 @@ Qed.
 Lemma dom_addr_in_D : dom_rel Gaddr ⊆₁ D.
 Proof.
   rewrite (dom_r (wf_addrE WF)).
-  rewrite E_to_I.
+  rewrite E_to_S.
   rewrite id_union; relsf; unionL; splits.
   { rewrite (addr_in_sb WF).
     generalize (dom_sb_covered TCCOH).
@@ -205,7 +205,7 @@ Qed.
 Lemma dom_ctrl_in_D : dom_rel Gctrl ⊆₁ D.
 Proof.
   rewrite (dom_r (wf_ctrlE WF)).
-  rewrite E_to_I.
+  rewrite E_to_S.
   rewrite id_union; relsf; unionL; splits.
   { rewrite (ctrl_in_sb WF).
     generalize (dom_sb_covered TCCOH).
@@ -221,7 +221,7 @@ Qed.
 Lemma dom_frmw_in_D : dom_rel Grmw_dep ⊆₁ D.
 Proof.
   rewrite (dom_r (wf_rmw_depE WF)).
-  rewrite E_to_I.
+  rewrite E_to_S.
   rewrite id_union; relsf; unionL; splits.
   { rewrite (rmw_dep_in_sb WF).
     generalize (dom_sb_covered TCCOH).
@@ -238,7 +238,7 @@ Qed.
 Lemma dom_rmw_in_D : dom_rel Grmw ⊆₁ D.
 Proof.
   rewrite (dom_r (wf_rmwE WF)).
-  rewrite E_to_I at 1.
+  rewrite E_to_S at 1.
   rewrite id_union; relsf; unionL; splits.
   { rewrite (rmw_in_sb WF).
     generalize (dom_sb_covered TCCOH).
@@ -251,7 +251,7 @@ Qed.
 
 Lemma Rex_in_D : GR_ex ∩₁ E ⊆₁ D.
 Proof.
-  rewrite E_to_I.
+  rewrite E_to_S.
   rewrite S_W_S.
   rewrite set_inter_union_r.
   unionL.
@@ -327,7 +327,7 @@ Qed.
 
 Lemma dom_sb_F_AcqRel_in_CI : dom_rel (Gsb ⨾ ⦗E ∩₁ F ∩₁ Acq/Rel⦘) ⊆₁ C ∪₁ I.
 Proof.
-  rewrite E_to_I.
+  rewrite E_to_S.
   unfold D.
   rewrite !set_inter_union_l.
   rewrite !id_union; relsf; unionL; splits.
