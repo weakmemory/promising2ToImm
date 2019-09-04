@@ -10,9 +10,9 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 From imm Require Import imm_common.
 From imm Require Import CombRelations.
-From imm Require Import TraversalConfig.
-From imm Require Import Traversal.
 
+Require Import TraversalConfig.
+Require Import Traversal.
 Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimState.
@@ -20,7 +20,6 @@ Require Import MemoryAux.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import Event_imm_promise.
-Require Import FLocHelper.
 
 Set Implicit Arguments.
 
@@ -163,12 +162,12 @@ Proof.
   rewrite (ISSEQ_FROM p); eauto.
 Qed.
 
-Lemma rintervals_f_issued f_to f_from f_to' f_from' T memory smode
+Lemma rintervals_f_issued f_to f_from f_to' f_from' T S memory smode
       (TCCOH : tc_coherent G sc T)
       (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
       (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e)
-      (RINTERVALS : reserved_time G f_to f_from (issued T) memory smode):
-  reserved_time G f_to' f_from' (issued T) memory smode.
+      (RINTERVALS : reserved_time G T S f_to f_from memory smode):
+  reserved_time G T S f_to' f_from' memory smode.
 Proof.
   red. red in RINTERVALS.
   desf. desc.
@@ -226,9 +225,9 @@ Lemma sc_view_f_issued f_to f_to' T sc_view
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
       (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
       (SC_REQ : forall l,
-          max_value f_to (S_tm G (FLoc.loc l) (covered T)) (FLocFun.find l sc_view)):
+          max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view)):
   forall l,
-    max_value f_to' (S_tm G (FLoc.loc l) (covered T)) (FLocFun.find l sc_view).
+    max_value f_to' (S_tm G l (covered T)) (LocFun.find l sc_view).
 Proof.
   intros l; specialize (SC_REQ l).
   eapply max_value_new_f; eauto.
@@ -370,7 +369,7 @@ Lemma exists_time_interval f_to f_from T PC w locw valw langst local smode
       (TCCOH : tc_coherent G sc T)
       (WNISS : ~ issued T w)
       (WISSUABLE : issuable G T w)
-      (LOC : loc lab w = Some (FLoc.loc locw))
+      (LOC : loc lab w = Some locw)
       (VAL : val lab w = Some valw)
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
       (PROM_IN_MEM :
@@ -399,7 +398,7 @@ Lemma exists_time_interval f_to f_from T PC w locw valw langst local smode
              ⟪ EP  : E p ⟫ /\
              ⟪ ISSP  : issued T p ⟫ /\
              ⟪ INRMW : (rf ⨾ rmw) p w ⟫ /\
-             ⟪ P_LOC : loc lab p = Some (FLoc.loc locw) ⟫ /\
+             ⟪ P_LOC : loc lab p = Some locw ⟫ /\
              ⟪ P_MSG : sim_msg G sc f_to p p_rel.(View.unwrap) ⟫  /\
            exists p_v,
              ⟪ P_VAL : val lab p = Some p_v ⟫ /\
@@ -455,7 +454,7 @@ Lemma exists_time_interval f_to f_from T PC w locw valw langst local smode
      ⟪ WSVAL : val lab ws = Some valws ⟫ /\
 
      ⟪ SBWW : sb w ws ⟫ /\
-     ⟪ SAME_LOC : Loc_ (FLoc.loc locw) ws ⟫ /\
+     ⟪ SAME_LOC : Loc_ locw ws ⟫ /\
      ⟪ COWW : co w ws ⟫ /\
 
      ⟪ FEQ1 : f_to' w = f_from' ws ⟫ /\
@@ -514,7 +513,7 @@ Proof.
   { intros H. apply WNCOV.
     apply TCCOH. by split. }
 
-  assert ((E ∩₁ W ∩₁ Loc_ (FLoc.loc locw)) w) as WEW.
+  assert ((E ∩₁ W ∩₁ Loc_ locw) w) as WEW.
   { split; [split|]; auto. }
 
   (* cdes SIMREL_THREAD. *)
@@ -533,7 +532,7 @@ Proof.
              ⟪ EP  : E p ⟫ /\
              ⟪ ISSP  : issued T p ⟫ /\
              ⟪ INRMW : (rf ⨾ rmw) p w ⟫ /\
-             ⟪ P_LOC : loc lab p = Some (FLoc.loc locw) ⟫ /\
+             ⟪ P_LOC : loc lab p = Some locw ⟫ /\
              ⟪ P_MSG : sim_msg G sc f_to p p_rel.(View.unwrap) ⟫  /\
           exists p_v,
             ⟪ P_VAL : val lab p = Some p_v ⟫ /\
@@ -549,7 +548,7 @@ Proof.
     assert (W p) as WP.
     { apply (dom_l WF.(wf_rfrmwD)) in CD.
       apply seq_eqv_l in CD. desf. }
-    assert (loc lab p = Some (FLoc.loc locw)) as PLOC.
+    assert (loc lab p = Some locw) as PLOC.
     { rewrite <- LOC. by apply wf_rfrmwl. }
     assert (exists p_v, val lab p = Some p_v) as [p_v PVAL].
     { unfold val. type_solver. }
@@ -574,17 +573,17 @@ Proof.
     red; ins.
     eapply sim_tview_f_issued in SIM_TVIEW; eauto.
     cdes SIM_TVIEW. red in REL.
-    unfold FLocFun.find, TimeMap.join in *.
+    unfold LocFun.find, TimeMap.join in *.
     eapply (@max_value_le_join _
               _ _
-              (if FLoc.eq_dec l locw
-               then W ∩₁ (fun x => loc lab x = Some (FLoc.loc locw))
+              (if Loc.eq_dec l locw
+               then W ∩₁ (fun x => loc lab x = Some locw)
                       ∩₁ Tid_ (tid w) ∩₁ covered T
                else ∅)).
-    { intros x XX; destruct (FLoc.eq_dec l locw); [subst|by desf].
+    { intros x XX; destruct (Loc.eq_dec l locw); [subst|by desf].
       destruct XX as [[[WX LOCX] TIDX] COVX].
       eapply TimeFacts.lt_le_lt; [|apply Time.join_r].
-      unfold TimeMap.singleton, FLocFun.add; rewrite floc_eq_dec_eq.
+      unfold TimeMap.singleton, LocFun.add; rewrite Loc.eq_dec_eq.
       eapply f_to_co_mon; eauto.
       3: by right.
       2: by left; apply (w_covered_issued TCCOH); split.
@@ -602,13 +601,13 @@ Proof.
       exfalso. apply TCCOH in COVX. destruct COVX as [[_ C] _].
       apply WNCOV. apply C. eexists; apply seq_eqv_r; eauto. }
     eapply max_value_same_set.
-    2: { arewrite ((fun a => msg_rel (FLoc.loc l) a w \/
-                             loc lab w = Some (FLoc.loc l) /\ a = w) ≡₁
-                   dom_rel (msg_rel (FLoc.loc l) ⨾ ⦗ eq w ⦘) ∪₁
-                   (fun x => loc lab x = Some (FLoc.loc l)) ∩₁ eq w).
+    2: { arewrite ((fun a => msg_rel l a w \/
+                             loc lab w = Some l /\ a = w) ≡₁
+                   dom_rel (msg_rel l ⨾ ⦗ eq w ⦘) ∪₁
+                   (fun x => loc lab x = Some l) ∩₁ eq w).
          { rewrite <- dom_rel_fun_alt. basic_solver. }
          rewrite set_unionA.
-         rewrite (set_unionC ((fun x => loc lab x = Some (FLoc.loc l)) ∩₁ eq w)).
+         rewrite (set_unionC ((fun x => loc lab x = Some l) ∩₁ eq w)).
          rewrite <- set_unionA.
          reflexivity. }
     cdes IMMCON.
@@ -616,30 +615,30 @@ Proof.
     2: by rewrite (msg_rel_alt2 WF TCCOH); eauto.
     eapply max_value_same_set.
     2: { arewrite ((if Rel w
-                    then t_cur G sc (tid w) (FLoc.loc l) (covered T)
-                    else t_rel G sc (tid w) (FLoc.loc l) (FLoc.loc locw) (covered T)) ∪₁
-                   dom_rel (msg_rel (FLoc.loc l) ⨾ (rf ⨾ rmw) ⨾ ⦗eq w⦘) ∪₁
-                   Rel ∩₁ Loc_ (FLoc.loc l) ∩₁ eq w ∪₁
-                   (if FLoc.eq_dec l locw
-                    then W ∩₁ Loc_ (FLoc.loc locw) ∩₁ Tid_ (tid w) ∩₁ covered T
+                    then t_cur G sc (tid w) l (covered T)
+                    else t_rel G sc (tid w) l locw (covered T)) ∪₁
+                   dom_rel (msg_rel l ⨾ (rf ⨾ rmw) ⨾ ⦗eq w⦘) ∪₁
+                   Rel ∩₁ Loc_ l ∩₁ eq w ∪₁
+                   (if Loc.eq_dec l locw
+                    then W ∩₁ Loc_ locw ∩₁ Tid_ (tid w) ∩₁ covered T
                     else ∅) ∪₁
-                   Loc_ (FLoc.loc l) ∩₁ eq w ≡₁
+                   Loc_ l ∩₁ eq w ≡₁
                    (if Rel w
-                    then t_cur G sc (tid w) (FLoc.loc l) (covered T)
-                    else t_rel G sc (tid w) (FLoc.loc l) (FLoc.loc locw) (covered T)) ∪₁
-                   dom_rel (msg_rel (FLoc.loc l) ⨾ (rf ⨾ rmw) ⨾ ⦗eq w⦘) ∪₁
-                   (if FLoc.eq_dec l locw
-                    then W ∩₁ Loc_ (FLoc.loc locw) ∩₁ Tid_ (tid w) ∩₁ covered T
+                    then t_cur G sc (tid w) l (covered T)
+                    else t_rel G sc (tid w) l locw (covered T)) ∪₁
+                   dom_rel (msg_rel l ⨾ (rf ⨾ rmw) ⨾ ⦗eq w⦘) ∪₁
+                   (if Loc.eq_dec l locw
+                    then W ∩₁ Loc_ locw ∩₁ Tid_ (tid w) ∩₁ covered T
                     else ∅) ∪₁
-                   Loc_ (FLoc.loc l) ∩₁ eq w).
+                   Loc_ l ∩₁ eq w).
          2: reflexivity.
          basic_solver 40. }
     assert (max_value
               f_to' ((if Rel w
-                      then t_cur G sc (tid w) (FLoc.loc l) (covered T)
-                      else t_rel G sc (tid w) (FLoc.loc l) (FLoc.loc locw) (covered T)) ∪₁
-                     (if FLoc.eq_dec l locw
-                      then W ∩₁ Loc_ (FLoc.loc locw) ∩₁ Tid_ (tid w) ∩₁ covered T
+                      then t_cur G sc (tid w) l (covered T)
+                      else t_rel G sc (tid w) l locw (covered T)) ∪₁
+                     (if Loc.eq_dec l locw
+                      then W ∩₁ Loc_ locw ∩₁ Tid_ (tid w) ∩₁ covered T
                       else ∅))
               (View.rlx (if Rel w
                          then TView.cur (Local.Local.tview local)
@@ -647,21 +646,20 @@ Proof.
     { destruct (Rel w); simpls.
       eapply max_value_same_set; eauto.
       apply set_union_absorb_r.
-      destruct (FLoc.eq_dec l locw) as [EQ|NEQ]; simpls; subst.
+      destruct (Loc.eq_dec l locw) as [EQ|NEQ]; simpls; subst.
       unfold t_cur, c_cur.
-      generalize (@urr_refl G sc (FLoc.loc locw)).
+      generalize (@urr_refl G sc locw).
       basic_solver 40. }
-    assert (max_value f_to' (Loc_ (FLoc.loc l) ∩₁ eq w)
+    assert (max_value f_to' (Loc_ l ∩₁ eq w)
                       (TimeMap.singleton locw (f_to' w) l)) as KK.
-    { unfold TimeMap.singleton, FLocFun.add, FLocFun.find.
-      destruct (FLoc.eq_dec l locw) as [|NEQ]; [subst|].
+    { unfold TimeMap.singleton, LocFun.add, LocFun.find.
+      destruct (Loc.eq_dec l locw) as [|NEQ]; [subst|].
       { eapply max_value_same_set.
         { apply max_value_singleton; eauto. }
         basic_solver. }
       eapply max_value_same_set.
       { apply max_value_empty.
         intros x H. apply H. }
-      apply floc_inj_neq in NEQ.
       basic_solver. }
 
     destruct PREL0 as [PP|PP]; desc; subst. 
@@ -677,17 +675,17 @@ Proof.
         generalize H; unfold Execution.rfi, Execution.rfe.
         basic_solver. }
       assert ((if Rel w
-               then t_cur G sc (tid w) (FLoc.loc l) (covered T)
-               else t_rel G sc (tid w) (FLoc.loc l) (FLoc.loc locw) (covered T)) ∪₁
-              dom_rel (msg_rel (FLoc.loc l) ⨾ (rf ⨾ rmw) ⨾ ⦗eq w⦘) ≡₁
+               then t_cur G sc (tid w) l (covered T)
+               else t_rel G sc (tid w) l locw (covered T)) ∪₁
+              dom_rel (msg_rel l ⨾ (rf ⨾ rmw) ⨾ ⦗eq w⦘) ≡₁
               (if Rel w
-               then t_cur G sc (tid w) (FLoc.loc l) (covered T)
-               else t_rel G sc (tid w) (FLoc.loc l) (FLoc.loc locw) (covered T))) as SS.
+               then t_cur G sc (tid w) l (covered T)
+               else t_rel G sc (tid w) l locw (covered T))) as SS.
       { destruct (Rel w); simpls.
         rewrite t_cur_msg_rel_rfrmw; eauto.
         rewrite TT; basic_solver.
         rewrite t_rel_msg_rel_rfrmw; auto.
-        arewrite (msg_rel (FLoc.loc l) ⨾ (⦗W_ex⦘ ⨾ rfi ∪ rfe) ⨾ rmw ⨾ ⦗eq w⦘ ≡ ∅₂)
+        arewrite (msg_rel l ⨾ (⦗W_ex⦘ ⨾ rfi ∪ rfe) ⨾ rmw ⨾ ⦗eq w⦘ ≡ ∅₂)
           by rewrite TT; basic_solver.
         basic_solver. }
       eapply max_value_same_set.
@@ -698,8 +696,8 @@ Proof.
     edestruct SIM_MEM as [p_rel' H]; simpls; desc.
     { apply EP. }
     all: eauto.
-    assert (dom_rel (msg_rel (FLoc.loc l) ⨾ (rf ⨾ rmw) ⨾ ⦗eq w⦘) ≡₁
-                    dom_rel (msg_rel (FLoc.loc l) ⨾ ⦗eq p⦘)) as YY.
+    assert (dom_rel (msg_rel l ⨾ (rf ⨾ rmw) ⨾ ⦗eq w⦘) ≡₁
+                    dom_rel (msg_rel l ⨾ ⦗eq p⦘)) as YY.
     { rewrite <- dom_rel_eqv_dom_rel.
       arewrite (dom_rel ((rf ⨾ rmw) ⨾ ⦗eq w⦘) ≡₁ eq p); [|done].
       split.
@@ -708,29 +706,29 @@ Proof.
       eapply wf_rfrmwf; eauto; desf. }
     eapply max_value_same_set.
     2: { rewrite seqA in YY; by rewrite YY. }
-    apply (@max_value_le_join _ _ _ (Loc_ (FLoc.loc l) ∩₁ (eq p))).
+    apply (@max_value_le_join _ _ _ (Loc_ l ∩₁ (eq p))).
     { intros x [XL]; subst. apply time_lt_join_r.
-      unfold TimeMap.singleton, FLocFun.add.
+      unfold TimeMap.singleton, LocFun.add.
       assert (l = locw); subst.
       { erewrite wf_rfrmwl in XL; eauto.
-        rewrite LOC in XL. inv XL. by apply floc_inj_eq. }
-      rewrite floc_eq_dec_eq. eapply f_to_co_mon; eauto.
+        rewrite LOC in XL. by inv XL. }
+      rewrite Loc.eq_dec_eq. eapply f_to_co_mon; eauto.
       { eapply rfrmw_in_im_co; eauto. }
         by left.
         by right. }
     assert
     ((if Rel w then
-      t_cur G sc (tid w) (FLoc.loc l) (covered T)
-      else t_rel G sc (tid w) (FLoc.loc l) (FLoc.loc locw) (covered T)) ∪₁
-     dom_rel (msg_rel (FLoc.loc l) ⨾ ⦗eq p⦘) ∪₁
-     (if FLoc.eq_dec l locw then W ∩₁ Loc_ (FLoc.loc locw) ∩₁ Tid_ (tid w) ∩₁ covered T else ∅) ∪₁
-     Loc_ (FLoc.loc l) ∩₁ eq w ∪₁ Loc_ (FLoc.loc l) ∩₁ eq p ≡₁
+      t_cur G sc (tid w) l (covered T)
+      else t_rel G sc (tid w) l locw (covered T)) ∪₁
+     dom_rel (msg_rel l ⨾ ⦗eq p⦘) ∪₁
+     (if Loc.eq_dec l locw then W ∩₁ Loc_ locw ∩₁ Tid_ (tid w) ∩₁ covered T else ∅) ∪₁
+     Loc_ l ∩₁ eq w ∪₁ Loc_ l ∩₁ eq p ≡₁
      (if Rel w then
-      t_cur G sc (tid w) (FLoc.loc l) (covered T)
-      else t_rel G sc (tid w) (FLoc.loc l) (FLoc.loc locw) (covered T)) ∪₁
-     (if FLoc.eq_dec l locw then W ∩₁ Loc_ (FLoc.loc locw) ∩₁ Tid_ (tid w) ∩₁ covered T else ∅) ∪₁
-     (dom_rel (msg_rel (FLoc.loc l) ⨾ ⦗eq p⦘) ∪₁ Loc_ (FLoc.loc l) ∩₁ eq p) ∪₁
-     Loc_ (FLoc.loc l) ∩₁ eq w) as YYY.
+      t_cur G sc (tid w) l (covered T)
+      else t_rel G sc (tid w) l locw (covered T)) ∪₁
+     (if Loc.eq_dec l locw then W ∩₁ Loc_ locw ∩₁ Tid_ (tid w) ∩₁ covered T else ∅) ∪₁
+     (dom_rel (msg_rel l ⨾ ⦗eq p⦘) ∪₁ Loc_ l ∩₁ eq p) ∪₁
+     Loc_ l ∩₁ eq w) as YYY.
     { basic_solver 40. }
     eapply max_value_same_set; [| by apply YYY].
     eapply max_value_join; [ | by apply KK | reflexivity].
@@ -781,22 +779,22 @@ Proof.
     { destruct NIMMCO as [H _]. apply seq_eqv_r in H; desf. }
     assert (E wnext /\ W wnext) as [ENEXT WNEXT].
     { by apply TCCOH. }
-    assert (Loc_ (FLoc.loc locw) wnext) as LOCNEXT.
+    assert (Loc_ locw wnext) as LOCNEXT.
     { apply WF.(wf_col) in CONEXT. by rewrite <- CONEXT. }
     assert (exists vnext, val lab wnext = Some vnext) as [vnext VNEXT].
     { unfold val, is_w in *. desf.
       all: eexists; eauto. }
 
     assert (exists wprev, immediate (⦗ issued T ⦘ ⨾ co) wprev w) as [wprev PIMMCO].
-    { assert ((⦗ issued T ⦘ ⨾ co) (InitEvent (FLoc.loc locw)) w) as WPREV.
-      { assert (W (InitEvent (FLoc.loc locw))) as WI.
+    { assert ((⦗ issued T ⦘ ⨾ co) (InitEvent locw) w) as WPREV.
+      { assert (W (InitEvent locw)) as WI.
         { by apply init_w. }
-        assert (E (InitEvent (FLoc.loc locw))) as EI.
+        assert (E (InitEvent locw)) as EI.
         { apply wf_init; auto.
             by exists w; split. }
-        assert (InitEvent (FLoc.loc locw) <> w) as NEQ.
+        assert (InitEvent locw <> w) as NEQ.
         { intros H; subst. desf. }
-        assert (loc lab (InitEvent (FLoc.loc locw)) = Some (FLoc.loc locw)) as LI.
+        assert (loc lab (InitEvent locw) = Some locw) as LI.
         { unfold loc. by rewrite WF.(wf_init_lab). }
         apply seq_eqv_l; split.
         { eapply w_covered_issued; eauto.
@@ -827,7 +825,7 @@ Proof.
     assert (wprev <> w) as NEQPREV.
     { intros H; subst. by apply WF.(co_irr) in COPREV. }
 
-    assert (loc lab wprev = Some (FLoc.loc locw)) as PLOC.
+    assert (loc lab wprev = Some locw) as PLOC.
     { rewrite <- LOC. by apply WF.(wf_col). }
     
     assert (forall y (RFRMW : (rf ⨾ rmw ⨾ ⦗ issued T ⦘) w y), y = wnext) as NRFRMW.
@@ -1728,7 +1726,7 @@ Proof.
       { hahn_rewrite (dom_l (wf_rfE WF)) in RFRMW; revert RFRMW; basic_solver. }
       assert (co x y) as COXY.
       { apply rf_rmw_in_co; cdes IMMCON; eauto using coherence_sc_per_loc. }
-      assert (Loc_ (FLoc.loc locw) x) as LOCX.
+      assert (Loc_ locw x) as LOCX.
       { hahn_rewrite (wf_col WF) in COXY; unfold same_loc in COXY; congruence. }
       assert (exists valx, val lab x = Some valx) as [valx VALX].
       { apply is_w_val. hahn_rewrite (dom_l (wf_coD WF)) in COXY; revert COXY; basic_solver. }
@@ -2104,7 +2102,7 @@ Lemma write_promise_step_helper f_to f_from T PC w locw valw ordw langst local s
      ⟪ WSVAL : val lab ws = Some valws ⟫ /\
 
      ⟪ SBWW : sb w ws ⟫ /\
-     ⟪ SAME_LOC : Loc_ (FLoc.loc locw) ws ⟫ /\
+     ⟪ SAME_LOC : Loc_ locw ws ⟫ /\
      ⟪ COWW : co w ws ⟫ /\
 
      ⟪ FEQ1 : f_to' w = f_from' ws ⟫ /\
@@ -2160,7 +2158,7 @@ Proof.
   assert (~ is_init w) as WNINIT.
   { intros H. apply WNCOV. apply TCCOH. by split. }
 
-  assert ((E ∩₁ W ∩₁ Loc_ (FLoc.loc locw)) w) as WEW.
+  assert ((E ∩₁ W ∩₁ Loc_ locw) w) as WEW.
   { split; [split|]; auto. }
 
   assert (tc_coherent G sc (mkTC (covered T) (issued T ∪₁ eq w))) as TCCOH'.

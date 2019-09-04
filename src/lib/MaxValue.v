@@ -156,7 +156,7 @@ Lemma timemap_same_max_value_implies_eq f S (a b : TimeMap.t)
       (H : forall l, max_value f (S l) (a l)) (B : forall l, max_value f (S l) (b l)):
   a = b.
 Proof.
-  apply FLocFun.ext.
+  apply LocFun.ext.
   intros l. specialize (H l). specialize (B l).
   eapply max_value_same_value; eauto.
 Qed.

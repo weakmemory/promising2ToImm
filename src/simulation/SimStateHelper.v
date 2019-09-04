@@ -105,24 +105,19 @@ Proof.
   destruct ISTEP0.
   all: rewrite LABELS.
   1,2: by exists ProgramEvent.silent.
-  { edestruct (loc_to_floc (RegFile.eval_lexpr (regf state) lexpr)) as [fl HH].
-    eexists (ProgramEvent.read fl val (rmod ord)).
+  { eexists (ProgramEvent.read l val (rmod ord)).
     by splits. }
-  { edestruct (loc_to_floc l) as [fl HH].
-    exists (ProgramEvent.write fl v (wmod ord)).
+  { exists (ProgramEvent.write l v (wmod ord)).
     by splits. }
   { assert (exists ordr ordw, fmod ord ordr ordw) as XX.
     2: { desc. by exists (ProgramEvent.fence ordr ordw). }
     unfold fmod.
     clear -ord. desf; eauto. }
-  { edestruct (loc_to_floc l) as [fl HH].
-    exists (ProgramEvent.read fl val (rmod ordr)).
+  { exists (ProgramEvent.read l val (rmod ordr)).
     by splits. }
-  { edestruct (loc_to_floc l) as [fl HH].
-    exists (ProgramEvent.update fl expected new_value (rmod ordr) (wmod ordw)).
+  { exists (ProgramEvent.update l expected new_value (rmod ordr) (wmod ordw)).
     by splits. }
-  edestruct (loc_to_floc l) as [fl HH].
-  exists (ProgramEvent.update fl val nval (rmod ordr) (wmod ordw)).
+  exists (ProgramEvent.update l val nval (rmod ordr) (wmod ordw)).
   splits; auto.
 Qed.
 

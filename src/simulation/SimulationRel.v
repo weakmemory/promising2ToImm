@@ -1,7 +1,6 @@
 Require Import PArith Setoid.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-Require Import FLocHelper.
 From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration Local.
 
 From imm Require Import Events Execution.
@@ -78,7 +77,7 @@ Definition sim_prom (thread : thread_id) promises :=
     ⟪ TID  : tid b = thread ⟫ /\
     ⟪ ISS  : I b ⟫ /\
     ⟪ NCOV : ~ covered T b ⟫ /\
-    ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
+    ⟪ LOC  : Loc_ l b ⟫ /\
     ⟪ FROM : f_from b = from ⟫ /\
     ⟪ TO   : f_to b = to ⟫ /\
     ⟪ HELPER : sim_mem_helper G sc f_to b from v rel.(View.unwrap) ⟫.
@@ -86,7 +85,7 @@ Definition sim_prom (thread : thread_id) promises :=
 Definition sim_half_prom (thread : thread_id) promises :=
   forall l to from (RES : Memory.get l to promises = Some (from, Message.reserve)),
   exists b b',
-    ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
+    ⟪ LOC  : Loc_ l b ⟫ /\
     ⟪ RFRMWS : (<| Tid_ thread ∩₁ S \₁ I |> ;; (rf ;; rmw)^* ;; <| S \₁ I |>) b b' ⟫ /\
     ⟪ FROM    : f_from b = from ⟫ /\
     ⟪ TO      : f_to b' = to ⟫ /\
@@ -94,7 +93,7 @@ Definition sim_half_prom (thread : thread_id) promises :=
     ⟪ NOAFT   : ~ dom_rel (rf ;; rmw ;; <|S|>) b' ⟫.
 
 Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
-    forall l b (EB: E b) (ISSB: I b) (LOC: Loc_ (FLoc.loc l) b)
+    forall l b (EB: E b) (ISSB: I b) (LOC: Loc_ l b)
            v (VAL: val lab b = Some v),
     exists rel_opt,
       let rel := rel_opt.(View.unwrap) in
@@ -133,7 +132,7 @@ Definition message_to_event (memory : Memory.t) :=
     exists b,
     ⟪ ACTS : E b ⟫ /\
     ⟪ ISS  : I b ⟫ /\
-    ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
+    ⟪ LOC  : Loc_ l b ⟫ /\
     ⟪ FROM : f_from b = from ⟫ /\
     ⟪ TO   : f_to b = to ⟫.
 
@@ -141,7 +140,7 @@ Definition half_message_to_events (memory : Memory.t) :=
   forall l to from
          (MSG : Memory.get l to memory = Some (from, Message.reserve)),
   exists b b',
-    ⟪ LOC  : Loc_ (FLoc.loc l) b ⟫ /\
+    ⟪ LOC  : Loc_ l b ⟫ /\
     ⟪ RFRMWS : (<| S \₁ I |> ;; (rf ;; rmw)^* ;; <| S \₁ I |>) b b' ⟫ /\
     ⟪ FROM    : f_from b = from ⟫ /\
     ⟪ TO      : f_to b' = to ⟫ /\
@@ -185,7 +184,7 @@ Definition simrel_common
   ⟪ SC_COV : smode = sim_certification -> E∩₁F∩₁Sc ⊆₁ covered T ⟫ /\ 
   ⟪ SC_REQ : smode = sim_normal -> 
          forall l,
-         max_value f_to (S_tm G (FLoc.loc l) (covered T)) (FLocFun.find l sc_view) ⟫ /\
+         max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view) ⟫ /\
 
   ⟪ RESERVED_TIME: reserved_time smode memory ⟫ /\
                     

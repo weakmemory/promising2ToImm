@@ -16,7 +16,7 @@ Definition init_threads (prog : Prog.t) : Threads.syntax :=
 Definition conf_step (PC PC' : Configuration.t) :=
   exists pe tid, Configuration.step pe tid PC PC'.
 
-Definition final_memory_state (memory : Memory.t) (loc : FLoc.t) : option value :=
+Definition final_memory_state (memory : Memory.t) (loc : Loc.t) : option value :=
   match Memory.get loc (Memory.max_ts loc memory) memory with
   | Some (_, Message.full val _ ) => Some val 
   | _ => None
@@ -24,7 +24,7 @@ Definition final_memory_state (memory : Memory.t) (loc : FLoc.t) : option value 
 
 Definition conf_init (prog : Prog.t) := Configuration.init (init_threads prog).
 
-Definition promise_allows (prog : Prog.t) (final_memory : FLoc.t -> value) :=
+Definition promise_allows (prog : Prog.t) (final_memory : Loc.t -> value) :=
   exists PC,
     ⟪STEPS   : conf_step＊ (conf_init prog) PC⟫ /\
     ⟪FINAL   : Configuration.is_terminal PC⟫ /\

@@ -747,7 +747,7 @@ all: eauto.
        rewrite <- lab_G_eq_lab_Gf; eauto. }
   2: { erewrite same_lab_u2v_loc in AA; eauto.
        rewrite <- lab_G_eq_lab_Gf; eauto. }
-  { assert ((msg_rel Gf sc (FLoc.loc ll) ⨾ ⦗ issued T ⦘) x b) as XX.
+  { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b) as XX.
     2: { apply seq_eqv_r in XX. desf. }
     eapply msg_rel_I; eauto.
     eapply cert_msg_rel; eauto.
@@ -756,7 +756,7 @@ all: eauto.
     all: try by unfold rst_sc; rewrite <- HeqGsc.
     apply seq_eqv_r. split; auto.
       by unfold rst_sc; rewrite <- HeqGsc. }
-  assert ((msg_rel (certG G Gsc T thread lab') Gsc (FLoc.loc ll) ⨾ ⦗ issued T ⦘) x b) as XX.
+  assert ((msg_rel (certG G Gsc T thread lab') Gsc ll ⨾ ⦗ issued T ⦘) x b) as XX.
   2: { apply seq_eqv_r in XX. desf. }
   rewrite HeqGsc. rewrite H.
   eapply cert_msg_rel; eauto.
@@ -781,7 +781,7 @@ all: eauto.
          rewrite <- lab_G_eq_lab_Gf; eauto. }
     2: { erewrite same_lab_u2v_loc in AA; eauto.
          rewrite <- lab_G_eq_lab_Gf; eauto. }
-    { assert ((msg_rel Gf sc (FLoc.loc ll) ⨾ ⦗ issued T ⦘) x b) as XX.
+    { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b) as XX.
       2: { apply seq_eqv_r in XX. desf. }
       eapply msg_rel_I; eauto.
       eapply cert_msg_rel; eauto.
@@ -790,7 +790,7 @@ all: eauto.
       all: try by unfold rst_sc; rewrite <- HeqGsc.
       apply seq_eqv_r. split; auto.
         by unfold rst_sc; rewrite <- HeqGsc. }
-    assert ((msg_rel (certG G Gsc T thread lab') Gsc (FLoc.loc ll) ⨾ ⦗ issued T ⦘) x b) as XX.
+    assert ((msg_rel (certG G Gsc T thread lab') Gsc ll ⨾ ⦗ issued T ⦘) x b) as XX.
     2: { apply seq_eqv_r in XX. desf. }
     rewrite HeqGsc. rewrite H.
     eapply cert_msg_rel; eauto.
@@ -832,9 +832,9 @@ all: eauto.
   rewrite ISS_OLD; auto. }
 { red. splits; red; ins. (* sim_tview *)
   { assert
-      (t_cur (certG G Gsc T thread lab') Gsc thread (FLoc.loc l)
+      (t_cur (certG G Gsc T thread lab') Gsc thread l
              (covered T ∪₁ acts_set G ∩₁ NTid_ thread) ≡₁
-             t_cur Gf sc thread (FLoc.loc l) (covered T)) as XX.
+             t_cur Gf sc thread l (covered T)) as XX.
     2: { eapply max_value_same_set; eauto. apply SIM_TVIEW. }
     
     rewrite cert_t_cur_thread; try done.
@@ -843,9 +843,9 @@ all: eauto.
       subst; eapply t_cur_thread; try done. }
 
   { assert
-      (t_acq (certG G Gsc T thread lab') Gsc thread (FLoc.loc l)
+      (t_acq (certG G Gsc T thread lab') Gsc thread l
              (covered T ∪₁ acts_set G ∩₁ NTid_ thread) ≡₁
-             t_acq Gf sc thread (FLoc.loc l) (covered T)) as XX.
+             t_acq Gf sc thread l (covered T)) as XX.
     2: { eapply max_value_same_set; eauto. apply SIM_TVIEW. }
 
     rewrite cert_t_acq_thread; try done.
@@ -853,9 +853,9 @@ all: eauto.
       by unfold rst_sc; rewrite <- HeqGsc.
       subst; eapply t_acq_thread; try done. }
 
-  assert (t_rel (certG G Gsc T thread lab') Gsc thread (FLoc.loc l) (FLoc.loc l')
+  assert (t_rel (certG G Gsc T thread lab') Gsc thread l l'
                 (covered T ∪₁ acts_set G ∩₁ NTid_ thread) ≡₁
-                t_rel Gf sc thread (FLoc.loc l) (FLoc.loc l') (covered T)) as XX.
+                t_rel Gf sc thread l l' (covered T)) as XX.
 
   { rewrite cert_t_rel_thread; try done.
     arewrite (Gsc ≡ (rst_sc Gf sc T thread)).
@@ -866,7 +866,7 @@ all: eauto.
   eapply max_value_same_set.
   { by apply REL. }
   apply set_equiv_union; auto.
-  destruct (FLoc.eq_dec l l'); [|done].
+  destruct (Loc.eq_dec l l'); [|done].
   erewrite same_lab_u2v_loc; eauto.
   erewrite same_lab_u2v_is_w; eauto.
   rewrite <- lab_G_eq_lab_Gf; eauto. 
