@@ -1367,11 +1367,9 @@ Proof.
   { apply I_in_E. }
   { rewrite (sub_W SUB). rewrite II at 1. basic_solver 12. }
   { rewrite (sub_fwbob_in SUB). rewrite II at 1. basic_solver 12. }
-  (* { rewrite (sub_detour_in SUB), (sub_rfe_in SUB), (sub_ppo_in SUB), (sub_bob_in SUB). *)
-  (*   rewrite II at 1; basic_solver 12. *)
-  (* * rewrite (sub_W_ex_in SUB), (sub_xacq SUB), (sub_sb_in SUB). *)
-  (*   rewrite II at 1; basic_solver 12. *)
-Admitted.
+  rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_rmw_in SUB).
+  rewrite II at 1. basic_solver 12.
+Qed.
 
 Lemma C_E_NTid : C ∪₁ (E ∩₁ NTid_ thread) ≡₁
 C ∪₁ (I ∩₁ NTid_ thread) ∪₁ 
