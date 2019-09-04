@@ -265,34 +265,36 @@ assert (exists state'',
     rewrite issuedE with (G:=Gf); eauto.
     rewrite ETCCOH.(etc_S_in_E).
     rewrite wf_sbE. basic_solver. }
-  { ins. apply TEH.(tr_rmw) in RMW.
+  { ins.
+    apply TEH.(tr_rmw) in RMW.
     apply seq_eqv_l in RMW. destruct RMW as [TIDR RMW].
     apply seq_eqv_r in RMW. destruct RMW as [RMW TIDW].
+    apply (dom_l WF.(wf_rmwD)) in RMW.
+    apply seq_eqv_l in RMW. destruct RMW as [RREX RMW].
+    assert (is_r (lab Gf) r) as RR by type_solver.
     split; intros AA.
     all: apply CTALT; split; auto.
-    all: apply CTALT in AA; destruct AA as [[AA|AA] _]; [left;left|right].
-    1,3: by cdes COMMON; apply (RMWCOV r w RMW).
-    all: destruct AA as [z AA].
-    all: apply seq_eqv_r in AA; desc.
-    2: { exists z. apply seq_eqv_r. split; auto.
-         apply rewrite_trans_seq_cr_cr; [apply sb_trans|].
-         exists w. split; auto.
-         apply r_step. apply rmw_in_sb; auto. }
-    destruct AA0 as [TT AA0].
-    assert (is_r (lab Gf) r) as RR.
-    { apply (dom_l WF.(wf_rmwD)) in RMW. apply seq_eqv_l in RMW.
-      apply R_ex_in_R. desf. }
-    destruct AA as [AA|AA].
-    { subst. eapply TCCOH.(issuedW) in AA0.
-      clear -RR AA0. type_solver. }
-    destruct (classic (w = z)) as [|NEQ]; subst.
-    { exists z. apply seq_eqv_r. split; auto. split; auto. }
-    edestruct (@sb_semi_total_l Gf r z w WF); auto.
-    { intros HH. apply WF.(init_w) in HH.
-      clear -RR HH. type_solver. }
-    { by apply WF.(rmw_in_sb). }
-    { exfalso. eapply WF.(wf_rmwi); eauto. }
-    exists z. apply seq_eqv_r. split; auto. split; auto. }
+    all: apply CTALT in AA; destruct AA as [[[AA|AA]|AA] _].
+    1,4: do 2 left; cdes COMMON; by apply (RMWCOV r w RMW).
+    { apply TCCOH.(issuedW) in AA. type_solver. }
+    { right. unfolder in AA. desf.
+      { apply (reservedW WF ETCCOH) in AA2. type_solver. }
+      exists y. apply seq_eqv_r. split; [|split]; auto.
+      destruct (classic (w = y)) as [|NEQ]; subst.
+      { basic_solver. }
+      edestruct (@sb_semi_total_l Gf r y w WF); auto.
+      { intros HH. apply WF.(init_w) in HH.
+        clear -RR HH. type_solver. }
+      { by apply WF.(rmw_in_sb). }
+      exfalso. eapply WF.(wf_rmwi); eauto. }
+    { right. exists w. apply seq_eqv_r. split; [|split]; auto.
+      { right. by apply rmw_in_sb. }
+      apply ETCCOH.(etc_I_in_S). apply AA. }
+    right. destruct AA as [y AA]. apply seq_eqv_r in AA. destruct AA as [AA BB].
+    exists y. apply seq_eqv_r. split; auto.
+    right. apply rewrite_trans_seq_cr_r.
+    { apply sb_trans. }
+    eexists; split; eauto. by apply rmw_in_sb. }
   desc.
   assert (wf_thread_state thread state'') as GPC''.
   { eapply wf_thread_state_steps; [|apply STEP1]; auto. }
@@ -314,38 +316,38 @@ assert (exists state'',
   all: rewrite H; unfold rstG, restrict; simpls.
   { rewrite ORMW. rewrite CACTS. unfold CT.
     rewrite !seqA.
-    arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T thread⦘ ⨾ rmw Gf ⨾ ⦗E0 Gf T thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
-              ⦗E0 Gf T thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ rmw Gf ⨾
-              ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T thread⦘).
+    arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘ ⨾ rmw Gf ⨾ ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
+              ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ rmw Gf ⨾
+              ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘).
     { basic_solver. }
     seq_rewrite <- TEH.(tr_rmw). basic_solver. }
   { rewrite ODATA. rewrite CACTS. unfold CT.
     rewrite !seqA.
-    arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T thread⦘ ⨾ data Gf ⨾ ⦗E0 Gf T thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
-              ⦗E0 Gf T thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ data Gf ⨾
-              ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T thread⦘).
+    arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘ ⨾ data Gf ⨾ ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
+              ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ data Gf ⨾
+              ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘).
     { basic_solver. }
     seq_rewrite <- TEH.(tr_data). basic_solver. }
   { rewrite OADDR. rewrite CACTS. unfold CT.
     rewrite !seqA.
-    arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T thread⦘ ⨾ addr Gf ⨾ ⦗E0 Gf T thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
-              ⦗E0 Gf T thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ addr Gf ⨾
-              ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T thread⦘).
+    arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘ ⨾ addr Gf ⨾ ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
+              ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ addr Gf ⨾
+              ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘).
     { basic_solver. }
     seq_rewrite <- TEH.(tr_addr). basic_solver. }
   { rewrite OCTRL. rewrite CACTS. unfold CT.
     rewrite !seqA.
-    arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T thread⦘ ⨾ ctrl Gf ⨾ ⦗E0 Gf T thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
-              ⦗E0 Gf T thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ctrl Gf ⨾
-              ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T thread⦘).
+    arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘ ⨾ ctrl Gf ⨾ ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
+              ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ctrl Gf ⨾
+              ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘).
     { basic_solver. }
     seq_rewrite <- TEH.(tr_ctrl). basic_solver. }
   rewrite OFAILDEP. rewrite CACTS. unfold CT.
   rewrite !seqA.
-  arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T thread⦘ ⨾ rmw_dep Gf ⨾
-                          ⦗E0 Gf T thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
-            ⦗E0 Gf T thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ rmw_dep Gf ⨾
-            ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T thread⦘).
+  arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘ ⨾ rmw_dep Gf ⨾
+                          ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
+            ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ rmw_dep Gf ⨾
+            ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘).
   { basic_solver. }
   seq_rewrite <- TEH.(tr_rmw_dep). basic_solver. }
 desc.
@@ -353,19 +355,28 @@ desc.
 assert (acts_set (ProgToExecution.G state) ⊆₁ covered T) as STATECOV.
 { intros x EE. apply GPC.(acts_rep) in EE. desc. subst. by apply PCOV. }
 
-set (new_rfi := ⦗ Tid_ thread ⦘ ⨾ new_rf G Gsc T thread ⨾ ⦗ Tid_ thread ⦘).
+set (new_rfi := ⦗ Tid_ thread ⦘ ⨾ new_rf G Gsc T S thread ⨾ ⦗ Tid_ thread ⦘).
+
+assert (ETCCOH_G : etc_coherent G Gsc (mkETC T S)).
+{ admit. }
+
+assert (DRPPO : dom_rel (⦗fun a : actid => is_r (lab G) a⦘ ⨾ (data G ∪ rfi G)＊ ⨾ rppo G ⨾ ⦗S⦘)
+                        ⊆₁ codom_rel (rf G)).
+{ admit. }
+assert (DPPO : dom_rel (ppo G ⨾ ⦗issued T⦘) ⊆₁ codom_rel (rf G)).
+{ admit. }
 
 assert (new_rfif : functional new_rfi⁻¹).
-{ arewrite  (new_rfi ⊆ new_rf G Gsc T thread).
+{ arewrite  (new_rfi ⊆ new_rf G Gsc T S thread).
   unfold new_rfi; basic_solver.
-  by apply wf_new_rff. }
+    by apply wf_new_rff. }
 
-set (new_rfe := ⦗ NTid_ thread ⦘ ⨾ new_rf G Gsc T thread ⨾ ⦗ Tid_ thread ⦘).
+set (new_rfe := ⦗ NTid_ thread ⦘ ⨾ new_rf G Gsc T S thread ⨾ ⦗ Tid_ thread ⦘).
 
 assert (new_rfef : functional new_rfe⁻¹).
-{ arewrite  (new_rfe ⊆ new_rf G Gsc T thread).
+{ arewrite  (new_rfe ⊆ new_rf G Gsc T S thread).
   unfold new_rfe; basic_solver.
-  by apply wf_new_rff. }
+    by apply wf_new_rff. }
 
 set (new_rfe_ex := new_rfe ∪ ⦗ set_compl (codom_rel new_rfe) ⦘).
 
@@ -391,7 +402,7 @@ set (get_val (v: option value) :=  match v with | Some v => v | _ => 0 end).
 set (new_val := fun r => get_val (val G.(lab) (new_value r))).
 
 exploit (@receptiveness_full thread state state'' new_val
-                               new_rfi (E0 Gf T thread \₁ D G T thread)); auto.
+                               new_rfi (E0 Gf T S thread \₁ D G T S thread)); auto.
 { split; [|basic_solver].
   rewrite TEH''.(tr_acts_set).
   rewrite set_interC at 2.
@@ -447,34 +458,34 @@ exfalso; apply H1; eauto 20. }
 { rewrite STATECOV. rewrite C_in_D. basic_solver. }
 { rewrite TEH''.(tr_rmw_dep).
 arewrite_id ⦗Tid_ thread⦘; rels.
-rewrite (dom_frmw_in_D thread WF_G TCCOH_G); try done.
+rewrite (@dom_frmw_in_D G _ _ S thread WF_G RELCOV_G TCCOH_G); try done.
 basic_solver. }
 { rewrite TEH''.(tr_addr).
 arewrite_id ⦗Tid_ thread⦘; rels.
-rewrite (dom_addr_in_D thread WF_G TCCOH_G); try done.
+rewrite (@dom_addr_in_D G _ _ S thread WF_G TCCOH_G); try done.
 basic_solver. }
 { 
 rewrite TEH''.(tr_acts_set).
 unfolder; ins; desc.
 eapply H5; eauto.
-eapply (Rex_in_D thread TCCOH_G); try done.
+eapply (@Rex_in_D G _ _ S thread WF_G RELCOV_G ETCCOH_G); try done.
 split; [|done].
 unfold R_ex, rmwmod in *.
 rewrite TEH''.(tr_lab) in H2; auto.
 eapply TEH''.(tr_acts_set). by split. }
 { rewrite TEH''.(tr_ctrl).
 arewrite_id ⦗Tid_ thread⦘; rels.
-rewrite (dom_ctrl_in_D thread WF_G TCCOH_G); try done.
+rewrite (@dom_ctrl_in_D G _ _ S thread WF_G TCCOH_G); try done.
 basic_solver. }
 { rewrite TEH''.(tr_data).
 rewrite (dom_r (wf_dataE WF_G)).
 subst G.
-rewrite (E_E0 thread WF TCCOH).
+rewrite (E_E0 thread WF ETCCOH).
 unfolder; ins; desc.
 eapply H4; splits; eauto.
 intro.
 apply H6.
-apply (@dom_data_D (rstG Gf T thread) Gsc T thread WF_G RELCOV_G); try done.
+apply (@dom_data_D (rstG Gf T S thread) Gsc T S thread WF_G RELCOV_G); try done.
 basic_solver 12. }
 
 ins; desc. 
@@ -506,7 +517,7 @@ assert (same_lab_u2v lab' (lab G)) as SAME'.
   unfold lab'. desf. 
   red. desf. }
 
-assert (thread_restricted_execution (certG G Gsc T thread lab') thread
+assert (thread_restricted_execution (certG G Gsc T S thread lab') thread
                                     (ProgToExecution.G s')) as YY.
 { constructor; auto.
   { rewrite cert_E.
@@ -520,8 +531,8 @@ assert (thread_restricted_execution (certG G Gsc T thread lab') thread
   { rewrite <- RCTRL. apply TEH''.(tr_ctrl). }
   rewrite <- RFAILRMW. apply TEH''.(tr_rmw_dep). }
 
-assert (new_rf G Gsc T thread ≡ new_rfi ∪ new_rfe) as NEWRF_SPLIT.
-{ arewrite (new_rf G Gsc T thread ≡ new_rf G Gsc T thread ⨾ ⦗ Tid_ thread ⦘).
+assert (new_rf G Gsc T S thread ≡ new_rfi ∪ new_rfe) as NEWRF_SPLIT.
+{ arewrite (new_rf G Gsc T S thread ≡ new_rf G Gsc T S thread ⨾ ⦗ Tid_ thread ⦘).
   2: { unfold new_rfi, new_rfe. 
        rewrite <- seq_union_l. rewrite <- id_union.
        arewrite (Tid_ thread ∪₁ NTid_ thread ≡₁ fun _ => True).
@@ -530,15 +541,15 @@ assert (new_rf G Gsc T thread ≡ new_rfi ∪ new_rfe) as NEWRF_SPLIT.
        basic_solver. }
 
 split; [|basic_solver].
-cut (codom_rel (new_rf G Gsc T thread) ⊆₁ Tid_ thread).
+cut (codom_rel (new_rf G Gsc T S thread) ⊆₁ Tid_ thread).
 basic_solver 21.
 rewrite wf_new_rfE at 1; try done.
 unfold D.
 unfolder; ins; desf.
 destruct (classic (tid x = thread)); [done|].
-exfalso; eapply H4; left; left; left; right; eauto. }
+exfalso; eapply H4. left; left; left; left; right; eauto. }
 
-assert (forall r w : actid, new_rf G Gsc T thread w r -> val lab' w = val lab' r)
+assert (forall r w : actid, new_rf G Gsc T S thread w r -> val lab' w = val lab' r)
   as SAME_VAL_RF.
 { intros r w NEWRF.
   apply NEWRF_SPLIT in NEWRF. destruct NEWRF as [NEWRF|NEWRF].
@@ -615,13 +626,13 @@ assert (forall r w : actid, new_rf G Gsc T thread w r -> val lab' w = val lab' r
   4: { red; eauto. }
   all: eauto. }
 
-assert (forall a : actid, ~ (acts_set G \₁ D G T thread) a -> val lab' a = val (lab G) a)
+assert (forall a : actid, ~ (acts_set G \₁ D G T S thread) a -> val lab' a = val (lab G) a)
   as SAME_VAL.
 { intros a ZZ.
   unfold val, lab'.
   destruct (excluded_middle_informative (acts_set (ProgToExecution.G s') a)) as [MM|MM].
   2: done.
-  assert (~ (E0 Gf T thread \₁ D G T thread) a) as XX.
+  assert (~ (E0 Gf T S thread \₁ D G T S thread) a) as XX.
   { intros [AA BB]. apply ZZ. split; auto.
     rewrite H. eapply E_E0; eauto. }
   specialize (OLD_VAL a XX). clear XX.
@@ -633,12 +644,12 @@ assert (forall b (ISSB : issued T b), val lab' b = val Gf.(lab) b) as ISS_OLD.
 { ins. rewrite <- lab_G_eq_lab_Gf.
   rewrite SAME_VAL; auto.
   intros [_ HH]. apply HH.
-  red. left. left. left. left. by right. }
+  red. do 5 left. by right. }
 
-assert (acts_certG_in_acts_Gf : acts_set (certG G Gsc T thread lab') ⊆₁ acts_set Gf).
+assert (acts_certG_in_acts_Gf : acts_set (certG G Gsc T S thread lab') ⊆₁ acts_set Gf).
 { by unfold certG. }
 
-assert (((rf G ⨾ ⦗D G T thread⦘ ∪ new_rf G Gsc T thread) ⨾ rmw G) ⨾ ⦗issued T⦘ ⊆
+assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) ⨾ ⦗issued T⦘ ⊆
         rf Gf ⨾ rmw Gf) as RFRMW_IN.
 { intros x y H2. apply seq_eqv_r in H2.
   destruct H2 as [H2 ISSZ].
@@ -654,19 +665,19 @@ assert (((rf G ⨾ ⦗D G T thread⦘ ∪ new_rf G Gsc T thread) ⨾ rmw G) ⨾ 
   apply seq_eqv_l in RF. destruct RF as [_ RF].
   apply seq_eqv_r in RF. destruct RF as [_ [_ RF]].
   apply RF.
-  red. left. left. right. exists y. apply seqA.
+  red. left. left. left. right. exists y. apply seqA.
   apply seq_eqv_r. split; auto.
   eexists. split; eauto.
     by apply rmw_in_ppo. }
 
-exists (certG G Gsc T thread lab').
+exists (certG G Gsc T S thread lab').
 exists Gsc.
 exists (mkTC (T.(covered) ∪₁ (G.(acts_set) ∩₁ NTid_ thread)) T.(issued)).
 exists S.
 
 splits.
 { by apply WF_cert. }
-{ by apply cert_imm_consistent. }
+{ apply cert_imm_consistent; auto. }
 { unfold certG, acts_set; ins; basic_solver. }
 cdes SIMREL. cdes COMMON.
 
@@ -814,11 +825,11 @@ all: eauto.
   exists p. splits; eauto.
   { 
     destruct INRMW as [z [RF RMW]].
-    assert ((E0 Gf T thread) z).
+    assert ((E0 Gf T S thread) z).
       by unfold E0; left; right; exists b; generalize (rmw_in_sb WF); basic_solver 12.
-      assert ((E0 Gf T thread) b).
+      assert ((E0 Gf T S thread) b).
         by unfold E0; left; left; right; basic_solver 12.
-        assert ((E0 Gf T thread) p).
+        assert ((E0 Gf T S thread) p).
           by unfold E0; left; left; right; basic_solver 12.
           assert (G.(rmw) z b).
           apply rmw_G_rmw_Gf; basic_solver 12.
