@@ -1613,12 +1613,12 @@ Proof.
   rewrite <- !set_minus_union_r.
 rewrite !seqA.
 
+remember (new_co G (I ∪₁ S ∩₁ Tid_ thread)
+              (E ∩₁ W ∩₁ Tid_ thread)) as new.
  arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
-         ⨾ (new_co G (I ∪₁ S ∩₁ Tid_ thread)
-              (E ∩₁ W ∩₁ Tid_ thread) ∩ Gco \ Gsb) ⨾ ⦗S⦘ ⊆
+         ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗S⦘ ⊆
    ⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
-         ⨾ (new_co G (I ∪₁ S ∩₁ Tid_ thread)
-              (E ∩₁ W ∩₁ Tid_ thread)) ⨾ ⦗S \₁ Tid_ thread⦘).
+         ⨾ new ⨾ ⦗S \₁ Tid_ thread⦘).
 { unfolder; ins; desf; splits; eauto.
  intro; desf.
  eapply same_thread in H5; desf; eauto.
@@ -1632,10 +1632,10 @@ arewrite (S \₁ Tid_ thread ⊆₁
          (I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread).
 admit.
 
+subst new.
 
 rewrite (dr (@T_I_new_co_I_T G (I ∪₁ S ∩₁ Tid_ thread) 
-(E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
-
+  (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
 
 rewrite (de (wf_rfD WF)), (de (wf_rfE WF)), 
         (dr (wf_rfl WF)), (dr (wf_rmwl WF)),
