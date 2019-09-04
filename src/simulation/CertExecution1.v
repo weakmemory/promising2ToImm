@@ -1460,11 +1460,7 @@ Proof.
     rewrite tc_sc_C. basic_solver. }
   { apply I_in_E. }
   { rewrite (sub_fwbob_in SUB), tc_fwbob_I. basic_solver. }
-  admit.
-  (* - rewrite (sub_detour_in SUB), (sub_rfe_in SUB). *)
-  (*   rewrite (sub_ppo_in SUB), (sub_bob_in SUB). *)
-  (*   rewrite tc_dr_pb_I; basic_solver. *)
-  (* - rewrite (sub_W_ex_in SUB), (sub_sb_in SUB); apply tc_W_ex_sb_I. *)
-Admitted.
+    by rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_rmw_in SUB).
+Qed.
 
 End RestExec.
