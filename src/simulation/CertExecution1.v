@@ -1442,19 +1442,16 @@ Proof.
       { rewrite (dom_r (wf_rfiD WF_rst)); rewrite tc_I_in_W at 1.
         type_solver. }
       rewrite (sub_rfi_in SUB).
-      (*arewrite (Frfi ⊆ Frfi ∩ Fsb).
-rewrite sb_tid_init'.
-
-arewrite (Frmw ⊆ Frmw ∩ Fsb).
-generalize (rmw_in_sb WF); basic_solver.
-
-rewrite sb_tid_init' at 3.*)
       unfolder; ins; desc.
       destruct (classic (FW_ex x)) as [X|X]; cycle 1.
       { exfalso. eapply H1. exists x,x. eauto 10. }
-        (* apply Wex_rfi_rmw_E. *)
-        (* generalize I_in_E;  unfolder; basic_solver 12. *)
-      admit. }
+      eapply rfrmw_I_in_I; eauto.
+      { apply TCCOH. }
+      unfolder. do 2 eexists. split.
+      { match goal with
+        | H : Frfi _ _ |- _ => apply H
+        end. }
+      eauto. }
     rewrite (dom_r (wf_rfeE WF_rst)), !seqA.
     sin_rewrite (dom_rel_helper_in Grfe_E).
     basic_solver. }
