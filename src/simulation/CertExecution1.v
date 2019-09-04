@@ -1283,193 +1283,178 @@ Qed.
 
 Lemma detour_E : dom_rel (Gdetour ⨾ ⦗E ∩₁ NTid_ thread⦘) ⊆₁ I.
 Proof.
-rewrite (sub_detour_in SUB).
-rewrite E_E0; unfold E0.
-rewrite !set_inter_union_l.
-rewrite !id_union; relsf; unionL; splits.
-- rewrite (dom_l (wf_detourD WF)), detour_in_sb. 
-  generalize w_covered_issued, dom_sb_covered; ie_unfolder; basic_solver 21.
-- rewrite (dom_r (wf_detourD WF)) at 1; rewrite (issuedW TCCOH) at 1; type_solver.
-- arewrite (Fdetour ⊆ Fdetour  ⨾  ⦗set_compl Init⦘).
-  { rewrite (dom_r (wf_detourD WF)).
-    rewrite (init_w WF).
-    unfolder; ins; desf; splits; eauto.
-    intro; type_solver. }
-  unfolder; ins; desf.
-  apply sb_tid_init in H1; desf.
-- rewrite (rmw_in_ppo WF).
-  rewrite (issued_in_issuable TCCOH) at 1.
-  unfold issuable, dom_cond; basic_solver 21.
+  rewrite (sub_detour_in SUB).
+  rewrite E_E0; unfold E0.
+  rewrite !set_inter_union_l.
+  rewrite !id_union; relsf; unionL; splits.
+  { rewrite (dom_l (wf_detourD WF)), detour_in_sb. 
+    generalize (w_covered_issued TCCOH), (dom_sb_covered TCCOH).
+    ie_unfolder. basic_solver 21. }
+  { rewrite (dom_r (wf_detourD WF)) at 1. rewrite (issuedW TCCOH) at 1. type_solver. }
+  { arewrite (Fdetour ⊆ Fdetour  ⨾  ⦗set_compl Init⦘).
+    { rewrite (dom_r (wf_detourD WF)).
+      rewrite (init_w WF).
+      unfolder; ins; desf; splits; eauto.
+      intro; type_solver. }
+    unfolder; ins; desf.
+    apply sb_tid_init in H1; desf. }
+  rewrite (rmw_in_ppo WF).
+  arewrite
+    ((dom_rel (Fppo ⨾ ⦗NTid_ thread ∩₁ I⦘) \₁ codom_rel (⦗set_compl FW_ex⦘ ⨾ Frfi))
+        ∩₁ NTid_ thread ⊆₁ dom_rel (Fppo ⨾ ⦗I⦘)).
+  { basic_solver. }
+  rewrite dom_rel_eqv_dom_rel.
+  rewrite <- dom_detour_rfe_ppo_issued at 2; eauto.
+  2: by apply ETCCOH.
+  basic_solver 10.
 Qed.
 
 Lemma detour_Acq_E : dom_rel (Gdetour ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ I.
 Proof.
-rewrite (sub_detour_in SUB).
-rewrite E_E0; unfold E0.
-rewrite !set_inter_union_l.
-rewrite !id_union; relsf; unionL; splits.
-- rewrite (dom_l (wf_detourD WF)), detour_in_sb. 
-  generalize w_covered_issued, dom_sb_covered; ie_unfolder; basic_solver 21.
-- rewrite (dom_r (wf_detourD WF)) at 1; rewrite (issuedW TCCOH) at 1; type_solver.
-- rewrite (issued_in_issuable TCCOH) at 1.
-  unfold issuable, bob, dom_cond; basic_solver 21.
-- rewrite (rmw_in_ppo WF).
-  rewrite (issued_in_issuable TCCOH) at 1.
-  unfold issuable, dom_cond; basic_solver 21.
+  rewrite (sub_detour_in SUB).
+  rewrite E_E0; unfold E0.
+  rewrite !set_inter_union_l.
+  rewrite !id_union; relsf; unionL; splits.
+  { rewrite (dom_l (wf_detourD WF)), detour_in_sb. 
+    generalize (w_covered_issued TCCOH), (dom_sb_covered TCCOH).
+    ie_unfolder. basic_solver 21. }
+  { rewrite (dom_r (wf_detourD WF)) at 1. rewrite (issuedW TCCOH) at 1. type_solver. }
+  { rewrite set_interA. rewrite set_interC. rewrite id_inter.
+    rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel.
+    rewrite crE. rewrite seq_union_l, seq_id_l.
+    rewrite !seq_union_r, dom_union.
+    unionL.
+    { rewrite (reservedW WF ETCCOH). type_solver. }
+    rewrite <- ETCCOH.(etc_dr_R_acq_I).
+    basic_solver 10. }
+  rewrite (rmw_in_ppo WF).
+  arewrite
+    ((dom_rel (Fppo ⨾ ⦗NTid_ thread ∩₁ I⦘) \₁ codom_rel (⦗set_compl FW_ex⦘ ⨾ Frfi))
+       ∩₁ R ∩₁ Acq ⊆₁ dom_rel (Fppo ⨾ ⦗I⦘)).
+  { basic_solver. }
+  rewrite dom_rel_eqv_dom_rel.
+  rewrite <- (dom_detour_rfe_ppo_issued WF TCCOH) at 2.
+  basic_solver 10.
 Qed.
-
-
 
 Lemma TCCOH_rst : tc_coherent rstG rst_sc T.
 Proof.
-cdes TCCOH.
-red; splits.
-- rewrite (sub_E_in SUB); apply TCCOH.
-- unfold coverable in *; repeat (splits; try apply set_subset_inter_r).
-  * rewrite E_E0; unfold E0; basic_solver.
-  * rewrite (sub_sb_in SUB); rewrite CC at 1; basic_solver 12.
-  * rewrite (sub_rf_in SUB), (sub_W SUB), (sub_R SUB), (sub_F SUB).
+  cdes TCCOH.
+  red; splits.
+  { rewrite (sub_E_in SUB). apply TCCOH. }
+  { unfold coverable in *; repeat (splits; try apply set_subset_inter_r).
+    { rewrite E_E0. unfold E0. basic_solver. }
+    { rewrite (sub_sb_in SUB). rewrite CC at 1. basic_solver 12. }
+    rewrite (sub_rf_in SUB), (sub_W SUB), (sub_R SUB), (sub_F SUB).
     arewrite (rst_sc ⊆ sc) by (unfold rst_sc; basic_solver).
-    rewrite CC at 1; basic_solver 21.
-- unfold issuable in *; repeat (splits; try apply set_subset_inter_r).
-  * rewrite E_E0; unfold E0; basic_solver.
-  * rewrite (sub_W SUB); rewrite II at 1; basic_solver 12.
-  * rewrite (sub_fwbob_in SUB); rewrite II at 1; basic_solver 12.
-  * rewrite (sub_detour_in SUB), (sub_rfe_in SUB), (sub_ppo_in SUB), (sub_bob_in SUB).
-    rewrite II at 1; basic_solver 12.
-  * rewrite (sub_W_ex_in SUB), (sub_xacq SUB), (sub_sb_in SUB).
-    rewrite II at 1; basic_solver 12.
-Qed.
-
+    rewrite CC at 1. basic_solver 21. }
+  unfold issuable in *; repeat (splits; try apply set_subset_inter_r).
+  { apply I_in_E. }
+  { rewrite (sub_W SUB). rewrite II at 1. basic_solver 12. }
+  { rewrite (sub_fwbob_in SUB). rewrite II at 1. basic_solver 12. }
+  (* { rewrite (sub_detour_in SUB), (sub_rfe_in SUB), (sub_ppo_in SUB), (sub_bob_in SUB). *)
+  (*   rewrite II at 1; basic_solver 12. *)
+  (* * rewrite (sub_W_ex_in SUB), (sub_xacq SUB), (sub_sb_in SUB). *)
+  (*   rewrite II at 1; basic_solver 12. *)
+Admitted.
 
 Lemma C_E_NTid : C ∪₁ (E ∩₁ NTid_ thread) ≡₁
 C ∪₁ (I ∩₁ NTid_ thread) ∪₁ 
 (dom_rel (Frmw ⨾ ⦗ NTid_ thread ∩₁ I ⦘) \₁ codom_rel (⦗ set_compl FW_ex⦘ ⨾ Frfi))
 .
 Proof.
-assert (TCCOH1:= TCCOH).
-apply (tc_coherent_implies_tc_coherent_alt WF WF_SC) in TCCOH1.
-destruct TCCOH1.
-rewrite E_E0; unfold E0; split; relsf; unionL; splits.
-
-- basic_solver.
-- basic_solver.
-- basic_solver.
-- 
-
-rewrite sb_tid_init'.
-relsf; splits.
-basic_solver.
-rewrite (dom_l (@wf_sbE Gf)).
-revert tc_init; basic_solver 12.
-
-
-- basic_solver 12.
-- basic_solver.
-- basic_solver 12.
-- unionR right -> right.
-apply set_subset_inter_r; splits.
-basic_solver.
-rewrite (rmw_from_non_init WF).
-rewrite (rmw_in_sb WF).
-rewrite sb_tid_init'.
-basic_solver.
+  assert (TCCOH1:= TCCOH).
+  apply (tc_coherent_implies_tc_coherent_alt WF WF_SC) in TCCOH1.
+  destruct TCCOH1.
+  rewrite E_E0; unfold E0; split; relsf; unionL; splits.
+  1-3,5-7: basic_solver 12.
+  { rewrite sb_tid_init'.
+    relsf; splits.
+    rewrite (dom_l (@wf_sbE Gf)).
+    revert tc_init; basic_solver 12. }
+  unionR right -> right.
+  apply set_subset_inter_r; splits.
+  basic_solver.
+  rewrite (rmw_from_non_init WF).
+  rewrite (rmw_in_sb WF).
+  rewrite sb_tid_init'.
+  basic_solver.
 Qed.
 
 Lemma TCCOH_rst_new_T : tc_coherent rstG rst_sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
 Proof.
-assert (TCCOH1:= TCCOH).
-apply (tc_coherent_implies_tc_coherent_alt WF WF_SC) in TCCOH1.
-destruct TCCOH1.
-apply tc_coherent_alt_implies_tc_coherent; constructor; ins.
-- rewrite (sub_E_in SUB) at 1; rewrite tc_init; basic_solver.
-- unionL; [by rewrite C_in_E|basic_solver].
-- rewrite C_E_NTid at 1.
+  assert (TCCOH1:= TCCOH).
+  apply (tc_coherent_implies_tc_coherent_alt WF WF_SC) in TCCOH1.
+  destruct TCCOH1.
+  apply tc_coherent_alt_implies_tc_coherent; constructor; ins.
+  { rewrite (sub_E_in SUB) at 1. rewrite tc_init. basic_solver. }
+  { unionL; [by rewrite C_in_E|basic_solver]. }
+  { rewrite C_E_NTid at 1.
+    rewrite !id_union; relsf; unionL; splits.
+    { rewrite (sub_sb_in SUB). rewrite tc_sb_C. basic_solver. }
+    { rewrite sb_tid_init'.
+      relsf; splits.
+      rewrite (dom_l (@wf_sbE rstG)); basic_solver.
+      rewrite (dom_l (@wf_sbE rstG)); rewrite (sub_E_in SUB) at 1. 
+      revert tc_init. basic_solver. }
+    arewrite (dom_rel (Frmw ⨾ ⦗NTid_ thread ∩₁ I⦘) \₁
+                      codom_rel (⦗set_compl FW_ex⦘ ⨾ Frfi) ⊆₁dom_rel (Frmw ⨾ ⦗NTid_ thread ∩₁ I⦘)).
+    basic_solver.
+    rewrite dom_rel_eqv_dom_rel.
+
+    rewrite (rmw_in_sb WF).
+    rewrite (dom_l (@wf_sbE rstG)), !seqA.
+    rewrite (sub_sb_in SUB) at 1.
+    generalize (@sb_trans Gf); ins; relsf.
 
 
-rewrite !id_union; relsf; unionL; splits.
-*
-  rewrite (sub_sb_in SUB); rewrite tc_sb_C; basic_solver.
-* 
-
-rewrite sb_tid_init'.
-relsf; splits.
-rewrite (dom_l (@wf_sbE rstG)); basic_solver.
-rewrite (dom_l (@wf_sbE rstG)); rewrite (sub_E_in SUB) at 1. 
-revert tc_init; basic_solver.
-* arewrite (dom_rel (Frmw ⨾ ⦗NTid_ thread ∩₁ I⦘) \₁
-      codom_rel (⦗set_compl FW_ex⦘ ⨾ Frfi) ⊆₁dom_rel (Frmw ⨾ ⦗NTid_ thread ∩₁ I⦘)).
-basic_solver.
-rewrite dom_rel_eqv_dom_rel.
-
-rewrite (rmw_in_sb WF).
-rewrite (dom_l (@wf_sbE rstG)), !seqA.
-rewrite (sub_sb_in SUB) at 1.
-generalize (@sb_trans Gf); ins; relsf.
-
-
-rewrite sb_tid_init'.
-relsf; splits.
-basic_solver.
-rewrite (sub_E_in SUB) at 1. 
-revert tc_init; basic_solver.
-
-- rewrite C_E_NTid.
-  rewrite !set_inter_union_l.
-  unionL; [done| basic_solver| rewrite (dom_l (wf_rmwD WF)); type_solver].
-
-- 
-
-arewrite (⦗E0⦘ ⨾ Frf ⨾ ⦗E0⦘ ⊆ Grf).
-rewrite rfi_union_rfe; relsf; splits.
-*
-rewrite C_E_NTid.
-rewrite !id_union; relsf; unionL; splits.
-
-+ rewrite (dom_l (wf_rfiD WF_rst)).
-
-arewrite (Grfi ⊆ Gsb).
-rewrite (sub_W SUB), (sub_sb_in SUB).
-
-
-generalize tc_W_C_in_I tc_sb_C; basic_solver 21.
-+
- rewrite (dom_r (wf_rfiD WF_rst)); rewrite tc_I_in_W at 1.
-type_solver.
-+ rewrite (sub_rfi_in SUB).
-
-(*arewrite (Frfi ⊆ Frfi ∩ Fsb).
+    rewrite sb_tid_init'.
+    relsf; splits.
+    basic_solver.
+    rewrite (sub_E_in SUB) at 1. 
+    revert tc_init. basic_solver. }
+  { rewrite C_E_NTid.
+    rewrite !set_inter_union_l.
+    unionL; [done| basic_solver| rewrite (dom_l (wf_rmwD WF)); type_solver]. }
+  { arewrite (⦗E0⦘ ⨾ Frf ⨾ ⦗E0⦘ ⊆ Grf).
+    rewrite rfi_union_rfe; relsf; splits.
+    { rewrite C_E_NTid.
+      rewrite !id_union; relsf; unionL; splits.
+      { rewrite (dom_l (wf_rfiD WF_rst)).
+        arewrite (Grfi ⊆ Gsb).
+        rewrite (sub_W SUB), (sub_sb_in SUB).
+        generalize tc_W_C_in_I tc_sb_C. basic_solver 21. }
+      { rewrite (dom_r (wf_rfiD WF_rst)); rewrite tc_I_in_W at 1.
+        type_solver. }
+      rewrite (sub_rfi_in SUB).
+      (*arewrite (Frfi ⊆ Frfi ∩ Fsb).
 rewrite sb_tid_init'.
 
 arewrite (Frmw ⊆ Frmw ∩ Fsb).
 generalize (rmw_in_sb WF); basic_solver.
 
 rewrite sb_tid_init' at 3.*)
-unfolder; ins; desc.
-
-destruct (classic (FW_ex x)) as [X|X]; cycle 1.
-
-by exfalso; eapply H1; exists x,x; eauto 10.
-
-apply Wex_rfi_rmw_E.
-generalize I_in_E;  unfolder; basic_solver 12.
-
-
-* 
-rewrite (dom_r (wf_rfeE WF_rst)), !seqA.
-sin_rewrite (dom_rel_helper_in Grfe_E).
-basic_solver.
-- rewrite (dom_r (wf_scE WF_SC_rst)), (dom_r (wf_scD WF_SC_rst)), !seqA.
-  arewrite (⦗F ∩₁ Sc⦘ ⨾ ⦗E⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ⊆ ⦗C⦘).
-  generalize E_F_Sc_in_C; basic_solver.
-  rewrite (sub_sc_in SUB).
-  rewrite tc_sc_C; basic_solver.
-- apply I_in_E.
-- rewrite (sub_fwbob_in SUB), tc_fwbob_I; basic_solver.
-- rewrite (sub_detour_in SUB), (sub_rfe_in SUB).
-  rewrite (sub_ppo_in SUB), (sub_bob_in SUB).
-  rewrite tc_dr_pb_I; basic_solver.
-- rewrite (sub_W_ex_in SUB), (sub_sb_in SUB); apply tc_W_ex_sb_I.
-Qed.
+      unfolder; ins; desc.
+      destruct (classic (FW_ex x)) as [X|X]; cycle 1.
+      { exfalso. eapply H1. exists x,x. eauto 10. }
+        (* apply Wex_rfi_rmw_E. *)
+        (* generalize I_in_E;  unfolder; basic_solver 12. *)
+      admit. }
+    rewrite (dom_r (wf_rfeE WF_rst)), !seqA.
+    sin_rewrite (dom_rel_helper_in Grfe_E).
+    basic_solver. }
+  { rewrite (dom_r (wf_scE WF_SC_rst)), (dom_r (wf_scD WF_SC_rst)), !seqA.
+    arewrite (⦗F ∩₁ Sc⦘ ⨾ ⦗E⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ⊆ ⦗C⦘).
+    { generalize E_F_Sc_in_C. basic_solver. }
+    rewrite (sub_sc_in SUB).
+    rewrite tc_sc_C. basic_solver. }
+  { apply I_in_E. }
+  { rewrite (sub_fwbob_in SUB), tc_fwbob_I. basic_solver. }
+  admit.
+  (* - rewrite (sub_detour_in SUB), (sub_rfe_in SUB). *)
+  (*   rewrite (sub_ppo_in SUB), (sub_bob_in SUB). *)
+  (*   rewrite tc_dr_pb_I; basic_solver. *)
+  (* - rewrite (sub_W_ex_in SUB), (sub_sb_in SUB); apply tc_W_ex_sb_I. *)
+Admitted.
 
 End RestExec.
