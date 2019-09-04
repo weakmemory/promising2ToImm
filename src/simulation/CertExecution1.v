@@ -939,19 +939,34 @@ split.
   * apply (dom_l (wf_rmwD WF)) in H; unfolder in H; type_solver.
 Qed.
 
+Lemma dom_sb_S_tid_in_E : dom_rel (Fsb^? ⨾ ⦗Tid_ thread ∩₁ S⦘) ⊆₁ E.
+Proof.
+  rewrite E_E0. unfold E0. by unionR left -> right.
+Qed.
+
+Lemma dom_rmw_ntid_I_in_E :
+  dom_rel (Frmw ⨾ ⦗NTid_ thread ∩₁ I⦘) \₁ codom_rel (⦗set_compl FW_ex⦘ ⨾ Frfi) ⊆₁ E.
+Proof.
+  rewrite E_E0. unfold E0. by unionR right.
+Qed.
+
 Lemma E_to_S: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘).
 Proof.
-  cut (E ⊆₁ C ∪₁ dom_rel (Fsb^? ⨾ ⦗S⦘)).
-  { unfolder; ins; desf; eauto.
-    specialize (H x H0); desf; eauto.
-    right; exists y; splits; eauto.
-    right; apply (sub_sb SUB); unfolder; splits; eauto.
-Admitted.
-(*     apply S_in_E. *)
-(*   - rewrite E_E0; unfold E0; unfolder; ins; desf; eauto 10. *)
-(*     apply (rmw_in_sb WF) in H. *)
-(*     basic_solver 21. *)
-(* Qed. *)
+  rewrite E_E0. unfold E0. unionL.
+  { basic_solver. }
+  { rewrite ETCCOH.(etc_I_in_S); simpls.
+    basic_solver 10. }
+  all: unionR right; rewrite (sub_sb SUB).
+  { rewrite <- dom_sb_S_tid_in_E.
+    unfolder. ins. desf; eauto 20. }
+  erewrite <- inclusion_step_cr; [|reflexivity].
+  rewrite <- I_in_E at 2.
+  rewrite <- ETCCOH.(etc_I_in_S). unfold eissued; simpls.
+  rewrite <- dom_rmw_ntid_I_in_E.
+  unfolder. ins. desf. eexists. splits; eauto 10.
+  2: by apply (rmw_in_sb WF).
+  intros HH. desf. apply H0. eauto.
+Qed.
 
 Lemma E_F_AcqRel_in_C: E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
 Proof.
