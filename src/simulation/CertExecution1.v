@@ -9,7 +9,7 @@ From imm Require Import CombRelations.
 
 Require Import TraversalConfig.
 Require Import TraversalConfigAlt.
-Require Import ExtTraversal.
+Require Import ExtTraversal ExtTraversalProperties.
 Require Import AuxRel.
 
 Set Implicit Arguments.
@@ -397,6 +397,26 @@ Proof.
   basic_solver 21.
 Qed.
 
+Lemma rt_rf_rmw_S' :
+  (Frf ⨾ Frmw)＊ ⨾ ⦗S⦘ ⊆ (Frfi ⨾  Frmw)^* ⨾ (⦗I⦘ ⨾  (Frf ⨾ Frmw)^+)^? ⨾ ⦗S⦘.
+Proof.
+  apply rt_ind_left with (P:= fun r => r ⨾ ⦗S⦘).
+  - by eauto with hahn.
+  - basic_solver 12.
+  - intros k H. rewrite !seqA, H.
+    rewrite rfi_union_rfe at 1. rewrite !seq_union_l; unionL.
+    by hahn_frame; rewrite rt_begin at 2; basic_solver 21.
+    arewrite ((Frfi ⨾ Frmw)＊ ⨾ (⦗I⦘ ⨾ (Frf ⨾ Frmw)⁺)^? ⊆ (Frf ⨾ Frmw)^*).
+    by arewrite (Frfi ⊆ Frf); arewrite_id (<|I|>); relsf.
+    relsf.
+    sin_rewrite rmw_W_ex; rewrite !seqA.
+    rewrite (dom_rel_helper (rt_rf_rmw_S WF ETCCOH)).
+    seq_rewrite (dom_rel_helper (rfe_rmw_S WF ETCCOH)).
+    arewrite (Frfe ⊆ Frf).
+    rewrite ct_begin.
+    basic_solver 21.
+Qed.
+
 Lemma W_Rel_sb_loc_I : dom_rel (⦗FW ∩₁ FRel⦘ ⨾  (Fsb ∩  Fsame_loc) ⨾ ⦗FW ∩₁ I⦘) ⊆₁ I.
 Proof.
   generalize (dom_W_Rel_sb_loc_I_in_C TCCOH), (w_covered_issued TCCOH); basic_solver 21.
@@ -432,6 +452,22 @@ Proof.
   { generalize (dom_F_Rel_sb_I_in_C TCCOH), C_in_E, I_in_E; basic_solver 21. }
   remember (⦗E0⦘ ⨾ Frf ⨾ ⦗E0⦘ ⨾ ⦗E0⦘ ⨾ Frmw ⨾ ⦗E0⦘) as X.
   ins; seq_rewrite <- (sub_sb SUB); basic_solver 21.
+Qed.
+
+
+Lemma release_S : Frelease ⨾ ⦗S⦘ ⊆ ⦗C⦘ ⨾ (fun _ _ => True) +++ Fsb^?.
+Proof.
+  unfold imm_s_hb.release at 1, imm_s_hb.rs at 1.
+  rewrite !seqA.
+rewrite rt_rf_rmw_S'.
+rewrite (crE (⦗I⦘ ⨾ (Frf ⨾ Frmw)⁺)); relsf; unionL.
+- arewrite (Frfi ⊆ Fsb).
+rewrite (rmw_in_sb WF).
+generalize (@sb_trans Gf); ins; relsf. basic_solver 12.
+- arewrite (Frfi ⊆ Frf).
+arewrite (⦗FRel⦘ ⨾ (⦗FF⦘ ⨾ Fsb)^? ⨾ ⦗FW⦘ ⨾ (Fsb ∩ Fsame_loc)^? ⨾ ⦗FW⦘ ⨾ (Frf ⨾ Frmw)＊ ⊆ Frelease).
+sin_rewrite release_I.
+basic_solver 21.
 Qed.
 
 Lemma sb_F_E : dom_rel (Fsb ⨾ ⦗FF ∩₁ FAcq/Rel ∩₁ E⦘) ⊆₁ C ∪₁ I.
@@ -1126,35 +1162,39 @@ Proof.
   rewrite (wf_releaseE rstWF); relsf; unionL; [basic_solver 21|].
   arewrite_id ⦗E⦘ at 1; rels.
   rewrite release_int; relsf; unionL.
-  { rewrite !seqA.
-    arewrite (⦗GW_ex⦘ ⨾ ⦗E⦘ ⊆ ⦗S⦘).
+  - rewrite !seqA.
+    arewrite (⦗GW_ex⦘ ⨾ ⦗E⦘ ⊆ ⦗S⦘ ⨾ ⦗E⦘).
     { generalize W_ex_E. basic_solver. }
     rewrite (sub_release_in SUB).
-Admitted.
-(*     rewrite release_I. *)
-(*     basic_solver. *)
-(*   - arewrite (⦗E⦘ ⊆ ⦗(E \₁ C) ∩₁ (E \₁ I)⦘ ∪ ⦗C ∪₁ I⦘) at 1. *)
-(*     unfolder; ins; desf; tauto. *)
-(*     relsf; unionL; [basic_solver 12|]. *)
-(*     rewrite (sub_sb_in SUB) at 1. *)
-(*     rewrite (sub_F SUB), (sub_Rel SUB). *)
-(*     unfolder; ins; desf; exfalso. *)
-(*     generalize (dom_sb_covered TCCOH); unfolder; basic_solver 21. *)
-(*     generalize dom_F_Rel_sb_I_in_C; unfolder; basic_solver 21. *)
-(*   - *)
-(*     rewrite crE at 1; relsf; unionL; [basic_solver 12|]. *)
-(*     arewrite (⦗E⦘ ⊆ ⦗E \₁ (C ∪₁ I)⦘ ∪ ⦗C ∪₁ I⦘) at 1. *)
-(*     unfolder; ins; desf; tauto. *)
-
-(*     relsf; unionL; [basic_solver 12|]. *)
-
-(*     rewrite (sub_sb_in SUB) at 1. *)
-(*     rewrite (sub_same_loc SUB), (sub_Rel SUB), (sub_W SUB). *)
-(*     unfolder; ins; desf; exfalso. *)
-(*     generalize (dom_sb_covered TCCOH); unfolder; basic_solver 21. *)
-(*     generalize dom_W_Rel_sb_loc_I; unfolder; basic_solver 21. *)
-(* Qed. *)
-
+    arewrite (Frelease ⨾ ⦗S⦘ ⊆ (Frelease ⨾ ⦗S⦘) ∩ Frelease).
+    rewrite (release_S) at 1.
+    rewrite inter_union_l; relsf; unionL.
+    basic_solver.
+    arewrite (⦗E⦘ ⊆ ⦗(E \₁ C) ∩₁ (E \₁ I)⦘ ∪ ⦗C ∪₁ I⦘) at 1. 
+    unfolder; ins; desf; tauto. 
+    rewrite id_union. relsf; unionL.
+    by rewrite (sub_sb SUB); basic_solver 12.
+    by generalize (dom_sb_covered TCCOH); unfolder; ins; desf; exfalso; eauto.
+    arewrite (Fsb^? ∩ Frelease ⨾ ⦗I⦘ ⊆ Frelease ⨾ ⦗I⦘).
+    sin_rewrite (release_I); basic_solver.
+   - arewrite (⦗E⦘ ⊆ ⦗(E \₁ C) ∩₁ (E \₁ I)⦘ ∪ ⦗C ∪₁ I⦘) at 1. 
+     unfolder; ins; desf; tauto. 
+     relsf; unionL; [basic_solver 12|]. 
+     rewrite (sub_sb_in SUB) at 1. 
+     rewrite (sub_F SUB), (sub_Rel SUB). 
+     unfolder; ins; desf; exfalso. 
+     generalize (dom_sb_covered TCCOH); unfolder; basic_solver 21. 
+     generalize (dom_F_Rel_sb_I_in_C TCCOH); basic_solver 21. 
+   - rewrite crE at 1; relsf; unionL; [basic_solver 12|]. 
+     arewrite (⦗E⦘ ⊆ ⦗E \₁ (C ∪₁ I)⦘ ∪ ⦗C ∪₁ I⦘) at 1. 
+     unfolder; ins; desf; tauto. 
+     relsf; unionL; [basic_solver 12|]. 
+     rewrite (sub_sb_in SUB) at 1. 
+     rewrite (sub_same_loc SUB), (sub_Rel SUB), (sub_W SUB). 
+     unfolder; ins; desf; exfalso. 
+     generalize (dom_sb_covered TCCOH); unfolder; basic_solver 21. 
+     generalize (dom_W_Rel_sb_loc_I_in_C TCCOH); unfolder; basic_solver 21. 
+Qed.
 
 Lemma sw_de : ⦗(E \₁ C) ∩₁ (E \₁ I)⦘ ⨾ Gsw ⊆ Gsb.
 Proof.

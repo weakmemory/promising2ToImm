@@ -110,4 +110,25 @@ Proof.
   basic_solver 10.
 Qed.
 
+Lemma rt_rf_rmw_S : dom_rel (<|W_ex|> ;; (rf ;; rmw)^* ;; <|S|>) ⊆₁ S.
+Proof.
+cut (⦗W_ex⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ ⦗S⦘ ⨾ (fun _ _ => True)).
+by unfolder; ins; desf; eauto 21; eapply H; splits; eauto 10.
+apply rt_ind_left with (P:= fun r => ⦗W_ex⦘ ⨾ r ⨾ ⦗S⦘).
+by auto with hahn.
+by basic_solver.
+intros k H.
+sin_rewrite rmw_W_ex; rewrite !seqA.
+sin_rewrite H.
+seq_rewrite rf_rmw_S.
+basic_solver.
+Qed.
+
+Lemma rfe_rmw_S : dom_rel (rfe ⨾ rmw ⨾ ⦗S⦘) ⊆₁ I.
+Proof.
+rewrite (rmw_in_rppo WF).
+generalize (etc_rppo_S ETCCOH).
+basic_solver 21.
+Qed.
+
 End ExtTraversalProperties.
