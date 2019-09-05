@@ -134,7 +134,10 @@ assert (COMP_NTID : G.(acts_set) ∩₁ NTid_ thread ∩₁ (is_r G.(lab)) ⊆�
 subst; eapply COMP_NTID; edone.
 
 assert (COMP_PPO : dom_rel (G.(ppo) ⨾ ⦗T.(issued)⦘) ∩₁ (is_r G.(lab)) ⊆₁ codom_rel G.(rf)).
-subst; eapply COMP_PPO; edone.
+{ subst; eapply COMP_PPO; edone. }
+assert (COM_PPO_ALT : dom_rel (ppo G ⨾ ⦗issued T⦘) ⊆₁ codom_rel (rf G)).
+{ rewrite (dom_l (wf_ppoD G)), !seqA.
+  rewrite dom_eqv1. by rewrite set_interC. }
 
 assert (acts_G_in_acts_Gf : acts_set G ⊆₁ acts_set Gf).
 by apply (sub_E_in SUB).
@@ -360,11 +363,9 @@ set (new_rfi := ⦗ Tid_ thread ⦘ ⨾ new_rf G Gsc T S thread ⨾ ⦗ Tid_ thr
 assert (ETCCOH_G : etc_coherent G Gsc (mkETC T S)).
 { admit. }
 
-assert (DRPPO : dom_rel (⦗fun a : actid => is_r (lab G) a⦘ ⨾ (data G ∪ rfi G)＊ ⨾ rppo G ⨾ ⦗S⦘)
+assert (COMP_RPPO : dom_rel (⦗fun a => is_r (lab G) a⦘ ⨾ (data G ∪ rfi G)＊ ⨾ rppo G ⨾ ⦗S⦘)
                         ⊆₁ codom_rel (rf G)).
-{ admit. }
-assert (DPPO : dom_rel (ppo G ⨾ ⦗issued T⦘) ⊆₁ codom_rel (rf G)).
-{ admit. }
+{ subst; eapply COMP_RPPO; edone. }
 
 assert (new_rfif : functional new_rfi⁻¹).
 { arewrite  (new_rfi ⊆ new_rf G Gsc T S thread).

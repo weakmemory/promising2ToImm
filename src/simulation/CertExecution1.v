@@ -1072,6 +1072,49 @@ Proof.
   basic_solver 21.
 Qed.
 
+(* TODO: move to a more appropriate place. *)
+Lemma sub_rppo_in : rppo rstG ⊆ rppo Gf.
+Proof.
+  unfold rppo.
+  rewrite (sub_ctrl SUB).
+  rewrite (sub_addr SUB).
+  rewrite (sub_sb SUB).
+  rewrite (sub_frmw SUB).
+  rewrite (sub_R_ex SUB), (sub_W SUB).
+  hahn_frame.
+  basic_solver 12.
+Qed.
+
+Lemma COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ rppo rstG ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
+Proof.
+  arewrite ((Gdata ∪ Grfi)＊ ⨾ rppo rstG ⊆ <|E|> ;; (Gdata ∪ Grfi)＊ ⨾ rppo rstG).
+  { apply dom_rel_helper.
+    rewrite rtE, seq_union_l, seq_id_l, dom_union. unionL.
+    { rewrite (dom_l (wf_rppoE rstWF)). basic_solver. }
+    rewrite (dom_l (wf_dataE rstWF)).
+    rewrite (dom_l (wf_rfiE rstWF)).
+    rewrite <- seq_union_r.
+    rewrite inclusion_ct_seq_eqv_l. basic_solver. }
+  rewrite (sub_data_in SUB).
+  rewrite (sub_rfi_in SUB).
+  rewrite sub_rppo_in.
+  unfolder. ins. desf.
+  cdes IMMCON.
+  exploit (Comp x).
+  { split.
+    { apply (sub_E SUB). basic_solver. }
+    apply (sub_R SUB); basic_solver. }
+  unfolder; ins ;desf.
+  cut (E0 x0 /\ E0 x).
+  { basic_solver 12. }
+  split; apply E_E0; [|done].
+  hahn_rewrite rfi_union_rfe in x1; unfolder in x1; desf.
+  { eapply rfi_E. basic_solver 21. }
+  eapply I_in_E.
+  apply ETCCOH.(etc_rppo_S). simpls.
+  basic_solver 21.
+Qed.
+
 Lemma urr_helper: 
   dom_rel ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ rst_sc^? ⨾ Ghb^? ⨾ Grelease ⨾ ⦗I⦘) ⊆₁ C.
 Proof.
