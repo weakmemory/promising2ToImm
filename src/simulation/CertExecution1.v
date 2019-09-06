@@ -1020,16 +1020,46 @@ arewrite (Sc ⊆₁ Acq/Rel) by mode_solver.
 apply E_F_AcqRel_in_C.
 Qed.
 
+(* TODO: move to imm/Execution.v. *)
+Lemma W_ex_not_init : FW_ex ⊆₁ set_compl is_init.
+Proof.
+  unfolder. ins. desf.
+  match goal with
+  | H : FW_ex _ |- _ => rename H into WEX
+  end.
+  destruct WEX as [z WEX].
+  apply WF.(rmw_in_sb) in WEX.
+  apply no_sb_to_init in WEX. unfolder in WEX. desf.
+Qed.
+
+Lemma W_ex_IST : GW_ex ∩₁ E ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread.
+Proof.
+  rewrite E_E0. unfold E0.
+  rewrite !set_inter_union_r. unionL.
+  { rewrite rstWF.(W_ex_in_W).
+    rewrite (w_covered_issued TCCOH). eauto with hahn. }
+  { basic_solver. }
+  2: { rewrite rstWF.(W_ex_in_W). rewrite WF.(wf_rmwD).
+       type_solver. }
+  unionR right.
+  rewrite crE. rewrite !seq_union_l, seq_id_l, dom_union.
+  rewrite set_inter_union_r. unionL.
+  { basic_solver. }
+  rewrite (sub_W_ex_in SUB).
+  unfolder.
+  ins. desf.
+  split.
+  { eapply ETCCOH.(etc_po_S). basic_solver 10. }
+  match goal with
+  | H : Fsb _ _ |- _ => rename H into SB
+  end.
+  apply sb_tid_init' in SB. unfolder in SB. desf.
+  exfalso. eapply W_ex_not_init; eauto.
+Qed.
+
 Lemma W_ex_E: GW_ex ∩₁ E ⊆₁ S.
 Proof.
-  rewrite E_to_S, (sub_W_ex_in SUB), (sub_sb_in SUB).
-  rewrite set_inter_union_r; unionL.
-  { rewrite <- ETCCOH.(etc_I_in_S). unfold eissued. simpls.
-    generalize (W_ex_in_W) (w_covered_issued TCCOH). basic_solver 21. }
-  rewrite crE at 1; relsf; unionL; splits.
-  { basic_solver. }
-  rewrite <- ETCCOH.(etc_po_S) at 2.
-  basic_solver.
+  rewrite W_ex_IST. rewrite ETCCOH.(etc_I_in_S). basic_solver.
 Qed.
 
 Lemma COMP_ACQ: forall r (IN: (E ∩₁ R ∩₁ Acq) r), exists w, Grf w r.

@@ -371,9 +371,8 @@ assert (ST_in_E : S ∩₁ Tid_ thread ⊆₁ acts_set G).
 { subst. rewrite E_E0; eauto. unfold E0.
   unionR left -> right. basic_solver 10. }
 assert (W_ex_IST : W_ex G ∩₁ acts_set G ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread).
-{ subst. rewrite E_E0; eauto. unfold E0.
-  rewrite !set_inter_union_r.
-  admit. }
+{ subst. eapply W_ex_IST; eauto. }
+
 assert
 (F_SB_S :
    dom_rel (⦗(is_f G.(lab)) ∩₁ (is_ra G.(lab))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆₁ covered T).
@@ -697,7 +696,7 @@ assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) 
 exists (certG G Gsc T S thread lab').
 exists Gsc.
 exists (mkTC (T.(covered) ∪₁ (G.(acts_set) ∩₁ NTid_ thread)) T.(issued)).
-exists S.
+exists S. (* ANTON: I think it should be (I ∪₁ S ∩₁ Tid_ thread). *)
 
 splits.
 { by apply WF_cert. }
