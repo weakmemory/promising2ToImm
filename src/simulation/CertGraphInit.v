@@ -492,7 +492,7 @@ basic_solver. }
 rewrite TEH''.(tr_acts_set).
 unfolder; ins; desc.
 eapply H5; eauto.
-eapply (@Rex_in_D G _ _ S thread WF_G RELCOV_G ETCCOH_G); try done.
+eapply (@Rex_in_D G Gsc _ _ thread RELCOV_G); try done.
 split; [|done].
 unfold R_ex, rmwmod in *.
 rewrite TEH''.(tr_lab) in H2; auto.
@@ -701,7 +701,12 @@ exists S.
 
 splits.
 { by apply WF_cert. }
-{ apply cert_imm_consistent; auto. }
+{ apply cert_imm_consistent; auto.
+  { apply ETCCOH. }
+  rewrite sub_sb_in; eauto.
+  rewrite sub_xacq; eauto.
+  rewrite sub_W_ex_in; eauto.
+  apply ETCCOH. }
 { unfold certG, acts_set; ins; basic_solver. }
 cdes SIMREL. cdes COMMON.
 
