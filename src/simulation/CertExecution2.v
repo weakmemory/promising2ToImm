@@ -104,7 +104,6 @@ Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
 Hypothesis TCCOH : tc_coherent G sc T.
-Hypothesis ETCCOH : etc_coherent G sc (mkETC T S).
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -113,7 +112,7 @@ Hypothesis AT : rmw_atomicity G.
 Hypothesis IT_new_co: I ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
 Hypothesis E_to_S: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘).
 Hypothesis Grfe_E : dom_rel Grfe ⊆₁ I.
-Hypothesis W_ex_E: GW_ex ∩₁ E ⊆₁ S.
+Hypothesis W_ex_IST : GW_ex ∩₁ E ⊆₁ I ∪₁ S ∩₁ Tid_ thread.
 Hypothesis E_F_AcqRel_in_C: E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
 Hypothesis COMP_ACQ: forall r (IN: (E ∩₁ R ∩₁ Acq) r), exists w, Grf w r.
 Hypothesis urr_helper: dom_rel ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ Grelease ⨾ ⦗I⦘) ⊆₁ C.
@@ -127,9 +126,16 @@ Hypothesis COMP_NTID : E ∩₁ NTid_ thread ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi)^* ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
 Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
-(* TODO: probably, we need
-etc_coherent G sc (mkETC (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I) S)
-*)
+
+Hypothesis S_in_W : S ⊆₁ W.
+Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
+Hypothesis F_SB_S : dom_rel (⦗F∩₁Acq/Rel⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆₁ C.
+Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
+Hypothesis I_in_S : I ⊆₁ S.
+Hypothesis W_ex_acq_sb_S : dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
+
+Lemma W_ex_E : GW_ex ∩₁ E ⊆₁ S.
+Proof. rewrite W_ex_IST. rewrite I_in_S. basic_solver. Qed.
 
 (******************************************************************************)
 (**  the set D   *)
@@ -170,7 +176,7 @@ Qed.
 
 Local Lemma S_W_S : ⦗S⦘ ⊆ ⦗W⦘ ⨾ ⦗S⦘.
 Proof.
-  generalize (reservedW WF ETCCOH). basic_solver.
+  generalize S_in_W. basic_solver.
 Qed.
 
 Lemma D_init : E ∩₁ is_init ⊆₁ D.
@@ -186,7 +192,6 @@ Lemma dom_data_rfi_rppo_S_in_D :
 Proof.
   unfold D. basic_solver 21.
 Qed.
-
 
 Lemma dom_addr_in_D : dom_rel Gaddr ⊆₁ D.
 Proof.
@@ -281,7 +286,7 @@ Proof.
     basic_solver 10. }
   { rewrite dom_rel_eqv_dom_rel.
     etransitivity.
-    2: by apply ETCCOH.(etc_rppo_S).
+    2: by apply RPPO_S.
     basic_solver 10. }
   { rewrite dom_rel_eqv_codom_rel, transp_seq; relsf.
     sin_rewrite (detour_transp_rfi WF); rels. }
@@ -339,8 +344,8 @@ Proof.
   arewrite (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb^? ⨾ ⦗S⦘ ⊆ ⦗C⦘ ⨾ Gsb).
   2: generalize dom_sb_covered; basic_solver 21.
   case_refl _.
-  { rewrite (reservedW WF ETCCOH). type_solver. }
-  generalize (etc_F_sb_S ETCCOH). unfold ecovered. simpls.
+  { rewrite S_in_W. type_solver. }
+  generalize F_SB_S.
   basic_solver 10.
 Qed.
 
@@ -481,7 +486,7 @@ Proof.
   2: { rewrite set_unionA. rewrite AA. apply IT_new_co. }
   split; [|basic_solver].
   unionL; [|basic_solver].
-  generalize ETCCOH.(etc_S_in_E). generalize (reservedW WF ETCCOH).
+  generalize ST_in_E. generalize S_in_W.
   basic_solver.
 Qed.
 
@@ -583,11 +588,10 @@ Proof.
     ins; desf; splits; ins; eauto; [tauto|].
     desf; splits; eauto.
     { intros HH. apply H0. splits; eauto.
-      { by apply TCCOH.(issuedE). }
-        by apply TCCOH.(issuedW). }
+        by apply TCCOH.(issuedE). }
     all: exfalso.
-    all: apply H0; splits; eauto; [by apply ETCCOH.(etc_S_in_E)|].
-    all: eapply reservedW; eauto. }
+    all: apply H0; splits; eauto.
+    all: by apply ST_in_E; split. }
   arewrite (cert_co ⊆ cert_co ∩ cert_co) at 1.
   unfold cert_co at 1.
   rewrite new_co_in at 1.
@@ -769,7 +773,7 @@ Qed.
 
 Lemma non_S_new_rf: ⦗E \₁ S⦘ ⨾ new_rf ⊆ Gsb.
 Proof.
-  rewrite <- ETCCOH.(etc_I_in_S).
+  rewrite <- I_in_S.
   apply non_I_new_rf.
 Qed.
 
@@ -1060,7 +1064,7 @@ Lemma sw_helper :
   Grelease ⨾ ⦗E ∩₁ I⦘ ⨾ new_rf ⨾ ⦗Acq⦘ ⊆ 
   Gsb ∪ (Grelease ⨾ Grf ⨾ ⦗Acq⦘ ∪ Grelease ⨾ Grf ⨾ Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘).
 Proof.
-  rewrite ETCCOH.(etc_I_in_S).
+  rewrite I_in_S.
   apply sw_helper_S.
 Qed.
 
@@ -1148,7 +1152,10 @@ Proof.
   rewrite release_int at 1.
   rewrite !seq_union_l. unionL. 
   2,3: basic_solver 12.
-  revert W_ex_E; unfolder; ins; desf; exfalso; eauto.
+  rewrite !seqA, <- id_inter.
+  arewrite (GW_ex ∩₁ (E \₁ S) ⊆₁ (GW_ex ∩₁ E) \₁ S).
+  { basic_solver. }
+  rewrite W_ex_E. basic_solver.
 Qed.
 
 Lemma cert_hb : Chb ≡ Ghb.
@@ -1578,7 +1585,6 @@ Proof.
   { basic_solver 12. }
   rewrite (rmw_W_ex), (dom_r (wf_rmwE WF)), !transp_seq, !transp_eqv_rel.
   arewrite (⦗GW_ex⦘ ⨾ ⦗E⦘ ⊆ ⦗GW_ex ∩₁ E⦘) by basic_solver.
-  rewrite W_ex_E.
   unfold cert_co.
   rotate 1.
   unfold fr; ins; rewrite transp_union.
@@ -1589,18 +1595,12 @@ Proof.
   unfold cert_co.
 
   arewrite ((new_co G (I ∪₁ S ∩₁ Tid_ thread)
-                    (E ∩₁ W ∩₁ Tid_ thread) \ Gsb) ⨾ ⦗S⦘ ⊆
-            (new_co G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread) ∩ Gco \ Gsb) ⨾ ⦗S⦘).
-  { cut (new_co G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread) ⨾ ⦗S⦘ ⊆ Gco).
+                    (E ∩₁ W ∩₁ Tid_ thread) \ Gsb) ⨾ ⦗GW_ex ∩₁ E⦘ ⊆
+            (new_co G (I ∪₁ S ∩₁ Tid_ thread)
+                    (E ∩₁ W ∩₁ Tid_ thread) ∩ Gco \ Gsb) ⨾ ⦗GW_ex ∩₁ E⦘).
+  { cut (new_co G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread) ⨾ ⦗GW_ex ∩₁ E⦘ ⊆ Gco).
     { basic_solver 21. }
-    (* TODO: generalize to a lemma *)
-    arewrite (⦗S⦘ ⊆ ⦗I ∪₁ S ∩₁ Tid_ thread⦘).
-    { unfolder. intros x y [AA HH]; subst. splits; auto.
-      assert ((E ∩₁ W) y) as EWY.
-      { split.
-        { by apply ETCCOH.(etc_S_in_E). }
-          by apply (reservedW WF ETCCOH). }
-      apply IT_new_co in EWY. unfolder in EWY. desf; auto. }
+    rewrite W_ex_IST.
     rewrite (new_co_I IST_new_co); try apply WF.
     basic_solver. }
 
@@ -1608,50 +1608,56 @@ Proof.
   relsf; unionL.
   1,2: generalize (co_trans WF); revert AT'; unfold fr; basic_solver 12.
 
-  
   rewrite <- !set_minus_union_l.
   rewrite <- !set_minus_union_r.
-rewrite !seqA.
+  rewrite !seqA.
+  
+  assert ((I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN.
+  { intros x [AA BB].
+    assert (E x /\ W x) as [EX WX].
+    { split; apply IST_new_co; by left. }
+    destruct AA as [AA|AA].
+    2: { exfalso.
+         apply BB. unfolder. splits; auto. apply AA. }
+    split; auto.
+    intros HH. 
+    apply BB. unfolder. splits; auto. }
 
-remember (new_co G (I ∪₁ S ∩₁ Tid_ thread)
-              (E ∩₁ W ∩₁ Tid_ thread)) as new.
- arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
-         ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗S⦘ ⊆
-   ⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
-         ⨾ new ⨾ ⦗S \₁ Tid_ thread⦘).
-{ unfolder; ins; desf; splits; eauto.
- intro; desf.
- eapply same_thread in H5; desf; eauto.
- destruct H5; desf; try subst z2; eauto. 
- eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone.
- apply (wf_coE WF) in H3; unfolder in H3; desf.
- hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H3.
- unfolder in H3; desf. }
+  remember (new_co G (I ∪₁ S ∩₁ Tid_ thread)
+                   (E ∩₁ W ∩₁ Tid_ thread)) as new.
+  arewrite (<|E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)|>
+              ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗GW_ex ∩₁ E⦘ ⊆
+            ⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
+              ⨾ new ⨾ ⦗GW_ex ∩₁ E \₁ E ∩₁ W ∩₁ Tid_ thread⦘).
+  { unfolder; ins; desf; splits; eauto.
+    intros [[EY WY] TT].
+    eapply same_thread in TT; desf; eauto.
+    2: { hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H4.
+         unfolder in H4; desf. }
+    destruct TT; desf; try subst z2; eauto. 
+    { apply co_irr in H4; auto. }
+    eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone. }
+  rewrite W_ex_IST.
+  subst new.
 
-arewrite (S \₁ Tid_ thread ⊆₁
-         (I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread).
-admit.
+  rewrite (dr (@T_I_new_co_I_T G (I ∪₁ S ∩₁ Tid_ thread) 
+                               (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
 
-subst new.
-
-rewrite (dr (@T_I_new_co_I_T G (I ∪₁ S ∩₁ Tid_ thread) 
-  (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
-
-rewrite (de (wf_rfD WF)), (de (wf_rfE WF)), 
-        (dr (wf_rfl WF)), (dr (wf_rmwl WF)),
-        (dr (wf_col WF)).
- unfolder; ins; desc. subst z0 z3. 
-   assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence).
-   assert (K: Gco z4 z1 \/ Gco z1 z4).
-   { eapply WF; try basic_solver 2.
-     intro; subst z1; eauto. }
-   destruct K.
-   2: revert AT'; unfold fr; basic_solver 12.
-   eapply (new_co_irr IST_new_co); try apply WF. 
-   eapply (new_co_trans IST_new_co); try apply WF. 
-   apply H3.
- apply new_co_helper; [apply WF| apply WF| basic_solver 12].
-Admitted.
+  rewrite (de (wf_rfD WF)), (de (wf_rfE WF)), 
+  (dr (wf_rfl WF)), (dr (wf_rmwl WF)),
+  (dr (wf_col WF)).
+  unfolder; ins; desc. subst z0 z3. 
+  assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence).
+  assert (K: Gco z4 z1 \/ Gco z1 z4).
+  { eapply WF; try basic_solver 2.
+    intro; subst z1; eauto. }
+  destruct K.
+  2: revert AT'; unfold fr; basic_solver 12.
+  eapply (new_co_irr IST_new_co); try apply WF. 
+  eapply (new_co_trans IST_new_co); try apply WF. 
+  apply H3.
+  apply new_co_helper; [apply WF| apply WF| basic_solver 12].
+Qed.
 
 (******************************************************************************)
 (** **   *)
@@ -1845,7 +1851,7 @@ Proof.
     rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel.
     rewrite !seqA.
     arewrite (Gsb ⨾ ⦗W⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ Grppo ⊆ Gsb).
-    2: by apply ETCCOH.
+    2: by apply W_ex_acq_sb_S.
     arewrite (Grfi ⊆ Gsb).
     rewrite WF.(data_in_sb).
     rewrite WF.(rppo_in_sb).
