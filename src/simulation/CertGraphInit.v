@@ -360,12 +360,35 @@ assert (acts_set (ProgToExecution.G state) ⊆₁ covered T) as STATECOV.
 
 set (new_rfi := ⦗ Tid_ thread ⦘ ⨾ new_rf G Gsc T S thread ⨾ ⦗ Tid_ thread ⦘).
 
-assert (ETCCOH_G : etc_coherent G Gsc (mkETC T S)).
-{ admit. }
-
 assert (COMP_RPPO : dom_rel (⦗fun a => is_r (lab G) a⦘ ⨾ (data G ∪ rfi G)＊ ⨾ rppo G ⨾ ⦗S⦘)
                         ⊆₁ codom_rel (rf G)).
 { subst; eapply COMP_RPPO; edone. }
+
+assert (S_in_W : S ⊆₁ is_w G.(lab)).
+{ rewrite (reservedW WF ETCCOH).
+  eapply sub_W; eauto. }
+assert (ST_in_E : S ∩₁ Tid_ thread ⊆₁ acts_set G).
+{ subst. rewrite E_E0; eauto. unfold E0.
+  unionR left -> right. basic_solver 10. }
+assert (W_ex_IST : W_ex G ∩₁ acts_set G ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread).
+{ subst. rewrite E_E0; eauto. unfold E0.
+  rewrite !set_inter_union_r.
+  admit. }
+assert
+(F_SB_S :
+   dom_rel (⦗(is_f G.(lab)) ∩₁ (is_ra G.(lab))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆₁ covered T).
+{ rewrite sub_F; eauto.
+  rewrite sub_AcqRel; eauto.
+  rewrite sub_sb_in; eauto.
+  apply ETCCOH. }
+assert (RPPO_S : dom_rel ((detour G ∪ rfe G) ⨾ (data G ∪ rfi G)＊ ⨾ rppo G ⨾ ⦗S⦘) ⊆₁ issued T).
+{ rewrite sub_detour_in; eauto.
+  rewrite sub_rfe_in; eauto.
+  rewrite sub_data_in; eauto.
+  rewrite sub_rfi_in; eauto.
+  subst.
+  rewrite sub_rppo_in; eauto.
+  apply ETCCOH. }
 
 assert (new_rfif : functional new_rfi⁻¹).
 { arewrite  (new_rfi ⊆ new_rf G Gsc T S thread).
