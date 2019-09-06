@@ -2193,4 +2193,30 @@ Proof.
   ins. apply dom_cert_ar_rfrmw_I.
 Qed.
 
+Hypothesis SnI_in_Wex : S \₁ I ⊆₁ GW_ex.
+Hypothesis F_sb_S_in_C : dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ C.
+Hypothesis W_ex_sb_IST :
+  dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁ I ∪₁ S ∩₁ Tid_ thread.
+
+Lemma ETCCOH_cert : etc_coherent certG sc
+                                 (mkETC (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I)
+                                        (I ∪₁ S ∩₁ Tid_ thread)).
+Proof.
+  assert (I ∪₁ S ∩₁ Tid_ thread ⊆₁ S) as IST_in_S.
+  { rewrite I_in_S. basic_solver. }
+  constructor.
+  all: unfold eissued, ecovered; simpls.
+  { apply TCCOH_cert. }
+  { arewrite (I ∪₁ S ∩₁ Tid_ thread ⊆₁ E ∩₁ W).
+    2: { unfold certG. unfold acts_set. basic_solver. }
+    rewrite <- IST_new_co.
+    basic_solver. }
+  { eauto with hahn. }
+  { rewrite cert_W_ex. by rewrite IST_in_S. }
+  { rewrite cert_F, cert_AcqRel, cert_sb, IST_in_S. by unionR left. }
+  { admit. }
+  { by rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S. }
+  admit.
+Admitted.
+
 End CertExec.

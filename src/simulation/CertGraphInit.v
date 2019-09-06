@@ -693,26 +693,28 @@ assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) 
   eexists. split; eauto.
     by apply rmw_in_ppo. }
 
-exists (certG G Gsc T S thread lab').
-exists Gsc.
-exists (mkTC (T.(covered) ∪₁ (G.(acts_set) ∩₁ NTid_ thread)) T.(issued)).
-exists S. (* ANTON: I think it should be (I ∪₁ S ∩₁ Tid_ thread). *)
+assert (issued T ⊆₁ S) as I_in_S.
+{ apply ETCCOH. }
 
-splits.
-{ by apply WF_cert. }
-{ apply cert_imm_consistent; auto.
-  { apply ETCCOH. }
-  rewrite sub_sb_in; eauto.
+assert (dom_rel (⦗W_ex G ∩₁ (is_xacq (lab G))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆₁ issued T) as XACQ_I.
+{ rewrite sub_sb_in; eauto.
   rewrite sub_xacq; eauto.
   rewrite sub_W_ex_in; eauto.
   apply ETCCOH. }
+
+exists (certG G Gsc T S thread lab').
+exists Gsc.
+exists (mkTC (T.(covered) ∪₁ (G.(acts_set) ∩₁ NTid_ thread)) T.(issued)).
+exists (T.(issued) ∪₁ S ∩₁ Tid_ thread).
+
+splits.
+{ by apply WF_cert. }
+{ apply cert_imm_consistent; auto. }
 { unfold certG, acts_set; ins; basic_solver. }
 cdes SIMREL. cdes COMMON.
 
 red. splits.
 { red. splits; eauto; simpls; try by apply SIMREL.
-  { unfold W_ex, certG; simpls.
-    erewrite same_lab_u2v_is_xacq; eauto. }
   { erewrite same_lab_u2v_is_rlx; eauto.
     rewrite cert_E. rewrite acts_G_in_acts_Gf.
     rewrite lab_G_eq_lab_Gf. apply SIMREL. }
