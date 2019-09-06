@@ -2198,6 +2198,19 @@ Hypothesis F_sb_S_in_C : dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb ⨾ ⦗S⦘) �
 Hypothesis W_ex_sb_IST :
   dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁ I ∪₁ S ∩₁ Tid_ thread.
 
+Lemma cert_detour_rfe_D : (Cdetour ∪ certG.(rfe)) ⨾ ⦗D⦘ ⊆ ⦗I⦘ ⨾ (Gdetour ∪ Grfe).
+Proof.
+  rewrite seq_union_l.
+  rewrite cert_detour_D, cert_rfe_D.
+    by rewrite seq_union_r.
+Qed.
+
+Lemma dom_cert_detour_rfe_D : dom_rel ((Cdetour ∪ certG.(rfe)) ⨾ ⦗D⦘) ⊆₁ I.
+Proof.
+  rewrite cert_detour_rfe_D.
+  basic_solver.
+Qed.
+
 Lemma ETCCOH_cert : etc_coherent certG sc
                                  (mkETC (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I)
                                         (I ∪₁ S ∩₁ Tid_ thread)).
@@ -2214,7 +2227,21 @@ Proof.
   { eauto with hahn. }
   { rewrite cert_W_ex. by rewrite IST_in_S. }
   { rewrite cert_F, cert_AcqRel, cert_sb, IST_in_S. by unionR left. }
-  { admit. }
+  { rewrite cert_sb, cert_Acq, cert_R.
+    unfolder. intros x [y [z [DRF [[RZ ACQZ] [SB SS]]]]].
+    assert (exists w, rfe certG w z) as [w CRFE].
+    { destruct DRF as [DRF|]; eauto.
+      clear -DRF.
+      red in DRF. unfolder in DRF. desf.
+      eauto. }
+    set (AA:=CRFE).
+    apply cert_rfe in AA.
+    destruct AA as [RFE|NRFE].
+    2: { exfalso. eapply new_rfe_Acq.
+         apply seq_eqv_r. split; [|split]; eauto.
+         apply seq_eqv_l in NRFE. apply NRFE. }
+    apply seq_eqv_lr in RFE. destruct RFE as [IW [RFE DZ]].
+    eapply dom_cert_detour_rfe_D. basic_solver 10. }
   { by rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S. }
   admit.
 Admitted.
