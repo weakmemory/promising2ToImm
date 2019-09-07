@@ -134,6 +134,11 @@ Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 Hypothesis W_ex_acq_sb_S : dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
+Hypothesis SnI_in_Wex : S \₁ I ⊆₁ GW_ex.
+Hypothesis F_sb_S_in_C : dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ C.
+Hypothesis W_ex_sb_IST :
+  dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁ I ∪₁ S ∩₁ Tid_ thread.
+
 Lemma W_ex_E : GW_ex ∩₁ E ⊆₁ S.
 Proof. rewrite W_ex_IST. rewrite I_in_S. basic_solver. Qed.
 
@@ -2192,11 +2197,6 @@ Proof.
   { ins; rewrite cert_fwbob; done. }
   ins. apply dom_cert_ar_rfrmw_I.
 Qed.
-
-Hypothesis SnI_in_Wex : S \₁ I ⊆₁ GW_ex.
-Hypothesis F_sb_S_in_C : dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ C.
-Hypothesis W_ex_sb_IST :
-  dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁ I ∪₁ S ∩₁ Tid_ thread.
 
 Lemma cert_detour_rfe_D : (Cdetour ∪ certG.(rfe)) ⨾ ⦗D⦘ ⊆ ⦗I⦘ ⨾ (Gdetour ∪ Grfe).
 Proof.
