@@ -722,7 +722,7 @@ assert (dom_rel (⦗W_ex G ∩₁ (is_xacq (lab G))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆
   rewrite sub_W_ex_in; eauto.
   apply ETCCOH. }
 
-assert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ I ⊆₁ GW_ex G).
+assert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ issued T ⊆₁ W_ex G).
 { admit. }
 
 exists (certG G Gsc T S thread lab').
