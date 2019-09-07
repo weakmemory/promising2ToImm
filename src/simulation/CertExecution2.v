@@ -2211,6 +2211,26 @@ Proof.
   basic_solver.
 Qed.
 
+Lemma Crppo_in_rppo : rppo certG ⊆ Grppo.
+Proof.
+  unfold rppo.
+  rewrite cert_sb, cert_R_ex, cert_W.
+  unfold certG. simpls.
+Qed.
+
+Lemma dom_data_Crfi_D_in_D : dom_rel ((Gdata ∪ Crfi)＊ ⨾ ⦗D⦘) ⊆₁ D.
+Proof.
+  unfolder. ins. desf.
+  induction H.
+  3: intuition.
+  2: basic_solver.
+  desf.
+  { apply dom_data_D. basic_solver 10. }
+  assert ((Crfi ;; <|D|>) x y) as AA.
+  { basic_solver 10. }
+  apply cert_rfi_D in AA. unfolder in AA. desf.
+Qed.
+
 Lemma ETCCOH_cert : etc_coherent certG sc
                                  (mkETC (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I)
                                         (I ∪₁ S ∩₁ Tid_ thread)).
@@ -2243,7 +2263,18 @@ Proof.
     apply seq_eqv_lr in RFE. destruct RFE as [IW [RFE DZ]].
     eapply dom_cert_detour_rfe_D. basic_solver 10. }
   { by rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S. }
-  admit.
-Admitted.
+  rewrite Crppo_in_rppo.
+  arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆
+            <|D|> ;; Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘).
+  { apply dom_rel_helper.
+    rewrite IST_in_S.
+    apply dom_rppo_S_in_D. }
+  arewrite ((Gdata ∪ Crfi)＊ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (Gdata ∪ Crfi)＊ ⨾ ⦗D⦘).
+  { apply dom_rel_helper.
+    apply dom_data_Crfi_D_in_D. }
+  rewrite <- !seqA.
+  do 4 rewrite AuxRel.dom_seq.
+  apply dom_cert_detour_rfe_D. 
+Qed.
 
 End CertExec.
