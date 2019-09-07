@@ -389,10 +389,30 @@ assert (RPPO_S : dom_rel ((detour G ∪ rfe G) ⨾ (data G ∪ rfi G)＊ ⨾ rpp
   rewrite sub_rppo_in; eauto.
   apply ETCCOH. }
 
+assert (W_ex_sb_IST :
+          dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁
+                  issued T ∪₁ S ∩₁ Tid_ thread).
+{ rewrite sub_sb_in; eauto.
+  arewrite (⦗issued T ∪₁ S ∩₁ Tid_ thread⦘ ⊆
+            ⦗S⦘ ;; ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘).
+  { generalize ETCCOH.(etc_I_in_S). unfold eissued.
+    basic_solver. }
+  arewrite (⦗W_ex G⦘ ⊆ ⦗W_ex G⦘ ;; ⦗W_ex Gf⦘).
+  { generalize (sub_W_ex_in SUB). basic_solver. }
+  arewrite (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗S⦘ ⊆ <|S|> ;; ⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗S⦘).
+  { apply dom_rel_helper. apply ETCCOH. }
+  unfolder. ins. desc.
+  destruct (classic (issued T x)) as [|NIX]; eauto.
+  destruct (classic (tid x = thread)) as [|NTID]; eauto.
+  exfalso.
+  (* TODO: Show that 'G.(acts_set) x' doesn't hold.
+           It contradicts 'G.(W_ex) x'. *)
+  admit. }
+
 assert (new_rfif : functional new_rfi⁻¹).
 { arewrite  (new_rfi ⊆ new_rf G Gsc T S thread).
   unfold new_rfi; basic_solver.
-    by apply wf_new_rff. }
+  apply wf_new_rff; auto. }
 
 set (new_rfe := ⦗ NTid_ thread ⦘ ⨾ new_rf G Gsc T S thread ⨾ ⦗ Tid_ thread ⦘).
 
@@ -702,6 +722,9 @@ assert (dom_rel (⦗W_ex G ∩₁ (is_xacq (lab G))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆
   rewrite sub_W_ex_in; eauto.
   apply ETCCOH. }
 
+assert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ I ⊆₁ GW_ex G).
+{ admit. }
+
 exists (certG G Gsc T S thread lab').
 exists Gsc.
 exists (mkTC (T.(covered) ∪₁ (G.(acts_set) ∩₁ NTid_ thread)) T.(issued)).
@@ -718,7 +741,7 @@ red. splits.
   { erewrite same_lab_u2v_is_rlx; eauto.
     rewrite cert_E. rewrite acts_G_in_acts_Gf.
     rewrite lab_G_eq_lab_Gf. apply SIMREL. }
-  { by apply TCCOH_cert. }
+  { by apply ETCCOH_cert. }
   { erewrite same_lab_u2v_is_rel; eauto.
     erewrite same_lab_u2v_is_w; eauto.
     rewrite RELCOV_G. basic_solver. }
