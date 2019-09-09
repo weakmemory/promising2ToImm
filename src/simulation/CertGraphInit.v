@@ -826,7 +826,22 @@ all: eauto.
   rewrite H.
   eapply msg_rel_I; eauto.
   apply seq_eqv_r. split; auto. }
-{ admit. (* sim_half_prom *) }
+{ red. ins. (* sim_half_prom *)
+  eapply SIM_HPROM in RES.
+  desf.
+  assert ((S ∩₁ Tid_ thread) b) as SB.
+  { admit. }
+  assert ((S ∩₁ Tid_ thread) b') as SB'.
+  { admit. }
+  exists b, b'. splits; auto.
+  { erewrite same_lab_u2v_loc in LOC; eauto.
+    rewrite <- lab_G_eq_lab_Gf; eauto.
+      by apply same_lab_u2v_comm. }
+  { admit.  }
+  { destruct NOBEF as [w HH]. apply seq_eqv_l in HH. destruct HH as [IW RFRMW].
+    exists w. apply seq_eqv_l. split; auto.
+    admit. }
+  admit. }
 { red. ins. (* sim_mem *)
   edestruct SIM_MEM with (b:=b) as [rel_opt]; eauto.
   { erewrite same_lab_u2v_loc in LOC; eauto.
@@ -941,6 +956,6 @@ eexists. red. splits.
 { apply STEPS'. }
 { intros HH. inv HH. }
 done.
-Qed.
+Admitted.
 
 End Cert.
