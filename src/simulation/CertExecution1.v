@@ -1032,8 +1032,10 @@ Proof.
   apply no_sb_to_init in WEX. unfolder in WEX. desf.
 Qed.
 
-Lemma W_ex_IST : GW_ex ∩₁ E ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread.
+Lemma W_ex_IST : GW_ex ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread.
 Proof.
+  arewrite (GW_ex ⊆₁ GW_ex ∩₁ E).
+  { unfold W_ex. rewrite rstWF.(wf_rmwE). basic_solver. }
   rewrite E_E0. unfold E0.
   rewrite !set_inter_union_r. unionL.
   { rewrite rstWF.(W_ex_in_W).
@@ -1057,7 +1059,7 @@ Proof.
   exfalso. eapply W_ex_not_init; eauto.
 Qed.
 
-Lemma W_ex_E: GW_ex ∩₁ E ⊆₁ S.
+Lemma W_ex_E: GW_ex ⊆₁ S.
 Proof.
   rewrite W_ex_IST. rewrite ETCCOH.(etc_I_in_S). basic_solver.
 Qed.

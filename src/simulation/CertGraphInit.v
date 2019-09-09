@@ -100,9 +100,6 @@ subst; eapply E_to_S; edone.
 assert (Grfe_E : dom_rel G.(rfe) ⊆₁ T.(issued)).
 subst; eapply Grfe_E; edone.
 
-assert ( W_ex_E: G.(W_ex) ∩₁ G.(acts_set) ⊆₁ S).
-subst; eapply W_ex_E; edone.
-
 assert (E_F_AcqRel_in_C: G.(acts_set) ∩₁ (is_f G.(lab)) ∩₁ (is_ra G.(lab)) ⊆₁ T.(covered)).
 subst; eapply E_F_AcqRel_in_C; edone.
 
@@ -370,7 +367,7 @@ assert (S_in_W : S ⊆₁ is_w G.(lab)).
 assert (ST_in_E : S ∩₁ Tid_ thread ⊆₁ acts_set G).
 { subst. rewrite E_E0; eauto. unfold E0.
   unionR left -> right. basic_solver 10. }
-assert (W_ex_IST : W_ex G ∩₁ acts_set G ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread).
+assert (W_ex_IST : W_ex G ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread).
 { subst. eapply W_ex_IST; eauto. }
 
 assert
@@ -388,15 +385,6 @@ assert (RPPO_S : dom_rel ((detour G ∪ rfe G) ⨾ (data G ∪ rfi G)＊ ⨾ rpp
   subst.
   rewrite sub_rppo_in; eauto.
   apply ETCCOH. }
-
-assert (W_ex_sb_IST :
-          dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁
-                  issued T ∪₁ S ∩₁ Tid_ thread).
-{ arewrite (W_ex G ⊆₁ W_ex G ∩₁ acts_set G).
-  { unfolder. intros x [y RMW]. split.
-    { eexists. eauto. }
-    apply WF_G.(wf_rmwE) in RMW. unfolder in RMW. desf. }
-  rewrite W_ex_IST. basic_solver. }
 
 assert (new_rfif : functional new_rfi⁻¹).
 { arewrite  (new_rfi ⊆ new_rf G Gsc T S thread).

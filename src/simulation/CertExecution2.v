@@ -112,7 +112,7 @@ Hypothesis AT : rmw_atomicity G.
 Hypothesis IT_new_co: I ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
 Hypothesis E_to_S: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘).
 Hypothesis Grfe_E : dom_rel Grfe ⊆₁ I.
-Hypothesis W_ex_IST : GW_ex ∩₁ E ⊆₁ I ∪₁ S ∩₁ Tid_ thread.
+Hypothesis W_ex_IST : GW_ex ⊆₁ I ∪₁ S ∩₁ Tid_ thread.
 Hypothesis E_F_AcqRel_in_C: E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
 Hypothesis COMP_ACQ: forall r (IN: (E ∩₁ R ∩₁ Acq) r), exists w, Grf w r.
 Hypothesis urr_helper: dom_rel ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ Grelease ⨾ ⦗I⦘) ⊆₁ C.
@@ -135,10 +135,8 @@ Hypothesis I_in_S : I ⊆₁ S.
 Hypothesis W_ex_acq_sb_S : dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 Hypothesis F_sb_S_in_C : dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ C.
-Hypothesis W_ex_sb_IST :
-  dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁ I ∪₁ S ∩₁ Tid_ thread.
 
-Lemma W_ex_E : GW_ex ∩₁ E ⊆₁ S.
+Lemma W_ex_E : GW_ex ⊆₁ S.
 Proof. rewrite W_ex_IST. rewrite I_in_S. basic_solver. Qed.
 
 (******************************************************************************)
@@ -1587,8 +1585,7 @@ Proof.
 
   red; ins; cut (irreflexive (Cfr ⨾ (cert_co \ Gsb) ⨾ Grmw^{-1})).
   { basic_solver 12. }
-  rewrite (rmw_W_ex), (dom_r (wf_rmwE WF)), !transp_seq, !transp_eqv_rel.
-  arewrite (⦗GW_ex⦘ ⨾ ⦗E⦘ ⊆ ⦗GW_ex ∩₁ E⦘) by basic_solver.
+  rewrite (rmw_W_ex), !transp_seq, !transp_eqv_rel.
   unfold cert_co.
   rotate 1.
   unfold fr; ins; rewrite transp_union.
@@ -1599,10 +1596,10 @@ Proof.
   unfold cert_co.
 
   arewrite ((new_co G (I ∪₁ S ∩₁ Tid_ thread)
-                    (E ∩₁ W ∩₁ Tid_ thread) \ Gsb) ⨾ ⦗GW_ex ∩₁ E⦘ ⊆
+                    (E ∩₁ W ∩₁ Tid_ thread) \ Gsb) ⨾ ⦗GW_ex⦘ ⊆
             (new_co G (I ∪₁ S ∩₁ Tid_ thread)
-                    (E ∩₁ W ∩₁ Tid_ thread) ∩ Gco \ Gsb) ⨾ ⦗GW_ex ∩₁ E⦘).
-  { cut (new_co G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread) ⨾ ⦗GW_ex ∩₁ E⦘ ⊆ Gco).
+                    (E ∩₁ W ∩₁ Tid_ thread) ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘).
+  { cut (new_co G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread) ⨾ ⦗GW_ex⦘ ⊆ Gco).
     { basic_solver 21. }
     rewrite W_ex_IST.
     rewrite (new_co_I IST_new_co); try apply WF.
@@ -1630,16 +1627,16 @@ Proof.
   remember (new_co G (I ∪₁ S ∩₁ Tid_ thread)
                    (E ∩₁ W ∩₁ Tid_ thread)) as new.
   arewrite (<|E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)|>
-              ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗GW_ex ∩₁ E⦘ ⊆
+              ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘ ⊆
             ⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
-              ⨾ new ⨾ ⦗GW_ex ∩₁ E \₁ E ∩₁ W ∩₁ Tid_ thread⦘).
+              ⨾ new ⨾ ⦗GW_ex \₁ E ∩₁ W ∩₁ Tid_ thread⦘).
   { unfolder; ins; desf; splits; eauto.
     intros [[EY WY] TT].
     eapply same_thread in TT; desf; eauto.
-    2: { hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H4.
-         unfolder in H4; desf. }
+    2: { hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H3.
+         unfolder in H3; desf. }
     destruct TT; desf; try subst z2; eauto. 
-    { apply co_irr in H4; auto. }
+    { apply co_irr in H3; auto. }
     eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone. }
   rewrite W_ex_IST.
   subst new.
@@ -2263,6 +2260,7 @@ Proof.
     apply seq_eqv_lr in RFE. destruct RFE as [IW [RFE DZ]].
     eapply dom_cert_detour_rfe_D. basic_solver 10. }
   { by rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S. }
+  { rewrite W_ex_IST. basic_solver. }
   rewrite Crppo_in_rppo.
   arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆
             <|D|> ;; Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘).
