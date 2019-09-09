@@ -723,7 +723,21 @@ assert (dom_rel (⦗W_ex G ∩₁ (is_xacq (lab G))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆
   apply ETCCOH. }
 
 assert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ issued T ⊆₁ W_ex G).
-{ admit. }
+{ arewrite (S ∩₁ Tid_ thread \₁ issued T ⊆₁
+            W_ex Gf ∩₁ S ∩₁ Tid_ thread \₁ issued T).
+  { unfolder. ins. desf. splits; auto.
+    apply ETCCOH.(etc_S_I_in_W_ex). unfold eissued.
+    basic_solver. }
+  unfold W_ex.
+  rewrite (sub_rmw SUB).
+  subst.
+  unfolder. ins. desf.
+  eexists. splits; eauto.
+  all: eapply E_E0; eauto.
+  all: red.
+  all: left; right.
+  all: exists x; apply seq_eqv_r; split; [|split]; auto.
+  eapply inclusion_step_cr; [reflexivity|]. by apply WF.(rmw_in_sb). }
 
 exists (certG G Gsc T S thread lab').
 exists Gsc.
