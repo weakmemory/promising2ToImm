@@ -669,8 +669,12 @@ assert (forall b (ISSB : issued T b), val lab' b = val Gf.(lab) b) as ISS_OLD.
 assert (acts_certG_in_acts_Gf : acts_set (certG G Gsc T S thread lab') ⊆₁ acts_set Gf).
 { by unfold certG. }
 
-assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) ⨾ ⦗issued T⦘ ⊆
-        rf Gf ⨾ rmw Gf) as RFRMW_IN.
+assert (issued T ∪₁ S ∩₁ Tid_ thread ⊆₁ S) as IST_in_S.
+{ generalize ETCCOH.(etc_I_in_S). unfold eissued. simpls.
+  basic_solver. } 
+
+assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘ ⊆
+        rf Gf ⨾ rmw Gf) as RFRMW_IST_IN.
 { intros x y H2. apply seq_eqv_r in H2.
   destruct H2 as [H2 ISSZ].
   destruct H2 as [z [RF RMW']].
@@ -685,10 +689,12 @@ assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) 
   apply seq_eqv_l in RF. destruct RF as [_ RF].
   apply seq_eqv_r in RF. destruct RF as [_ [_ RF]].
   apply RF.
-  red. left. left. left. right. exists y. apply seqA.
-  apply seq_eqv_r. split; auto.
-  eexists. split; eauto.
-    by apply rmw_in_ppo. }
+  apply dom_rppo_S_in_D. exists y. 
+  apply seq_eqv_r. split; auto. by apply rmw_in_rppo. }
+
+assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) ⨾ ⦗issued T⦘ ⊆
+        rf Gf ⨾ rmw Gf) as RFRMW_IN.
+{ arewrite (issued T ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread). by rewrite <- seqA. }
 
 assert (issued T ⊆₁ S) as I_in_S.
 { apply ETCCOH. }
@@ -751,33 +757,33 @@ red. splits.
     all: right; split; [auto|by generalize NTID; rewrite TIDRW]. }
   { red. splits.
     1,2: by (intros x [AA BB]; apply FCOH; split; auto).
-    { ins. by apply FCOH. }
-    { ins. apply FCOH; auto.
-      assert ((cert_co G T thread ⨾ ⦗ issued T ⦘) x y) as HH.
+    { intros x HH AA. apply FCOH; auto. }
+    { ins. apply FCOH.
+      1,2: by apply IST_in_S.
+      assert ((cert_co G T S thread ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) x y) as HH.
       { apply seq_eqv_r. by split. }
-      apply cert_co_I in HH; auto.
+      eapply cert_co_I in HH; eauto.
       apply seq_eqv_r in HH. destruct HH as [HH _].
       eapply (sub_co SUB) in HH.
       apply seq_eqv_l in HH. destruct HH as [_ HH].
       apply seq_eqv_r in HH. desf. }
     ins. apply FCOH; auto.
-    apply RFRMW_IN. apply seq_eqv_r. split; auto. }
+    apply RFRMW_IST_IN. apply seq_eqv_r. split; auto. }
   { intros _.
     erewrite same_lab_u2v_is_sc; eauto.
     erewrite same_lab_u2v_is_f; eauto.
     unfold certG, acts_set. simpls.
     rewrite H.
-    arewrite ((fun x => In x (acts (rstG Gf T thread))) ⊆₁
-                                                        (acts_set (rstG Gf T thread))).
+    arewrite ((fun x => In x (acts (rstG Gf T S thread))) ⊆₁
+              (acts_set (rstG Gf T S thread))).
     erewrite E_F_Sc_in_C; eauto.
     basic_solver. }
   split; unnw.
   { subst G.
     rewrite cert_sb.
     eapply cert_co_for_split; eauto. }
-  rewrite rmw_W_ex, (dom_r (wf_rmwE WF_G)), !seqA.
-  arewrite (⦗acts_set G⦘ ⨾ ⦗W_ex G⦘ ⊆ ⦗W_ex G ∩₁ acts_set G⦘) by basic_solver.
-  rewrite W_ex_E; basic_solver. }
+  rewrite rmw_W_ex. subst.
+  rewrite W_ex_IST; eauto. basic_solver. }
 red. splits.
 eexists. eexists. splits; auto.
 { apply GPC. }
@@ -805,13 +811,13 @@ all: eauto.
   { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b) as XX.
     2: { apply seq_eqv_r in XX. desf. }
     eapply msg_rel_I; eauto.
-    eapply cert_msg_rel; eauto.
+    eapply cert_msg_rel with (lab':=lab'); eauto.
     { by rewrite <- H. }
     all: rewrite <- H; eauto.
     all: try by unfold rst_sc; rewrite <- HeqGsc.
     apply seq_eqv_r. split; auto.
-      by unfold rst_sc; rewrite <- HeqGsc. }
-  assert ((msg_rel (certG G Gsc T thread lab') Gsc ll ⨾ ⦗ issued T ⦘) x b) as XX.
+    unfold rst_sc. by rewrite <- HeqGsc. }
+  assert ((msg_rel (certG G Gsc T S thread lab') Gsc ll ⨾ ⦗ issued T ⦘) x b) as XX.
   2: { apply seq_eqv_r in XX. desf. }
   rewrite HeqGsc. rewrite H.
   eapply cert_msg_rel; eauto.
@@ -820,6 +826,7 @@ all: eauto.
   rewrite H.
   eapply msg_rel_I; eauto.
   apply seq_eqv_r. split; auto. }
+{ admit. (* sim_half_prom *) }
 { red. ins. (* sim_mem *)
   edestruct SIM_MEM with (b:=b) as [rel_opt]; eauto.
   { erewrite same_lab_u2v_loc in LOC; eauto.
@@ -839,13 +846,13 @@ all: eauto.
     { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b) as XX.
       2: { apply seq_eqv_r in XX. desf. }
       eapply msg_rel_I; eauto.
-      eapply cert_msg_rel; eauto.
+      eapply cert_msg_rel with (lab':=lab'); eauto.
       { by rewrite <- H. }
       all: rewrite <- H; eauto.
       all: try by unfold rst_sc; rewrite <- HeqGsc.
       apply seq_eqv_r. split; auto.
         by unfold rst_sc; rewrite <- HeqGsc. }
-    assert ((msg_rel (certG G Gsc T thread lab') Gsc ll ⨾ ⦗ issued T ⦘) x b) as XX.
+    assert ((msg_rel (certG G Gsc T S thread lab') Gsc ll ⨾ ⦗ issued T ⦘) x b) as XX.
     2: { apply seq_eqv_r in XX. desf. }
     rewrite HeqGsc. rewrite H.
     eapply cert_msg_rel; eauto.
@@ -887,35 +894,34 @@ all: eauto.
   rewrite ISS_OLD; auto. }
 { red. splits; red; ins. (* sim_tview *)
   { assert
-      (t_cur (certG G Gsc T thread lab') Gsc thread l
+      (t_cur (certG G Gsc T S thread lab') Gsc thread l
              (covered T ∪₁ acts_set G ∩₁ NTid_ thread) ≡₁
              t_cur Gf sc thread l (covered T)) as XX.
     2: { eapply max_value_same_set; eauto. apply SIM_TVIEW. }
     
     rewrite cert_t_cur_thread; try done.
-    arewrite (Gsc ≡ (rst_sc Gf sc T thread)).
-      by unfold rst_sc; rewrite <- HeqGsc.
-      subst; eapply t_cur_thread; try done. }
+    arewrite (Gsc ≡ (rst_sc Gf sc T S thread)).
+    {  by unfold rst_sc; rewrite <- HeqGsc. }
+    subst; eapply t_cur_thread; try done. }
 
   { assert
-      (t_acq (certG G Gsc T thread lab') Gsc thread l
+      (t_acq (certG G Gsc T S thread lab') Gsc thread l
              (covered T ∪₁ acts_set G ∩₁ NTid_ thread) ≡₁
              t_acq Gf sc thread l (covered T)) as XX.
     2: { eapply max_value_same_set; eauto. apply SIM_TVIEW. }
 
     rewrite cert_t_acq_thread; try done.
-    arewrite (Gsc ≡ (rst_sc Gf sc T thread)).
-      by unfold rst_sc; rewrite <- HeqGsc.
-      subst; eapply t_acq_thread; try done. }
+    arewrite (Gsc ≡ (rst_sc Gf sc T S thread)).
+    { by unfold rst_sc; rewrite <- HeqGsc. }
+    subst; eapply t_acq_thread; try done. }
 
-  assert (t_rel (certG G Gsc T thread lab') Gsc thread l l'
+  assert (t_rel (certG G Gsc T S thread lab') Gsc thread l l'
                 (covered T ∪₁ acts_set G ∩₁ NTid_ thread) ≡₁
                 t_rel Gf sc thread l l' (covered T)) as XX.
-
   { rewrite cert_t_rel_thread; try done.
-    arewrite (Gsc ≡ (rst_sc Gf sc T thread)).
-      by unfold rst_sc; rewrite <- HeqGsc.
-      subst; eapply t_rel_thread; try done. }
+    arewrite (Gsc ≡ (rst_sc Gf sc T S thread)).
+    { by unfold rst_sc; rewrite <- HeqGsc. }
+    subst; eapply t_rel_thread; try done. }
 
   cdes SIM_TVIEW.
   eapply max_value_same_set.
