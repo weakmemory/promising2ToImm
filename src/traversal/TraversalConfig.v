@@ -543,6 +543,17 @@ basic_solver.
       by apply ar_rfrmw_I_in_I.
   Qed.
 
+  Lemma rfrmw_rt_I_in_I  :
+    dom_rel ((rf ;; rmw)^* ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof.
+    rewrite rtE. rewrite !seq_union_l, !seq_id_l. rewrite dom_union.
+    unionL; [basic_solver|].
+    rewrite (dom_l WF.(wf_rfD)). rewrite !seqA.
+    rewrite inclusion_ct_seq_eqv_l. rewrite !seqA.
+    arewrite (rf ⨾ rmw ⊆ ar ∪ rf ⨾ rmw).
+    apply ar_rfrmw_ct_I_in_I.
+  Qed.
+
   Lemma rfrmw_CI_in_I  :
     dom_rel (rf ;; rmw ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
   Proof.
@@ -931,6 +942,11 @@ basic_solver.
     rewrite dom_cond_elim1; [basic_solver 21|].
     unfold imm_common.fwbob.
     basic_solver 12.
+  Qed.
+
+  Lemma W_Rel_sb_loc_I : dom_rel (⦗W ∩₁ Rel⦘ ⨾  (sb ∩ same_loc) ⨾ ⦗W ∩₁ issued T⦘) ⊆₁ issued T.
+  Proof.
+    generalize dom_W_Rel_sb_loc_I_in_C, w_covered_issued. basic_solver 21.
   Qed.
 
   Lemma sb_loc_issued  :

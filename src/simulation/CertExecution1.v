@@ -397,31 +397,6 @@ Proof.
   basic_solver 21.
 Qed.
 
-Lemma rt_rf_rmw_S' :
-  (Frf ⨾ Frmw)＊ ⨾ ⦗S⦘ ⊆ (Frfi ⨾  Frmw)^* ⨾ (⦗I⦘ ⨾  (Frf ⨾ Frmw)^+)^? ⨾ ⦗S⦘.
-Proof.
-  apply rt_ind_left with (P:= fun r => r ⨾ ⦗S⦘).
-  - by eauto with hahn.
-  - basic_solver 12.
-  - intros k H. rewrite !seqA, H.
-    rewrite rfi_union_rfe at 1. rewrite !seq_union_l; unionL.
-    by hahn_frame; rewrite rt_begin at 2; basic_solver 21.
-    arewrite ((Frfi ⨾ Frmw)＊ ⨾ (⦗I⦘ ⨾ (Frf ⨾ Frmw)⁺)^? ⊆ (Frf ⨾ Frmw)^*).
-    by arewrite (Frfi ⊆ Frf); arewrite_id (<|I|>); relsf.
-    relsf.
-    sin_rewrite rmw_W_ex; rewrite !seqA.
-    rewrite (dom_rel_helper (rt_rf_rmw_S WF ETCCOH)).
-    seq_rewrite (dom_rel_helper (rfe_rmw_S WF ETCCOH)).
-    arewrite (Frfe ⊆ Frf).
-    rewrite ct_begin.
-    basic_solver 21.
-Qed.
-
-Lemma W_Rel_sb_loc_I : dom_rel (⦗FW ∩₁ FRel⦘ ⨾  (Fsb ∩  Fsame_loc) ⨾ ⦗FW ∩₁ I⦘) ⊆₁ I.
-Proof.
-  generalize (dom_W_Rel_sb_loc_I_in_C TCCOH), (w_covered_issued TCCOH); basic_solver 21.
-Qed.
-
 Lemma release_I : Frelease ⨾ ⦗I⦘ ⊆ ⦗C⦘ ⨾ Grelease.
 Proof.
   unfold imm_s_hb.release.
@@ -443,7 +418,7 @@ Proof.
     generalize (@sb_same_loc_trans Gf); ins; relsf. }
   case_refl (⦗F⦘ ⨾ Fsb).
   { arewrite (⦗Rel⦘ ⨾ ⦗W⦘ ⨾ (Fsb ∩ Fsame_loc)^? ⨾ ⦗W⦘ ⨾ ⦗I⦘ ⊆ ⦗I⦘ ⨾ ⦗Rel⦘ ⨾ ⦗W⦘ ⨾ ((⦗E⦘ ⨾ Fsb ⨾ ⦗E⦘) ∩ Fsame_loc)^? ⨾ ⦗W⦘ ⨾ ⦗I⦘).
-    { generalize W_Rel_sb_loc_I I_in_E; basic_solver 21. }
+    { generalize (W_Rel_sb_loc_I TCCOH) I_in_E. basic_solver 21. }
     seq_rewrite <- (sub_sb SUB); revert RELCOV; basic_solver 40. }
   arewrite ((Fsb ∩ Fsame_loc)^? ⊆ Fsb^?) at 1.
   arewrite_id ⦗FW⦘ at 1.
@@ -459,15 +434,15 @@ Lemma release_S : Frelease ⨾ ⦗S⦘ ⊆ ⦗C⦘ ⨾ (fun _ _ => True) +++ Fsb
 Proof.
   unfold imm_s_hb.release at 1, imm_s_hb.rs at 1.
   rewrite !seqA.
-rewrite rt_rf_rmw_S'.
-rewrite (crE (⦗I⦘ ⨾ (Frf ⨾ Frmw)⁺)); relsf; unionL.
-- arewrite (Frfi ⊆ Fsb).
-rewrite (rmw_in_sb WF).
-generalize (@sb_trans Gf); ins; relsf. basic_solver 12.
-- arewrite (Frfi ⊆ Frf).
-arewrite (⦗FRel⦘ ⨾ (⦗FF⦘ ⨾ Fsb)^? ⨾ ⦗FW⦘ ⨾ (Fsb ∩ Fsame_loc)^? ⨾ ⦗FW⦘ ⨾ (Frf ⨾ Frmw)＊ ⊆ Frelease).
-sin_rewrite release_I.
-basic_solver 21.
+  rewrite (rt_rf_rmw_S' WF ETCCOH).
+  rewrite (crE (⦗I⦘ ⨾ (Frf ⨾ Frmw)⁺)); relsf; unionL.
+  { arewrite (Frfi ⊆ Fsb).
+    rewrite (rmw_in_sb WF).
+    generalize (@sb_trans Gf); ins; relsf. basic_solver 12. }
+  arewrite (Frfi ⊆ Frf).
+  arewrite (⦗FRel⦘ ⨾ (⦗FF⦘ ⨾ Fsb)^? ⨾ ⦗FW⦘ ⨾ (Fsb ∩ Fsame_loc)^? ⨾ ⦗FW⦘ ⨾ (Frf ⨾ Frmw)＊ ⊆ Frelease).
+  sin_rewrite release_I.
+  basic_solver 21.
 Qed.
 
 Lemma sb_F_E : dom_rel (Fsb ⨾ ⦗FF ∩₁ FAcq/Rel ∩₁ E⦘) ⊆₁ C ∪₁ I.

@@ -20,3 +20,10 @@ Proof. red; unfolder; splits; ins; desf; eauto. Qed.
 Add Parametric Morphism A : (@set_union A) with signature 
   set_subset ==> set_subset ==> set_subset as set_union_mori.
 Proof. red; unfolder; splits; ins; desf; eauto. Qed.
+
+Lemma codom_rel_helper {A} (r : relation A) (d : A -> Prop) (HH : codom_rel r ⊆₁ d) :
+  r ≡ r ⨾ ⦗d⦘.
+Proof.
+  split; [|basic_solver].
+  unfolder. ins. split; auto. apply HH. red. eauto.
+Qed.

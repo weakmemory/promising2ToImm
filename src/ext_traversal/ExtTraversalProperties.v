@@ -131,4 +131,51 @@ generalize (etc_rppo_S ETCCOH).
 basic_solver 21.
 Qed.
 
+Lemma nI_rfrmw_in_rfirmw :
+  ⦗set_compl I⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘ ≡ ⦗set_compl I⦘ ⨾ rfi ⨾ rmw ⨾ ⦗S⦘.
+Proof.
+  split.
+  2: by arewrite (rfi ⊆ rf).
+  rewrite rfi_union_rfe. rewrite !seq_union_l, !seq_union_r.
+  unionL; [done|].
+  rewrite (dom_rel_helper rfe_rmw_S).
+  basic_solver.
+Qed.
+
+Lemma rt_rf_rmw_S' :
+  (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ (rfi ⨾  rmw)^* ⨾ (⦗I⦘ ⨾ (rf ⨾ rmw)⁺)^? ⨾ ⦗S⦘.
+Proof.
+  apply rt_ind_left with (P:= fun r => r ⨾ ⦗S⦘).
+  { by eauto with hahn. }
+  { basic_solver 12. }
+  intros k H. rewrite !seqA, H.
+  rewrite rfi_union_rfe at 1. rewrite !seq_union_l; unionL.
+  { hahn_frame. rewrite rt_begin at 2. basic_solver 21. }
+  arewrite ((rfi ⨾ rmw)＊ ⨾ (⦗I⦘ ⨾ (rf ⨾ rmw)⁺)^? ⊆ (rf ⨾ rmw)^*).
+  { arewrite (rfi ⊆ rf); arewrite_id (<|I|>); relsf. }
+  relsf.
+  sin_rewrite rmw_W_ex; rewrite !seqA.
+  rewrite (dom_rel_helper rt_rf_rmw_S).
+  seq_rewrite (dom_rel_helper rfe_rmw_S).
+  arewrite (rfe ⊆ rf).
+  rewrite ct_begin.
+  basic_solver 21.
+Qed.
+
+Lemma nI_rfrmw_rt_in_rfirmw_rt :
+  ⦗set_compl I⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ ⦗set_compl I⦘ ⨾ (rfi ⨾ rmw)＊ ⨾ ⦗S⦘.
+Proof.
+  rewrite rt_rf_rmw_S'.
+  rewrite crE. rewrite !seq_union_l, !seq_union_r, !seq_id_l.
+  unionL; [done|].
+  rewrite !seqA.
+  arewrite (⦗set_compl I⦘ ⨾ (rfi ⨾ rmw)＊ ⨾ ⦗I⦘ ⊆ ∅₂).
+  2: basic_solver.
+  arewrite (rfi ⊆ rf).
+  intros x y HH. apply seq_eqv_l in HH. destruct HH as [AA HH].
+  apply AA. eapply rfrmw_rt_I_in_I; eauto.
+  { apply ETCCOH. }
+  eexists. apply HH.
+Qed.
+
 End ExtTraversalProperties.

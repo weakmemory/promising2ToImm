@@ -23,6 +23,8 @@ Require Import SimulationRel.
 Require Import SimState.
 Require Import ExtTraversal.
 Require Import CertExecution1.
+Require Import ImmProperties.
+Require Import ExtTraversalProperties.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -828,11 +830,37 @@ all: eauto.
   apply seq_eqv_r. split; auto. }
 { red. ins. (* sim_half_prom *)
   eapply SIM_HPROM in RES.
-  desf.
-  assert ((S ∩₁ Tid_ thread) b) as SB.
-  { admit. }
+  desc.
+  assert (~ issued T b /\ (S ∩₁ Tid_ thread) b) as [NIB SB].
+  { apply seq_eqv_lr in RFRMWS. unfolder in RFRMWS. desf. }
+  assert (acts_set Gf b) as FEB.
+  { apply ETCCOH.(etc_S_in_E). apply SB. }
+  assert (same_tid b b') as STT.
+  { eapply WF.(ninit_rfi_rmw_rt_same_tid).
+    apply seq_eqv_l. split.
+    { intros AA. apply NIB. eapply init_issued with (G:=Gf); eauto.
+      split; auto. }
+    eapply inclusion_seq_eqv_r.
+    eapply inclusion_seq_eqv_l.
+    eapply (nI_rfrmw_rt_in_rfirmw_rt WF ETCCOH).
+    unfold eissued. simpls.
+    generalize RFRMWS. basic_solver 10. }
   assert ((S ∩₁ Tid_ thread) b') as SB'.
-  { admit. }
+  { apply seq_eqv_lr in RFRMWS. destruct RFRMWS as [AA [BB CC]].
+    split; [by apply CC|].
+    rewrite <- STT. apply SB. }
+
+  assert (acts_set G b) as EB.
+  { subst. eapply E_E0; eauto. red.
+    (* TODO: introduce selector. *)
+    left. right.
+    generalize SB. basic_solver 10. }
+  assert (acts_set G b') as EB'.
+  { subst. eapply E_E0; eauto. red.
+    (* TODO: introduce selector. *)
+    left. right.
+    generalize SB'. basic_solver 10. }
+
   exists b, b'. splits; auto.
   { erewrite same_lab_u2v_loc in LOC; eauto.
     rewrite <- lab_G_eq_lab_Gf; eauto.
