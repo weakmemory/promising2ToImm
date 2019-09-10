@@ -865,7 +865,15 @@ all: eauto.
   { erewrite same_lab_u2v_loc in LOC; eauto.
     rewrite <- lab_G_eq_lab_Gf; eauto.
       by apply same_lab_u2v_comm. }
-  { admit.  }
+  { apply seq_eqv_lr. splits.
+    3: { split; auto.
+         { by right. }
+         apply seq_eqv_lr in RFRMWS.
+         apply RFRMWS. }
+    { do 2 (split; auto).
+      { apply SB. }
+        by right. }
+    admit.  }
   { destruct NOBEF as [w HH]. apply seq_eqv_l in HH. destruct HH as [IW RFRMW].
     exists w. apply seq_eqv_l. split; auto.
     admit. }

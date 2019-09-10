@@ -27,3 +27,10 @@ Proof.
   split; [|basic_solver].
   unfolder. ins. split; auto. apply HH. red. eauto.
 Qed.
+
+Lemma inter_inclusion {A : Type} (r r' : relation A) (IN : r ⊆ r') :
+  r ⊆ r ∩ r'.
+Proof. basic_solver. Qed.
+
+Lemma inter_eq {A : Type} (r r' : relation A) (EQ : r ≡ r') : r ≡ r ∩ r'.
+Proof. generalize EQ. basic_solver. Qed.

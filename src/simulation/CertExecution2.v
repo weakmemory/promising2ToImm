@@ -10,6 +10,7 @@ From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 
+Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import TraversalConfigAlt.
 Require Import TraversalConfigAltOld.
@@ -1563,20 +1564,6 @@ red; case_refl _.
 - generalize coh_helper; basic_solver 21.
 Qed.
 
-(* TODO: move to Hahn ? *)
-
-Lemma dr {A : Type} (r r' : relation A) : 
-  r ⊆ r' -> r ⊆ r ∩ r'.
-Proof.
-basic_solver.
-Qed.
-
-Lemma de {A : Type} (r r' : relation A) : 
-  r ≡ r' -> r ≡ r ∩ r'.
-Proof.
-basic_solver.
-Qed.
-
 Lemma cert_rmw_atomicity : rmw_atomicity certG.
 Proof.
   clear OLD_VAL NEW_VAL SAME ACYC_EXT CSC COMP_ACQ.
@@ -1641,12 +1628,13 @@ Proof.
   rewrite W_ex_IST.
   subst new.
 
-  rewrite (dr (@T_I_new_co_I_T G (I ∪₁ S ∩₁ Tid_ thread) 
-                               (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
+  rewrite (inter_inclusion
+             (@T_I_new_co_I_T G (I ∪₁ S ∩₁ Tid_ thread) 
+                              (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
 
-  rewrite (de (wf_rfD WF)), (de (wf_rfE WF)), 
-  (dr (wf_rfl WF)), (dr (wf_rmwl WF)),
-  (dr (wf_col WF)).
+  rewrite (inter_eq (wf_rfD WF)), (inter_eq (wf_rfE WF)), 
+  (inter_inclusion (wf_rfl WF)), (inter_inclusion (wf_rmwl WF)),
+  (inter_inclusion (wf_col WF)).
   unfolder; ins; desc. subst z0 z3. 
   assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence).
   assert (K: Gco z4 z1 \/ Gco z1 z4).
