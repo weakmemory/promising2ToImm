@@ -835,16 +835,18 @@ all: eauto.
   { apply seq_eqv_lr in RFRMWS. unfolder in RFRMWS. desf. }
   assert (acts_set Gf b) as FEB.
   { apply ETCCOH.(etc_S_in_E). apply SB. }
-  assert (same_tid b b') as STT.
-  { eapply WF.(ninit_rfi_rmw_rt_same_tid).
-    apply seq_eqv_l. split.
-    { intros AA. apply NIB. eapply init_issued with (G:=Gf); eauto.
-      split; auto. }
-    eapply inclusion_seq_eqv_r.
+  assert ((rfi Gf ⨾ rmw Gf)＊ b b') as RFIRMW.
+  { eapply inclusion_seq_eqv_r.
     eapply inclusion_seq_eqv_l.
     eapply (nI_rfrmw_rt_in_rfirmw_rt WF ETCCOH).
     unfold eissued. simpls.
     generalize RFRMWS. basic_solver 10. }
+  assert (~ is_init b) as NINITB.
+  { intros AA. apply NIB. eapply init_issued with (G:=Gf); eauto.
+    split; auto. }
+  assert (same_tid b b') as STT.
+  { eapply WF.(ninit_rfi_rmw_rt_same_tid).
+    apply seq_eqv_l. by split. }
   assert ((S ∩₁ Tid_ thread) b') as SB'.
   { apply seq_eqv_lr in RFRMWS. destruct RFRMWS as [AA [BB CC]].
     split; [by apply CC|].
