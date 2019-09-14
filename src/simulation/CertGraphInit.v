@@ -863,6 +863,23 @@ all: eauto.
     left. right.
     generalize SB'. basic_solver 10. }
 
+  destruct NOBEF as [w HH]. apply seq_eqv_l in HH. destruct HH as [IW RFRMW].
+  destruct RFRMW as [r [RF RMW]].
+
+  assert (acts_set G r) as ER.
+  { subst. eapply E_E0; eauto. red.
+    (* TODO: introduce selector. *)
+    left. right.
+    exists b. apply seq_eqv_r. split.
+    2: by split; apply SB.
+    eapply inclusion_step_cr; [done|].
+      by apply WF.(rmw_in_sb). }
+
+  assert (rmw G r b) as GRMW.
+  { subst. unfold rstG, restrict. simpls.
+    apply seq_eqv_lr. splits; auto.
+    all: eapply E_E0; eauto. }
+
   exists b, b'. splits; auto.
   { erewrite same_lab_u2v_loc in LOC; eauto.
     rewrite <- lab_G_eq_lab_Gf; eauto.
@@ -876,9 +893,17 @@ all: eauto.
       { apply SB. }
         by right. }
     admit.  }
-  { destruct NOBEF as [w HH]. apply seq_eqv_l in HH. destruct HH as [IW RFRMW].
-    exists w. apply seq_eqv_l. split; auto.
-    admit. }
+  { exists w. apply seq_eqv_l. split; auto.
+    exists r. split; auto.
+    left. apply seq_eqv_r.
+    split.
+    { subst. unfold rstG, restrict. simpls.
+      apply seq_eqv_lr. splits; auto.
+      2: { eapply E_E0; eauto. }
+      eapply E_E0; eauto. eapply I_in_E; eauto. }
+    apply dom_rppo_S_in_D. exists b.
+    apply seq_eqv_r. split; [|by apply SB].
+    apply rmw_in_rppo; auto. }
   admit. }
 { red. ins. (* sim_mem *)
   edestruct SIM_MEM with (b:=b) as [rel_opt]; eauto.
