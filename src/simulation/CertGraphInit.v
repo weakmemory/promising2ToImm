@@ -853,23 +853,16 @@ all: eauto.
     rewrite <- STT. apply SB. }
 
   assert (acts_set G b) as EB.
-  { subst. eapply E_E0; eauto. red.
-    (* TODO: introduce selector. *)
-    left. right.
-    generalize SB. basic_solver 10. }
+  { subst. eapply ST_in_E; eauto. }
+
   assert (acts_set G b') as EB'.
-  { subst. eapply E_E0; eauto. red.
-    (* TODO: introduce selector. *)
-    left. right.
-    generalize SB'. basic_solver 10. }
+  { subst. eapply ST_in_E; eauto. }
 
   destruct NOBEF as [w HH]. apply seq_eqv_l in HH. destruct HH as [IW RFRMW].
   destruct RFRMW as [r [RF RMW]].
 
   assert (acts_set G r) as ER.
-  { subst. eapply E_E0; eauto. red.
-    (* TODO: introduce selector. *)
-    left. right.
+  { subst. eapply dom_sb_TS_in_E; eauto.
     exists b. apply seq_eqv_r. split.
     2: by split; apply SB.
     eapply inclusion_step_cr; [done|].

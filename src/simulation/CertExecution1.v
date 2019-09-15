@@ -193,6 +193,16 @@ Proof.
   rewrite E_E0; unfold E0; basic_solver.
 Qed.
 
+Lemma dom_sb_TS_in_E : dom_rel (Fsb^? ⨾ ⦗Tid_ thread ∩₁ S⦘) ⊆₁ E.
+Proof.
+  rewrite E_E0; unfold E0. basic_solver 10.
+Qed.
+
+Lemma ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
+Proof.
+  rewrite E_E0; unfold E0. basic_solver 10.
+Qed.
+
 Lemma SUB: sub_execution Gf rstG sc rst_sc.
 Proof. eapply restrict_sub. done. eapply E0_in_Gf. Qed.
 
