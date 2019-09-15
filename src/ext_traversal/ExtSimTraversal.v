@@ -202,7 +202,7 @@ Inductive ext_isim_trav_step : thread_id -> ext_trav_config -> ext_trav_config -
 Definition ext_sim_trav_step T T' :=
   exists thread, ext_isim_trav_step thread T T'.
 
-(* TODO: move to imm/TraveralConfig.v *)
+(* TODO: move to TraveralConfig.v *)
 Lemma coverable_add_eq_iff T (WFSC : wf_sc G sc) e:
   coverable G sc T e <-> coverable G sc (mkTC (covered T ∪₁ eq e) (issued T)) e.
 Proof.
@@ -225,7 +225,7 @@ Proof.
   exfalso. desf. eapply sc_irr; eauto.
 Qed.
 
-(* TODO: move to imm/TraveralConfig.v *)
+(* TODO: move to TraveralConfig.v *)
 Lemma issuable_add_eq_iff T e :
   issuable G sc T e <-> issuable G sc (mkTC (covered T) (issued T ∪₁ eq e)) e.
 Proof.
@@ -267,13 +267,6 @@ Proof.
   eapply tc_coherent_more.
   2: apply ETCCOH'.
   red; splits; simpls; by symmetry.
-Qed.
-
-(* TODO: move to a more appropriate place. *)
-Lemma ar_W_in_ar_int : ar G sc ;; <|W|> ⊆ ar_int G.
-Proof.
-  unfold ar. erewrite wf_scD with (sc:=sc); [|by apply IMMCON].
-  rewrite WF.(wf_rfeD). type_solver.
 Qed.
 
 Lemma exists_ext_sim_trav_step T (ETCCOH : etc_coherent G sc T)
@@ -482,7 +475,7 @@ Proof.
              rewrite !seqA.
                by apply ar_rfrmw_rt_I_in_I. }
         arewrite (⦗eq w⦘ ⊆ ⦗W⦘ ;; ⦗eq w⦘) by basic_solver.
-        sin_rewrite ar_W_in_ar_int.
+        sin_rewrite ar_W_in_ar_int; auto.
         rewrite ar_int_in_sb; auto.
         arewrite (sb ⨾ ⦗eq w⦘ ⊆ ⦗coverable G sc (etc_TC T)⦘ ⨾ sb ⨾ ⦗eq w⦘).
         { apply dom_rel_helper.

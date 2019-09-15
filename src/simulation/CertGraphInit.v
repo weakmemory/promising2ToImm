@@ -889,6 +889,20 @@ all: eauto.
     { do 2 (split; auto).
       { apply SB. }
         by right. }
+
+    (* eapply clos_refl_trans_mori. *)
+    (* { rewrite seq_union_l. unionR left. done. } *)
+
+    (* assert (dom_rel (rppo G ;; <|S|> ) ⊆₁ D G T S thread) as AA. *)
+    (* { unfold D. unionR left -> left -> right. *)
+    (*   rewrite <- inclusion_id_rt. by rewrite seq_id_l. } *)
+    (* eapply clos_refl_trans_mori. *)
+    (* { by rewrite <- AA. } *)
+
+    (* ⦗Tid_ thread ∩₁ S \₁ issued T⦘ ⨾ (rf Gf ⨾ rmw Gf)＊ ⨾ ⦗S \₁ issued T⦘ ⊆ *)
+    (* ((rf G ⨾ ⦗D G T S thread⦘) ⨾ rmw G)＊ *)
+
+
     admit.  }
   { exists w. apply seq_eqv_l. split; auto.
     exists r. split; auto.

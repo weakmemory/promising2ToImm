@@ -1,7 +1,7 @@
 Require Import Setoid.
 From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution Execution_eco
-     imm_common imm_s imm_s_hb CombRelations.
+     imm_common imm_s imm_s_hb CombRelations SubExecution.
 Require Import AuxRel AuxRel2.
 
 Set Implicit Arguments.
@@ -148,14 +148,6 @@ Proof.
   apply seq_mori; eauto with hahn.
 Qed.
 
-(* TODO: move to a more appropriate place. *)
-Lemma rmw_sb_cr_W_in_ppo : rmw ⨾ sb^? ⨾ ⦗W⦘ ⊆ ppo.
-Proof.
-  rewrite crE. rewrite seq_union_l, seq_union_r, seq_id_l.
-  rewrite WF.(rmw_sb_W_in_ppo).
-  rewrite WF.(rmw_in_ppo). eauto with hahn hahn_full.
-Qed.
-
 Lemma rppo_in_sb : rppo ⊆ sb.
 Proof. by rewrite rppo_in_ppo, ppo_in_sb. Qed.
 
@@ -222,3 +214,18 @@ Proof.
 Qed.
 
 End RPPO.
+
+Lemma sub_rppo_in G G' sc sc' (SUB : sub_execution G G' sc sc') :
+  rppo G' ⊆ rppo G.
+Proof.
+  unfold rppo.
+  rewrite (sub_ctrl SUB).
+  rewrite (sub_addr SUB).
+  rewrite (sub_sb SUB).
+  rewrite (sub_frmw SUB).
+  rewrite (sub_R_ex SUB), (sub_W SUB).
+  hahn_frame.
+  basic_solver 12.
+Qed.
+
+

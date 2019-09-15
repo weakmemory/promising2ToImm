@@ -10,6 +10,7 @@ From imm Require Import imm_common.
 From imm Require Import CombRelations.
 From imm Require Import imm_s_rfrmw.
 From imm Require Import AuxDef.
+Require Import AuxRel2.
 Require Import TraversalConfig.
 
 Set Implicit Arguments.
@@ -194,27 +195,6 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
     induction T; eapply trav_step_coherence; eauto.
   Qed.
   
-  (* TODO: move to imm_s. *)
-  Lemma no_ar_to_init : ar G sc ;; <|is_init|> ≡ ∅₂.
-  Proof.
-    split; [|basic_solver].
-    unfold ar.
-    rewrite WF.(ar_int_in_sb). rewrite no_sb_to_init.
-    rewrite wf_scD with (sc:=sc); [|by apply IMMCON].
-    rewrite WF.(wf_rfeD).
-    rewrite seq_union_l. unionL; [|basic_solver].
-    rewrite WF.(init_w). type_solver 10.
-  Qed.
-
-  (* TODO: move to imm_s. *)
-  Lemma no_ar_rfrmw_to_init : (ar G sc ∪ rf ⨾ rmw) ;; <|is_init|> ≡ ∅₂.
-  Proof.
-    split; [|basic_solver].
-    rewrite seq_union_l, seqA, no_ar_to_init.
-    rewrite WF.(rmw_in_sb). rewrite no_sb_to_init.
-    basic_solver.
-  Qed.
-
   Lemma init_trav_coherent : tc_coherent G sc init_trav.
   Proof.
     unfold init_trav.
@@ -232,35 +212,8 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
       eapply dom_cond_in with (r' := fun _ _ => False).
       rewrite id_inter. rewrite ct_end, !seqA.
       arewrite ((ar G sc ∪ rf ⨾ rmw) ⨾ ⦗Init⦘ ⊆ ∅₂).
-      2: basic_solver.
-      apply no_ar_rfrmw_to_init.
-  Qed.
-
-(******************************************************************************)
-(** TODO: move next lemmas to AuxRel**   *)
-(******************************************************************************)
-
-  Lemma forall_not_or_exists {A} (s P : A -> Prop):
-     (exists e, s e /\ P e) \/ (forall e, s e -> ~ P e).
-  Proof. apply NNPP. intros X. firstorder. Qed.
-
-  Lemma tot_ext_nat_extends2 (r : relation nat) : r⁺ ⊆ tot_ext_nat r.
-  Proof.
-    apply inclusion_t_ind; try apply tot_ext_nat_trans.
-    red; ins.
-    by apply tot_ext_nat_extends.
-  Qed.
-
-(******************************************************************************)
-(** TODO: move next lemma to Execution**   *)
-(******************************************************************************)
-
-  Lemma wf_sb : well_founded sb.
-  Proof.
-    eapply wf_finite; auto.
-    apply sb_acyclic.
-    rewrite (dom_l (@wf_sbE G)).
-    unfold doma; basic_solver.
+      { by apply no_ar_rfrmw_to_init. }
+      basic_solver.
   Qed.
 
 (******************************************************************************)
@@ -275,7 +228,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
     generalize dependent e.
     set (Q e := E e -> ~ P e ->
                 exists e' : actid, sb^? e' e /\ next G P e').
-    apply (@well_founded_ind _ sb wf_sb Q).
+    apply (@well_founded_ind _ sb (wf_sb G) Q).
     ins; subst Q; simpls.
     destruct (classic (exists e', sb e' x /\ ~ P e')) as
         [[e' [H' COV]]| H']; ins.
@@ -295,35 +248,6 @@ ins; desc; subst.
     exfalso; apply H'; vauto.
   Qed.
   
-  (* TODO: move to a more appropriate place. *)
-  Lemma wf_ar_rfrmwE : ar G sc ∪ rf ;; rmw ≡ <|E|> ;; (ar G sc ∪ rf ;; rmw) ;; <|E|>.
-  Proof.
-    rewrite wf_arE at 1; auto.
-    2: by apply IMMCON.
-    rewrite (dom_l WF.(wf_rfE)) at 1.
-    rewrite (dom_r WF.(wf_rmwE)) at 1.
-    basic_solver 10.
-  Qed.
-
-  (* TODO: move to a more appropriate place. *)
-  Lemma wf_ar_rfrmw_ctE :
-    (ar G sc ∪ rf ;; rmw)⁺ ≡ <|E|> ;; (ar G sc ∪ rf ;; rmw)⁺ ;; <|E|>.
-  Proof.
-    split; [|basic_solver].
-    rewrite wf_ar_rfrmwE at 1.
-    rewrite inclusion_ct_seq_eqv_l.
-      by rewrite inclusion_ct_seq_eqv_r.
-  Qed.
-  
-  (* TODO: move to a more appropriate place. *)
-  Lemma wf_ar_rfrmw_ct : well_founded (ar G sc ∪ rf ;; rmw)⁺.
-  Proof.
-    eapply wf_finite; auto.
-    { red. rewrite ct_of_ct. apply ar_rfrmw_acyclic; auto. }
-    rewrite wf_ar_rfrmw_ctE.
-    apply doma_eqv.
- Qed.
-
   Lemma exists_trav_step T (TCCOH : tc_coherent G sc T)
         e (N_FIN : next G (covered T) e) :
     exists T', trav_step T T'.
@@ -356,7 +280,7 @@ ins; desc; subst.
                       dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ;; rmw)⁺) (issued T) w /\
                       E w) as WMIN.
     { intros P; desf.
-      induction w using (well_founded_ind wf_ar_rfrmw_ct).
+      induction w using (well_founded_ind (wf_ar_rfrmw_ct WF COM IMMCON)).
       destruct (classic (dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ;; rmw)⁺) (issued T) w)); eauto.
       unfolder in H0. unfold dom_rel in H0.
       apply not_all_ex_not in H0; desf.
@@ -364,14 +288,14 @@ ins; desc; subst.
       apply seq_eqv_r in n0. desf.
       eapply H; eauto. 
       cdes IMMCON.
-      apply wf_ar_rfrmw_ctE in n2. by destruct_seq_l n2 as AA. }
+      apply wf_ar_rfrmw_ctE in n2; auto. by destruct_seq_l n2 as AA. }
 
     assert ((exists f, (F∩₁Sc) f  /\ ~ covered T f /\ E f) ->
             exists f, (F∩₁Sc) f /\ ~ covered T f /\
                       doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ;; rmw)⁺ ⨾ ⦗eq f⦘) (covered T) /\
                       E f) as FMIN.
     { intros P; desf.
-      induction f using (well_founded_ind wf_ar_rfrmw_ct).
+      induction f using (well_founded_ind (wf_ar_rfrmw_ct WF COM IMMCON)).
       destruct (classic (doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ;; rmw)⁺ ⨾ ⦗eq f⦘) (covered T)))
         as [H0 | H0]; eauto.
       rewrite seq_eqv_r, seq_eqv_l in H0.
@@ -381,7 +305,7 @@ ins; desc; subst.
       apply imply_to_and in H0; desf.
       eapply H; eauto.
       cdes IMMCON.
-      apply wf_ar_rfrmw_ctE in H2. by destruct_seq_l H2 as AA. }
+      apply wf_ar_rfrmw_ctE in H2; auto. by destruct_seq_l H2 as AA. }
 
     assert (forall n, next G (covered T) n ->
                       R n \/ (F∩₁Sc) n) as RorF.

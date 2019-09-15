@@ -730,12 +730,6 @@ basic_solver.
     apply ar_C_in_CI.
   Qed.
   
-  (* TODO: move to a more appropriate place *)
-  Lemma ar_ar_in_ar_ct : ar ;; ar ⊆ ar⁺.
-  Proof.
-    rewrite ct_step with (r:=ar) at 1 2. apply ct_ct.
-  Qed.
-
   Lemma dom_rfe_ppo_issued :
     dom_rel (rfe ⨾ ppo ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof.
@@ -827,13 +821,6 @@ basic_solver.
     apply dom_wex_sb_issuable.
   Qed.
   
-  (* TODO: move to imm/imm_common.v *)
-  Lemma R_ex_sb_in_ppo : ⦗R_ex⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ppo.
-  Proof.
-    arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ;; ⦗R_ex⦘) by type_solver.
-    unfold imm_common.ppo. hahn_frame. rewrite <- ct_step. eauto with hahn.
-  Qed.
-
   Lemma rf_rmw_issued_rfi_rmw_issued : 
     (rf ⨾ rmw)＊ ⨾ ⦗issued T⦘ ⊆ (rfi ⨾ rmw)＊ ⨾ ⦗issued T⦘ ⨾ (rf ⨾ rmw)＊.
   Proof.

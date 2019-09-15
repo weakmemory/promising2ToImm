@@ -492,34 +492,6 @@ Proof.
   basic_solver 10.
 Qed.
 
-(* TODO: move to a more appropriate place. *)
-Lemma rfe_n_same_tid : Frfe ∩ same_tid ⊆ ∅₂.
-Proof.
-  arewrite (Frfe ∩ same_tid ⊆ Frfe ∩ (<|FE|> ;; same_tid ;; <|FE|>)).
-  { rewrite WF.(wf_rfeE) at 1. basic_solver. }
-  arewrite (⦗FE⦘ ⨾ same_tid ⨾ ⦗FE⦘ ⊆ same_tid ∩ (⦗FE⦘ ⨾ same_tid ⨾ ⦗FE⦘)) by basic_solver.
-  rewrite tid_sb.
-  rewrite !inter_union_r.
-  unionL.
-  3: { rewrite WF.(wf_rfeD). rewrite init_w; eauto. type_solver. }
-  2: { unfolder. ins. desf.
-       cdes IMMCON.
-       eapply Cint. eexists. split.
-       { eby apply sb_in_hb. }
-       right. apply rf_in_eco.
-       match goal with
-       | H : Frfe _ _ |- _ => apply H
-       end. }
-  unfolder. ins. desf.
-  { eapply eco_irr; eauto. apply rf_in_eco.
-    match goal with
-    | H : Frfe _ _ |- _ => apply H
-    end. }
-  cdes IMMCON.
-  eapply (thread_rfe_sb WF (coherence_sc_per_loc Cint)).
-  basic_solver 10.
-Qed.
-
 Lemma Grfe_E :  dom_rel (Grfe) ⊆₁ I.
 Proof.
   rewrite (dom_l (wf_rfeE rstWF)).
@@ -536,7 +508,7 @@ Proof.
     { rewrite (sub_rfe_in SUB), rfe_E. basic_solver. }
     rewrite (sub_rfe_in SUB).
     unfolder; ins; desf; exfalso.
-    { eapply rfe_n_same_tid. split; eauto. by red. }
+    { eapply rfe_n_same_tid; eauto. split; eauto. by red. }
     cdes IMMCON.
     eapply (thread_rfe_sb WF (coherence_sc_per_loc Cint)).
     unfold same_tid. unfolder. eauto. }
@@ -1005,18 +977,6 @@ arewrite (Sc ⊆₁ Acq/Rel) by mode_solver.
 apply E_F_AcqRel_in_C.
 Qed.
 
-(* TODO: move to imm/Execution.v. *)
-Lemma W_ex_not_init : FW_ex ⊆₁ set_compl is_init.
-Proof.
-  unfolder. ins. desf.
-  match goal with
-  | H : FW_ex _ |- _ => rename H into WEX
-  end.
-  destruct WEX as [z WEX].
-  apply WF.(rmw_in_sb) in WEX.
-  apply no_sb_to_init in WEX. unfolder in WEX. desf.
-Qed.
-
 Lemma W_ex_IST : GW_ex ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread.
 Proof.
   arewrite (GW_ex ⊆₁ GW_ex ∩₁ E).
@@ -1125,19 +1085,6 @@ Proof.
   basic_solver 21.
 Qed.
 
-(* TODO: move to a more appropriate place. *)
-Lemma sub_rppo_in : rppo rstG ⊆ rppo Gf.
-Proof.
-  unfold rppo.
-  rewrite (sub_ctrl SUB).
-  rewrite (sub_addr SUB).
-  rewrite (sub_sb SUB).
-  rewrite (sub_frmw SUB).
-  rewrite (sub_R_ex SUB), (sub_W SUB).
-  hahn_frame.
-  basic_solver 12.
-Qed.
-
 Lemma COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ rppo rstG ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
 Proof.
   arewrite ((Gdata ∪ Grfi)＊ ⨾ rppo rstG ⊆ <|E|> ;; (Gdata ∪ Grfi)＊ ⨾ rppo rstG).
@@ -1150,7 +1097,7 @@ Proof.
     rewrite inclusion_ct_seq_eqv_l. basic_solver. }
   rewrite (sub_data_in SUB).
   rewrite (sub_rfi_in SUB).
-  rewrite sub_rppo_in.
+  rewrite (sub_rppo_in SUB).
   unfolder. ins. desf.
   cdes IMMCON.
   exploit (Comp x).

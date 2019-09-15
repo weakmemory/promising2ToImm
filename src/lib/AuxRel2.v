@@ -34,3 +34,14 @@ Proof. basic_solver. Qed.
 
 Lemma inter_eq {A : Type} (r r' : relation A) (EQ : r ≡ r') : r ≡ r ∩ r'.
 Proof. generalize EQ. basic_solver. Qed.
+
+Lemma forall_not_or_exists {A} (s P : A -> Prop):
+  (exists e, s e /\ P e) \/ (forall e, s e -> ~ P e).
+Proof. apply NNPP. intros X. firstorder. Qed.
+
+Lemma tot_ext_nat_extends2 (r : relation nat) : r⁺ ⊆ tot_ext_nat r.
+Proof.
+  apply inclusion_t_ind; try apply tot_ext_nat_trans.
+  red; ins.
+    by apply tot_ext_nat_extends.
+Qed.

@@ -281,23 +281,6 @@ Proof.
   apply seq_eqv_r. split; eauto.
 Qed.
 
-(* TODO: move to imm.imm_s_rfrmw.v *)
-Lemma ar_ct_rfrmw_ct_in_ar_ct WF IMMCON : ar⁺ ⨾ (rf ⨾ rmw)⁺ ⊆ ar⁺.
-Proof.
-  intros x y [z [AA BB]].
-  apply clos_trans_t1n in BB.
-  induction BB.
-  2: apply IHBB.
-  all: apply ar_ct_rfrmw_in_ar_ct; auto.
-  all: basic_solver.
-Qed.
-
-(* TODO: move to imm.imm_s_rfrmw.v *)
-Lemma ar_rfrmw_ct_in_ar_ct WF IMMCON : ar ⨾ (rf ⨾ rmw)⁺ ⊆ ar⁺.
-Proof.
-  rewrite ct_step with (r:=ar) at 1. by apply ar_ct_rfrmw_ct_in_ar_ct.
-Qed.
-
 Lemma otc_I_ar_rfrmw_I_implied_helper_2  WF IMMCON (tc_old : tc_coherent_alt_old) :
    dom_rel (<|W|> ;; (ar ∪ rf ;; rmw)⁺ ;; <|I|>) ⊆₁ I.
 Proof.

@@ -1773,35 +1773,6 @@ Qed.
 Lemma E_ntid_in_D : E ∩₁ NTid_ thread ⊆₁ D.
 Proof. unfold D. basic_solver 10. Qed.
 
-(* TODO: move to imm/Execution.v. *)
-Lemma E_ntid_sb_prcl :
-  dom_rel (⦗set_compl is_init⦘ ⨾ Gsb ⨾ ⦗E ∩₁ NTid_ thread⦘) ⊆₁ E ∩₁ NTid_ thread.
-Proof.
-  rewrite (dom_l (@wf_sbE G)).
-  unfolder. ins. desf. splits; auto.
-  match goal with
-  | H : Gsb _ _ |- _ => rename H into SB
-  end.
-  apply sb_tid_init in SB. desf.
-  intros BB. rewrite BB in *. desf.
-Qed.
-
-(* TODO: move to imm/Execution.v. *)
-Lemma W_ex_acq_not_init : GW_ex_acq ⊆₁ set_compl is_init.
-Proof.
-  unfolder. ins. desf.
-  match goal with
-  | H : GW_ex _ |- _ => rename H into WEX
-  end.
-  destruct WEX as [z WEX].
-  apply WF.(rmw_in_sb) in WEX.
-  apply no_sb_to_init in WEX. unfolder in WEX. desf.
-Qed.
-
-(* TODO: move to imm/Execution.v. *)
-Lemma Rel_not_init : Rel ⊆₁ set_compl is_init.
-Proof. rewrite WF.(init_pln). mode_solver. Qed.
-
 (* TODO: introduce a separate file w/ definition of D and its properties. *)
 Lemma dom_W_ex_acq_sb_W_D_in_CI :
   dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗W⦘ ⨾ ⦗D⦘) ⊆₁ C ∪₁ I.
@@ -1822,7 +1793,7 @@ Proof.
   { arewrite (⦗GW_ex_acq⦘ ⊆ ⦗GW_ex_acq⦘ ⨾ ⦗set_compl is_init⦘).
     { generalize W_ex_acq_not_init. basic_solver. }
     arewrite_id ⦗W⦘. rewrite seq_id_l.
-    rewrite (dom_rel_helper E_ntid_sb_prcl).
+    rewrite (dom_rel_helper (@E_ntid_sb_prcl G thread)).
     arewrite (GW_ex_acq ⊆₁ W).
     { generalize WF.(W_ex_in_W). basic_solver. }
     rewrite !dom_eqv1. unionR right.
