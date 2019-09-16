@@ -95,6 +95,8 @@ Lemma fence_step PC T S f_to f_from thread f smode
         simrel G sc PC' T' S f_to f_from ⟫.
 Proof.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
+
+  assert (tc_coherent G sc T) as sTCCOH by apply TCCOH.
   
   assert (sc_per_loc G) as SC_PER_LOC.
   { by apply coherence_sc_per_loc; cdes CON. }
@@ -104,7 +106,6 @@ Proof.
 
   cdes STATE. rewrite <- TID in *.
   edestruct sim_state_to_events as [ev HH]; eauto.
-  { apply TCCOH. }
   desc.
 
   apply clos_rt_rt1n in ESTEPS.
@@ -160,8 +161,7 @@ Proof.
       exists w. splits; auto.
       { apply TCCOH.(etc_S_in_E). apply AA. }
       { eapply WF.(reservedW); eauto. apply AA. }
-      { intros NCOV. apply AA. eapply w_covered_issued.
-        { apply TCCOH. }
+      { intros NCOV. apply AA. eapply w_covered_issued; eauto.
         split; auto. eapply WF.(reservedW); eauto. apply AA. }
       { by apply AA. }
       arewrite (eq w ⊆₁ S).
@@ -212,8 +212,11 @@ Proof.
       specialize (REL_NO_PROM ORD_SRLX l to).
       desf. }
     red; splits; red; splits; simpls.
-    { eapply trav_step_coherence; eauto.
-      exists f; left. splits; eauto. }
+    { constructor.
+      all: try apply TCCOH.
+      { eapply trav_step_coherence; eauto.
+        exists f; left. splits; eauto. }
+      unfold ecovered. simpls. unionR left. apply TCCOH. }
     { etransitivity; eauto. basic_solver. }
     { intros. apply WF.(wf_rmwD) in RMW.
       apply seq_eqv_l in RMW; destruct RMW as [RR RMW].
@@ -250,7 +253,6 @@ Proof.
       all: by apply CLOSED_SC. }
     rewrite IdentMap.gss.
     eexists; eexists; eexists; splits; eauto; simpls.
-    { eapply tau_steps_rmw_is_xacq; eauto. }
     { ins.
       rewrite IdentMap.gso in TID'; auto.
       eapply PROM_DISJOINT; eauto. }
@@ -304,15 +306,15 @@ Proof.
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
   eapply full_simrel_step.
-  13: by apply SIMREL.
-  11: { ins. rewrite IdentMap.Facts.add_in_iff.
+  15: by apply SIMREL.
+  13: { ins. rewrite IdentMap.Facts.add_in_iff.
         split; auto. intros [|]; auto; subst.
         apply IdentMap.Facts.in_find_iff.
           by rewrite LLH. }
   all: simpls; eauto.
   rewrite coveredE; eauto.
   2: by eapply issuedE; eauto.
-  5: by apply msg_preserved_refl.
+  6: by apply msg_preserved_refl.
   all: basic_solver.
 Qed.
 
