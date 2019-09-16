@@ -835,28 +835,20 @@ all: eauto.
   { apply seq_eqv_lr in RFRMWS. unfolder in RFRMWS. desf. }
   assert (acts_set Gf b) as FEB.
   { apply ETCCOH.(etc_S_in_E). apply SB. }
-  assert ((rfi Gf ⨾ rmw Gf)＊ b b') as RFIRMW.
-  { eapply inclusion_seq_eqv_r.
-    eapply inclusion_seq_eqv_l.
-    eapply (nI_rfrmw_rt_in_rfirmw_rt WF ETCCOH).
-    unfold eissued. simpls.
-    generalize RFRMWS. basic_solver 10. }
+  set (AA:=RFRMWS).
+  apply seq_eqv_lr in AA. destruct AA as [_ [RFIRMW SB']].
   assert (~ is_init b) as NINITB.
   { intros AA. apply NIB. eapply init_issued with (G:=Gf); eauto.
     split; auto. }
   assert (same_tid b b') as STT.
   { eapply WF.(ninit_rfi_rmw_rt_same_tid).
     apply seq_eqv_l. by split. }
-  assert ((S ∩₁ Tid_ thread) b') as SB'.
-  { apply seq_eqv_lr in RFRMWS. destruct RFRMWS as [AA [BB CC]].
-    split; [by apply CC|].
-    rewrite <- STT. apply SB. }
 
   assert (acts_set G b) as EB.
   { subst. eapply ST_in_E; eauto. }
 
   assert (acts_set G b') as EB'.
-  { subst. eapply ST_in_E; eauto. }
+  { subst. eapply ST_in_E; eauto. split; apply SB'. }
 
   destruct NOBEF as [w HH]. apply seq_eqv_l in HH. destruct HH as [IW RFRMW].
   destruct RFRMW as [r [RF RMW]].
@@ -882,13 +874,8 @@ all: eauto.
     rewrite <- lab_G_eq_lab_Gf; eauto.
       by apply same_lab_u2v_comm. }
   { apply seq_eqv_lr. splits.
-    3: { split; auto.
-         { by right. }
-         apply seq_eqv_lr in RFRMWS.
-         apply RFRMWS. }
-    { do 2 (split; auto).
-      { apply SB. }
-        by right. }
+    3: { generalize SB'. basic_solver. }
+    { generalize SB. basic_solver. }
 
     (* eapply clos_refl_trans_mori. *)
     (* { rewrite seq_union_l. unionR left. done. } *)
@@ -914,7 +901,7 @@ all: eauto.
     eapply E_E0; eauto. eapply I_in_E; eauto. }
   intros [q HH].
   apply NOAFT. exists q.
-  apply seqA in HH. apply seq_eqv_r in HH. destruct HH as [RFRMWQ QIST].
+  apply seqA in HH. apply seq_eqv_r in HH. destruct HH as [RFRMWQ [TQ QIST]].
   assert (S q) as SQ.
   { destruct QIST as [AA|AA].
     2: by apply AA.
@@ -923,19 +910,24 @@ all: eauto.
   apply seq_eqv_r. split; auto.
   destruct RFRMWQ as [r' [RF' RMW']].
   exists r'. split.
+  3: by split.
   2: { subst. generalize RMW'. unfold rstG, restrict.
        simpls. basic_solver. }
   assert ((rf (certG G Gsc T S thread lab') ;; <|D G T S thread|>)
             b' r') as BB.
   { apply seq_eqv_r.
-    split; auto.
+    split.
+    { apply RF'. }
     apply dom_rppo_S_in_D. exists q.
     apply seq_eqv_r. split; auto.
     apply rmw_in_rppo; auto. }
   apply cert_rf_D in BB; auto.
   apply seq_eqv_r in BB. destruct BB as [BB _].
-  generalize BB. subst. unfold rstG, restrict.
-  simpls. basic_solver. }
+  split.
+  { generalize BB. subst. unfold rstG, restrict.
+    simpls. basic_solver. }
+  destruct RF' as [_ AA].
+  apply cert_sb in AA. by apply (sub_sb_in SUB). }
 { red. ins. (* sim_mem *)
   edestruct SIM_MEM with (b:=b) as [rel_opt]; eauto.
   { erewrite same_lab_u2v_loc in LOC; eauto.

@@ -39,6 +39,7 @@ Notation "'sw'" := G.(sw).
 Notation "'sb'" := G.(sb).
 Notation "'rf'" := G.(rf).
 Notation "'rfe'" := G.(rfe).
+Notation "'rfi'" := G.(rfi).
 Notation "'rmw'" := G.(rmw).
 Notation "'lab'" := G.(lab).
 Notation "'msg_rel'" := (msg_rel G sc).
@@ -86,11 +87,11 @@ Definition sim_res_prom (thread : thread_id) promises :=
   forall l to from (RES : Memory.get l to promises = Some (from, Message.reserve)),
   exists b b',
     ⟪ LOC  : Loc_ l b ⟫ /\
-    ⟪ RFRMWS : (<| Tid_ thread ∩₁ S \₁ I |> ;; (rf ;; rmw)^* ;; <| S \₁ I |>) b b' ⟫ /\
+    ⟪ RFRMWS : (<| Tid_ thread ∩₁ S \₁ I |> ;; (rfi ;; rmw)^* ;; <| Tid_ thread ∩₁ S \₁ I |>) b b' ⟫ /\
     ⟪ FROM    : f_from b = from ⟫ /\
     ⟪ TO      : f_to b' = to ⟫ /\
     ⟪ NOBEF   : codom_rel (<|I|> ;; rf ;; rmw) b  ⟫ /\
-    ⟪ NOAFT   : ~ dom_rel (rf ;; rmw ;; <|S|>) b' ⟫.
+    ⟪ NOAFT   : ~ dom_rel (rfi ;; rmw ;; <|Tid_ thread ∩₁ S|>) b' ⟫.
 
 Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
     forall l b (EB: E b) (ISSB: I b) (LOC: Loc_ l b)
