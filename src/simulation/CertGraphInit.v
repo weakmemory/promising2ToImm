@@ -828,8 +828,8 @@ all: eauto.
   rewrite H.
   eapply msg_rel_I; eauto.
   apply seq_eqv_r. split; auto. }
-{ red. ins. (* sim_half_prom *)
-  eapply SIM_HPROM in RES.
+{ red. ins. (* sim_res_prom *)
+  eapply SIM_RPROM in RES.
   desc.
   assert (~ issued T b /\ (S ∩₁ Tid_ thread) b) as [NIB SB].
   { apply seq_eqv_lr in RFRMWS. unfolder in RFRMWS. desf. }

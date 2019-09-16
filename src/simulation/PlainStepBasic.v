@@ -124,12 +124,14 @@ Proof.
 Qed.
 
 Lemma full_simrel_step thread PC PC' T S T' S' label f_to f_from
-      (COVE  : covered T' ⊆₁ E)
-      (ISSE  : issued  T' ⊆₁ E)
-      (COVIN : covered T ⊆₁ covered T')
-      (ISSIN : issued T ⊆₁ issued T')
+      (COVE   : covered T' ⊆₁ E)
+      (ISSE   : issued  T' ⊆₁ E)
+      (COVIN  : covered T  ⊆₁ covered T')
+      (ISSIN  : issued  T  ⊆₁ issued  T')
+      (SIN    :         S  ⊆₁         S')
       (NINCOV : covered T' \₁ covered T ⊆₁ Tid_ thread)
       (NINISS : issued  T' \₁ issued  T ⊆₁ Tid_ thread)
+      (NINS   :         S' \₁         S ⊆₁ Tid_ thread)
       (PCSTEP : plain_step label thread PC PC')
       (CLOSED_PRES :
          closedness_preserved PC.(Configuration.memory) PC'.(Configuration.memory))
@@ -186,7 +188,23 @@ Proof.
       as TT.
     { destruct PCSTEP. simpls. rewrite IdentMap.gso in TID'; auto. }
     eapply PROM_DISJOINT; eauto. }
-  { admit. (* sim_half_prom *) }
+  { red. ins. unnw.
+    edestruct SIM_RPROM as [b [b' AA]]; eauto.
+    desf.
+    exists b, b'. splits; auto.
+    2: { generalize ISSIN. generalize NOBEF.
+         basic_solver 10. }
+    2: { intros HH. apply NOAFT.
+         unfolder in HH. desf.
+         exists y, z. split; auto.
+         apply seq_eqv_r. split; auto.
+         destruct (classic (S y)) as [|NSY]; auto.
+         assert (Tid_ thread' y) as NTY.
+         { admit. }
+         exfalso. apply NEQ.
+         rewrite <- NTY.
+         symmetry. apply NINS. by split. }
+    admit. (* sim_res_prom *) }
   red. ins. unnw.
   edestruct SIM_MEM0 as [rel]; eauto.
   simpls; desc.

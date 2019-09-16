@@ -82,7 +82,7 @@ Definition sim_prom (thread : thread_id) promises :=
     ⟪ TO   : f_to b = to ⟫ /\
     ⟪ HELPER : sim_mem_helper G sc f_to b from v rel.(View.unwrap) ⟫.
 
-Definition sim_half_prom (thread : thread_id) promises :=
+Definition sim_res_prom (thread : thread_id) promises :=
   forall l to from (RES : Memory.get l to promises = Some (from, Message.reserve)),
   exists b b',
     ⟪ LOC  : Loc_ l b ⟫ /\
@@ -214,7 +214,7 @@ Definition simrel_thread_local (thread : thread_id) (smode : sim_mode) :=
           Memory.get loc to local'.(Local.promises) = None ⟫ /\
 
     ⟪ SIM_PROM  : sim_prom      thread local.(Local.promises) ⟫ /\
-    ⟪ SIM_HPROM : sim_half_prom thread local.(Local.promises) ⟫ /\
+    ⟪ SIM_RPROM : sim_res_prom thread local.(Local.promises) ⟫ /\
 
     ⟪ SIM_MEM : sim_mem thread local memory ⟫ /\
     ⟪ SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread ⟫ /\
