@@ -37,6 +37,7 @@ Inductive plain_step :
     (EVENT: e <> ThreadEvent.failure) :
     plain_step (ThreadEvent.get_machine_event e) tid c1 (Configuration.mk (IdentMap.add tid (existT _ _ st3, lc3) c1.(Configuration.threads)) sc3 memory3).
 
+(* TODO: move to AuxRel2.v *)
 Lemma pair_app :
   forall (A B : Prop), A -> (A -> A /\ B) -> A /\ B.
 Proof. ins. intuition. Qed.
@@ -185,6 +186,7 @@ Proof.
       as TT.
     { destruct PCSTEP. simpls. rewrite IdentMap.gso in TID'; auto. }
     eapply PROM_DISJOINT; eauto. }
+  { admit. (* sim_half_prom *) }
   red. ins. unnw.
   edestruct SIM_MEM0 as [rel]; eauto.
   simpls; desc.
@@ -220,23 +222,25 @@ Proof.
     exists y. apply seq_eqv_l in HH; destruct HH as [ISSY HH]. 
     apply seq_eqv_l; split; auto.
     destruct (classic (issued T y)) as [|NISS]; [done|exfalso].
+    assert (W y) as WY.
+    { eapply issuedW; eauto. apply COMMON0. }
     destruct (classic (tid y = thread)) as [|TNEQ]; subst.
     2: by apply TNEQ; apply NINISS; split.
     assert ((rfe ⨾ rmw) y b) as RFERMW.
     2: { apply NISS.
          apply IIB in ISSB. apply TCCOH in ISSB.
-         destruct ISSB as [DD _]. apply DD.
+         apply ISSB.
          exists b; apply seq_eqv_r; split; auto.
-         generalize RFERMW. generalize WF.(rmw_in_ppo).
-         basic_solver 10. }
+         apply seq_eqv_l. split; auto.
+         apply ct_step. by right. }
 
     hahn_rewrite rfi_union_rfe in HH. hahn_rewrite seq_union_l in HH.
     destruct HH as [HH|]; [exfalso|done].
-    assert (W y) as WY.
-    { cdes COMMON0. by apply TCCOH0. }
     assert (~ is_init y) as NIN.
     { intros DD. apply NISS. eapply w_covered_issued; eauto.
-      split; auto. apply TCCOH.
+      { apply TCCOH. }
+      split; auto. eapply init_covered.
+      { apply TCCOH. }
       split; auto. }
     assert (sb y b) as SBYB.
     { edestruct HH as [z [RFI RMW]].
@@ -259,10 +263,10 @@ Proof.
   desc.
   rewrite P_INMEM in INMEM1. inv INMEM1.
   eexists; eexists; splits; eauto.
-Qed.
+Admitted.
 
-Lemma max_event_cur PC T f_to f_from l e thread foo local smode
-      (SIMREL_THREAD : simrel_thread G sc PC thread T f_to f_from smode)
+Lemma max_event_cur PC T S f_to f_from l e thread foo local smode
+      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
       (NEXT : next G (covered T) e)
       (TID_E : tid e = thread)
       (LOC : loc lab e = Some l)
@@ -305,7 +309,8 @@ Proof.
   assert (hb y e) as HBYE.
   { apply sb_in_hb.
     assert (E y) as EY.
-    { eapply (@coveredE G) in Y'; eauto. }
+    { eapply (@coveredE G) in Y'; eauto.
+      apply COMMON. }
     destruct Y as [Y | Y].
     2: by apply init_ninit_sb.
     destruct (same_thread G e y) as [[ZZ|ZZ]|ZZ]; subst; auto.
