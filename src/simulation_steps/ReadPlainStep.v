@@ -1,37 +1,36 @@
 Require Import PArith Arith.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising Require Import Configuration TView View Time Event Cell Thread Memory.
+From Promising2 Require Import Configuration TView View Time Event Cell Thread Memory Local.
+
 From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import Execution_eco.
-From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
+From imm Require Import imm_s_hb.
 From imm Require Import imm_common.
-
-From imm Require Import CombRelations.
-From imm Require Import CombRelationsMore.
-
-From imm Require Import TraversalConfig.
-From imm Require Import Traversal.
-From imm Require Import SimTraversal.
-
-Require Import MaxValue.
-Require Import ViewRel.
-Require Import ViewRelHelpers.
-Require Import SimulationRel.
+From imm Require Import ProgToExecution.
+From imm Require Import CombRelations CombRelationsMore.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution.
-From imm Require Import SimulationPlainStepAux.
-From imm Require Import SimulationRelAux.
 
+Require Import AuxRel.
+Require Import AuxRel2.
+Require Import TraversalConfig.
+Require Import Traversal.
+Require Import ExtTraversal.
+Require Import ViewRelHelpers.
 Require Import PlainStepBasic.
-From imm Require Import ReadPlainStepHelper.
-
+Require Import MemoryAux.
+Require Import SimulationRel.
 Require Import SimState.
 Require Import SimStateHelper.
 Require Import PromiseLTS.
-From imm Require Import ProgToExecution.
+Require Import MaxValue.
+Require Import ViewRel.
+Require Import SimulationPlainStepAux.
+Require Import FtoCoherent.
+Require Import ReadPlainStepHelper.
 
 Set Implicit Arguments.
 
@@ -86,21 +85,23 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := G.(W_ex).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma read_step PC T f_to f_from thread r smode
-      (SIMREL_THREAD : simrel_thread G sc PC thread T f_to f_from smode)
+Lemma read_step PC T S f_to f_from thread r smode
+      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
       (TID : tid r = thread)
       (NEXT : next G (covered T) r) (COV : coverable G sc T r)
       (TYPE : R r)
       (NRMW : ~ dom_rel rmw r):
   let T' := (mkTC (covered T ∪₁ eq r) (issued T)) in
   exists PC',
-    ⟪ PCSTEP : plain_step None thread PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' thread T' f_to f_from smode ⟫ /\
+    ⟪ PCSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S f_to f_from thread smode ⟫ /\
     ⟪ SIMREL :
-        smode = sim_normal -> simrel G sc PC T f_to f_from ->
-        simrel G sc PC' T' f_to f_from ⟫.
+        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
+        simrel G sc PC' T' S f_to f_from ⟫.
 Proof.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
+
+  assert (tc_coherent G sc T) as sTCCOH by apply TCCOH.
   
   assert (sc_per_loc G) as SC_PER_LOC.
   { by apply coherence_sc_per_loc; cdes CON. }
@@ -191,8 +192,8 @@ Proof.
   eexists.
   apply and_assoc. apply pair_app.
   { split.
-    { set (pe' := None).
-      assert (pe' = ThreadEvent.get_event pe) as H.
+    { set (pe' := MachineEvent.silent).
+      assert (pe' = ThreadEvent.get_machine_event pe) as H.
       { unfold pe. simpls. }
       rewrite H. clear H.
       econstructor; eauto.
@@ -224,9 +225,11 @@ Proof.
       apply set_interA; split; auto.
       hahn_rewrite (@wf_urrD G sc locr) in CCUR.
       revert CCUR; clear; basic_solver 12.
+      3: by subst.
       { etransitivity; eauto.
         cdes FCOH.
-        apply Time.le_lteq; left. eapply f_to_co_mon; eauto. }
+        apply Time.le_lteq; left. eapply f_to_co_mon; eauto.
+        all: by apply TCCOH.(etc_I_in_S). }
       exfalso.
       eapply transp_rf_co_urr_irr; eauto.
       1-3: by apply CON.
@@ -247,7 +250,6 @@ Proof.
       type_solver. }
     rewrite IdentMap.gss.
     eexists; eexists; eexists; splits; eauto; simpls.
-    { eapply tau_steps_rmw_is_xacq; eauto. }
     { ins.
       rewrite IdentMap.gso in TID'; auto.
       eapply PROM_DISJOINT; eauto. }
@@ -257,13 +259,13 @@ Proof.
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
   eapply full_simrel_step.
-  13: by apply SIMREL.
-  11: { ins. rewrite IdentMap.Facts.add_in_iff.
+  15: by apply SIMREL.
+  13: { ins. rewrite IdentMap.Facts.add_in_iff.
         split; auto. intros [|]; auto; subst.
         apply IdentMap.Facts.in_find_iff.
           by rewrite LLH. }
   all: simpls; eauto.
-  6: by apply msg_preserved_refl.
+  7: by apply msg_preserved_refl.
   rewrite coveredE; eauto.
   2: by eapply issuedE; eauto.
   all: basic_solver.
