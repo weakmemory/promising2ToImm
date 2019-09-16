@@ -12,9 +12,11 @@ From imm Require Import imm_common.
 From imm Require Import ProgToExecution.
 From imm Require Import CombRelations CombRelationsMore.
 
+Require Import AuxRel.
 Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import Traversal.
+Require Import ExtTraversal.
 Require Import ViewRelHelpers.
 Require Import PlainStepBasic.
 Require Import MemoryAux.
@@ -136,30 +138,49 @@ Proof.
   assert (ev = ThreadEvent.get_program_event pe) as EV'.
   { done. }
   
-  (* assert (Ordering.le Ordering.acqrel ordw -> *)
-  (*         forall l to, Memory.get l to (Local.promises local) = None) as REL_NO_PROM. *)
-  (* { intros ORD l to. *)
-  (*   destruct (Memory.get l to (Local.promises local)) as [[from [val rel]]|] eqn: HH; auto. *)
-  (*   exfalso. *)
-  (*   edestruct SIM_PROM as [w]; eauto; desc. *)
-  (*   apply TCCOH in ISS. apply FNCOV. *)
-  (*   destruct ISS as [[[[EE WW] ISS] _] _]. *)
-  (*   eapply ISS. exists w. *)
-  (*   apply seq_eqv_r; split; auto. *)
-  (*   right; apply seq_eqv_l; split. *)
-  (*   { split; auto; subst. *)
-  (*     clear -ORD SAME FPARAMS. *)
-  (*     unfold is_ra, is_acq, is_rel, mode_le, Events.mod. *)
-  (*     red in SAME; red in SAME; simpls; *)
-  (*       rewrite FPARAMS in *; simpls. *)
-  (*     unnw; red in SAME. *)
-  (*     desf. *)
-  (*     all: desf. } *)
-  (*   edestruct (same_thread G w f) as [SB|SB]; eauto. *)
-  (*   { intros H. apply NCOV. by apply TCCOH. } *)
-  (*   destruct SB as [|SB]; [subst; type_solver|]. *)
-  (*   exfalso. apply NCOV. *)
-  (*   eapply NEXT. eexists; apply seq_eqv_r; split; eauto. } *)
+  assert (Ordering.le Ordering.acqrel ordw ->
+          forall l to, Memory.get l to (Local.promises local) = None) as REL_NO_PROM.
+  { intros ORD l to.
+    destruct (Memory.get l to (Local.promises local)) as [[from msg]|] eqn: HH; auto.
+    exfalso.
+    assert (exists w,
+               << EW : E w >> /\
+               << WW : W w >> /\
+               << NCOV : ~ covered T w >> /\
+               << WTID : tid w = tid f >> /\
+               << WS   : dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⨾ ⦗eq w⦘) ⊆₁ covered T >>).
+    { destruct msg as [val rel|].
+      { edestruct SIM_PROM as [w]; eauto; desc.
+        apply TCCOH in ISS.
+        exists w. splits; auto.
+        { eapply issuableW; eauto. }
+        sin_rewrite sb_from_f_in_fwbob. apply ISS. }
+      edestruct SIM_RPROM as [w]; eauto; desc.
+      apply seq_eqv_l in RFRMWS. destruct RFRMWS as [AA _].
+      exists w. splits; auto.
+      { apply TCCOH.(etc_S_in_E). apply AA. }
+      { eapply WF.(reservedW); eauto. apply AA. }
+      { intros NCOV. apply AA. eapply w_covered_issued.
+        { apply TCCOH. }
+        split; auto. eapply WF.(reservedW); eauto. apply AA. }
+      { by apply AA. }
+      arewrite (eq w ⊆₁ S).
+      2: by apply TCCOH.
+      generalize AA. basic_solver. }
+    desc.
+    edestruct (same_thread G w f) as [SBB|SBB]; eauto.
+    { intros H. apply NCOV. by apply TCCOH. }
+    { destruct SBB as [|SBB]; [subst; type_solver|].
+      exfalso. apply NCOV.
+      eapply NEXT. eexists; apply seq_eqv_r; split; eauto. }
+    apply FNCOV. apply WS. exists w.
+    apply seq_eqv_lr. splits; auto.
+    split; auto. subst.
+    clear -ORD SAME FPARAMS.
+    unfold is_ra, is_acq, is_rel, mode_le, Events.mod.
+    red in SAME; red in SAME; simpls;
+      rewrite FPARAMS in *; simpls.
+    unnw. red in SAME. desf; desf. }
 
   assert (Ordering.le Ordering.acqrel ordw <-> Ordering.le Ordering.strong_relaxed ordw)
     as REL_SRLX.
