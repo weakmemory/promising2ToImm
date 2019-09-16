@@ -12,6 +12,7 @@ From imm Require Import imm_common.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 
+Require Import AuxRel2.
 Require Import ViewRelHelpers.
 Require Import TraversalConfig.
 Require Import Traversal.
@@ -36,11 +37,6 @@ Inductive plain_step :
     (STEP: Thread.step pf e e2 (Thread.mk _ st3 lc3 sc3 memory3))
     (EVENT: e <> ThreadEvent.failure) :
     plain_step (ThreadEvent.get_machine_event e) tid c1 (Configuration.mk (IdentMap.add tid (existT _ _ st3, lc3) c1.(Configuration.threads)) sc3 memory3).
-
-(* TODO: move to AuxRel2.v *)
-Lemma pair_app :
-  forall (A B : Prop), A -> (A -> A /\ B) -> A /\ B.
-Proof. ins. intuition. Qed.
 
 Section PlainStepBasic.
 

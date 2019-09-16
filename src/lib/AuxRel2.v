@@ -45,3 +45,7 @@ Proof.
   red; ins.
     by apply tot_ext_nat_extends.
 Qed.
+
+Lemma pair_app :
+  forall (A B : Prop), A -> (A -> A /\ B) -> A /\ B.
+Proof. ins. intuition. Qed.
