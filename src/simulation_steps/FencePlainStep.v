@@ -1,7 +1,7 @@
 Require Import PArith Arith.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising2 Require Import Configuration TView View Time Event Cell Thread Memory.
+From Promising2 Require Import Configuration TView View Time Event Cell Thread Memory Local.
 
 From imm Require Import Events.
 From imm Require Import Execution.
@@ -10,14 +10,11 @@ From imm Require Import imm_s.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_common.
 From imm Require Import ProgToExecution.
-From imm Require Import TraversalConfig.
-From imm Require Import Traversal.
-From imm Require Import SimTraversal.
 From imm Require Import CombRelations CombRelationsMore.
 
-(* From imm Require Import SimulationPlainStepAux. *)
-(* From imm Require Import SimulationRelAux. *)
-
+Require Import AuxRel2.
+Require Import TraversalConfig.
+Require Import Traversal.
 Require Import ViewRelHelpers.
 Require Import PlainStepBasic.
 Require Import MemoryAux.
@@ -27,6 +24,7 @@ Require Import SimStateHelper.
 Require Import PromiseLTS.
 Require Import MaxValue.
 Require Import ViewRel.
+Require Import SimulationPlainStepAux.
 
 Set Implicit Arguments.
 
@@ -81,18 +79,18 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := G.(W_ex).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma fence_step PC T f_to f_from thread f smode
-      (SIMREL_THREAD : simrel_thread G sc PC thread T f_to f_from smode)
+Lemma fence_step PC T S f_to f_from thread f smode
+      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
       (TID : tid f = thread)
       (NEXT : next G (covered T) f) (COV : coverable G sc T f)
       (TYPE : F f):
   let T' := (mkTC (covered T ∪₁ eq f) (issued T)) in
   exists PC',
-    ⟪ PCSTEP : plain_step None thread PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' thread T' f_to f_from smode ⟫ /\
+    ⟪ PCSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S f_to f_from thread smode ⟫ /\
     ⟪ SIMREL :
-        smode = sim_normal -> simrel G sc PC T f_to f_from ->
-        simrel G sc PC' T' f_to f_from ⟫.
+        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
+        simrel G sc PC' T' S f_to f_from ⟫.
 Proof.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
   
@@ -104,6 +102,7 @@ Proof.
 
   cdes STATE. rewrite <- TID in *.
   edestruct sim_state_to_events as [ev HH]; eauto.
+  { apply TCCOH. }
   desc.
 
   apply clos_rt_rt1n in ESTEPS.
@@ -137,30 +136,30 @@ Proof.
   assert (ev = ThreadEvent.get_program_event pe) as EV'.
   { done. }
   
-  assert (Ordering.le Ordering.acqrel ordw ->
-          forall l to, Memory.get l to (Local.promises local) = None) as REL_NO_PROM.
-  { intros ORD l to.
-    destruct (Memory.get l to (Local.promises local)) as [[from [val rel]]|] eqn: HH; auto.
-    exfalso.
-    edestruct SIM_PROM as [w]; eauto; desc.
-    apply TCCOH in ISS. apply FNCOV.
-    destruct ISS as [[[[EE WW] ISS] _] _].
-    eapply ISS. exists w.
-    apply seq_eqv_r; split; auto.
-    right; apply seq_eqv_l; split.
-    { split; auto; subst.
-      clear -ORD SAME FPARAMS.
-      unfold is_ra, is_acq, is_rel, mode_le, Events.mod.
-      red in SAME; red in SAME; simpls;
-        rewrite FPARAMS in *; simpls.
-      unnw; red in SAME.
-      desf.
-      all: desf. }
-    edestruct (same_thread G w f) as [SB|SB]; eauto.
-    { intros H. apply NCOV. by apply TCCOH. }
-    destruct SB as [|SB]; [subst; type_solver|].
-    exfalso. apply NCOV.
-    eapply NEXT. eexists; apply seq_eqv_r; split; eauto. }
+  (* assert (Ordering.le Ordering.acqrel ordw -> *)
+  (*         forall l to, Memory.get l to (Local.promises local) = None) as REL_NO_PROM. *)
+  (* { intros ORD l to. *)
+  (*   destruct (Memory.get l to (Local.promises local)) as [[from [val rel]]|] eqn: HH; auto. *)
+  (*   exfalso. *)
+  (*   edestruct SIM_PROM as [w]; eauto; desc. *)
+  (*   apply TCCOH in ISS. apply FNCOV. *)
+  (*   destruct ISS as [[[[EE WW] ISS] _] _]. *)
+  (*   eapply ISS. exists w. *)
+  (*   apply seq_eqv_r; split; auto. *)
+  (*   right; apply seq_eqv_l; split. *)
+  (*   { split; auto; subst. *)
+  (*     clear -ORD SAME FPARAMS. *)
+  (*     unfold is_ra, is_acq, is_rel, mode_le, Events.mod. *)
+  (*     red in SAME; red in SAME; simpls; *)
+  (*       rewrite FPARAMS in *; simpls. *)
+  (*     unnw; red in SAME. *)
+  (*     desf. *)
+  (*     all: desf. } *)
+  (*   edestruct (same_thread G w f) as [SB|SB]; eauto. *)
+  (*   { intros H. apply NCOV. by apply TCCOH. } *)
+  (*   destruct SB as [|SB]; [subst; type_solver|]. *)
+  (*   exfalso. apply NCOV. *)
+  (*   eapply NEXT. eexists; apply seq_eqv_r; split; eauto. } *)
 
   assert (Ordering.le Ordering.acqrel ordw <-> Ordering.le Ordering.strong_relaxed ordw)
     as REL_SRLX.
@@ -174,8 +173,8 @@ Proof.
   eexists.
   apply and_assoc. apply pair_app; unnw.
   { split.
-    { set (pe' := None).
-      assert (pe' = ThreadEvent.get_event pe) as H.
+    { set (pe' := MachineEvent.silent).
+      assert (pe' = ThreadEvent.get_machine_event pe) as H.
       { unfold pe. simpls. }
       rewrite H. clear H.
       econstructor; eauto.
@@ -183,9 +182,10 @@ Proof.
       constructor.
       { rewrite EV' in STEP; eauto. }
       unfold pe; eapply Local.step_fence.
-      constructor; eauto.
+      2: done.
+      econstructor; eauto.
       intros ORD_SRLX l; red.
-      intros from to [val rel] MSG.
+      intros from to msg MSG.
       exfalso. (* There should be no promised message. *)
       apply REL_SRLX in ORD_SRLX.
       specialize (REL_NO_PROM ORD_SRLX l to).

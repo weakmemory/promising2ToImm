@@ -1,14 +1,14 @@
 Require Import PArith Setoid.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising Require Import TView View Time Event Cell Thread Memory Configuration.
+From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration Local.
 
 From imm Require Import Events Execution.
+From imm Require Import ProgToExecution.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import SimulationRel.
 Require Import PromiseLTS.
-From imm Require Import ProgToExecution.
 
 Lemma rtc_lang_tau_step_rtc_thread_tau_step
       thread st1 st2 lc sc mem
