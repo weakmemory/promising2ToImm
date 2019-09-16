@@ -1,33 +1,35 @@
-Require Import PArith.
+Require Import PArith Arith.
 From hahn Require Import Hahn.
-From PromisingLib Require Import Basic DenseOrder Language Loc.
-From Promising Require Import TView View Time Event Cell Thread Memory Configuration.
+Require Import PromisingLib.
+From Promising2 Require Import Configuration TView View Time Event Cell Thread Memory Local.
+
 From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import Execution_eco.
 From imm Require Import imm_s.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_common.
-
-From imm Require Import CombRelations.
-From imm Require Import CombRelationsMore.
-
-From imm Require Import TraversalConfig.
-From imm Require Import Traversal.
-From imm Require Import SimTraversal.
-
-Require Import MaxValue.
-Require Import ViewRel.
-Require Import ViewRelHelpers.
-Require Import SimulationRel.
+From imm Require Import ProgToExecution.
+From imm Require Import CombRelations CombRelationsMore.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution.
-From imm Require Import SimulationPlainStepAux.
-From imm Require Import SimulationRelAux.
-Require Import MemoryAux.
 
-Require Import PromiseLTS.
+Require Import AuxRel.
+Require Import AuxRel2.
+Require Import TraversalConfig.
+Require Import Traversal.
+Require Import ExtTraversal.
+Require Import ViewRelHelpers.
+Require Import PlainStepBasic.
+Require Import MemoryAux.
+Require Import SimulationRel.
 Require Import SimState.
+Require Import SimStateHelper.
+Require Import PromiseLTS.
+Require Import MaxValue.
+Require Import ViewRel.
+Require Import SimulationPlainStepAux.
+Require Import FtoCoherent.
 
 Set Implicit Arguments.
 
@@ -82,27 +84,27 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := G.(W_ex).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma read_step_helper PC T f_to f_from r w locr valr rel smode
+Lemma read_step_helper PC T S f_to f_from r w locr valr rel smode
       state local state' 
-      (SIMREL_THREAD : simrel_thread G sc PC (tid r) T f_to f_from smode)
+      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from (tid r) smode)
       (NEXT : next G (covered T) r) (COV : coverable G sc T r)
       (RR : R r)
       (LOC : loc lab r = Some locr) (VAL : val lab r = Some valr)
       (WW : W w) (RF : rf w r)
       (INMEM : Memory.get locr (f_to w) PC.(Configuration.memory) =
-               Some (f_from w, Message.mk valr rel))
+               Some (f_from w, Message.full valr rel))
       (TIDMAP : IdentMap.find (tid r) PC.(Configuration.threads) =
                 Some (existT _ (thread_lts (tid r)) state, local)) :
   let T' := (mkTC (covered T ∪₁ eq r) (issued T)) in
   let tview' := TView.read_tview (Local.tview local) locr
-                                 (f_to w) rel (Event_imm_promise.rmod (mod lab r)) in
+                                 (f_to w) rel (Event_imm_promise.rmod (Events.mod lab r)) in
   let langst' := existT _ (thread_lts (tid r)) state' in
   let local' := Local.mk tview' (Local.promises local) in
   let threads' :=
       IdentMap.add (tid r) (langst', local')
                    (Configuration.threads PC) in
   let PC' := Configuration.mk threads' PC.(Configuration.sc) PC.(Configuration.memory) in
-  ⟪ TCCOH : tc_coherent G sc T' ⟫ /\
+  ⟪ TCCOH : etc_coherent G sc (mkETC T' S) ⟫ /\
   ⟪ RELCOV : W ∩₁ Rel ∩₁ issued T' ⊆₁ covered T' ⟫ /\
 
   ⟪ THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
@@ -113,16 +115,14 @@ Lemma read_step_helper PC T f_to f_from r w locr valr rel smode
              (TID : IdentMap.find thread' threads' = Some (langst, local)),
         Memory.le local.(Local.promises) PC.(Configuration.memory) ⟫ /\
 
-  ⟪ FCOH: f_to_coherent G (issued T') f_to f_from ⟫ /\
-
   ⟪ SC_COV : smode = sim_certification -> E∩₁F∩₁Sc ⊆₁ covered T' ⟫ /\ 
   ⟪ SC_REQ : smode = sim_normal -> 
          forall (l : Loc.t),
            max_value f_to (S_tm G l (covered T')) (LocFun.find l PC.(Configuration.sc)) ⟫ /\
 
-  ⟪ SIM_PROM : sim_prom G sc (tid r) T' f_to f_from local.(Local.promises) ⟫ /\
+  ⟪ SIM_PROM : sim_prom G sc T' f_to f_from (tid r) local.(Local.promises) ⟫ /\
   ⟪ RESERVED_TIME :
-      reserved_time G f_to f_from (issued T') PC.(Configuration.memory) smode ⟫ /\
+      reserved_time G T' S f_to f_from smode PC.(Configuration.memory) ⟫ /\
   
   ⟪ SIM_MEM : sim_mem G sc T' f_to f_from (tid r) local' PC.(Configuration.memory) ⟫ /\
   ⟪ SIM_TVIEW : sim_tview G sc (covered T') f_to tview' (tid r) ⟫ /\
@@ -133,6 +133,8 @@ Proof.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
   set (X := STATE).
   
+  assert (tc_coherent G sc T) as sTCCOH by apply TCCOH.
+
   assert (~ covered T r) as RNCOV.
   { apply NEXT. }
 
@@ -171,8 +173,8 @@ Proof.
   rewrite INMEM in INMEM0. inv INMEM0. clear INMEM0.
   rename rel' into rel.
 
-  assert (Ordering.le Ordering.relaxed (Event_imm_promise.rmod (mod lab r))) as RLX_ORDR.
-  { unfold is_rlx, mode_le, mod, is_r in *.
+  assert (Ordering.le Ordering.relaxed (Event_imm_promise.rmod (Events.mod lab r))) as RLX_ORDR.
+  { unfold is_rlx, mode_le, Events.mod, is_r in *.
     destruct (lab r); desf. }
   
   assert (forall y : actid, covered T y /\ tid y = tid r -> sb y r) as COVSB.
@@ -186,8 +188,13 @@ Proof.
     eexists; apply seq_eqv_r; eauto. }
   
   splits; simpls.
-  { eapply trav_step_coherence; eauto.
-    eexists; left. splits; eauto. }
+  { constructor.
+    all: try apply TCCOH.
+    { eapply trav_step_coherence; eauto.
+      eexists; left.
+      splits; eauto. }
+    unfold ecovered. simpls. unionR left. apply TCCOH. }
+
   { etransitivity; eauto. basic_solver. }
   { intros e' EE. 
     destruct (Ident.eq_dec (tid e') (tid r)) as [EQ|NEQ].
@@ -234,7 +241,7 @@ Proof.
     1,2: by apply CON.
     { red; intros x y H. apply NEXT.
         by exists y. }
-    unfold is_r, loc, val, mod, rmwmod in *. desf. }
+    unfold is_r, loc, val, Events.mod, rmwmod in *. desf. }
   { cdes PLN_RLX_EQ. 
     unfold View.singleton_ur_if.
     red; splits; simpls.
