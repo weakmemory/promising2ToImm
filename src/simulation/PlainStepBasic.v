@@ -184,7 +184,7 @@ Proof.
       as TT.
     { destruct PCSTEP. simpls. rewrite IdentMap.gso in TID'; auto. }
     eapply PROM_DISJOINT; eauto. }
-  { red. ins. unnw.
+  { red. ins. unnw. (* sim_res_prom *)
     edestruct SIM_RPROM as [b [b' AA]]; eauto.
     desf.
     exists b, b'. splits; auto.
@@ -193,14 +193,22 @@ Proof.
     2: { intros HH. apply NOAFT.
          unfolder in HH. desf.
          exists y, z. split; auto.
-         apply seq_eqv_r. split; auto.
+         apply seq_eqv_r. do 2 (split; auto).
          destruct (classic (S y)) as [|NSY]; auto.
-         assert (Tid_ thread' y) as NTY.
-         { admit. }
          exfalso. apply NEQ.
-         rewrite <- NTY.
          symmetry. apply NINS. by split. }
-    admit. (* sim_res_prom *) }
+    apply seq_eqv_lr in RFRMWS. destruct RFRMWS as [AA [BB CC]].
+    apply seq_eqv_lr. splits; auto.
+    { split; [by split; try apply SIN; apply AA|].
+      intros DD.
+      assert (Tid_ thread b) as EE.
+      { apply NINISS. split; auto. apply AA. }
+      apply NEQ. rewrite <- EE. apply AA. }
+    split; [by split; try apply SIN; apply CC|].
+    intros DD.
+    assert (Tid_ thread b') as EE.
+    { apply NINISS. split; auto. apply CC. }
+    apply NEQ. rewrite <- EE. apply CC. }
   red. ins. unnw.
   edestruct SIM_MEM0 as [rel]; eauto.
   simpls; desc.
@@ -277,7 +285,7 @@ Proof.
   desc.
   rewrite P_INMEM in INMEM1. inv INMEM1.
   eexists; eexists; splits; eauto.
-Admitted.
+Qed.
 
 Lemma max_event_cur PC T S f_to f_from l e thread foo local smode
       (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
