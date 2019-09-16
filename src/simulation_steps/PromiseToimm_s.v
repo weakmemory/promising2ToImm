@@ -1,38 +1,38 @@
 (******************************************************************************)
-(** * A compilation correctness proof from the Promise memory model to
+(** * A compilation correctness proof from the Promising2 memory model to
       the IMM memory model. *)
 (******************************************************************************)
 Require Import Omega.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising Require Import TView View Time Event Cell Thread Memory Configuration.
+From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution.
 From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import imm_s.
-From imm Require Import Traversal.
-From imm Require Import TraversalConfig.
-From imm Require Import SimTraversal.
-Require Import SimulationRel.
-Require Import PlainStepBasic.
-From imm Require Import SimulationPlainStep.
-Require Import MaxValue.
 From imm Require Import CombRelations.
 
+Require Import SimulationRel.
+Require Import PlainStepBasic.
+Require Import SimulationPlainStep.
+Require Import MaxValue.
 Require Import SimState.
 Require Import Event_imm_promise.
 Require Import PromiseOutcome.
-From imm Require Import SimTraversalProperties.
-From imm Require Import ProgToExecutionProperties.
-From imm Require Import TraversalCounting.
-
-From imm Require Import SimulationPlainStepAux.
 Require Import CertGraphInit.
-From imm Require Import PromiseFuture.
 Require Import MemoryAux.
-
 Require Import PromiseLTS.
+Require Import Traversal.
+Require Import TraversalConfig.
+Require Import ExtSimTraversal.
+Require Import ExtTraversal.
+
+(* From imm Require Import TraversalCounting. *)
+(* From imm Require Import PromiseFuture. *)
+(* From imm Require Import SimTraversalProperties. *)
+(* From imm Require Import ProgToExecutionProperties. *)
+(* From imm Require Import SimulationPlainStepAux. *)
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -81,27 +81,27 @@ Definition execution_final_memory (G : execution) final_memory :=
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 Notation "'Tid_' t"  := (fun x => tid x =  t) (at level 1).
 
-Lemma cert_sim_step G sc thread PC T T' f_to f_from smode
+Lemma cert_sim_step G sc thread PC T S T' S' f_to f_from smode
       (WF : Wf G) (IMMCON : imm_consistent G sc)
-      (STEP : isim_trav_step G sc thread T T')
-      (SIMREL : simrel_thread G sc PC thread T f_to f_from smode)
+      (STEP : ext_isim_trav_step G sc thread (mkETC T S) (mkETC T' S'))
+      (SIMREL : simrel_thread G sc PC T S f_to f_from thread smode)
       (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ covered T) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : plain_step None thread PC PC' ⟫ /\
-      ⟪ SIMREL : simrel_thread G sc PC' thread T' f_to' f_from' smode ⟫.
+      ⟪ PSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
+      ⟪ SIMREL : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫.
 Proof.
   eapply plain_sim_step in STEP; eauto.
   desf. eexists. eexists. eexists. splits; eauto.
 Qed.
 
-Lemma cert_sim_steps G sc thread PC T T' f_to f_from smode
+Lemma cert_sim_steps G sc thread PC T S T' S' f_to f_from smode
       (WF : Wf G) (IMMCON : imm_consistent G sc)
-      (STEPS : (isim_trav_step G sc thread)⁺ T T')
-      (SIMREL : simrel_thread G sc PC thread T f_to f_from smode)
+      (STEPS : (ext_isim_trav_step G sc thread)⁺ (mkETC T S) (mkETC T' S'))
+      (SIMREL : simrel_thread G sc PC T S f_to f_from thread smode)
       (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ covered T) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : (plain_step None thread)⁺ PC PC' ⟫ /\
-      ⟪ SIMREL : simrel_thread G sc PC' thread T' f_to' f_from' smode ⟫.
+      ⟪ PSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
+      ⟪ SIMREL : simrel_thread G sc PC' T' S' f_to' f_from' thread  smode ⟫.
 Proof.
   generalize dependent f_from.
   generalize dependent f_to.
