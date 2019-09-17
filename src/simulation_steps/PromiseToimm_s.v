@@ -26,11 +26,11 @@ Require Import PromiseLTS.
 Require Import Traversal.
 Require Import TraversalConfig.
 Require Import ExtSimTraversal.
+Require Import ExtSimTraversalProperties.
 Require Import ExtTraversal.
 
 (* From imm Require Import TraversalCounting. *)
 (* From imm Require Import PromiseFuture. *)
-(* From imm Require Import SimTraversalProperties. *)
 (* From imm Require Import ProgToExecutionProperties. *)
 (* From imm Require Import SimulationPlainStepAux. *)
 
@@ -81,27 +81,30 @@ Definition execution_final_memory (G : execution) final_memory :=
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 Notation "'Tid_' t"  := (fun x => tid x =  t) (at level 1).
 
-Lemma cert_sim_step G sc thread PC T S T' S' f_to f_from smode
+Lemma cert_sim_step G sc thread PC T T' f_to f_from smode
       (WF : Wf G) (IMMCON : imm_consistent G sc)
-      (STEP : ext_isim_trav_step G sc thread (mkETC T S) (mkETC T' S'))
-      (SIMREL : simrel_thread G sc PC T S f_to f_from thread smode)
-      (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ covered T) :
+      (STEP : ext_isim_trav_step G sc thread T T')
+      (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
+      (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
-      ⟪ SIMREL : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫.
+      ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread smode ⟫.
 Proof.
+  destruct T as [T S].
+  destruct T' as [T' S'].
+  unfold ecovered in *. simpls.
   eapply plain_sim_step in STEP; eauto.
   desf. eexists. eexists. eexists. splits; eauto.
 Qed.
 
-Lemma cert_sim_steps G sc thread PC T S T' S' f_to f_from smode
+Lemma cert_sim_steps G sc thread PC T T' f_to f_from smode
       (WF : Wf G) (IMMCON : imm_consistent G sc)
-      (STEPS : (ext_isim_trav_step G sc thread)⁺ (mkETC T S) (mkETC T' S'))
-      (SIMREL : simrel_thread G sc PC T S f_to f_from thread smode)
-      (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ covered T) :
+      (STEPS : (ext_isim_trav_step G sc thread)⁺ T T')
+      (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
+      (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
-      ⟪ SIMREL : simrel_thread G sc PC' T' S' f_to' f_from' thread  smode ⟫.
+      ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread  smode ⟫.
 Proof.
   generalize dependent f_from.
   generalize dependent f_to.
@@ -117,23 +120,23 @@ Proof.
     2: by eauto.
     eapply t_trans; eauto. }
   etransitivity; eauto.
-  eapply sim_trav_steps_covered_le with (G:=G) (sc:=sc).
+  eapply ext_sim_trav_steps_covered_le with (G:=G) (sc:=sc).
   apply inclusion_t_rt.
   generalize STEPS1. clear.
   generalize dependent y. generalize dependent x.
   apply inclusion_t_t.
-  unfold sim_trav_step.
+  unfold ext_sim_trav_step.
   basic_solver.
 Qed.
 
-Lemma cert_simulation G sc thread PC T f_to f_from
+Lemma cert_simulation G sc thread PC T S f_to f_from
       (WF : Wf G) (IMMCON : imm_consistent G sc)
-      (SIMREL : simrel_thread G sc PC thread T f_to f_from sim_certification)
+      (SIMREL : simrel_thread G sc PC T S f_to f_from thread sim_certification)
       (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ covered T) :
-  exists T' PC' f_to' f_from',
+  exists T' S' PC' f_to' f_from',
     ⟪ FINALT : G.(acts_set) ⊆₁ covered T' ⟫ /\
-    ⟪ PSTEP  : (plain_step None thread)＊ PC PC' ⟫ /\
-    ⟪ SIMREL : simrel_thread G sc PC' thread T' f_to' f_from' sim_certification⟫.
+    ⟪ PSTEP  : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
+    ⟪ SIMREL : simrel_thread G sc PC' T' S' f_to' f_from' thread sim_certification⟫.
 Proof.
   assert (tc_coherent G sc T) as TCCOH.
   { apply SIMREL. }
