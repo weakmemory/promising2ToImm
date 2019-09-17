@@ -351,7 +351,25 @@ Proof.
     red in HH. destruct HH as [CC [HH _]]. subst.
     apply WF.(init_w) in AA.
     type_solver. }
-  { admit. }
+  { red. splits; ins.
+    3: { match goal with
+         | H : co _ _ _ |- _ => rename H into CO
+         end.
+         apply Execution_eco.no_co_to_init in CO; auto.
+         2: { apply imm_s_hb.coherence_sc_per_loc.
+              apply IMMCON. }
+         unfolder in *. desf. }
+    2: { red. ins. apply memory_init_o in MSG. desf. }
+    red; ins. unfold Memory.init in MSG.
+    unfold Memory.get in MSG.
+    unfold Cell.init in MSG.
+    unfold Cell.get in MSG; simpls.
+    unfold Cell.Raw.init in MSG.
+    destruct (classic (to = Time.bot)) as [|NEQ]; subst.
+    2: { rewrite DenseOrder.DOMap.singleton_neq in MSG; auto.
+         inv MSG. }
+    rewrite DenseOrder.DOMap.singleton_eq in MSG. inv MSG.
+    left. by split. }
   { unfold conf_init, Configuration.init.
     simpls.
     edestruct TView.bot_closed.
@@ -376,7 +394,7 @@ Proof.
   { red. ins.
     unfold Local.init in *. simpls. 
     rewrite Memory.bot_get in PROM. inv PROM. }
-  { admit. }
+  { red. ins. rewrite Memory.bot_get in RES. inv RES. }
   { red; simpls.
     unfold Memory.init. unfold Memory.get. unfold Cell.init.
     unfold Cell.get; simpls. unfold Cell.Raw.init.
@@ -417,7 +435,7 @@ Proof.
   symmetry in UU. apply YY in UU.
   desc. red in UU. desc.
   eexists. splits; eauto. by subst.
-Admitted.
+Qed.
 
 Definition thread_is_terminal ths tid :=
   forall (lang : Language.t ProgramEvent.t) st lc
