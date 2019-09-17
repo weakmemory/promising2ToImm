@@ -28,8 +28,8 @@ Require Import TraversalConfig.
 Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
 Require Import ExtTraversal.
+Require Import ExtTraversalCounting.
 
-(* From imm Require Import TraversalCounting. *)
 (* From imm Require Import PromiseFuture. *)
 (* From imm Require Import ProgToExecutionProperties. *)
 (* From imm Require Import SimulationPlainStepAux. *)
@@ -138,13 +138,14 @@ Lemma cert_simulation G sc thread PC T S f_to f_from
     ⟪ PSTEP  : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
     ⟪ SIMREL : simrel_thread G sc PC' T' S' f_to' f_from' thread sim_certification⟫.
 Proof.
-  assert (tc_coherent G sc T) as TCCOH.
+  assert (etc_coherent G sc (mkETC T S)) as ETCCOH.
   { apply SIMREL. }
-  generalize (sim_step_cov_full_traversal WF IMMCON TCCOH NCOV); intros H.
+  generalize (sim_step_cov_full_traversal WF IMMCON ETCCOH NCOV); intros H.
   destruct H as [T'].
   1,2: by apply SIMREL.
   desc.
-  exists T'. apply rtE in H.
+  destruct T' as [T' S'].
+  exists T', S'. apply rtE in H.
   destruct H as [H|H].
   { red in H. desf.
     eexists. eexists. eexists.
