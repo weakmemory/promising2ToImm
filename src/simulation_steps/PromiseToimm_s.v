@@ -31,6 +31,7 @@ Require Import ExtSimTraversalProperties.
 Require Import ExtTraversal.
 Require Import ExtTraversalCounting.
 Require Import SimulationPlainStepAux.
+Require Import FtoCoherent.
 
 (* From imm Require Import PromiseFuture. *)
 
@@ -670,6 +671,8 @@ Lemma same_final_memory T S PC f_to f_from
   forall l,
     final_memory_state (Configuration.memory PC) l = Some (final_memory l).
 Proof.
+  assert (etc_coherent G sc (mkETC T S)) as ETCCOH by apply SIMREL.
+  assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   ins. unfold final_memory_state.
   cdes SIMREL. cdes COMMON.
   assert (Memory.inhabited PC.(Configuration.memory)) as INHAB.
@@ -678,6 +681,8 @@ Proof.
   { apply INHAB. }
   red in AA. desc.
   rewrite AA. simpls.
+  destruct msg as [val msg|].
+  2: { admit. }
   assert (val = final_memory l); [|by subst].
   desc. red in MEM.
   set (BB := AA).
@@ -694,6 +699,8 @@ Proof.
     assert (issued T w) as WISS.
     { eapply w_covered_issued; eauto.
       split; auto. }
+    assert (S w) as WS.
+    { by apply ETCCOH.(etc_I_in_S). }
     destruct (classic (is_init w)) as [|NINIT]; auto.
     exfalso.
     destruct (THREAD w) as [langst TT]; auto.
@@ -754,13 +761,17 @@ Proof.
   { apply TCCOH in ISS. apply ISS. }
   { by rewrite LOC. }
   2: { exfalso. apply LAST. eauto. }
-  eapply f_to_co_mon with (I:=issued T) in CO; eauto.
+  assert (S b) as BS.
+  { by apply ETCCOH.(etc_I_in_S). }
+  assert (S w) as WS.
+  { by apply ETCCOH.(etc_I_in_S). }
+  eapply f_to_co_mon with (I:=S) in CO; eauto.
   apply Memory.max_ts_spec in INMEM.
   destruct INMEM as [_ CC].
   rewrite <- TO in CC.
   exfalso. eapply Time.lt_strorder.
   eapply TimeFacts.lt_le_lt; eauto.
-Qed.
+Admitted.
 
 Lemma sim_step PC T S T' S' f_to f_from
       (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
