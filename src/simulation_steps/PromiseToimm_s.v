@@ -5,7 +5,7 @@
 Require Import Omega.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration.
+From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration Local.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution.
 From imm Require Import Events.
@@ -291,130 +291,14 @@ Proof.
   destruct (HH e ACT) as [|AA]; [by desf|done].
 Qed.
 
-Lemma sim_step PC T S T' S' f_to f_from
-      (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
-      (SIMREL : simrel G sc PC T S f_to f_from) :
-    exists PC' f_to' f_from',
-      ⟪ PSTEP : conf_step PC PC' ⟫ /\
-      ⟪ SIMREL : simrel G sc PC' T' S' f_to' f_from' ⟫.
-Proof.
-  destruct STEP as [thread STEP].
-  cdes SIMREL. cdes COMMON.
-  eapply plain_sim_step in STEP; eauto.
-  2: { split; eauto. apply THREADS.
-       assert (exists e, thread = tid e /\ acts_set G e /\ ~ is_init e) as [e].
-       { apply ext_sim_trav_step_to_step in STEP.
-         desc. exists e.
-         assert (acts_set G e) as EE.
-         { eapply ext_itrav_stepE; eauto. }
-         splits; auto.
-         eapply ext_itrav_step_ninit; eauto. }
-       cdes COMMON. subst.
-       destruct (THREAD e); auto.
-       apply IdentMap.Facts.in_find_iff.
-         by rewrite H. }
-  desf. exists PC'. exists f_to'. exists f_from'. splits.
-  2: { apply SIMREL0; eauto. }
-  red. exists MachineEvent.silent. exists thread.
-  destruct PSTEP. econstructor; eauto.
-  red; simpls. ins.
-  
-  edestruct cert_graph_init as [G' [sc'' [T'' HH]]]; eauto.
-  desc.
-  edestruct future_memory_switch with (memory:=memory3) (memory':=mem1)
-    as [sc_view'' [memory'']]; eauto.
-  { apply SIMREL1. }
-  { apply WF0. }
-  { clear -SIMREL1 WF0.
-    cdes SIMREL1.
-    cdes COMMON. cdes LOCAL.
-    simpls. set (LLH' := LLH).
-    rewrite IdentMap.gss in LLH'.
-    inv LLH'.
-    constructor.
-    1,4: by apply WF0.
-    2: eapply PROM_IN_MEM; eauto.
-    cdes MEM_CLOSE.
-    cdes PLN_RLX_EQ.
-    constructor; ins; constructor; auto.
-    { by rewrite EQ_REL. }
-    { by rewrite EQ_CUR. }
-      by rewrite EQ_ACQ. }
-  desc.
-
-  set (PC := (Configuration.mk (IdentMap.add
-                                  tid (existT _ lang st3, lc3)
-                                  (Configuration.threads c1))
-                               sc_view'' memory'')).
-
-  edestruct (@cert_simulation G' sc'' tid PC T'' f_to' f_from') as [T''' HH].
-  all: try by desf; eauto.
-  { unfold PC. eapply simrel_thread_bigger_sc_memory; eauto.
-    rewrite IdentMap.gss; eauto. }
-  desc.
-
-  assert
-    (exists langst local,
-        ⟪ THREAD :
-            Basic.IdentMap.find tid PC'.(Configuration.threads) =
-            Some (langst, local)
-        ⟫ /\
-        ⟪ EMPTY : Local.promises local = Memory.bot ⟫)
-    as HH.
-  { cdes SIMREL2. cdes LOCAL.
-    exists (existT _ (thread_lts tid) state). exists local.
-    splits; auto.
-    red in SIM_PROM. apply Memory.ext.
-    ins. rewrite Memory.bot_get.
-    destruct (Memory.get loc ts (Local.promises local)) eqn: HH; auto.
-    exfalso.
-    destruct p as [from msg]. destruct msg.
-    eapply SIM_PROM in HH; eauto.
-    desc. apply NCOV. by apply FINALT. }
-  desc.
-  destruct langst as [lang' state'].
-  assert (lang' = lang); subst.
-  { symmetry.
-    eapply conf_steps_preserve_lang; eauto.
-    unfold PC.
-    simpls. rewrite IdentMap.gss. eauto. }
-  eapply conf_steps_to_thread_steps in PSTEP; eauto.
-  2: { unfold PC. simpls. rewrite IdentMap.gss. eauto. }
-  eapply STEPS0 in PSTEP.
-  desf. exists thread_conf'. splits; eauto.
-  destruct SIM.
-  rewrite PROM. eauto.
-Qed.
-
-Lemma sim_steps PC T T' f_to f_from
-      (TCSTEPS : (sim_trav_step G sc)⁺ T T')
-      (SIMREL  : simrel G sc PC T f_to f_from) :
-    exists PC' f_to' f_from',
-      ⟪ PSTEP : conf_step⁺ PC PC' ⟫ /\
-      ⟪ SIMREL : simrel G sc PC' T' f_to' f_from' ⟫.
-Proof.
-  generalize dependent f_from.
-  generalize dependent f_to.
-  generalize dependent PC.
-  induction TCSTEPS.
-  { ins. desf. eapply sim_step in H; eauto. desf.
-    eexists. splits; eauto. }
-  ins.
-  eapply IHTCSTEPS1 in SIMREL.
-  desc.
-  eapply IHTCSTEPS2 in SIMREL0.
-  desf. eexists. eexists. eexists. splits.
-  2: eauto.
-  eapply t_trans; eauto. 
-Qed.
-
 Lemma simrel_init :
-  simrel G sc (conf_init prog) (init_trav G) (fun _ => tid_init) (fun _ => tid_init).
+  simrel G sc (conf_init prog)
+         (init_trav G) (is_init ∩₁ acts_set G)
+         (fun _ => tid_init) (fun _ => tid_init).
 Proof.
   red; splits; red; splits. 
-  { apply w_ex_is_xacq. }
   { apply ALLRLX. }
-  { by apply init_trav_coherent. }
+  { by apply ext_init_trav_coherent. }
   { simpls. basic_solver. }
   { ins. split; intros [INIT GG]; exfalso.
     { apply WF.(init_w) in INIT.
@@ -467,18 +351,7 @@ Proof.
     red in HH. destruct HH as [CC [HH _]]. subst.
     apply WF.(init_w) in AA.
     type_solver. }
-  { red. splits; ins.
-    2: { destruct H0. desf. }
-    red; ins. unfold Memory.init in MSG.
-    unfold Memory.get in MSG.
-    unfold Cell.init in MSG.
-    unfold Cell.get in MSG; simpls.
-    unfold Cell.Raw.init in MSG.
-    destruct (classic (to = Time.bot)) as [|NEQ]; subst.
-    2: { rewrite DenseOrder.DOMap.singleton_neq in MSG; auto.
-         inv MSG. }
-    rewrite DenseOrder.DOMap.singleton_eq in MSG. inv MSG.
-    left. by split. }
+  { admit. }
   { unfold conf_init, Configuration.init.
     simpls.
     edestruct TView.bot_closed.
@@ -499,11 +372,11 @@ Proof.
   exists (init l), (Local.init); splits; auto.
   { red; ins; desf; apply TNONULL, IdentMap.Facts.in_find_iff; congruence. }
   { apply wf_thread_state_init. }
-  { eapply XACQRMW. eauto. }
   { ins. left. apply Memory.bot_get. }
   { red. ins.
     unfold Local.init in *. simpls. 
     rewrite Memory.bot_get in PROM. inv PROM. }
+  { admit. }
   { red; simpls.
     unfold Memory.init. unfold Memory.get. unfold Cell.init.
     unfold Cell.get; simpls. unfold Cell.Raw.init.
@@ -544,29 +417,7 @@ Proof.
   symmetry in UU. apply YY in UU.
   desc. red in UU. desc.
   eexists. splits; eauto. by subst.
-Qed.
-
-Lemma simulation :
-  exists T PC f_to f_from,
-    ⟪ FINALT : G.(acts_set) ⊆₁ covered T ⟫ /\
-    ⟪ PSTEP  : conf_step＊ (conf_init prog) PC ⟫ /\
-    ⟪ SIMREL : simrel G sc PC T f_to f_from ⟫.
-Proof.
-  generalize (sim_traversal WF IMMCON); ins; desc.
-  exists T. apply rtE in H.
-  destruct H as [H|H].
-  { red in H. desf.
-    eexists. eexists. eexists.
-    splits; auto.
-    { apply rtE. left. red. eauto. }
-    apply simrel_init. }
-  eapply sim_steps in H.
-  2: by apply simrel_init.
-  desf.
-  eexists. eexists. eexists.
-  splits; eauto.
-  apply rtE. by right.
-Qed.
+Admitted.
 
 Definition thread_is_terminal ths tid :=
   forall (lang : Language.t ProgramEvent.t) st lc
@@ -575,14 +426,14 @@ Definition thread_is_terminal ths tid :=
     ⟪ NOTS : Language.is_terminal lang st ⟫ /\
     ⟪ NOPROM : Local.is_terminal lc ⟫.
 
-Lemma sim_thread_covered_exists_terminal PC thread T f_to f_from
+Lemma sim_thread_covered_exists_terminal PC thread T S f_to f_from
       (FINALT : Tid_ thread ∩₁ acts_set G ⊆₁ covered T)
-      (SIMREL : simrel G sc PC T f_to f_from) :
+      (SIMREL : simrel G sc PC T S f_to f_from) :
   exists PC',
     ⟪ STEP : (conf_step)^? PC PC' ⟫ /\
-    ⟪ SIMREL : simrel G sc PC' T f_to f_from ⟫ /\
+    ⟪ SIMREL : simrel G sc PC' T S f_to f_from ⟫ /\
     ⟪ SAMENUM : Permutation (map fst (IdentMap.elements (Configuration.threads PC))) 
-                             (map fst (IdentMap.elements (Configuration.threads PC'))) ⟫ /\ 
+                            (map fst (IdentMap.elements (Configuration.threads PC'))) ⟫ /\ 
     ⟪ TERMINAL  : thread_is_terminal PC'.(Configuration.threads) thread ⟫ /\
     ⟪ PTERMINAL :
       forall thread' (TT : thread_is_terminal PC.(Configuration.threads) thread'),
@@ -591,7 +442,18 @@ Proof.
   cdes SIMREL.
   destruct (IdentMap.find thread (Configuration.threads PC)) as [j|] eqn: QQ.
   2: { exists PC. splits; auto.
-       red. ins. destruct (IdentMap.find thread (Configuration.threads PC)); desf. }
+       red. ins.
+       clear -QQ LLH.
+       (* This trick is needed due to an implicit parameter which could be seen
+          by `Set Printing All.` *)
+       match goal with
+       | H1 : ?A = None,
+         H2 : ?B = Some _ |- _ =>
+         assert (A = B) as AA
+       end.
+       { unfold language. done. }
+       rewrite AA in QQ.
+       destruct (IdentMap.find thread (Configuration.threads PC)); desf. }
   assert (IdentMap.In thread (Configuration.threads PC)) as YY.
   { apply IdentMap.Facts.in_find_iff. by rewrite QQ. }
   apply THREADS in YY. cdes YY.
@@ -867,6 +729,145 @@ Proof.
   rewrite <- TO in CC.
   exfalso. eapply Time.lt_strorder.
   eapply TimeFacts.lt_le_lt; eauto.
+Qed.
+
+Lemma sim_step PC T S T' S' f_to f_from
+      (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
+      (SIMREL : simrel G sc PC T S f_to f_from) :
+    exists PC' f_to' f_from',
+      ⟪ PSTEP : conf_step PC PC' ⟫ /\
+      ⟪ SIMREL : simrel G sc PC' T' S' f_to' f_from' ⟫.
+Proof.
+  destruct STEP as [thread STEP].
+  cdes SIMREL. cdes COMMON.
+  eapply plain_sim_step in STEP; eauto.
+  2: { split; eauto. apply THREADS.
+       assert (exists e, thread = tid e /\ acts_set G e /\ ~ is_init e) as [e].
+       { apply ext_sim_trav_step_to_step in STEP.
+         desc. exists e.
+         assert (acts_set G e) as EE.
+         { eapply ext_itrav_stepE; eauto. }
+         splits; auto.
+         eapply ext_itrav_step_ninit; eauto. }
+       cdes COMMON. subst.
+       destruct (THREAD e); auto.
+       apply IdentMap.Facts.in_find_iff.
+         by rewrite H. }
+  desf. exists PC'. exists f_to'. exists f_from'. splits.
+  2: { apply SIMREL0; eauto. }
+  red. exists MachineEvent.silent. exists thread.
+  destruct PSTEP. econstructor; eauto.
+  red; simpls. ins.
+  
+  edestruct cert_graph_init as [G' [sc'' [T'' HH]]]; eauto.
+  desc.
+  edestruct future_memory_switch with (memory:=memory3) (memory':=mem1)
+    as [sc_view'' [memory'']]; eauto.
+  { apply SIMREL1. }
+  { apply WF0. }
+  { clear -SIMREL1 WF0.
+    cdes SIMREL1.
+    cdes COMMON. cdes LOCAL.
+    simpls. set (LLH' := LLH).
+    rewrite IdentMap.gss in LLH'.
+    inv LLH'.
+    constructor.
+    1,4: by apply WF0.
+    2: eapply PROM_IN_MEM; eauto.
+    cdes MEM_CLOSE.
+    cdes PLN_RLX_EQ.
+    constructor; ins; constructor; auto.
+    { by rewrite EQ_REL. }
+    { by rewrite EQ_CUR. }
+      by rewrite EQ_ACQ. }
+  desc.
+
+  set (PC := (Configuration.mk (IdentMap.add
+                                  tid (existT _ lang st3, lc3)
+                                  (Configuration.threads c1))
+                               sc_view'' memory'')).
+
+  edestruct (@cert_simulation G' sc'' tid PC T'' f_to' f_from') as [T''' HH].
+  all: try by desf; eauto.
+  { unfold PC. eapply simrel_thread_bigger_sc_memory; eauto.
+    rewrite IdentMap.gss; eauto. }
+  desc.
+
+  assert
+    (exists langst local,
+        ⟪ THREAD :
+            Basic.IdentMap.find tid PC'.(Configuration.threads) =
+            Some (langst, local)
+        ⟫ /\
+        ⟪ EMPTY : Local.promises local = Memory.bot ⟫)
+    as HH.
+  { cdes SIMREL2. cdes LOCAL.
+    exists (existT _ (thread_lts tid) state). exists local.
+    splits; auto.
+    red in SIM_PROM. apply Memory.ext.
+    ins. rewrite Memory.bot_get.
+    destruct (Memory.get loc ts (Local.promises local)) eqn: HH; auto.
+    exfalso.
+    destruct p as [from msg]. destruct msg.
+    eapply SIM_PROM in HH; eauto.
+    desc. apply NCOV. by apply FINALT. }
+  desc.
+  destruct langst as [lang' state'].
+  assert (lang' = lang); subst.
+  { symmetry.
+    eapply conf_steps_preserve_lang; eauto.
+    unfold PC.
+    simpls. rewrite IdentMap.gss. eauto. }
+  eapply conf_steps_to_thread_steps in PSTEP; eauto.
+  2: { unfold PC. simpls. rewrite IdentMap.gss. eauto. }
+  eapply STEPS0 in PSTEP.
+  desf. exists thread_conf'. splits; eauto.
+  destruct SIM.
+  rewrite PROM. eauto.
+Qed.
+
+Lemma sim_steps PC T T' f_to f_from
+      (TCSTEPS : (sim_trav_step G sc)⁺ T T')
+      (SIMREL  : simrel G sc PC T f_to f_from) :
+    exists PC' f_to' f_from',
+      ⟪ PSTEP : conf_step⁺ PC PC' ⟫ /\
+      ⟪ SIMREL : simrel G sc PC' T' f_to' f_from' ⟫.
+Proof.
+  generalize dependent f_from.
+  generalize dependent f_to.
+  generalize dependent PC.
+  induction TCSTEPS.
+  { ins. desf. eapply sim_step in H; eauto. desf.
+    eexists. splits; eauto. }
+  ins.
+  eapply IHTCSTEPS1 in SIMREL.
+  desc.
+  eapply IHTCSTEPS2 in SIMREL0.
+  desf. eexists. eexists. eexists. splits.
+  2: eauto.
+  eapply t_trans; eauto. 
+Qed.
+
+Lemma simulation :
+  exists T PC f_to f_from,
+    ⟪ FINALT : G.(acts_set) ⊆₁ covered T ⟫ /\
+    ⟪ PSTEP  : conf_step＊ (conf_init prog) PC ⟫ /\
+    ⟪ SIMREL : simrel G sc PC T f_to f_from ⟫.
+Proof.
+  generalize (sim_traversal WF IMMCON); ins; desc.
+  exists T. apply rtE in H.
+  destruct H as [H|H].
+  { red in H. desf.
+    eexists. eexists. eexists.
+    splits; auto.
+    { apply rtE. left. red. eauto. }
+    apply simrel_init. }
+  eapply sim_steps in H.
+  2: by apply simrel_init.
+  desf.
+  eexists. eexists. eexists.
+  splits; eauto.
+  apply rtE. by right.
 Qed.
 
 Theorem promise2imm : promise_allows prog final_memory.
