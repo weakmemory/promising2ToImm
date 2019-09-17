@@ -375,6 +375,40 @@ Section ExtTraversalCounting.
     apply RESEQ. basic_solver.
   Qed.
 
+  (* TODO: move to more appropriate place. *)
+  Lemma ext_itrav_step_nC e T T'
+        (ETCCOH : etc_coherent G sc T)
+        (STEP : ext_itrav_step G sc e T T') : ~ ecovered T e.
+  Proof.
+    assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
+    intros AA.
+    red in STEP. desf.
+    { assert (issued (etc_TC T') e) as BB.
+      { apply ISSEQ. basic_solver. }
+      apply NISS. eapply w_covered_issued; eauto.
+      split; auto.
+      eapply issuedW; [|by eauto].
+      apply ETCCOH'. }
+    apply NISS. apply ETCCOH.(etc_I_in_S).
+    eapply w_covered_issued; eauto.
+    split; auto.
+    eapply WF.(reservedW).
+    { apply ETCCOH'. }
+    apply RESEQ. basic_solver.
+  Qed.
+
+  (* TODO: move to more appropriate place. *)
+  Lemma ext_itrav_step_ninit e T T'
+        (ETCCOH : etc_coherent G sc T)
+        (STEP : ext_itrav_step G sc e T T') : ~ is_init e.
+  Proof.
+    assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
+    intros II. eapply ext_itrav_step_nC; eauto.
+    eapply init_covered; eauto.
+    split; auto.
+    eapply ext_itrav_stepE; eauto.
+  Qed.
+
   Lemma sim_step_cov_full_thread T T' thread thread'
         (ETCCOH : etc_coherent G sc T)
         (TS : ext_isim_trav_step G sc thread' T T')
@@ -388,19 +422,7 @@ Section ExtTraversalCounting.
     assert (ecovered T e) as AA.
     { apply NCOV. split; eauto.
       eapply ext_itrav_stepE; eauto. }
-    red in TS. desf.
-    { assert (issued (etc_TC T'') e) as BB.
-      { apply ISSEQ. basic_solver. }
-      apply NISS. eapply w_covered_issued; eauto.
-      split; auto.
-      eapply issuedW; [|by eauto].
-      apply ETCCOH'. }
-    apply NISS. apply ETCCOH.(etc_I_in_S).
-    eapply w_covered_issued; eauto.
-    split; auto.
-    eapply WF.(reservedW).
-    { apply ETCCOH'. }
-    apply RESEQ. basic_solver.
+    eapply ext_itrav_step_nC; eauto.
   Qed.
 
   Lemma sim_step_cov_full_traversal T thread
