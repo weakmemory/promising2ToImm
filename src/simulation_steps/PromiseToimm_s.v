@@ -30,9 +30,9 @@ Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
 Require Import ExtTraversal.
 Require Import ExtTraversalCounting.
+Require Import SimulationPlainStepAux.
 
 (* From imm Require Import PromiseFuture. *)
-(* From imm Require Import SimulationPlainStepAux. *)
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -463,10 +463,23 @@ Proof.
     eapply Memory.ext. ins.
     rewrite Memory.bot_get.
     destruct (Memory.get loc ts (Local.promises local)) eqn: H; auto.
-    destruct p as [from [v msg]].
-    eapply SIM_PROM in H; eauto.
-    desc.
-    exfalso. apply NCOV. by apply FINALT. }
+    destruct p as [from msg].
+    destruct msg as [v msg|].
+    { eapply SIM_PROM in H; eauto.
+      desc.
+      exfalso. apply NCOV. by apply FINALT. }
+    eapply SIM_RPROM in H; eauto. desc.
+    exfalso.
+    apply seq_eqv_lr in RFRMWS. destruct RFRMWS as [AA _].
+    apply AA. eapply w_covered_issued.
+    { apply COMMON. }
+    split.
+    { eapply reservedW; auto.
+      { apply COMMON. }
+      apply AA. }
+    apply FINALT. split; [by apply AA|]. eapply etc_S_in_E.
+    { apply COMMON. }
+    apply AA. }
   assert (Local.is_terminal local) as LCTR by (constructor; auto).
   assert (wf_thread_state thread state') as GPC'.
   { eapply wf_thread_state_steps; eauto. }
@@ -495,9 +508,13 @@ Proof.
   apply rtE in STEPS. destruct STEPS as [EQ|STEPS].
   { red in EQ. desf. exists PC. splits; auto.
     red. ins.
-    destruct (IdentMap.find thread (Configuration.threads PC)).
-    2: by desf.
-    rewrite LLH in LLH0; inv LLH0.
+    destruct (IdentMap.find thread (Configuration.threads PC)) eqn: HH.
+    2: { clear -LLH0 LLH HH.
+         unfold language in *.
+         desf. }
+    inv LLH.
+    unfold language in *; simpls.
+    rewrite HH in LLH0. inv LLH0.
     assert (state' = st); subst.
     { clear -LLH0 XBB XBB1. simpl in *.
       apply XBB in LLH0.
@@ -506,7 +523,7 @@ Proof.
       by apply TERMINAL. }
   assert 
   (thread_is_terminal
-     (IdentMap.add thread (existT Language.state (thread_lts thread) state', local)
+     (IdentMap.add thread (existT (@Language.state ProgramEvent.t) (thread_lts thread) state', local)
                    (Configuration.threads PC)) thread) as TT.
   { red. ins. rewrite IdentMap.gss in LLH0. inv LLH0.
     assert (state' = st); subst.
@@ -520,7 +537,7 @@ Proof.
   { apply r_step. eexists. exists thread.
     apply ct_end in STEPS.
     destruct STEPS as [state'' [STEPS STEP]].
-    econstructor.
+    eapply Configuration.step_normal.
     { eauto. }
     { eapply rtc_lang_tau_step_rtc_thread_tau_step.
       unfold Language.Language.step. simpls.
@@ -529,7 +546,8 @@ Proof.
       constructor. simpls.
       2: by apply Local.step_silent. 
       apply STEP. }
-    red. ins. eexists. splits; eauto. }
+    { done. }
+    red. ins. splits; eauto. }
   2: { ins; clear - QQ.
        apply NoDup_Permutation; eauto using NoDup_map_NoDupA, IdentMap.elements_3w.
        ins; rewrite !in_map_iff; split; intros ([i v] & <- & IN); ins;
@@ -556,13 +574,8 @@ Proof.
   destruct (classic (thread0 = thread)) as [|NEQ]; subst.
   { rewrite IdentMap.gss. 
     eexists; eexists. splits.
-    1,4: done.
+    1,3: done.
     all: eauto.
-    { arewrite (instrs state' = instrs state); auto.
-      clear -STATE1. cdes STATE1.
-      clear -STEPS. induction STEPS; auto.
-      2: by rewrite IHSTEPS2.
-      inv H. inv H0. }
     { ins. left. rewrite PBOT. apply Memory.bot_get. }
     red. splits.
     { by rewrite EII. }
@@ -588,12 +601,12 @@ Proof.
   destruct l; ins; desf; eauto.
 Qed.
 
-Lemma sim_covered_exists_terminal T PC f_to f_from
+Lemma sim_covered_exists_terminal T S PC f_to f_from
       (FINALT : acts_set G ⊆₁ covered T)
-      (SIMREL : simrel G sc PC T f_to f_from) :
+      (SIMREL : simrel G sc PC T S f_to f_from) :
   exists PC',
     ⟪ STEPS : conf_step＊ PC PC' ⟫ /\
-    ⟪ SIMREL : simrel G sc PC' T f_to f_from ⟫ /\
+    ⟪ SIMREL : simrel G sc PC' T S f_to f_from ⟫ /\
     ⟪ TERMINAL : Configuration.is_terminal PC' ⟫.
 Proof.
   assert
@@ -633,9 +646,9 @@ Proof.
   auto using le_lt_n_Sm, plus_le_compat.
 Qed.
 
-Lemma same_final_memory T PC f_to f_from
+Lemma same_final_memory T S PC f_to f_from
       (FINALT : acts_set G ⊆₁ covered T)
-      (SIMREL : simrel G sc PC T f_to f_from) :
+      (SIMREL : simrel G sc PC T S f_to f_from) :
   forall l,
     final_memory_state (Configuration.memory PC) l = Some (final_memory l).
 Proof.
