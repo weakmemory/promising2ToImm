@@ -682,7 +682,15 @@ Proof.
   red in AA. desc.
   rewrite AA. simpls.
   destruct msg as [val msg|].
-  2: { admit. }
+  2: { desc. eapply HMEM in AA. desc.
+       exfalso.
+       apply seq_eqv_lr in RFRMWS. destruct RFRMWS as [AA _].
+       apply AA. eapply w_covered_issued; eauto.
+       split.
+       { apply (reservedW WF ETCCOH).
+         apply AA. }
+       apply FINALT. apply ETCCOH.(etc_S_in_E).
+       apply AA. }
   assert (val = final_memory l); [|by subst].
   desc. red in MEM.
   set (BB := AA).
@@ -771,7 +779,7 @@ Proof.
   rewrite <- TO in CC.
   exfalso. eapply Time.lt_strorder.
   eapply TimeFacts.lt_le_lt; eauto.
-Admitted.
+Qed.
 
 Lemma sim_step PC T S T' S' f_to f_from
       (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
