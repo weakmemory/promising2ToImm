@@ -1,34 +1,31 @@
 Require Import PArith Arith.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising Require Import Configuration TView View Time Event Cell Thread Memory.
+From Promising2 Require Import Configuration TView View Time Event Cell Thread Memory Local.
 From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import Execution_eco.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 From imm Require Import imm_common.
-
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
+From imm Require Import ProgToExecution.
 
-From imm Require Import TraversalConfig.
-From imm Require Import Traversal.
-From imm Require Import SimTraversal.
-
+Require Import TraversalConfig.
+Require Import ExtTraversal.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import ViewRelHelpers.
 Require Import SimulationRel.
-From imm Require Import SimulationPlainStepAux.
-From imm Require Import SimulationRelAux.
+Require Import SimulationPlainStepAux.
 Require Import PlainStepBasic.
-
 Require Import SimState.
 Require Import SimStateHelper.
 Require Import PromiseLTS.
-From imm Require Import ProgToExecution.
 Require Import MemoryAux.
+Require Import FtoCoherent.
+Require Import AuxRel2.
 
 Set Implicit Arguments.
 
@@ -59,10 +56,6 @@ Notation "'hb'" := G.(hb).
 Notation "'sw'" := G.(sw).
 
 Notation "'lab'" := G.(lab).
-(* Notation "'loc'" := (loc lab). *)
-(* Notation "'val'" := (val lab). *)
-(* Notation "'mod'" := (mod lab). *)
-(* Notation "'same_loc'" := (same_loc lab). *)
 
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
@@ -83,22 +76,25 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := G.(W_ex).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma rlx_write_cover_step PC T f_to f_from thread w smode
-      (SIMREL_THREAD : simrel_thread G sc PC thread T f_to f_from smode)
+Lemma rlx_write_cover_step PC T S f_to f_from thread w smode
+      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
       (TID : tid w = thread)
-      (NEXT : next G (covered T) w) (COV : coverable G sc T w)
+      (NEXT : next G (covered T) w)
+      (COV : coverable G sc T w)
       (TYPE : W w)
       (NREL : ~ Rel w)
       (NRMW : ~ codom_rel rmw w):
   let T' := (mkTC (covered T ∪₁ eq w) (issued T)) in
   exists PC',
-    ⟪ PCSTEP : plain_step None thread PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' thread T' f_to f_from smode ⟫ /\
+    ⟪ PCSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S f_to f_from thread smode ⟫ /\
     ⟪ SIMREL :
-        smode = sim_normal -> simrel G sc PC T f_to f_from ->
-        simrel G sc PC' T' f_to f_from ⟫.
+        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
+        simrel G sc PC' T' S f_to f_from ⟫.
 Proof.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
+  
+  assert (tc_coherent G sc T) as sTCCOH by apply TCCOH.
 
   assert (sc_per_loc G) as SC_PER_LOC.
   { by apply coherence_sc_per_loc; cdes CON. }
@@ -127,6 +123,8 @@ Proof.
   { intros IIN. apply WNCOV. apply TCCOH. by split. }
   assert (issued T w) as WISS.
   { cdes COV; desf; type_solver. }
+  assert (S w) as WS.
+  { by apply TCCOH.(etc_I_in_S). }
   assert (val lab w = Some valw) as WPVAL.
   { by unfold val; rewrite PARAMS. }
 
@@ -221,6 +219,8 @@ Proof.
       destruct IN as [[[WA LOCA] TIDA] COVA].
       eapply w_covered_issued; eauto.
         by split. }
+    assert (S a_max) as SA.
+    { by apply TCCOH.(etc_I_in_S). }
     assert ((E ∩₁ W ∩₁ (fun x => loc lab a_max = Some locw)) a_max) as BB.
     { destruct INam as [IN|IN].
       { apply set_interA; split.
@@ -275,8 +275,8 @@ Proof.
   eexists.
   apply and_assoc. apply pair_app.
   { split.
-    { set (pe' := None).
-      assert (pe' = ThreadEvent.get_event pe) as H.
+    { set (pe' := MachineEvent.silent).
+      assert (pe' = ThreadEvent.get_machine_event pe) as H.
       { unfold pe. simpls. }
       rewrite H. clear H.
       econstructor; eauto.
@@ -284,7 +284,7 @@ Proof.
       constructor.
       { rewrite EV' in STEP; eauto. }
       unfold pe; eapply Local.step_write.
-      econstructor.
+      econstructor; eauto.
       { unfold TView.write_released.
         rewrite NRLX_PROM_W; simpls.
         rewrite View.join_bot_l.
@@ -298,10 +298,12 @@ Proof.
         { apply (wf_urrE WF) in CCUR; auto.
           revert CCUR; unfold seq; unfolder; ins; desf. }
         assert (issued T a_max) as AISS.
-      { assert (A: (urr G sc locw ⨾ ⦗coverable G sc T⦘) a_max w).
-        by basic_solver.
-        apply (urr_coverable) in A; try done.
-        revert A; unfold seq; unfolder; ins; desf. }
+        { assert (A: (urr G sc locw ⨾ ⦗coverable G sc T⦘) a_max w).
+          { basic_solver. }
+          apply (urr_coverable) in A; try done.
+          revert A; unfold seq; unfolder; ins; desf. }
+        assert (S a_max) as SA.
+        { by apply TCCOH.(etc_I_in_S). }
         edestruct (@wf_co_total G WF (Some locw) a_max) as [AWCO|AWCO].
         3: apply NEQ.
         2: basic_solver.
@@ -320,11 +322,13 @@ Proof.
       { econstructor.
         2: by apply NPCH.
         apply Memory.promise_lower; auto.
-        all: by apply Memory.lower_exists_same. }
-      intros. exfalso.
-      unfold Event_imm_promise.wmod, is_rel, mode_le, Events.mod in *.
-      rewrite PARAMS in *.
-      destruct ordw; simpls. }
+        all: apply Memory.lower_exists_same; auto.
+        all: by constructor. }
+      { intros. exfalso.
+        unfold Event_imm_promise.wmod, is_rel, mode_le, Events.mod in *.
+        rewrite PARAMS in *.
+        destruct ordw; simpls. }
+      done. }
     unnw.
     red; splits; red; splits; simpls.
     { eapply trav_step_coherence; eauto.

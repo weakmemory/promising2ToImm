@@ -400,11 +400,11 @@ Proof.
   apply seq_eqv_r. split; eauto.
 Qed.
 
-Lemma exists_time_interval f_to f_from T PC w locw valw langst local smode
+Lemma exists_time_interval f_to f_from T S PC w locw valw langst local smode
       (IMMCON : imm_consistent G sc)
-      (TCCOH : tc_coherent G sc T)
+      (ETCCOH : etc_coherent G sc (mkETC T S))
       (WNISS : ~ issued T w)
-      (WISSUABLE : issuable G T w)
+      (WISSUABLE : issuable G sc T w)
       (LOC : loc lab w = Some locw)
       (VAL : val lab w = Some valw)
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
@@ -415,8 +415,9 @@ Lemma exists_time_interval f_to f_from T PC w locw valw langst local smode
            Memory.le local.(Local.Local.promises) PC.(Configuration.memory))
       (FCOH : f_to_coherent G (issued T) f_to f_from)
       (RESERVED_TIME:
-         reserved_time G f_to f_from (issued T) PC.(Configuration.memory) smode)
-      (FUTURE : Memory.future Memory.init (Configuration.memory PC))
+         reserved_time G T S f_to f_from smode PC.(Configuration.memory))
+      (INHAB      : Memory.inhabited (Configuration.memory PC))
+      (CLOSED_MEM : Memory.closed (Configuration.memory PC))
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local PC.(Configuration.memory))
       (SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.Local.tview) (tid w))
@@ -532,8 +533,7 @@ Lemma exists_time_interval f_to f_from T PC w locw valw langst local smode
                       (View.singleton_ur locw (f_to' w))) ⟫
    ⟫).
 Proof.
-  assert (Memory.inhabited PC.(Configuration.memory)) as INHAB.
-  { by apply inhabited_future_init. }
+  assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
 
   assert (W w) as WW.
   { apply WISSUABLE. }
