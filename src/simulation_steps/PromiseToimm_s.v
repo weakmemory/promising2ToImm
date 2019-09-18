@@ -33,8 +33,6 @@ Require Import ExtTraversalCounting.
 Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
 
-(* From imm Require Import PromiseFuture. *)
-
 Set Implicit Arguments.
 Remove Hints plus_n_O.
 
