@@ -251,8 +251,6 @@ Proof.
     all: try rewrite EQ_CUR.
     all: try rewrite EQ_ACQ.
     all: reflexivity. }
-  assert (Memory.inhabited PC.(Configuration.memory)) as INHAB.
-  { by apply inhabited_future_init. }
   unfold TView.read_tview; simpls.
   red; splits; simpls.
   all: desf; ins.
@@ -260,7 +258,7 @@ Proof.
   all: try apply MEM_CLOSE.
   all: auto.
   all: try by apply Memory.closed_timemap_bot.
-  all: by eapply Memory.singleton_closed_timemap; eauto.
+  all: try by eapply Memory.singleton_closed_timemap; eauto.
 Qed.
 
 End ReadPlainStepHelper.

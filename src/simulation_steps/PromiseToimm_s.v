@@ -163,8 +163,9 @@ Lemma simrel_thread_bigger_sc_memory G sc T S thread f_to f_from threads memory
       sc_view memory' sc_view'
       lang state local
       (WF : Wf G) (IMMCON : imm_consistent G sc)
-      (THREAD  : IdentMap.find thread threads = Some (existT _ lang state, local))
-      (FUTURE : Memory.future Memory.init memory')
+      (THREAD     : IdentMap.find thread threads = Some (existT _ lang state, local))
+      (INHAB      : Memory.inhabited memory' )
+      (CLOSED_MEM : Memory.closed memory')
       (MEM_LE : Memory.le memory memory')
       (SС_CLOSED  : Memory.closed_timemap sc_view' memory')
       (SIMREL : simrel_thread G sc (Configuration.mk threads sc_view memory )
@@ -376,7 +377,8 @@ Proof.
     edestruct TView.bot_closed.
     unfold TView.bot, View.bot in *; simpls.
     destruct CUR. simpls. }
-  { simpls. reflexivity. }
+  { apply inhabited_init. }
+  { simpls. apply Memory.init_closed. }
   simpls.
   apply IdentMap.Facts.in_find_iff in TP.
   destruct (IdentMap.find thread (Threads.init (init_threads prog))) eqn: HH; simpls.
@@ -675,8 +677,6 @@ Proof.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   ins. unfold final_memory_state.
   cdes SIMREL. cdes COMMON.
-  assert (Memory.inhabited PC.(Configuration.memory)) as INHAB.
-  { by apply inhabited_future_init. }
   edestruct (Memory.max_ts_spec l) as [AA _].
   { apply INHAB. }
   red in AA. desc.
@@ -821,7 +821,10 @@ Proof.
   all: try by desf; eauto.
   { unfold PC. eapply simrel_thread_bigger_sc_memory; eauto.
     { rewrite IdentMap.gss; eauto. }
-    { admit. }
+    { eapply inhabited_le.
+      { apply CAP. }
+      apply SIMREL_THREAD. }
+    { eapply Memory.cap_closed; eauto. apply SIMREL_THREAD. }
     { apply CAP. }
       by apply Memory.max_full_timemap_closed. }
   desc.
@@ -869,7 +872,7 @@ Proof.
   eexists. splits.
   { apply PSTEP. }
   simpls.
-Admitted.
+Qed.
 
 Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)⁺ TS TS')

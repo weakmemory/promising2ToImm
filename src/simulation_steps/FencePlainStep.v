@@ -291,9 +291,7 @@ Proof.
       all: try rewrite EQ_CUR.
       all: try rewrite EQ_ACQ.
       all: reflexivity. }
-    { assert (Memory.inhabited PC.(Configuration.memory)) as INHAB.
-      { by apply inhabited_future_init. }
-      unfold TView.read_fence_tview, TView.write_fence_tview, TView.write_fence_sc; simpls.
+    { unfold TView.read_fence_tview, TView.write_fence_tview, TView.write_fence_sc; simpls.
       red; splits; simpls.
       all: desf; ins.
       all: repeat (apply Memory.join_closed_timemap).

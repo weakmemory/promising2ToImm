@@ -61,6 +61,16 @@ Qed.
 Set Implicit Arguments.
 Remove Hints plus_n_O.
 
+Lemma memory_init_o loc to from msg
+      (GET : Memory.get loc to Memory.init = Some (from, msg)) :
+  to = Time.bot /\ from = Time.bot /\ msg = Message.elt.
+Proof.
+  unfold Memory.init, Cell.init, Cell.Raw.init in *.
+  unfold Memory.get, Cell.get in *; simpls.
+  apply IdentMap.singleton_find_inv in GET.
+  desf.
+Qed.
+
 Lemma inhabited_init : Memory.inhabited Memory.init.
 Proof. red. ins. Qed.
 
@@ -83,20 +93,15 @@ Lemma inhabited_future_init memory (FUTURE : Memory.future Memory.init memory) :
   Memory.inhabited memory.
 Proof. eapply inhabited_future; eauto. apply inhabited_init. Qed.
 
+Lemma inhabited_le memory memory' (LE : Memory.le memory memory')
+      (INHAB : Memory.inhabited memory) :
+  Memory.inhabited memory'.
+Proof. red. ins. apply LE. apply INHAB. Qed.
+
 Definition ts_lt_or_bot memory :=
   forall loc to from msg (GET : Memory.get loc to memory = Some (from, msg)),
     (to = Time.bot /\ from = Time.bot) \/
     ⟪ FTLT : Time.lt from to ⟫.
-
-Lemma memory_init_o loc to from msg
-      (GET : Memory.get loc to Memory.init = Some (from, msg)) :
-  to = Time.bot /\ from = Time.bot /\ msg = Message.elt.
-Proof.
-  unfold Memory.init, Cell.init, Cell.Raw.init in *.
-  unfold Memory.get, Cell.get in *; simpls.
-  apply IdentMap.singleton_find_inv in GET.
-  desf.
-Qed.
 
 Lemma ts_lt_or_bot_init : ts_lt_or_bot Memory.init.
 Proof. red. ins. apply memory_init_o in GET. left. desf. Qed.

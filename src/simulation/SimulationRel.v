@@ -189,8 +189,9 @@ Definition simrel_common
 
   ⟪ RESERVED_TIME: reserved_time smode memory ⟫ /\
                     
-  ⟪ CLOSED_SC : Memory.closed_timemap sc_view memory ⟫ /\
-  ⟪ FUTURE : Memory.future Memory.init memory ⟫.
+  ⟪ CLOSED_SC  : Memory.closed_timemap sc_view memory ⟫ /\
+  ⟪ INHAB      : Memory.inhabited memory ⟫ /\
+  ⟪ CLOSED_MEM : Memory.closed memory ⟫.
 
 Definition pln_rlx_eq tview :=
   ⟪ EQ_CUR : TimeMap.eq (View.pln (TView.cur tview)) (View.rlx (TView.cur tview)) ⟫ /\
