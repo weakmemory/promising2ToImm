@@ -98,25 +98,32 @@ Lemma plain_sim_step thread PC T S f_to f_from T' S' smode
 Proof.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
   set (TCSTEP' := TCSTEP).
-  destruct TCSTEP'.
+  inv TCSTEP'.
   { (* Fence covering *)
     cdes TS. desf.
     2,3: exfalso; assert (W f) as WFF; [|type_solver].
     2,3: eapply WF.(reservedW); [by apply TS|].
     2,3: apply RESEQ; basic_solver.
-    edestruct fence_step; eauto.
-    1,2: admit.
+    edestruct fence_step as [PC' HH]; eauto.
+    { admit. }
+    apply coverable_add_eq_iff.
+    { apply CON. }
+    apply covered_in_coverable.
+    { apply ETCCOH'. }
+    basic_solver. }
+  { (* Read covering *)
+    cdes TS. desf.
+    2,3: exfalso; assert (W r) as WFF; [|type_solver].
+    2,3: eapply WF.(reservedW); [by apply TS|].
+    2,3: apply RESEQ; basic_solver.
+    edestruct read_step; eauto.
+    { admit. }
+    apply coverable_add_eq_iff.
+    { apply CON. }
+    apply covered_in_coverable.
+    { apply ETCCOH'. }
+    basic_solver. }
 Admitted.
-(*     desc. *)
-(*     do 3 eexists. splits; eauto. *)
-(*     apply H. *)
-(*     eauto. *)
-(*     red. split; [split|]; auto. all: apply COV. } *)
-(*   { (* Read covering *) *)
-(*     cdes TS. desf. *)
-(*     2: { red in ISS. type_solver. } *)
-(*     edestruct read_step; eauto. *)
-(*     red. split; [split|]; auto. all: apply COV. } *)
 (*   { (* Relaxed write issuing *) *)
 (*     cdes TS. desf. *)
 (*     { exfalso. apply NISS. red in COV.  *)
