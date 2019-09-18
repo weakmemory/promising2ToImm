@@ -807,40 +807,23 @@ Proof.
   2: { apply SIMREL0; eauto. }
   red. exists MachineEvent.silent. exists thread.
   destruct PSTEP. econstructor; eauto.
-  red; simpls. ins.
+  red; simpls. ins. right.
   
-  edestruct cert_graph_init as [G' [sc'' [T'' HH]]]; eauto.
-  desc.
-  edestruct future_memory_switch with (memory:=memory3) (memory':=mem1)
-    as [sc_view'' [memory'']]; eauto.
-  { apply SIMREL1. }
-  { apply WF0. }
-  { clear -SIMREL1 WF0.
-    cdes SIMREL1.
-    cdes COMMON. cdes LOCAL.
-    simpls. set (LLH' := LLH).
-    rewrite IdentMap.gss in LLH'.
-    inv LLH'.
-    constructor.
-    1,4: by apply WF0.
-    2: eapply PROM_IN_MEM; eauto.
-    cdes MEM_CLOSE.
-    cdes PLN_RLX_EQ.
-    constructor; ins; constructor; auto.
-    { by rewrite EQ_REL. }
-    { by rewrite EQ_CUR. }
-      by rewrite EQ_ACQ. }
+  edestruct cert_graph_init as [G' [sc'' [T'' [S'' HH]]]]; eauto.
   desc.
 
   set (PC := (Configuration.mk (IdentMap.add
                                   tid (existT _ lang st3, lc3)
                                   (Configuration.threads c1))
-                               sc_view'' memory'')).
+                               sc1 mem1)).
 
-  edestruct (@cert_simulation G' sc'' tid PC T'' f_to' f_from') as [T''' HH].
+  edestruct (@cert_simulation G' sc'' tid PC T'' S'' f_to' f_from') as [T''' HH].
   all: try by desf; eauto.
   { unfold PC. eapply simrel_thread_bigger_sc_memory; eauto.
-    rewrite IdentMap.gss; eauto. }
+    { rewrite IdentMap.gss; eauto. }
+    { admit. }
+    { apply CAP. }
+      by apply Memory.max_full_timemap_closed. }
   desc.
 
   assert
@@ -859,8 +842,21 @@ Proof.
     destruct (Memory.get loc ts (Local.promises local)) eqn: HH; auto.
     exfalso.
     destruct p as [from msg]. destruct msg.
-    eapply SIM_PROM in HH; eauto.
-    desc. apply NCOV. by apply FINALT. }
+    { eapply SIM_PROM in HH; eauto.
+      desc. apply NCOV. by apply FINALT. }
+    eapply SIM_RPROM in HH; eauto.
+    desc.
+    apply seq_eqv_lr in RFRMWS. destruct RFRMWS as [AA _].
+    apply AA. eapply w_covered_issued.
+    { apply COMMON0. }
+    split.
+    { eapply reservedW; auto.
+      { apply COMMON0. }
+      apply AA. }
+    apply FINALT. eapply etc_S_in_E.
+    { apply COMMON0. }
+    apply AA. }
+
   desc.
   destruct langst as [lang' state'].
   assert (lang' = lang); subst.
@@ -870,24 +866,26 @@ Proof.
     simpls. rewrite IdentMap.gss. eauto. }
   eapply conf_steps_to_thread_steps in PSTEP; eauto.
   2: { unfold PC. simpls. rewrite IdentMap.gss. eauto. }
-  eapply STEPS0 in PSTEP.
-  desf. exists thread_conf'. splits; eauto.
-  destruct SIM.
-  rewrite PROM. eauto.
-Qed.
+  eexists. splits.
+  { apply PSTEP. }
+  simpls.
+Admitted.
 
-Lemma sim_steps PC T T' f_to f_from
-      (TCSTEPS : (sim_trav_step G sc)⁺ T T')
-      (SIMREL  : simrel G sc PC T f_to f_from) :
+Lemma sim_steps PC TS TS' f_to f_from
+      (TCSTEPS : (ext_sim_trav_step G sc)⁺ TS TS')
+      (SIMREL  : simrel G sc PC (etc_TC TS) (reserved TS) f_to f_from) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : conf_step⁺ PC PC' ⟫ /\
-      ⟪ SIMREL : simrel G sc PC' T' f_to' f_from' ⟫.
+      ⟪ SIMREL : simrel G sc PC' (etc_TC TS') (reserved TS') f_to' f_from' ⟫.
 Proof.
   generalize dependent f_from.
   generalize dependent f_to.
   generalize dependent PC.
   induction TCSTEPS.
-  { ins. desf. eapply sim_step in H; eauto. desf.
+  { ins. desf.
+    destruct x as [T S].
+    destruct y as [T' S'].
+    eapply sim_step in H; eauto. desf.
     eexists. splits; eauto. }
   ins.
   eapply IHTCSTEPS1 in SIMREL.
@@ -899,18 +897,20 @@ Proof.
 Qed.
 
 Lemma simulation :
-  exists T PC f_to f_from,
+  exists T S PC f_to f_from,
     ⟪ FINALT : G.(acts_set) ⊆₁ covered T ⟫ /\
     ⟪ PSTEP  : conf_step＊ (conf_init prog) PC ⟫ /\
-    ⟪ SIMREL : simrel G sc PC T f_to f_from ⟫.
+    ⟪ SIMREL : simrel G sc PC T S f_to f_from ⟫.
 Proof.
   generalize (sim_traversal WF IMMCON); ins; desc.
-  exists T. apply rtE in H.
+  destruct T as [T S].
+  exists T, S. apply rtE in H.
   destruct H as [H|H].
   { red in H. desf.
     eexists. eexists. eexists.
     splits; auto.
     { apply rtE. left. red. eauto. }
+    unfold ext_init_trav in *. inv H.
     apply simrel_init. }
   eapply sim_steps in H.
   2: by apply simrel_init.
