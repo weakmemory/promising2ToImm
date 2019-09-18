@@ -230,6 +230,23 @@ Proof.
   all: by destruct H.
 Qed.
 
+Lemma sim_res_prom_fS f_to f_from f_to' f_from' T S thread promises 
+      (ETCCOH : etc_coherent G sc (mkETC T S))
+      (IMMCON : imm_consistent G sc)
+      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
+      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
+      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
+      (SIMRESPROM : sim_res_prom G T S f_to f_from thread promises) :
+  sim_res_prom G T S f_to' f_from' thread promises.
+Proof.
+  red. ins. apply SIMRESPROM in RES. desc.
+  set (CC:=RFRMWS).
+  destruct_seq CC as [AA BB].
+  do 2 eexists. splits; eauto.
+  { erewrite REQ_FROM; eauto. apply AA. }
+  erewrite REQ_TO; eauto. apply BB.
+Qed.
+
 Lemma sc_view_f_issued f_to f_to' T sc_view
       (TCCOH : tc_coherent G sc T)
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
@@ -270,28 +287,32 @@ Lemma simrel_thread_local_fS thread T S f_to f_from f_to' f_from' PC smode
       (ETCCOH : etc_coherent G sc (mkETC T S))
       (IMMCON : imm_consistent G sc)
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-      (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
-      (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e)
+      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
+      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
       (SIMREL: simrel_thread_local G sc PC T S f_to f_from thread smode):
   simrel_thread_local G sc PC T S f_to' f_from' thread smode.
 Proof.
+  assert (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e).
+  { ins. apply REQ_TO. by apply ETCCOH.(etc_I_in_S). }
+  assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
+  { ins. apply REQ_FROM. by apply ETCCOH.(etc_I_in_S). }
   cdes SIMREL.
   red; splits; auto.
   eexists; eexists; eexists; splits; eauto.
   { eapply sim_prom_f_issued; eauto. apply ETCCOH. }
-  { admit. }
+  { eapply sim_res_prom_fS; eauto. }
   { eapply sim_mem_f_issued; eauto. apply ETCCOH. }
   eapply sim_tview_f_issued; eauto. apply ETCCOH.
-Admitted.
+Qed.
 
-Lemma simrel_thread_fS thread T f_to f_from f_to' f_from' PC smode
-      (TCCOH : tc_coherent G sc T)
+Lemma simrel_thread_fS thread T S f_to f_from f_to' f_from' PC smode
+      (ETCCOH : etc_coherent G sc (mkETC T S))
       (IMMCON : imm_consistent G sc)
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-      (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
-      (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e)
-      (SIMREL: simrel_thread G sc PC thread T f_to f_from smode):
-  simrel_thread G sc PC thread T f_to' f_from' smode.
+      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
+      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
+      (SIMREL: simrel_thread G sc PC T S f_to f_from thread smode):
+  simrel_thread G sc PC T S f_to' f_from' thread smode.
 Proof.
   cdes SIMREL. cdes COMMON. cdes LOCAL.
   red; splits; auto.
@@ -299,33 +320,34 @@ Proof.
   eapply simrel_thread_local_fS; eauto.
 Qed.
 
-Lemma simrel_fS T f_to f_from f_to' f_from' PC
-      (TCCOH : tc_coherent G sc T)
+Lemma simrel_fS T S f_to f_from f_to' f_from' PC
+      (ETCCOH : etc_coherent G sc (mkETC T S))
       (IMMCON : imm_consistent G sc)
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-      (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
-      (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e)
-      (SIMREL: simrel G sc PC T f_to f_from):
-  simrel G sc PC T f_to' f_from'.
+      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
+      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
+      (SIMREL: simrel G sc PC T S f_to f_from):
+  simrel G sc PC T S f_to' f_from'.
 Proof.
   cdes SIMREL. red; splits.
   { eapply simrel_common_fS; eauto. }
   ins. eapply simrel_thread_local_fS; eauto.
 Qed.
 
-Lemma max_value_leS locw w wprev s ts T f_to f_from
+Lemma max_value_leS locw w wprev s ts T S f_to f_from
       (IMMCOH : imm_consistent G sc)
-      (TCCOH : tc_coherent G sc T)
-      (FCOH : f_to_coherent G (issued T) f_to f_from)
+      (ETCCOH : etc_coherent G sc (mkETC T S))
+      (FCOH : f_to_coherent G S f_to f_from)
       (LOC : loc lab w = Some locw)
-      (NISS : ~ issued T w)
-      (COIMM : immediate (⦗ issued T ⦘ ⨾ co) wprev w)
+      (NS : ~ S w)
+      (COIMM : immediate (⦗ S ⦘ ⨾ co) wprev w)
       (MAXVAL : max_value f_to s ts)
       (LOCS : s ⊆₁ Loc_ locw)
-      (ISSS : s ⊆₁ issued T)
+      (ISSS : s ⊆₁ S)
       (NOCO : ⦗ eq w ⦘ ⨾ co ⨾ ⦗ s ⦘ ≡ ∅₂) :
   Time.le ts (f_to wprev).
 Proof.
+  assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   red in MAXVAL. desc.
   destruct MAX as [[Y1 Y2]|[a_max Y1]].
   { rewrite Y2. apply Time.bot_spec. }
@@ -333,7 +355,7 @@ Proof.
   destruct (classic (a_max = wprev)) as [|NEQ]; [by subst|].
   etransitivity; eauto.
   apply Time.le_lteq. left.
-  assert (issued T wprev) as ISSWP.
+  assert (S wprev) as SWP.
   { destruct COIMM as [CO _].
     apply seq_eqv_l in CO. desf. }
   assert (co wprev w) as COWP.
@@ -346,17 +368,17 @@ Proof.
   { apply (dom_r WF.(wf_coD)) in COWP. 
     apply seq_eqv_r in COWP. desf. }
   assert (E wprev) as EWP.
-  { eapply issuedE; eauto. }
+  { by apply ETCCOH.(etc_S_in_E). }
   assert (W wprev) as WWP.
-  { apply TCCOH in ISSWP. apply ISSWP. }
+  { by apply (reservedW WF ETCCOH). }
   assert (loc lab wprev = Some locw) as LOCWP.
   { rewrite <- LOC. by apply WF.(wf_col). }
-  assert (issued T a_max) as ISSA.
+  assert (S a_max) as ISSA.
   { by apply ISSS. }
   assert (E a_max) as EA.
-  { eapply issuedE; eauto. }
+  { by apply ETCCOH.(etc_S_in_E). }
   assert (is_w lab a_max) as WA.
-  { apply ISSS in INam. apply TCCOH in INam. apply INam. }
+  { by apply (reservedW WF ETCCOH). }
   eapply f_to_co_mon; eauto.
   edestruct WF.(wf_co_total) as [CO|CO].
   3: by apply NEQ.
@@ -380,7 +402,6 @@ Qed.
 
 Lemma exists_time_interval f_to f_from T PC w locw valw langst local smode
       (IMMCON : imm_consistent G sc)
-      (ACQEX : W_ex ⊆₁ W_ex_acq)
       (TCCOH : tc_coherent G sc T)
       (WNISS : ~ issued T w)
       (WISSUABLE : issuable G T w)
@@ -1941,7 +1962,6 @@ Qed.
 Lemma write_promise_step_helper f_to f_from T PC w locw valw ordw langst local smode
       (IMMCON : imm_consistent G sc)
       (TCCOH : tc_coherent G sc T)
-      (ACQEX : W_ex ⊆₁ W_ex_acq)
       (WNISS : ~ issued T w)
       (WISSUABLE : issuable G T w)
       (LOC : loc lab w = Some locw)
