@@ -76,35 +76,43 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := G.(W_ex).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma rlx_write_promise_step PC T f_to f_from thread w smode
-      (SIMREL_THREAD : simrel_thread G sc PC thread T f_to f_from smode)
+Lemma rlx_write_promise_step PC T S f_to f_from thread w smode
+      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
       (TID : tid w = thread)
-      (WNISS : ~ issued T w)
-      (ISS : issuable G T w)
-      (NREL : ~ is_rel lab w):
+      (TSTEP : ext_itrav_step
+                 G sc w (mkETC T S) (mkETC (mkTC (covered T) (issued T ∪₁ eq w))
+                                           (S ∪₁ eq w)))
+      (NREL : ~ is_rel lab w) :
   let T' := (mkTC (covered T) (issued T ∪₁ eq w)) in
+  let S' := S ∪₁ eq w in
   exists PC' f_to' f_from',
-    ⟪ PCSTEP : plain_step None thread PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' thread T' f_to' f_from' smode ⟫ /\
+    ⟪ PCSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
     ⟪ SIMREL :
-        smode = sim_normal -> simrel G sc PC T f_to f_from ->
-        simrel G sc PC' T' f_to' f_from' ⟫.
+        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
+        simrel G sc PC' T' S' f_to' f_from' ⟫.
 Proof.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
+
+  assert (ISS : issuable G sc T w).
+  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
+  assert (WNISS : ~ issued T w).
+  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
 
   assert (W w /\ E w) as [TYPE WACT].
   { split; apply ISS. }
 
+  assert (tc_coherent G sc T) as sTCCOH by apply TCCOH.
+
   assert (~ covered T w) as WNCOV.
   { intros H. apply WNISS.
-      by eapply w_covered_issued; eauto; split. }
+    eapply w_covered_issued; eauto. split; auto. }
 
   assert (~ is_init w) as WNINIT.
   { intros H; apply WNCOV. by apply TCCOH. }
   
   assert (tc_coherent G sc (mkTC (covered T) (issued T ∪₁ eq w))) as TCCOH_NEW.
-  { eapply trav_step_coherence; eauto.
-    exists w; right; splits; simpls. }
+  { apply TSTEP. }
  
   assert (exists ex ordw locw valw,
              lab w = Astore ex ordw locw valw) as PARAMS; desf.
@@ -182,8 +190,8 @@ Proof.
   eexists; exists f_to'; exists f_from'.
   apply and_assoc. apply pair_app; unnw.
   { split.
-    { set (pe' := None).
-      assert (pe' = ThreadEvent.get_event pe) as H.
+    { set (pe' := MachineEvent.silent).
+      assert (pe' = ThreadEvent.get_machine_event pe) as H.
       { unfold pe. simpls. }
       rewrite H. clear H.
       econstructor; eauto.

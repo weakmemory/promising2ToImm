@@ -481,4 +481,28 @@ Proof.
   red. eapply (ext_itrav_step_nC ETCCOH). eauto.
 Qed.
 
+Lemma ext_itrav_step_iss_issuable T e
+      (ETCCOH : etc_coherent T)
+      (TSTEP : ext_itrav_step
+                 e T (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e)) (reserved T ∪₁ eq e))) :
+  issuable G sc (etc_TC T) e.
+Proof.
+  apply issuable_add_eq_iff; auto.
+  apply issued_in_issuable; [|basic_solver].
+  apply TSTEP.
+Qed.
+
+Lemma ext_itrav_step_iss_nI T e
+      (ETCCOH : etc_coherent T)
+      (TSTEP : ext_itrav_step
+                 e T (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e)) (reserved T ∪₁ eq e))) :
+  ~ eissued T e.
+Proof.
+  assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
+  intros AA.
+  red in TSTEP. desf.
+  { apply NCOV. apply COVEQ. basic_solver. }
+  apply NISS. by apply ETCCOH.(etc_I_in_S).
+Qed.
+
 End ExtTraversalConfig.
