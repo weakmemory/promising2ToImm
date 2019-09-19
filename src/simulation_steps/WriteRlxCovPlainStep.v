@@ -388,7 +388,8 @@ Proof.
       exists b; splits; auto.
       intros [H|H]; [done|subst].
       unfold loc in *; rewrite PARAMS in *; desf. }
-    { admit. }
+    { red; ins. apply SIM_RPROM.
+      erewrite Memory.remove_o in RES; eauto. desf. }
     { red; ins.
       destruct (Ordering.le Ordering.acqrel (Event_imm_promise.wmod ordw)); vauto.
       destruct (classic (b = w)) as [|NEQ].
@@ -497,6 +498,6 @@ Proof.
   rewrite coveredE; eauto.
   2: by eapply issuedE; eauto.
   all: basic_solver.
-Admitted.
+Qed.
 
 End WriteRlxCovPlainStep.

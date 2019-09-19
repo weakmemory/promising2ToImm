@@ -34,6 +34,7 @@ Require Import FtoCoherent.
 Require Import PlainStepBasic.
 Require Import FencePlainStep.
 Require Import ReadPlainStep.
+Require Import WriteRlxCovPlainStep.
 (* TODO: Require Import WritePlainStep. *)
 (* TODO: Require Import RMWPlainStep. *)
 
