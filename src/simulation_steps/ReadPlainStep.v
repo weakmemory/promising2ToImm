@@ -88,7 +88,8 @@ Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 Lemma read_step PC T S f_to f_from thread r smode
       (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
       (TID : tid r = thread)
-      (NEXT : next G (covered T) r) (COV : coverable G sc T r)
+      (TSTEP : ext_itrav_step
+                 G sc r (mkETC T S) (mkETC (mkTC (covered T ∪₁ eq r) (issued T)) S))
       (TYPE : R r)
       (NRMW : ~ dom_rel rmw r):
   let T' := (mkTC (covered T ∪₁ eq r) (issued T)) in
@@ -100,6 +101,19 @@ Lemma read_step PC T S f_to f_from thread r smode
         simrel G sc PC' T' S f_to f_from ⟫.
 Proof.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
+
+  (* TODO: extract a lemma *)
+  assert (COV : coverable G sc T r).
+  { apply coverable_add_eq_iff; auto.
+    apply covered_in_coverable; [|basic_solver].
+    apply TSTEP. }
+
+  (* TODO: extract a lemma *)
+  assert (NEXT : next G (covered T) r).
+  { split; [split|].
+    { eapply ext_itrav_stepE; eauto. }
+    { apply COV. }
+    red. eapply (ext_itrav_step_nC WF TCCOH). eauto. }
 
   assert (tc_coherent G sc T) as sTCCOH by apply TCCOH.
   

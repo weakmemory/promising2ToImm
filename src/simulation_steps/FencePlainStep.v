@@ -85,9 +85,8 @@ Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 Lemma fence_step PC T S f_to f_from thread f smode
       (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
       (TID : tid f = thread)
-      (NEXT : next G (covered T) f)
-      (ETCCOH' : etc_coherent
-                   G sc (mkETC (mkTC (covered T ∪₁ eq f) (issued T)) S))
+      (TSTEP : ext_itrav_step
+                 G sc f (mkETC T S) (mkETC (mkTC (covered T ∪₁ eq f) (issued T)) S))
       (TYPE : F f):
   let T' := (mkTC (covered T ∪₁ eq f) (issued T)) in
   exists PC',
@@ -99,10 +98,18 @@ Lemma fence_step PC T S f_to f_from thread f smode
 Proof.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
 
+  (* TODO: extract a lemma *)
   assert (COV : coverable G sc T f).
   { apply coverable_add_eq_iff; auto.
     apply covered_in_coverable; [|basic_solver].
-    apply ETCCOH'. }
+    apply TSTEP. }
+
+  (* TODO: extract a lemma *)
+  assert (NEXT : next G (covered T) f).
+  { split; [split|].
+    { eapply ext_itrav_stepE; eauto. }
+    { apply COV. }
+    red. eapply (ext_itrav_step_nC WF TCCOH). eauto. }
 
   assert (tc_coherent G sc T) as sTCCOH by apply TCCOH.
   
@@ -220,6 +227,7 @@ Proof.
       specialize (REL_NO_PROM ORD_SRLX l to).
       desf. }
     red; splits; red; splits; simpls.
+    { apply TSTEP. }
     { etransitivity; eauto. basic_solver. }
     { intros. apply WF.(wf_rmwD) in RMW.
       apply seq_eqv_l in RMW; destruct RMW as [RR RMW].
