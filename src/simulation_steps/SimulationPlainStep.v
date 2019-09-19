@@ -35,6 +35,7 @@ Require Import PlainStepBasic.
 Require Import FencePlainStep.
 Require Import ReadPlainStep.
 Require Import WriteRlxCovPlainStep.
+Require Import RMWRlxCovPlainStep.
 (* TODO: Require Import WritePlainStep. *)
 (* TODO: Require Import RMWPlainStep. *)
 
@@ -112,8 +113,10 @@ Proof.
     all: exfalso; assert (W r) as WFF; [|type_solver].
     all: eapply WF.(reservedW); [by apply TS|].
     all: apply RESEQ; basic_solver. }
+
   { (* Write reserving *)
     admit. }
+
   { (* Relaxed write issuing *)
     admit. }
     (* cdes TS. desf. *)
@@ -122,6 +125,7 @@ Proof.
     (*   { apply COV. } *)
     (*   all: type_solver. } *)
     (* edestruct rlx_write_promise_step; eauto. } *)
+
   { (* Relaxed write covering *)
     cdes TS. desf; unfold eissued, ecovered in *; simpls.
     { edestruct rlx_write_cover_step; eauto. }
@@ -130,31 +134,41 @@ Proof.
     3: by eauto.
     all: eauto.
     apply COVEQ. basic_solver. }
-(*   { (* Release write covering *) *)
-(*     cdes TS1. desf. *)
-(*     { exfalso. apply NISS. red in COV.  *)
-(*       destruct COV as [_ [[COV|COV]|COV]]. *)
-(*       { apply COV. } *)
-(*       all: type_solver. } *)
-(*     edestruct rel_write_step; eauto. *)
-(*     red. split; [split|]; auto. *)
-(*     { apply ISS. } *)
-(*     2: { intros COV. apply NISS. eapply w_covered_issued; eauto. by split. } *)
-(*     red in ISS. *)
-(*     destruct ISS as [[[_ ISS] _] _]. red in ISS. *)
-(*     red. etransitivity. *)
-(*     2: by apply ISS. *)
-(*     unfold fwbob. *)
-(*     arewrite (eq w ⊆₁ W ∩₁ Rel ∩₁ eq w). *)
-(*     basic_solver. *)
-(*     basic_solver 10. } *)
-(*   { (* Relaxed RMW covering *) *)
-(*     assert (R r) as RR. *)
-(*     { apply (dom_l WF.(wf_rmwD)) in RMW. hahn_rewrite (R_ex_in_R) in RMW. apply seq_eqv_l in RMW. desf. } *)
-(*     cdes TS1. desf. *)
-(*     2: { red in ISS0. type_solver. } *)
-(*     edestruct rlx_rmw_cover_step; eauto. *)
-(*     red. split; [split|]; auto. all: apply COV. } *)
+
+  { (* Release write covering *)
+    admit. }
+    (* cdes TS1. desf. *)
+    (* { exfalso. apply NISS. red in COV. *)
+    (*   destruct COV as [_ [[COV|COV]|COV]]. *)
+    (*   { apply COV. } *)
+    (*   all: type_solver. } *)
+    (* edestruct rel_write_step; eauto. *)
+    (* red. split; [split|]; auto. *)
+    (* { apply ISS. } *)
+    (* 2: { intros COV. apply NISS. eapply w_covered_issued; eauto. by split. } *)
+    (* red in ISS. *)
+    (* destruct ISS as [[[_ ISS] _] _]. red in ISS. *)
+    (* red. etransitivity. *)
+    (* 2: by apply ISS. *)
+    (* unfold fwbob. *)
+    (* arewrite (eq w ⊆₁ W ∩₁ Rel ∩₁ eq w). *)
+    (* basic_solver. *)
+    (* basic_solver 10. } *)
+
+  { (* Relaxed RMW covering *)
+    assert (R r) as RR.
+    { apply (dom_l WF.(wf_rmwD)) in RMW. hahn_rewrite (R_ex_in_R) in RMW. apply seq_eqv_l in RMW. desf. }
+    cdes TS1. desf; unfold eissued, ecovered in *; simpls.
+    { admit. }
+    all: exfalso; assert (W r) as WFF; [|type_solver].
+    all: eapply WF.(reservedW); [by apply TS1|].
+    all: apply RESEQ; basic_solver. }
+    (* cdes TS1. desf. *)
+    (* 3: { edestruct rlx_rmw_cover_step; eauto. } *)
+    (* edestruct rlx_rmw_cover_step; eauto. *)
+    (* 2: { red in ISS0. type_solver. } *)
+    (* red. split; [split|]; auto. all: apply COV. } *)
+
 (*   (* Release RMW covering *) *)
 (*   assert (R r) as RR. *)
 (*   { apply (dom_l WF.(wf_rmwD)) in RMW. hahn_rewrite (R_ex_in_R) in RMW. apply seq_eqv_l in RMW. desf. } *)
