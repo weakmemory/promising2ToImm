@@ -17,6 +17,7 @@ Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import Traversal.
 Require Import ExtTraversal.
+Require Import ExtTraversalProperties.
 Require Import ViewRelHelpers.
 Require Import PlainStepBasic.
 Require Import MemoryAux.
@@ -84,7 +85,9 @@ Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 Lemma fence_step PC T S f_to f_from thread f smode
       (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
       (TID : tid f = thread)
-      (NEXT : next G (covered T) f) (COV : coverable G sc T f)
+      (NEXT : next G (covered T) f)
+      (ETCCOH' : etc_coherent
+                   G sc (mkETC (mkTC (covered T ∪₁ eq f) (issued T)) S))
       (TYPE : F f):
   let T' := (mkTC (covered T ∪₁ eq f) (issued T)) in
   exists PC',
@@ -95,6 +98,11 @@ Lemma fence_step PC T S f_to f_from thread f smode
         simrel G sc PC' T' S f_to f_from ⟫.
 Proof.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
+
+  assert (COV : coverable G sc T f).
+  { apply coverable_add_eq_iff; auto.
+    apply covered_in_coverable; [|basic_solver].
+    apply ETCCOH'. }
 
   assert (tc_coherent G sc T) as sTCCOH by apply TCCOH.
   
@@ -212,11 +220,6 @@ Proof.
       specialize (REL_NO_PROM ORD_SRLX l to).
       desf. }
     red; splits; red; splits; simpls.
-    { constructor.
-      all: try apply TCCOH.
-      { eapply trav_step_coherence; eauto.
-        exists f; left. splits; eauto. }
-      unfold ecovered. simpls. unionR left. apply TCCOH. }
     { etransitivity; eauto. basic_solver. }
     { intros. apply WF.(wf_rmwD) in RMW.
       apply seq_eqv_l in RMW; destruct RMW as [RR RMW].

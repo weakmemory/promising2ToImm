@@ -1,7 +1,7 @@
 Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution
-     Execution_eco imm_s_hb imm_s imm_common CombRelations.
+     Execution_eco imm_s_hb imm_s imm_common CombRelations imm_s_rfrmw.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -968,6 +968,48 @@ basic_solver.
 
   Lemma dom_F_Acq_sb_I_in_C :  dom_rel (⦗F ∩₁ Acq⦘ ⨾  sb ⨾ ⦗issued T⦘) ⊆₁ covered T.
   Proof. etransitivity; [|apply dom_F_sb_I_in_C]; mode_solver 12. Qed.
+
+  Lemma coverable_add_eq_iff e:
+    coverable T e <-> coverable (mkTC (covered T ∪₁ eq e) (issued T)) e.
+  Proof.
+    split.
+    { eapply traversal_mon; simpls. eauto with hahn. }
+    unfold coverable; simpls. 
+    intros [[EE COVE] HH].
+    split.
+    { clear HH. split; auto.
+      unfolder in *. ins. desf.
+      edestruct COVE.
+      { eexists; eauto. }
+      { done. }
+      exfalso. desf. eapply sb_irr; eauto. }
+    destruct HH as [[HH|HH]|[AA HH]]; [do 2 left| left;right|right]; auto.
+    split; auto.
+    unfolder in *. ins. desf. edestruct HH.
+    { eexists; eauto. }
+    { done. }
+    exfalso. desf. eapply sc_irr; eauto.
+    apply IMMCON.
+  Qed.
+
+  Lemma issuable_add_eq_iff e :
+    issuable T e <-> issuable (mkTC (covered T) (issued T ∪₁ eq e)) e.
+  Proof.
+    cdes IMMCON.
+    split.
+    { eapply traversal_mon; simpls. eauto with hahn. }
+    unfold issuable; simpls. 
+    intros [[EE ISSE] HH].
+    unfold dom_cond in *.
+    split; [split|]; auto.
+    all: intros x BB; set (CC:=BB).
+    apply HH in CC.
+    destruct CC; desf.
+    exfalso; clear -BB WF IMMCON.
+    unfolder in *; desf.
+    eapply ar_rfrmw_acyclic; eauto.
+    apply IMMCON.
+  Qed.
   
   Variable RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T.
 

@@ -1,4 +1,5 @@
 (* Require Import Program.Basics. *)
+Require Import Omega.
 From hahn Require Import Hahn.
 Require Import Setoid.
 Require Import AuxRel.
@@ -49,3 +50,20 @@ Qed.
 Lemma pair_app :
   forall (A B : Prop), A -> (A -> A /\ B) -> A /\ B.
 Proof. ins. intuition. Qed.
+
+Theorem nat_ind_lt (P : nat -> Prop)
+        (HPi : forall n, (forall m, m < n -> P m) -> P n) :
+  forall n, P n.
+Proof.
+  set (Q n := forall m, m <= n -> P m).
+  assert (forall n, Q n) as HH.
+  2: { ins. apply (HH n). omega. }
+  ins. induction n.
+  { unfold Q. ins. inv H. apply HPi. ins. inv H0. }
+  unfold Q in *. ins.
+  apply le_lt_eq_dec in H.
+  destruct H as [Hl | Heq].
+  { unfold lt in Hl. apply le_S_n in Hl. by apply IHn. }
+  rewrite Heq. apply HPi. ins.
+  apply le_S_n in H. by apply IHn.
+Qed.

@@ -202,73 +202,6 @@ Inductive ext_isim_trav_step : thread_id -> ext_trav_config -> ext_trav_config -
 Definition ext_sim_trav_step T T' :=
   exists thread, ext_isim_trav_step thread T T'.
 
-(* TODO: move to TraveralConfig.v *)
-Lemma coverable_add_eq_iff T (WFSC : wf_sc G sc) e:
-  coverable G sc T e <-> coverable G sc (mkTC (covered T ∪₁ eq e) (issued T)) e.
-Proof.
-  split.
-  { eapply traversal_mon; simpls. eauto with hahn. }
-  unfold coverable; simpls. 
-  intros [[EE COVE] HH].
-  split.
-  { clear HH. split; auto.
-    unfolder in *. ins. desf.
-    edestruct COVE.
-    { eexists; eauto. }
-    { done. }
-    exfalso. desf. eapply sb_irr; eauto. }
-  destruct HH as [[HH|HH]|[AA HH]]; [do 2 left| left;right|right]; auto.
-  split; auto.
-  unfolder in *. ins. desf. edestruct HH.
-  { eexists; eauto. }
-  { done. }
-  exfalso. desf. eapply sc_irr; eauto.
-Qed.
-
-(* TODO: move to TraveralConfig.v *)
-Lemma issuable_add_eq_iff T e :
-  issuable G sc T e <-> issuable G sc (mkTC (covered T) (issued T ∪₁ eq e)) e.
-Proof.
-  cdes IMMCON.
-  split.
-  { eapply traversal_mon; simpls. eauto with hahn. }
-  unfold issuable; simpls. 
-  intros [[EE ISSE] HH].
-  unfold dom_cond in *.
-  split; [split|]; auto.
-  all: intros x BB; set (CC:=BB).
-  apply HH in CC.
-  destruct CC; desf.
-  exfalso; clear -BB WF IMMCON.
-  unfolder in *; desf.
-  eapply ar_rfrmw_acyclic; eauto.
-  apply IMMCON.
-Qed.
-
-(* TODO: move to ExtTraversal.v *)
-Lemma ext_trav_step_in_trav_step (WFSC : wf_sc G sc) :
-  ext_trav_step G sc ⊆ etc_TC ⋄ (same_trav_config ∪ trav_step G sc).
-Proof.
-  unfold ext_trav_step, ext_itrav_step, map_rel.
-  intros T T'. ins. desf.
-  3: { left. red. by split; symmetry. }
-  all: right; exists e; red; unnw.
-  all: unfold ecovered, eissued in *.
-  2: right.
-  left.
-  all: splits; auto.
-  { apply coverable_add_eq_iff; auto.
-    apply covered_in_coverable; [|basic_solver].
-    eapply tc_coherent_more.
-    2: apply ETCCOH'.
-    red; splits; simpls; by symmetry. }
-  apply issuable_add_eq_iff; auto. 
-  eapply issued_in_issuable; [|basic_solver].
-  eapply tc_coherent_more.
-  2: apply ETCCOH'.
-  red; splits; simpls; by symmetry.
-Qed.
-
 Lemma exists_ext_sim_trav_step T (ETCCOH : etc_coherent G sc T)
       (WFSC : wf_sc G sc)
       (RELCOV :  W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
@@ -610,7 +543,7 @@ Proof.
   assert (issuable G sc (etc_TC T') e) as ISS'.
   { eapply issued_in_issuable; eauto. apply ISSEQ. basic_solver. }
   assert (issuable G sc (etc_TC T) e) as ISS.
-  { eapply issuable_add_eq_iff.
+  { eapply issuable_add_eq_iff; eauto.
     eapply issuable_more; eauto.
     unfold ecovered, eissued in *.
     red. simpls. splits; by symmetry. }

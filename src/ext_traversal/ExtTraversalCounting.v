@@ -3,6 +3,7 @@ From hahn Require Import Hahn.
 Require Import Omega.
 
 From imm Require Import Events Execution imm_s.
+Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import Traversal.
 Require Import ExtTraversal.
@@ -262,23 +263,6 @@ Section ExtTraversalCounting.
     eapply lt_trans; eauto.
   Qed.
 
-  Theorem nat_ind_lt (P : nat -> Prop)
-          (HPi : forall n, (forall m, m < n -> P m) -> P n) :
-    forall n, P n.
-  Proof.
-    set (Q n := forall m, m <= n -> P m).
-    assert (forall n, Q n) as HH.
-    2: { ins. apply (HH n). omega. }
-    ins. induction n.
-    { unfold Q. ins. inv H. apply HPi. ins. inv H0. }
-    unfold Q in *. ins.
-    apply le_lt_eq_dec in H.
-    destruct H as [Hl | Heq].
-    { unfold lt in Hl. apply le_S_n in Hl. by apply IHn. }
-    rewrite Heq. apply HPi. ins.
-    apply le_S_n in H. by apply IHn.
-  Qed.
-
   Lemma sim_traversal_helper T
         (IMMCON : imm_consistent G sc)
         (ETCCOH : etc_coherent G sc T)
@@ -327,24 +311,8 @@ Section ExtTraversalCounting.
     right. eexists. eauto.
   Qed.
   
-  (* TODO: move to ExtTraversal.v *)
-  Definition ext_init_trav := mkETC (mkTC (is_init ∩₁ E) (is_init ∩₁ E)) (is_init ∩₁ E).
-
-  (* TODO: move to ExtTraversal.v *)
-  Lemma ext_init_trav_coherent (IMMCON : imm_consistent G sc) :
-    etc_coherent G sc ext_init_trav.
-  Proof.
-    unfold ext_init_trav.
-    constructor; unfold eissued, ecovered; simpls.
-    { by apply init_trav_coherent. }
-    { basic_solver. }
-    6: rewrite WF.(rppo_in_sb).
-    2-6: rewrite no_sb_to_init; basic_solver.
-    intros x [AA BB]. intuition.
-  Qed.
-
   Lemma sim_traversal (IMMCON : imm_consistent G sc) :
-    exists T, (ext_sim_trav_step G sc)＊ ext_init_trav T /\ (G.(acts_set) ⊆₁ ecovered T).
+    exists T, (ext_sim_trav_step G sc)＊ (ext_init_trav G) T /\ (G.(acts_set) ⊆₁ ecovered T).
   Proof.
     apply sim_traversal_helper; auto.
     { by apply ext_init_trav_coherent. }
@@ -360,54 +328,6 @@ Section ExtTraversalCounting.
 
   Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
   Notation "'Tid_' t"  := (fun x => tid x =  t) (at level 1).
-
-  (* TODO: move to more appropriate place. *)
-  Lemma ext_itrav_stepE e T T' (STEP : ext_itrav_step G sc e T T') : E e.
-  Proof.
-    red in STEP. desf.
-    { eapply coveredE.
-      2: apply COVEQ; basic_solver.
-      apply ETCCOH'. }
-    { eapply issuedE.
-      { apply ETCCOH'. }
-      apply ISSEQ. basic_solver. }
-    eapply ETCCOH'.(etc_S_in_E).
-    apply RESEQ. basic_solver.
-  Qed.
-
-  (* TODO: move to more appropriate place. *)
-  Lemma ext_itrav_step_nC e T T'
-        (ETCCOH : etc_coherent G sc T)
-        (STEP : ext_itrav_step G sc e T T') : ~ ecovered T e.
-  Proof.
-    assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
-    intros AA.
-    red in STEP. desf.
-    { assert (issued (etc_TC T') e) as BB.
-      { apply ISSEQ. basic_solver. }
-      apply NISS. eapply w_covered_issued; eauto.
-      split; auto.
-      eapply issuedW; [|by eauto].
-      apply ETCCOH'. }
-    apply NISS. apply ETCCOH.(etc_I_in_S).
-    eapply w_covered_issued; eauto.
-    split; auto.
-    eapply WF.(reservedW).
-    { apply ETCCOH'. }
-    apply RESEQ. basic_solver.
-  Qed.
-
-  (* TODO: move to more appropriate place. *)
-  Lemma ext_itrav_step_ninit e T T'
-        (ETCCOH : etc_coherent G sc T)
-        (STEP : ext_itrav_step G sc e T T') : ~ is_init e.
-  Proof.
-    assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
-    intros II. eapply ext_itrav_step_nC; eauto.
-    eapply init_covered; eauto.
-    split; auto.
-    eapply ext_itrav_stepE; eauto.
-  Qed.
 
   Lemma sim_step_cov_full_thread T T' thread thread'
         (ETCCOH : etc_coherent G sc T)

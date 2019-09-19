@@ -378,4 +378,84 @@ Proof.
   all: generalize EQ0 EQ1 EQ2; basic_solver 10.
 Qed.
 
+Lemma ext_trav_step_in_trav_step :
+  ext_trav_step ⊆ etc_TC ⋄ (same_trav_config ∪ trav_step G sc).
+Proof.
+  unfold ext_trav_step, ext_itrav_step, map_rel.
+  intros T T'. ins. desf.
+  3: { left. red. by split; symmetry. }
+  all: right; exists e; red; unnw.
+  all: unfold ecovered, eissued in *.
+  2: right.
+  left.
+  all: splits; auto.
+  { apply coverable_add_eq_iff; auto.
+    apply covered_in_coverable; [|basic_solver].
+    eapply tc_coherent_more.
+    2: apply ETCCOH'.
+    red; splits; simpls; by symmetry. }
+  apply issuable_add_eq_iff; auto. 
+  eapply issued_in_issuable; [|basic_solver].
+  eapply tc_coherent_more.
+  2: apply ETCCOH'.
+  red; splits; simpls; by symmetry.
+Qed.
+
+Definition ext_init_trav := mkETC (mkTC (is_init ∩₁ E) (is_init ∩₁ E)) (is_init ∩₁ E).
+
+Lemma ext_init_trav_coherent : etc_coherent ext_init_trav.
+Proof.
+  unfold ext_init_trav.
+  constructor; unfold eissued, ecovered; simpls.
+  { by apply init_trav_coherent. }
+  { basic_solver. }
+  6: rewrite WF.(rppo_in_sb).
+  2-6: rewrite no_sb_to_init; basic_solver.
+  intros x [AA BB]. intuition.
+Qed.
+
+Lemma ext_itrav_stepE e T T' (STEP : ext_itrav_step e T T') : E e.
+Proof.
+  red in STEP. desf.
+  { eapply coveredE.
+    2: apply COVEQ; basic_solver.
+    apply ETCCOH'. }
+  { eapply issuedE.
+    { apply ETCCOH'. }
+    apply ISSEQ. basic_solver. }
+  eapply ETCCOH'.(etc_S_in_E).
+  apply RESEQ. basic_solver.
+Qed.
+
+Lemma ext_itrav_step_nC e T T'
+      (ETCCOH : etc_coherent T)
+      (STEP : ext_itrav_step e T T') : ~ ecovered T e.
+Proof.
+  assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
+  intros AA.
+  red in STEP. desf.
+  { assert (issued (etc_TC T') e) as BB.
+    { apply ISSEQ. basic_solver. }
+    apply NISS. eapply w_covered_issued; eauto.
+    split; auto.
+    eapply issuedW; [|by eauto].
+    apply ETCCOH'. }
+  apply NISS. apply ETCCOH.(etc_I_in_S).
+  eapply w_covered_issued; eauto.
+  split; auto.
+  eapply ETCCOH'.(reservedW).
+  apply RESEQ. basic_solver.
+Qed.
+
+Lemma ext_itrav_step_ninit e T T'
+      (ETCCOH : etc_coherent T)
+      (STEP : ext_itrav_step e T T') : ~ is_init e.
+Proof.
+  assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
+  intros II. eapply ext_itrav_step_nC; eauto.
+  eapply init_covered; eauto.
+  split; auto.
+  eapply ext_itrav_stepE; eauto.
+Qed.
+
 End ExtTraversalConfig.
