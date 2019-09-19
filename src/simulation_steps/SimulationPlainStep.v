@@ -163,6 +163,7 @@ Proof.
     all: exfalso; assert (W r) as WFF; [|type_solver].
     all: eapply WF.(reservedW); [by apply TS1|].
     all: apply RESEQ; basic_solver. }
+Admitted.
 
 (*   (* Release RMW covering *) *)
 (*   assert (R r) as RR. *)
