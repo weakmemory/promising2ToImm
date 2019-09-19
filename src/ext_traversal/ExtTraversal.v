@@ -458,4 +458,27 @@ Proof.
   eapply ext_itrav_stepE; eauto.
 Qed.
 
+Lemma ext_itrav_step_cov_coverable T e
+      (ETCCOH : etc_coherent T)
+      (TSTEP : ext_itrav_step
+                 e T (mkETC (mkTC (ecovered T ∪₁ eq e) (eissued T)) (reserved T))) :
+  coverable G sc (etc_TC T) e.
+Proof.
+  apply coverable_add_eq_iff; auto.
+  apply covered_in_coverable; [|basic_solver].
+  apply TSTEP.
+Qed.
+
+Lemma ext_itrav_step_cov_next T e
+      (ETCCOH : etc_coherent T)
+      (TSTEP : ext_itrav_step
+                 e T (mkETC (mkTC (ecovered T ∪₁ eq e) (eissued T)) (reserved T))) :
+  next G (ecovered T) e.
+Proof.
+  split; [split|].
+  { eapply ext_itrav_stepE; eauto. }
+  { eapply ext_itrav_step_cov_coverable; eauto. }
+  red. eapply (ext_itrav_step_nC ETCCOH). eauto.
+Qed.
+
 End ExtTraversalConfig.

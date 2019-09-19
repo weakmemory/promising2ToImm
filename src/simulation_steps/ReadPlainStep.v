@@ -102,18 +102,10 @@ Lemma read_step PC T S f_to f_from thread r smode
 Proof.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
 
-  (* TODO: extract a lemma *)
   assert (COV : coverable G sc T r).
-  { apply coverable_add_eq_iff; auto.
-    apply covered_in_coverable; [|basic_solver].
-    apply TSTEP. }
-
-  (* TODO: extract a lemma *)
+  { eapply ext_itrav_step_cov_coverable with (T:=mkETC T S); eauto. }
   assert (NEXT : next G (covered T) r).
-  { split; [split|].
-    { eapply ext_itrav_stepE; eauto. }
-    { apply COV. }
-    red. eapply (ext_itrav_step_nC WF TCCOH). eauto. }
+  { eapply ext_itrav_step_cov_next with (T:=mkETC T S); eauto. }
 
   assert (tc_coherent G sc T) as sTCCOH by apply TCCOH.
   

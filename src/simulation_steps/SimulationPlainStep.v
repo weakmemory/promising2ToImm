@@ -104,7 +104,7 @@ Proof.
     2,3: exfalso; assert (W f) as WFF; [|type_solver].
     2,3: eapply WF.(reservedW); [by apply TS|].
     2,3: apply RESEQ; basic_solver.
-    edestruct fence_step as [PC' HH]; eauto. }
+    edestruct fence_step; eauto. }
   { (* Read covering *)
     cdes TS. desf.
     2,3: exfalso; assert (W r) as WFF; [|type_solver].
