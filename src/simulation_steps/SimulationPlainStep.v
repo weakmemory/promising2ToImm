@@ -102,28 +102,34 @@ Proof.
   inv TCSTEP'.
   { (* Fence covering *)
     cdes TS. desf.
-    2,3: exfalso; assert (W f) as WFF; [|type_solver].
-    2,3: eapply WF.(reservedW); [by apply TS|].
-    2,3: apply RESEQ; basic_solver.
-    edestruct fence_step; eauto. }
+    { edestruct fence_step; eauto. }
+    all: exfalso; assert (W f) as WFF; [|type_solver].
+    all: eapply WF.(reservedW); [by apply TS|].
+    all: apply RESEQ; basic_solver. }
   { (* Read covering *)
     cdes TS. desf.
-    2,3: exfalso; assert (W r) as WFF; [|type_solver].
-    2,3: eapply WF.(reservedW); [by apply TS|].
-    2,3: apply RESEQ; basic_solver.
-    edestruct read_step; eauto. }
-Admitted.
-(*   { (* Relaxed write issuing *) *)
-(*     cdes TS. desf. *)
-(*     { exfalso. apply NISS. red in COV.  *)
-(*       destruct COV as [_ [[COV|COV]|COV]]. *)
-(*       { apply COV. } *)
-(*       all: type_solver. } *)
-(*     edestruct rlx_write_promise_step; eauto. } *)
-(*   { (* Relaxed write covering *) *)
-(*     cdes TS. desf. *)
-(*     edestruct rlx_write_cover_step; eauto. *)
-(*     red. split; [split|]; auto. all: apply COV. } *)
+    { edestruct read_step; eauto. }
+    all: exfalso; assert (W r) as WFF; [|type_solver].
+    all: eapply WF.(reservedW); [by apply TS|].
+    all: apply RESEQ; basic_solver. }
+  { (* Write reserving *)
+    admit. }
+  { (* Relaxed write issuing *)
+    admit. }
+    (* cdes TS. desf. *)
+    (* { exfalso. apply NISS. red in COV. *)
+    (*   destruct COV as [_ [[COV|COV]|COV]]. *)
+    (*   { apply COV. } *)
+    (*   all: type_solver. } *)
+    (* edestruct rlx_write_promise_step; eauto. } *)
+  { (* Relaxed write covering *)
+    cdes TS. desf; unfold eissued, ecovered in *; simpls.
+    { edestruct rlx_write_cover_step; eauto. }
+    exfalso.
+    eapply ext_itrav_step_nC.
+    3: by eauto.
+    all: eauto.
+    apply COVEQ. basic_solver. }
 (*   { (* Release write covering *) *)
 (*     cdes TS1. desf. *)
 (*     { exfalso. apply NISS. red in COV.  *)
