@@ -159,15 +159,10 @@ Proof.
     assert (R r) as RR.
     { apply (dom_l WF.(wf_rmwD)) in RMW. hahn_rewrite (R_ex_in_R) in RMW. apply seq_eqv_l in RMW. desf. }
     cdes TS1. desf; unfold eissued, ecovered in *; simpls.
-    { admit. }
+    { edestruct rlx_rmw_cover_step; eauto. }
     all: exfalso; assert (W r) as WFF; [|type_solver].
     all: eapply WF.(reservedW); [by apply TS1|].
     all: apply RESEQ; basic_solver. }
-    (* cdes TS1. desf. *)
-    (* 3: { edestruct rlx_rmw_cover_step; eauto. } *)
-    (* edestruct rlx_rmw_cover_step; eauto. *)
-    (* 2: { red in ISS0. type_solver. } *)
-    (* red. split; [split|]; auto. all: apply COV. } *)
 
 (*   (* Release RMW covering *) *)
 (*   assert (R r) as RR. *)

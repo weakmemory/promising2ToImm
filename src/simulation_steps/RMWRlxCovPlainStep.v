@@ -87,7 +87,7 @@ Lemma rlx_rmw_cover_step PC T S f_to f_from thread r w smode
                (mkETC T S)
                (mkETC (mkTC (covered T ∪₁ eq r) (issued T)) S))
       (TS2 : ext_itrav_step
-               G sc r
+               G sc w
                (mkETC (mkTC (covered T ∪₁ eq r) (issued T)) S)
                (mkETC (mkTC (covered T ∪₁ eq r ∪₁ eq w) (issued T)) S)) :
   let T' := (mkTC (covered T ∪₁ eq r ∪₁ eq w) (issued T)) in
