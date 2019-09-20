@@ -92,7 +92,7 @@ Lemma plain_sim_step thread PC T S f_to f_from T' S' smode
       (TCSTEP : ext_isim_trav_step G sc thread (mkETC T S) (mkETC T' S'))
       (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
+      ⟪ PSTEP : (plain_step MachineEvent.silent thread)^? PC PC' ⟫ /\
       ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
       ⟪ SIMREL :
           smode = sim_normal -> simrel G sc PC T S f_to f_from ->
@@ -103,18 +103,26 @@ Proof.
   inv TCSTEP'.
   { (* Fence covering *)
     cdes TS. desf.
-    { edestruct fence_step; eauto. }
+    { edestruct fence_step; eauto.
+      desc. do 3 eexists. splits; eauto. }
     all: exfalso; assert (W f) as WFF; [|type_solver].
     all: eapply WF.(reservedW); [by apply TS|].
     all: apply RESEQ; basic_solver. }
   { (* Read covering *)
     cdes TS. desf.
-    { edestruct read_step; eauto. }
+    { edestruct read_step; eauto.
+      desc. do 3 eexists. splits; eauto. }
     all: exfalso; assert (W r) as WFF; [|type_solver].
     all: eapply WF.(reservedW); [by apply TS|].
     all: apply RESEQ; basic_solver. }
 
   { (* Write reserving *)
+    cdes TS. desf; unfold eissued, ecovered in *; simpls.
+    { exfalso. apply NCOV. apply COVEQ. basic_solver. }
+    { exfalso. apply NISS. apply ISSEQ. basic_solver. }
+
+    destruct (classic (codom_rel (<|S \₁ issued T'|> ;; rfi ;; rmw) w)) as [PRMW|PRMW].
+    { admit. }
     admit. }
 
   { (* Relaxed write issuing *)
@@ -128,7 +136,8 @@ Proof.
 
   { (* Relaxed write covering *)
     cdes TS. desf; unfold eissued, ecovered in *; simpls.
-    { edestruct rlx_write_cover_step; eauto. }
+    { edestruct rlx_write_cover_step; eauto.
+      desc. do 3 eexists. splits; eauto. }
     exfalso.
     eapply ext_itrav_step_nC.
     3: by eauto.
@@ -159,7 +168,8 @@ Proof.
     assert (R r) as RR.
     { apply (dom_l WF.(wf_rmwD)) in RMW. hahn_rewrite (R_ex_in_R) in RMW. apply seq_eqv_l in RMW. desf. }
     cdes TS1. desf; unfold eissued, ecovered in *; simpls.
-    { edestruct rlx_rmw_cover_step; eauto. }
+    { edestruct rlx_rmw_cover_step; eauto.
+      desc. do 3 eexists. splits; eauto. }
     all: exfalso; assert (W r) as WFF; [|type_solver].
     all: eapply WF.(reservedW); [by apply TS1|].
     all: apply RESEQ; basic_solver. }

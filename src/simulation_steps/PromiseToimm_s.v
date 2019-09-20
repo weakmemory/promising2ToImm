@@ -86,7 +86,7 @@ Lemma cert_sim_step G sc thread PC T T' f_to f_from smode
       (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
       (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
+      ⟪ PSTEP : (plain_step MachineEvent.silent thread)^? PC PC' ⟫ /\
       ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread smode ⟫.
 Proof.
   destruct T as [T S].
@@ -102,7 +102,7 @@ Lemma cert_sim_steps G sc thread PC T T' f_to f_from smode
       (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
       (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
+      ⟪ PSTEP : (plain_step MachineEvent.silent thread)^* PC PC' ⟫ /\
       ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread  smode ⟫.
 Proof.
   generalize dependent f_from.
@@ -110,14 +110,14 @@ Proof.
   generalize dependent PC.
   induction STEPS.
   { ins. eapply cert_sim_step in H; eauto. desf.
-    splits; eauto. }
+    do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
   ins.
   apply IHSTEPS1 in SIMREL; auto.
   desf.
   apply IHSTEPS2 in SIMREL0; auto.
   { desf. eexists. eexists. eexists. splits.
     2: by eauto.
-    eapply t_trans; eauto. }
+    eapply rt_trans; eauto. }
   etransitivity; eauto.
   eapply ext_sim_trav_steps_covered_le with (G:=G) (sc:=sc).
   apply inclusion_t_rt.
@@ -152,9 +152,7 @@ Proof.
     apply rtE. left. red. eauto. }
   eapply cert_sim_steps in H; auto.
   2: by eauto.
-  desf. eexists. eexists. eexists. splits; auto.
-  2: by eauto.
-    by apply inclusion_t_rt.
+  desf. eexists. eexists. eexists. splits; eauto.
 Qed.
 
 Lemma simrel_thread_bigger_sc_memory G sc T S thread f_to f_from threads memory
@@ -783,7 +781,7 @@ Lemma sim_step PC T S T' S' f_to f_from
       (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
       (SIMREL : simrel G sc PC T S f_to f_from) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : conf_step PC PC' ⟫ /\
+      ⟪ PSTEP : (conf_step)^? PC PC' ⟫ /\
       ⟪ SIMREL : simrel G sc PC' T' S' f_to' f_from' ⟫.
 Proof.
   destruct STEP as [thread STEP].
@@ -803,6 +801,11 @@ Proof.
          by rewrite H. }
   desf. exists PC'. exists f_to'. exists f_from'. splits.
   2: { apply SIMREL0; eauto. }
+
+  destruct PSTEP as [|PSTEP]; subst.
+  { by constructor. }
+
+  right.
   red. exists MachineEvent.silent. exists thread.
   destruct PSTEP. econstructor; eauto.
   red; simpls. ins. right.
@@ -876,7 +879,7 @@ Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)⁺ TS TS')
       (SIMREL  : simrel G sc PC (etc_TC TS) (reserved TS) f_to f_from) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : conf_step⁺ PC PC' ⟫ /\
+      ⟪ PSTEP : conf_step^* PC PC' ⟫ /\
       ⟪ SIMREL : simrel G sc PC' (etc_TC TS') (reserved TS') f_to' f_from' ⟫.
 Proof.
   generalize dependent f_from.
@@ -887,14 +890,14 @@ Proof.
     destruct x as [T S].
     destruct y as [T' S'].
     eapply sim_step in H; eauto. desf.
-    eexists. splits; eauto. }
+    do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
   ins.
   eapply IHTCSTEPS1 in SIMREL.
   desc.
   eapply IHTCSTEPS2 in SIMREL0.
   desf. eexists. eexists. eexists. splits.
   2: eauto.
-  eapply t_trans; eauto. 
+  eapply rt_trans; eauto. 
 Qed.
 
 Lemma simulation :
@@ -918,7 +921,6 @@ Proof.
   desf.
   eexists. eexists. eexists.
   splits; eauto.
-  apply rtE. by right.
 Qed.
 
 Theorem promise2imm : promise_allows prog final_memory.
