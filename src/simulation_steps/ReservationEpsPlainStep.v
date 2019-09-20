@@ -61,10 +61,6 @@ Notation "'hb'" := G.(hb).
 Notation "'sw'" := G.(sw).
 
 Notation "'lab'" := G.(lab).
-(* Notation "'loc'" := (loc lab). *)
-(* Notation "'val'" := (val lab). *)
-(* Notation "'mod'" := (mod lab). *)
-(* Notation "'same_loc'" := (same_loc lab). *)
 
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
@@ -264,11 +260,64 @@ Proof.
       apply seqA. apply seq_eqv_r. eauto. }
     exfalso. eapply wf_rfrmw_irr; eauto. }
 
+  assert (reserved_time G T (S ∪₁ eq w) f_to' f_from' smode (Configuration.memory PC))
+    as RST.
+  { red in RESERVED_TIME.
+    red. desf; desc; splits.
+    5: { rewrite RMW_RESERVED. basic_solver. }
+    4: { etransitivity.
+         2: by apply FOR_SPLIT.
+         basic_solver. }
+    { (* TODO: make a lemma message_to_event_f_issued and
+               and move to SimulationRelProperties.v *)
+      red. ins.
+      apply MEM in MSG. desf; eauto.
+      right. exists b. splits; auto. }
+    { (* TODO: make a separate lemma? *)
+      red. ins. apply HMEM in MSG. desf.
+      destruct (classic (b' = wp)) as [|NEQ]; subst.
+      2: { assert (b <> w) as NBW.
+           { intros AA; subst. apply NSW.
+             apply seq_eqv_lr in RFRMWS. apply RFRMWS. }
+           assert (b' <> w) as NBW'.
+           { intros AA; subst. apply NSW.
+             apply seq_eqv_lr in RFRMWS. apply RFRMWS. }
+           unfold f_to', f_from'.
+           exists b, b'. splits; eauto.
+           { destruct_seq RFRMWS as [AA BB].
+             apply seq_eqv_lr. splits; auto.
+             all: generalize AA BB NBW NBW'; basic_solver. }
+           1,2: by rewrite !updo; auto.
+           intros [x AA]. apply seqA in AA.
+           destruct_seq_r AA as BB. destruct BB as [BB|]; subst.
+           { apply NOAFT. eexists. apply seqA. apply seq_eqv_r. eauto. }
+           apply NEQ. eapply wf_rfrmwf; eauto. }
+      admit. }
+    intros x y SX SY COXY. unfold f_to', f_from'.
+    assert (x <> y) as NEQ.
+    { intros HH; subst. eapply WF.(co_irr); eauto. }
+    destruct SX as [SX|]; destruct SY as [SY|]; desf.
+    { rewrite updo; [|by intros AA; desf].
+      rewrite updo with (f:=f_from); [|by intros AA; desf].
+      destruct (classic (x = wp)); subst.
+      2: { rewrite updo; auto. }
+      rewrite upds.
+      intros AA. exfalso.
+      admit. }
+    { rewrite updo; auto. rewrite upds.
+      destruct (classic (x = wp)); subst; auto.
+      rewrite updo; auto.
+      intros AA. exfalso.
+      admit. }
+    rewrite upds. rewrite updo; auto.
+    intros AA. exfalso.
+    admit. }
+
   exists f_to', f_from'.
   splits; [red; splits|].
   { red; splits; auto; try apply SIMREL_THREAD.
     { apply TSTEP. }
-    all: admit. }
+    ins. eapply sc_view_f_issued; eauto. }
   { red. exists state, local. splits; auto.
     { eapply sim_prom_f_issued; eauto. }
     { admit. }
