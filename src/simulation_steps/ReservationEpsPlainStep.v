@@ -30,6 +30,7 @@ Require Import MaxValue.
 Require Import ViewRel.
 Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
+Require Import SimulationRelProperties.
 
 Set Implicit Arguments.
 
@@ -265,10 +266,15 @@ Proof.
 
   exists f_to', f_from'.
   splits; [red; splits|].
+  { red; splits; auto; try apply SIMREL_THREAD.
+    { apply TSTEP. }
+    all: admit. }
+  { red. exists state, local. splits; auto.
+    { eapply sim_prom_f_issued; eauto. }
+    { admit. }
+    { eapply sim_mem_f_issued; eauto. }
+    eapply sim_tview_f_issued; eauto. }
+  admit.
 Admitted.
-  (* { red; splits; try apply SIMREL_THREAD. *)
-  (*   { apply TSTEP. } *)
-  (*   { admit. } *)
-  (*   { ins. *)
 
 End ReservationEpsPlainStep.
