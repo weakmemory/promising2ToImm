@@ -36,6 +36,7 @@ Require Import FencePlainStep.
 Require Import ReadPlainStep.
 Require Import WriteRlxCovPlainStep.
 Require Import RMWRlxCovPlainStep.
+Require Import ReservationEpsPlainStep.
 (* TODO: Require Import WritePlainStep. *)
 (* TODO: Require Import RMWPlainStep. *)
 
@@ -122,7 +123,9 @@ Proof.
     { exfalso. apply NISS. apply ISSEQ. basic_solver. }
 
     destruct (classic (codom_rel (<|S \₁ issued T'|> ;; rfi ;; rmw) w)) as [PRMW|PRMW].
-    { admit. }
+    { exists PC.
+      edestruct reservation_eps_step as [f_to' [f_from']]; eauto. }
+
     admit. }
 
   { (* Relaxed write issuing *)

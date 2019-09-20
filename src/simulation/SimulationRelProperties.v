@@ -400,4 +400,34 @@ Proof.
   apply seq_eqv_r. split; eauto.
 Qed.
 
+Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
+Notation "'Tid_' t"  := (fun x => tid x =  t) (at level 1).
+
+Lemma sim_res_prom_other_thread T S f_to f_to' f_from f_from' thread promises S'
+      (SNT : S' ⊆₁ NTid_ thread)
+      (SEQ_TO   : forall e (SE: Tid_ thread e), f_to'   e = f_to   e)
+      (SEQ_FROM : forall e (SE: Tid_ thread e), f_from' e = f_from e)
+      (RPROM : sim_res_prom G T S f_to f_from thread promises) :
+  sim_res_prom G T (S ∪₁ S') f_to' f_from' thread promises.
+Proof.
+  red. ins. apply RPROM in RES. desf.
+  destruct_seq RFRMWS as [AA BB].
+  assert (~ S' b /\ ~ S' b') as [NSB NSB'].
+  { split; intros CC; eapply SNT; eauto.
+    { apply AA. }
+    apply BB. }
+  exists b, b'. splits; auto.
+  { apply seq_eqv_lr. splits; auto.
+    all: generalize AA BB; basic_solver. }
+  { apply SEQ_FROM. apply AA. }
+  { apply SEQ_TO. apply BB. }
+  intros [x HH]. apply seqA in HH. destruct_seq_r HH as CC.
+  destruct CC as [CC DD].
+  apply NOAFT. exists x.
+  apply seqA. apply seq_eqv_r.
+  do 2 (split; auto).
+  destruct DD as [|DD]; auto.
+  apply SNT in DD. desf.
+Qed.
+
 End SimRelProps.

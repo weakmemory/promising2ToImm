@@ -140,6 +140,13 @@ Proof.
   { intros IN. apply NISSWP. eapply init_issued; eauto. split; auto. }
   assert (~ (is_init ∩₁ E) wp) as NIEWP.
   { intros [AA BB]. desf. }
+
+  assert (sb wp w) as SB.
+  { by apply imm_s_rfrmw.rfi_rmw_in_sb_loc. }
+  assert (tid wp = tid w) as TWP.
+  { apply sb_tid_init' in SB. destruct SB as [AA|AA].
+    { apply AA. }
+    destruct_seq_l AA as BB. desf. }
   
   (* TODO: make a lemma and move to more appropriate place *)
   assert (forall x y z (COXY : co x y) (ICOZY : immediate co z y), co^? x z)
@@ -375,16 +382,37 @@ Proof.
     { generalize PRMW. unfold Execution.W_ex. basic_solver. }
     apply seqA. apply seq_eqv_r. eauto. }
 
-  exists f_to', f_from'.
-  splits; [red; splits|].
-  { red; splits; auto; try apply SIMREL_THREAD.
-    { apply TSTEP. }
-    ins. eapply sc_view_f_issued; eauto. }
-  { red. exists state, local. splits; auto.
+  assert (simrel_thread G sc PC T (S ∪₁ eq w) f_to' f_from' thread smode) as STL.
+  { red; splits.
+    { red; splits; auto; try apply SIMREL_THREAD.
+      { apply TSTEP. }
+      ins. eapply sc_view_f_issued; eauto. }
+    red. exists state, local. splits; auto.
     { eapply sim_prom_f_issued; eauto. }
     { eapply sim_mem_f_issued; eauto. }
     eapply sim_tview_f_issued; eauto. }
-  admit.
+
+  exists f_to', f_from'.
+  splits; auto.
+  intros AA HH; subst.
+  red. splits.
+  { apply STL. }
+  ins. destruct (classic (thread = tid w)) as [|NTEQ]; subst.
+  { apply STL. }
+  cdes HH. apply THREADS in TP.
+  cdes TP.
+  assert (sim_res_prom G T (S ∪₁ eq w) f_to' f_from' thread (Local.promises local0)) as SRP'.
+  { eapply sim_res_prom_other_thread with (f_to:=f_to) (f_from:=f_from); eauto.
+    { unfolder. ins. desf. eauto. }
+    { unfold f_to'. ins.
+      rewrite updo; [|by intros AA; desf].
+      rewrite updo; auto. intros AA; desf. }
+    unfold f_from'. ins. by rewrite updo; [|by intros AA; desf]. }
+
+  red. exists state0, local0. splits; auto.
+  { eapply sim_prom_f_issued; eauto. }
+  { eapply sim_mem_f_issued; eauto. }
+  eapply sim_tview_f_issued; eauto.
 Admitted.
 
 End ReservationEpsPlainStep.
