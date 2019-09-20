@@ -275,14 +275,14 @@ Proof.
       right. exists b. splits; auto. }
     { (* TODO: make a separate lemma? *)
       red. ins. apply HMEM in MSG. desf.
+      assert (b <> w) as NBW.
+      { intros AA; subst. apply NSW.
+        apply seq_eqv_lr in RFRMWS. apply RFRMWS. }
+      assert (b' <> w) as NBW'.
+      { intros AA; subst. apply NSW.
+        apply seq_eqv_lr in RFRMWS. apply RFRMWS. }
       destruct (classic (b' = wp)) as [|NEQ]; subst.
-      2: { assert (b <> w) as NBW.
-           { intros AA; subst. apply NSW.
-             apply seq_eqv_lr in RFRMWS. apply RFRMWS. }
-           assert (b' <> w) as NBW'.
-           { intros AA; subst. apply NSW.
-             apply seq_eqv_lr in RFRMWS. apply RFRMWS. }
-           unfold f_to', f_from'.
+      2: { unfold f_to', f_from'.
            exists b, b'. splits; eauto.
            { destruct_seq RFRMWS as [AA BB].
              apply seq_eqv_lr. splits; auto.
@@ -292,7 +292,23 @@ Proof.
            destruct_seq_r AA as BB. destruct BB as [BB|]; subst.
            { apply NOAFT. eexists. apply seqA. apply seq_eqv_r. eauto. }
            apply NEQ. eapply wf_rfrmwf; eauto. }
-      admit. }
+      unfold f_to', f_from'.
+      exists b, w.
+      splits; auto.
+      { destruct_seq RFRMWS as [AA BB].
+        apply seq_eqv_lr. splits; auto.
+        2: { apply rt_unit. exists wp. split; auto. }
+        all: generalize AA BB NBW NBW'; basic_solver. }
+      { by rewrite updo. }
+      { by rewrite upds. }
+      intros [x AA]. apply seqA in AA.
+      destruct_seq_r AA as BB. destruct BB as [BB|]; subst.
+      2: by eapply wf_rfrmw_irr; eauto.
+      apply NSW. apply dom_rf_rmw_S.
+      exists x. apply seq_eqv_l. split.
+      { generalize PRMW. unfold Execution.W_ex. basic_solver. }
+      apply seqA. apply seq_eqv_r. eauto. }
+
     intros x y SX SY COXY. unfold f_to', f_from'.
     assert (x <> y) as NEQ.
     { intros HH; subst. eapply WF.(co_irr); eauto. }
@@ -313,6 +329,52 @@ Proof.
     intros AA. exfalso.
     admit. }
 
+  assert (sim_res_prom G T (S ∪₁ eq w) f_to' f_from' thread (Local.promises local))
+    as SRPROM.
+  { (* TODO: make a separate lemma? Share smth with the previous TODO? *)
+    red. ins.
+    apply SIM_RPROM in RES. desf.
+    assert (b <> w) as NBW.
+    { intros AA; subst. apply NSW.
+      apply seq_eqv_lr in RFRMWS. apply RFRMWS. }
+    assert (b' <> w) as NBW'.
+    { intros AA; subst. apply NSW.
+      apply seq_eqv_lr in RFRMWS. apply RFRMWS. }
+    destruct (classic (b' = wp)) as [|NEQ]; subst.
+    2: { unfold f_to', f_from'.
+         exists b, b'. splits; eauto.
+         { destruct_seq RFRMWS as [AA BB].
+           apply seq_eqv_lr. splits; auto.
+           all: generalize AA BB NBW NBW'; basic_solver. }
+         1,2: by rewrite !updo; auto.
+         intros [x AA]. apply seqA in AA.
+         destruct_seq_r AA as BB. destruct BB as [CC [BB|]]; subst.
+         { apply NOAFT. eexists. apply seqA. apply seq_eqv_r.
+           splits; eauto. split; auto. }
+         apply NEQ.
+         assert ((rf ⨾ rmw) b' x) as DD.
+         { generalize AA. unfold Execution.rfi. basic_solver. }
+         eapply wf_rfrmwf; eauto. }
+    unfold f_to', f_from'.
+    exists b, w.
+    splits; auto.
+    { destruct_seq RFRMWS as [AA BB].
+      apply seq_eqv_lr. splits; auto.
+      2: { apply rt_unit. exists wp. split; auto. }
+      all: generalize AA BB NBW NBW'; basic_solver. }
+    { by rewrite updo. }
+    { by rewrite upds. }
+    intros [x AA]. apply seqA in AA.
+    destruct_seq_r AA as BB.
+    assert ((rf ;; rmw) w x) as DD.
+    { generalize AA. unfold Execution.rfi. basic_solver. }
+    destruct BB as [CC [BB|]]; subst.
+    2: by eapply wf_rfrmw_irr; eauto.
+    apply NSW. apply dom_rf_rmw_S.
+    exists x. apply seq_eqv_l. split.
+    { generalize PRMW. unfold Execution.W_ex. basic_solver. }
+    apply seqA. apply seq_eqv_r. eauto. }
+
   exists f_to', f_from'.
   splits; [red; splits|].
   { red; splits; auto; try apply SIMREL_THREAD.
@@ -320,7 +382,6 @@ Proof.
     ins. eapply sc_view_f_issued; eauto. }
   { red. exists state, local. splits; auto.
     { eapply sim_prom_f_issued; eauto. }
-    { admit. }
     { eapply sim_mem_f_issued; eauto. }
     eapply sim_tview_f_issued; eauto. }
   admit.
