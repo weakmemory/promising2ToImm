@@ -480,7 +480,7 @@ exfalso; apply H1; eauto 20. }
 { rewrite STATECOV. rewrite C_in_D. basic_solver. }
 { rewrite TEH''.(tr_rmw_dep).
 arewrite_id ⦗Tid_ thread⦘; rels.
-rewrite (@dom_frmw_in_D G _ _ S thread WF_G RELCOV_G TCCOH_G); try done.
+rewrite (@dom_frmw_in_D G _ _ S thread WF_G TCCOH_G); try done.
 basic_solver. }
 { rewrite TEH''.(tr_addr).
 arewrite_id ⦗Tid_ thread⦘; rels.
@@ -490,7 +490,7 @@ basic_solver. }
 rewrite TEH''.(tr_acts_set).
 unfolder; ins; desc.
 eapply H5; eauto.
-eapply (@Rex_in_D G Gsc _ _ thread RELCOV_G); try done.
+eapply (@Rex_in_D G _ _ thread); try done.
 split; [|done].
 unfold R_ex, rmwmod in *.
 rewrite TEH''.(tr_lab) in H2; auto.
@@ -507,7 +507,7 @@ unfolder; ins; desc.
 eapply H4; splits; eauto.
 intro.
 apply H6.
-apply (@dom_data_D (rstG Gf T S thread) Gsc T S thread WF_G RELCOV_G); try done.
+apply (@dom_data_D (rstG Gf T S thread) Gsc T S thread WF_G); try done.
 basic_solver 12. }
 
 ins; desc. 
