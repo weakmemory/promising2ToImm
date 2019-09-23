@@ -152,11 +152,11 @@ Proof.
     destruct (Memory.get l to (Local.promises local)) as [[from msg]|] eqn: HH; auto.
     exfalso.
     assert (exists w,
-               << EW : E w >> /\
-               << WW : W w >> /\
-               << NCOV : ~ covered T w >> /\
-               << WTID : tid w = tid f >> /\
-               << WS   : dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⨾ ⦗eq w⦘) ⊆₁ covered T >>).
+               ⟪ EW : E w ⟫ /\
+               ⟪ WW : W w ⟫ /\
+               ⟪ NCOV : ~ covered T w ⟫ /\
+               ⟪ WTID : tid w = tid f ⟫ /\
+               ⟪ WS   : dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⨾ ⦗eq w⦘) ⊆₁ covered T ⟫).
     { destruct msg as [val rel|].
       { edestruct SIM_PROM as [w]; eauto; desc.
         apply TCCOH in ISS.

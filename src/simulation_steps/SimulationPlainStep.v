@@ -122,7 +122,7 @@ Proof.
     { exfalso. apply NCOV. apply COVEQ. basic_solver. }
     { exfalso. apply NISS. apply ISSEQ. basic_solver. }
 
-    destruct (classic (codom_rel (<|S \₁ issued T'|> ;; rfi ;; rmw) w)) as [PRMW|PRMW].
+    destruct (classic (codom_rel (⦗S \₁ issued T'⦘ ⨾ rfi ⨾ rmw) w)) as [PRMW|PRMW].
     { exists PC.
       edestruct reservation_eps_step as [f_to' [f_from']]; eauto. }
 

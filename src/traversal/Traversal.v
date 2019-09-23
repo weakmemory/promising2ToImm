@@ -278,11 +278,11 @@ ins; desc; subst.
 
     assert ((exists w, W w /\ ~ issued T w /\ E w) ->
             exists w, W w /\ ~ issued T w /\
-                      dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ;; rmw)⁺) (issued T) w /\
+                      dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺) (issued T) w /\
                       E w) as WMIN.
     { intros P; desf.
       induction w using (well_founded_ind (wf_ar_rfrmw_ct WF COM IMMCON)).
-      destruct (classic (dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ;; rmw)⁺) (issued T) w)); eauto.
+      destruct (classic (dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺) (issued T) w)); eauto.
       unfolder in H0. unfold dom_rel in H0.
       apply not_all_ex_not in H0; desf.
       apply not_all_ex_not in H0; desf.
@@ -293,11 +293,11 @@ ins; desc; subst.
 
     assert ((exists f, (F∩₁Sc) f  /\ ~ covered T f /\ E f) ->
             exists f, (F∩₁Sc) f /\ ~ covered T f /\
-                      doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ;; rmw)⁺ ⨾ ⦗eq f⦘) (covered T) /\
+                      doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺ ⨾ ⦗eq f⦘) (covered T) /\
                       E f) as FMIN.
     { intros P; desf.
       induction f using (well_founded_ind (wf_ar_rfrmw_ct WF COM IMMCON)).
-      destruct (classic (doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ;; rmw)⁺ ⨾ ⦗eq f⦘) (covered T)))
+      destruct (classic (doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺ ⨾ ⦗eq f⦘) (covered T)))
         as [H0 | H0]; eauto.
       rewrite seq_eqv_r, seq_eqv_l in H0.
       unfold doma in H0.
@@ -475,7 +475,7 @@ ins; desc; subst.
         apply sb_to_f_in_bob.
         apply seq_eqv_r. split; auto.
         mode_solver. }
-      assert ((ar G sc ∪ rf ;; rmw)⁺ w' f) as wfWF.
+      assert ((ar G sc ∪ rf ⨾ rmw)⁺ w' f) as wfWF.
       { eapply clos_trans_mori.
         2: by apply wfWF'.
         basic_solver. }

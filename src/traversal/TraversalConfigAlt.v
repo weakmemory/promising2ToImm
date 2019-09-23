@@ -87,13 +87,13 @@ Record tc_coherent_alt T :=
     tc_I_in_E : issued T ⊆₁ E ;
     tc_I_in_W : issued T ⊆₁ W ;
     tc_fwbob_I : dom_rel ( fwbob ⨾ ⦗issued T⦘) ⊆₁ covered T ;
-    tc_I_ar_rfrmw_I : dom_rel (<|W|> ;; (ar ∪ rf ;; rmw)⁺ ;; <|issued T|>) ⊆₁ issued T;
+    tc_I_ar_rfrmw_I : dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T;
   }.
 
 Lemma tc_I_ar_I WF T (TCCOH : tc_coherent_alt T) :
-  dom_rel (<|W|> ;; ar⁺ ;; <|issued T|>) ⊆₁ issued T.
+  dom_rel (⦗W⦘ ⨾ ar⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
 Proof using.
-  arewrite (ar ⊆ ar ∪ rf ;; rmw).
+  arewrite (ar ⊆ ar ∪ rf ⨾ rmw).
   apply TCCOH.
 Qed.
 
@@ -173,9 +173,9 @@ Lemma tc_W_ex_sb_I WF T (TCCOH : tc_coherent_alt T) :
 Proof using.
   assert (tc_coherent G sc T) as TCCOH'.
   { by apply tc_coherent_alt_implies_tc_coherent. }
-  arewrite (⦗issued T⦘ ⊆ ⦗W⦘ ;; ⦗issued T⦘).
+  arewrite (⦗issued T⦘ ⊆ ⦗W⦘ ⨾ ⦗issued T⦘).
   { rewrite <- seq_eqvK at 1. rewrite issuedW at 1; edone. }
-  arewrite (⦗W_ex_acq⦘ ⊆ ⦗W⦘ ;; ⦗W_ex_acq⦘).
+  arewrite (⦗W_ex_acq⦘ ⊆ ⦗W⦘ ⨾ ⦗W_ex_acq⦘).
   { rewrite <- seq_eqvK at 1. rewrite W_ex_acq_in_W at 1; done. }
   arewrite (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ar).
   apply ar_I_in_I; auto.

@@ -191,7 +191,7 @@ Proof.
   assert (dom_rf_rmw_S : dom_rel (⦗W_ex⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ S).
   { rewrite (rf_rmw_S WF TCCOH). basic_solver. }
   
-  assert ((rf ;; rmw) wp w) as PRMW.
+  assert ((rf ⨾ rmw) wp w) as PRMW.
   { generalize PRMWI. unfold Execution.rfi. basic_solver. }
   assert (immediate co wp w) as ICOWPW.
   { eapply rfrmw_in_im_co; eauto. }
@@ -373,7 +373,7 @@ Proof.
     { by rewrite upds. }
     intros [x AA]. apply seqA in AA.
     destruct_seq_r AA as BB.
-    assert ((rf ;; rmw) w x) as DD.
+    assert ((rf ⨾ rmw) w x) as DD.
     { generalize AA. unfold Execution.rfi. basic_solver. }
     destruct BB as [CC [BB|]]; subst.
     2: by eapply wf_rfrmw_irr; eauto.

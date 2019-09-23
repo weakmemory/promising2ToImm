@@ -268,7 +268,7 @@ Proof.
     eapply rfrmw_I_in_I; eauto. apply TCCOH. }
   rewrite <- I_in_E.
   rewrite <- seqA, dom_rel_eqv_dom_rel, !seqA.
-  arewrite (<|Tid_ thread ∩₁ S|> ⊆ <|FW|> ;; <|S|>).
+  arewrite (⦗Tid_ thread ∩₁ S⦘ ⊆ ⦗FW⦘ ⨾ ⦗S⦘).
   { arewrite (S ⊆₁ FW ∩₁ S) at 1.
     2: basic_solver.
     apply set_subset_inter_r. split; [|done]. apply (reservedW WF ETCCOH). }
@@ -334,7 +334,7 @@ rewrite !id_union; relsf; unionL; splits.
   type_solver.
 Qed.
 
-Lemma dom_Frmw_I_in_E : dom_rel (⦗codom_rel (<|FW_ex|> ;; Frf)⦘ ⨾ Frmw ⨾ ⦗I⦘) ⊆₁ E.
+Lemma dom_Frmw_I_in_E : dom_rel (⦗codom_rel (⦗FW_ex⦘ ⨾ Frf)⦘ ⨾ Frmw ⨾ ⦗I⦘) ⊆₁ E.
 Proof.
   rewrite E_E0. unfold E0.
   arewrite (I ⊆₁ I ∩₁ (Tid_ thread ∪₁ NTid_ thread)) at 1.
@@ -1087,7 +1087,7 @@ Qed.
 
 Lemma COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ rppo rstG ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
 Proof.
-  arewrite ((Gdata ∪ Grfi)＊ ⨾ rppo rstG ⊆ <|E|> ;; (Gdata ∪ Grfi)＊ ⨾ rppo rstG).
+  arewrite ((Gdata ∪ Grfi)＊ ⨾ rppo rstG ⊆ ⦗E⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ rppo rstG).
   { apply dom_rel_helper.
     rewrite rtE, seq_union_l, seq_id_l, dom_union. unionL.
     { rewrite (dom_l (wf_rppoE rstWF)). basic_solver. }

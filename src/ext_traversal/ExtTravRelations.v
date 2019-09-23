@@ -84,9 +84,9 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 (** **   *)
 (******************************************************************************)
 
-Definition rppo := (ctrl ∪ addr;;sb^? ∪ rmw_dep^? ;; <| R_ex |> ;; sb) ;; <| W |>.
+Definition rppo := (ctrl ∪ addr⨾sb^? ∪ rmw_dep^? ⨾ ⦗ R_ex ⦘ ⨾ sb) ⨾ ⦗ W ⦘.
 
-Lemma wf_rppoE : rppo ≡ <|E|> ;; rppo ;; <|E|>.
+Lemma wf_rppoE : rppo ≡ ⦗E⦘ ⨾ rppo ⨾ ⦗E⦘.
 Proof using WF.
   split; [|basic_solver].
   unfold rppo.
@@ -97,7 +97,7 @@ Proof using WF.
   basic_solver 10.
 Qed.
 
-Lemma wf_rppoD : rppo ≡ <|R|> ;; rppo ;; <|W|>.
+Lemma wf_rppoD : rppo ≡ ⦗R⦘ ⨾ rppo ⨾ ⦗W⦘.
 Proof using WF.
   split; [|basic_solver].
   unfold rppo.
@@ -109,12 +109,12 @@ Proof using WF.
   basic_solver 10.
 Qed.
 
-Lemma addr_sb_W_in_rppo : addr ;; sb^? ;; <| W |> ⊆ rppo.
+Lemma addr_sb_W_in_rppo : addr ⨾ sb^? ⨾ ⦗ W ⦘ ⊆ rppo.
 Proof using.
   unfold rppo. basic_solver 10.
 Qed.
 
-Lemma ctrl_W_in_rppo : ctrl ;; <| W |> ⊆ rppo.
+Lemma ctrl_W_in_rppo : ctrl ⨾ ⦗ W ⦘ ⊆ rppo.
 Proof using.
   unfold rppo. basic_solver 10.
 Qed.
@@ -135,9 +135,9 @@ Proof using WF.
   unfold rppo, imm_common.ppo. hahn_frame.
   rewrite WF.(wf_ctrlD) at 1.
   rewrite (dom_l WF.(wf_addrD)) at 1.
-  arewrite (rmw_dep^? ⨾ ⦗R_ex⦘ ⊆ ⦗R⦘ ;; rmw_dep^? ⨾ ⦗R_ex⦘).
+  arewrite (rmw_dep^? ⨾ ⦗R_ex⦘ ⊆ ⦗R⦘ ⨾ rmw_dep^? ⨾ ⦗R_ex⦘).
   { rewrite (dom_l WF.(wf_rmw_depD)) at 1.
-    arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ;; ⦗R_ex⦘) at 1.
+    arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ⨾ ⦗R_ex⦘) at 1.
     { type_solver. }
     basic_solver. }
   rewrite <- !seq_union_r.
@@ -151,7 +151,7 @@ Qed.
 Lemma rppo_in_sb : rppo ⊆ sb.
 Proof using WF. by rewrite rppo_in_ppo, ppo_in_sb. Qed.
 
-Lemma rppo_sb_in_rppo : rppo ;; sb ;; <|W|> ⊆ rppo.
+Lemma rppo_sb_in_rppo : rppo ⨾ sb ⨾ ⦗W⦘ ⊆ rppo.
 Proof using WF.
   unfold rppo.
   hahn_frame. arewrite_id ⦗W⦘. rewrite seq_id_l.
@@ -164,7 +164,7 @@ Proof using WF.
   apply transitiveI. apply sb_trans.
 Qed.
 
-Lemma rppo_cr_sb_in_rppo : rppo ;; sb^? ;; <|W|> ⊆ rppo.
+Lemma rppo_cr_sb_in_rppo : rppo ⨾ sb^? ⨾ ⦗W⦘ ⊆ rppo.
 Proof using WF.
   rewrite crE. rewrite seq_union_l, seq_union_r. rewrite rppo_sb_in_rppo.
   basic_solver.

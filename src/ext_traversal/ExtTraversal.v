@@ -103,11 +103,11 @@ Record etc_coherent (T : ext_trav_config) :=
 
       etc_F_sb_S : dom_rel (⦗F∩₁Acq/Rel⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ ecovered T ;
       etc_dr_R_acq_I :
-        dom_rel ((detour ∪ rfe) ⨾ <|R∩₁Acq|> ;; sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
+        dom_rel ((detour ∪ rfe) ⨾ ⦗R∩₁Acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
       etc_W_ex_sb_I : dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
-      etc_po_S      : dom_rel (<|W_ex|> ;; sb ;; <| reserved T |>) ⊆₁ reserved T;
+      etc_po_S      : dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗ reserved T ⦘) ⊆₁ reserved T;
       etc_rppo_S :
-        dom_rel ((detour ∪ rfe) ;; (data ∪ rfi)^* ;; rppo ;; <| reserved T |>) ⊆₁ eissued T;
+        dom_rel ((detour ∪ rfe) ⨾ (data ∪ rfi)＊ ⨾ rppo ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
     }.
 
 Definition ext_itrav_step (e : actid) T T' :=
@@ -149,18 +149,18 @@ Qed.
 Lemma exists_next_to_reserve w T
       (NRES : ~ reserved T w) :
   exists w',
-    << SBB : (<|W_ex \₁ reserved T|> ;; sb)^? w' w >> /\
-    << NB  : ~ codom_rel (<|W_ex \₁ reserved T|> ;; sb) w' >>.
+    ⟪ SBB : (⦗W_ex \₁ reserved T⦘ ⨾ sb)^? w' w ⟫ /\
+    ⟪ NB  : ~ codom_rel (⦗W_ex \₁ reserved T⦘ ⨾ sb) w' ⟫.
 Proof using.
   generalize dependent w.
   set (Q w := ~ reserved T w ->
               exists w',
-                << SBB : (<|W_ex \₁ reserved T|> ;; sb)^? w' w >> /\
-                << NB  : ~ codom_rel (<|W_ex \₁ reserved T|> ;; sb) w' >>).
+                ⟪ SBB : (⦗W_ex \₁ reserved T⦘ ⨾ sb)^? w' w ⟫ /\
+                ⟪ NB  : ~ codom_rel (⦗W_ex \₁ reserved T⦘ ⨾ sb) w' ⟫).
   apply (@well_founded_ind _ sb (wf_sb G) Q).
   intros x IND; subst Q; simpls.
   intros NRESX.
-  destruct (classic (exists w', (<|W_ex \₁ reserved T|> ;; sb) w' x)) as [[w' HH]|NEX].
+  destruct (classic (exists w', (⦗W_ex \₁ reserved T⦘ ⨾ sb) w' x)) as [[w' HH]|NEX].
   2: { exists x. splits.
        { by left. }
        apply NEX. }
@@ -256,11 +256,11 @@ Proof using WF.
          apply NNPP. intros HH. apply NB.  basic_solver 10. }
     4: { unionR left. apply ETCCOH. }
     all: rewrite <- !seqA.
-    all: rewrite dom_eqv_seq with (r':=sb^? ;; <|eq e|>) at 1;
+    all: rewrite dom_eqv_seq with (r':=sb^? ⨾ ⦗eq e⦘) at 1;
       [|exists e; generalize SBB; basic_solver 10].
     all: rewrite !seqA.
     all: arewrite_id ⦗eq w⦘; rewrite seq_id_l.
-    1,2,3: arewrite (sb ;; sb^? ⊆ sb) by (generalize (@sb_trans G); basic_solver).
+    1,2,3: arewrite (sb ⨾ sb^? ⊆ sb) by (generalize (@sb_trans G); basic_solver).
     4: arewrite (⦗eq e⦘ ⊆ ⦗W⦘ ⨾ ⦗eq e⦘) at 1 by basic_solver.
     all: rewrite EISS.
     { arewrite (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⊆ fwbob).

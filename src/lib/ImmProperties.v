@@ -78,13 +78,13 @@ Notation "'Acqrel'" := (fun x => is_true (is_acqrel lab x)).
 Notation "'Sc'" := (fun x => is_true (is_sc lab x)).
 Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 
-Lemma ninit_sb_same_tid : <| set_compl is_init |> ;; sb ⊆ same_tid.
+Lemma ninit_sb_same_tid : ⦗ set_compl is_init ⦘ ⨾ sb ⊆ same_tid.
 Proof using.
   rewrite sb_tid_init'.
   basic_solver.
 Qed.
 
-Lemma ninit_rfi_same_tid : <| set_compl is_init |> ;; rfi ⊆ same_tid.
+Lemma ninit_rfi_same_tid : ⦗ set_compl is_init ⦘ ⨾ rfi ⊆ same_tid.
 Proof using.
   arewrite (rfi ⊆ sb).
   apply ninit_sb_same_tid.
@@ -96,14 +96,14 @@ Proof using.
   etransitivity; eauto.
 Qed.
 
-Lemma ninit_rfi_rmw_same_tid : <| set_compl is_init |> ;; rfi ;; rmw ⊆ same_tid.
+Lemma ninit_rfi_rmw_same_tid : ⦗ set_compl is_init ⦘ ⨾ rfi ⨾ rmw ⊆ same_tid.
 Proof using WF.
   rewrite WF.(wf_rmwt).
   sin_rewrite ninit_rfi_same_tid.
   apply transitiveI. apply same_tid_trans.
 Qed.
 
-Lemma rmw_non_init_lr : rmw ≡ ⦗set_compl is_init⦘ ⨾ rmw ;; ⦗set_compl is_init⦘.
+Lemma rmw_non_init_lr : rmw ≡ ⦗set_compl is_init⦘ ⨾ rmw ⨾ ⦗set_compl is_init⦘.
 Proof using WF.
   split; [|basic_solver].
   rewrite WF.(rmw_from_non_init) at 1.
@@ -114,7 +114,7 @@ Proof using WF.
   basic_solver.
 Qed.
 
-Lemma ninit_rfi_rmw_rt_same_tid : <| set_compl is_init |> ;; (rfi ;; rmw)^* ⊆ same_tid.
+Lemma ninit_rfi_rmw_rt_same_tid : ⦗ set_compl is_init ⦘ ⨾ (rfi ⨾ rmw)＊ ⊆ same_tid.
 Proof using WF.
   apply rt_ind_left with (P:= fun r => ⦗set_compl is_init⦘ ⨾ r).
   { by eauto with hahn. }

@@ -7,7 +7,7 @@ Require Import AuxRel.
 Set Implicit Arguments.
 
 Lemma dom_eqv_seq {A} a (r r' : relation A) (NE : exists b, r' a b) :
-  dom_rel (r ;; <|eq a|> ) ≡₁ dom_rel (r ⨾ <|eq a|> ;; r').
+  dom_rel (r ⨾ ⦗eq a⦘ ) ≡₁ dom_rel (r ⨾ ⦗eq a⦘ ⨾ r').
 Proof using.
   split.
   2: { rewrite <- !seqA. apply dom_seq. }

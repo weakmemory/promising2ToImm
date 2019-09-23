@@ -880,7 +880,7 @@ all: eauto.
     (* eapply clos_refl_trans_mori. *)
     (* { rewrite seq_union_l. unionR left. done. } *)
 
-    (* assert (dom_rel (rppo G ;; <|S|> ) ⊆₁ D G T S thread) as AA. *)
+    (* assert (dom_rel (rppo G ⨾ ⦗S⦘ ) ⊆₁ D G T S thread) as AA. *)
     (* { unfold D. unionR left -> left -> right. *)
     (*   rewrite <- inclusion_id_rt. by rewrite seq_id_l. } *)
     (* eapply clos_refl_trans_mori. *)
@@ -913,7 +913,7 @@ all: eauto.
   3: by split.
   2: { subst. generalize RMW'. unfold rstG, restrict.
        simpls. basic_solver. }
-  assert ((rf (certG G Gsc T S thread lab') ;; <|D G T S thread|>)
+  assert ((rf (certG G Gsc T S thread lab') ⨾ ⦗D G T S thread⦘)
             b' r') as BB.
   { apply seq_eqv_r.
     split.

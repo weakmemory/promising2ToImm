@@ -102,7 +102,7 @@ Lemma cert_sim_steps G sc thread PC T T' f_to f_from smode
       (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
       (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : (plain_step MachineEvent.silent thread)^* PC PC' ⟫ /\
+      ⟪ PSTEP : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
       ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread  smode ⟫.
 Proof.
   generalize dependent f_from.
@@ -879,7 +879,7 @@ Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)⁺ TS TS')
       (SIMREL  : simrel G sc PC (etc_TC TS) (reserved TS) f_to f_from) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : conf_step^* PC PC' ⟫ /\
+      ⟪ PSTEP : conf_step＊ PC PC' ⟫ /\
       ⟪ SIMREL : simrel G sc PC' (etc_TC TS') (reserved TS') f_to' f_from' ⟫.
 Proof.
   generalize dependent f_from.

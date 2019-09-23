@@ -353,7 +353,7 @@ Proof using WF IMMCON.
       assert (sb e w) as SBEW.
       { apply rmw_in_sb; auto. }
       assert (dom_rel (rf ⨾ ⦗eq e⦘) ⊆₁ issued (etc_TC T)) as IRF.
-      { rewrite dom_eqv_seq with (r':= sb ;; <|eq w|>).
+      { rewrite dom_eqv_seq with (r':= sb ⨾ ⦗eq w⦘).
         2: { exists w. apply seq_eqv_r. split; auto. }
         arewrite_id ⦗eq e⦘. by rewrite seq_id_l. }
 
@@ -407,7 +407,7 @@ Proof using WF IMMCON.
              rewrite <- !seqA. do 3 rewrite dom_seq.
              rewrite !seqA.
                by apply ar_rfrmw_rt_I_in_I. }
-        arewrite (⦗eq w⦘ ⊆ ⦗W⦘ ;; ⦗eq w⦘) by basic_solver.
+        arewrite (⦗eq w⦘ ⊆ ⦗W⦘ ⨾ ⦗eq w⦘) by basic_solver.
         sin_rewrite ar_W_in_ar_int; auto.
         rewrite ar_int_in_sb; auto.
         arewrite (sb ⨾ ⦗eq w⦘ ⊆ ⦗coverable G sc (etc_TC T)⦘ ⨾ sb ⨾ ⦗eq w⦘).

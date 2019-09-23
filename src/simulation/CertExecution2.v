@@ -125,7 +125,7 @@ Hypothesis hb_sc_hb_de : ⦗(E \₁ C) ∩₁ (E \₁ I)⦘ ⨾ Ghb ⨾ (sc ⨾ 
 Hypothesis COMP_C : C ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_NTID : E ∩₁ NTid_ thread ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
-Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi)^* ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
+Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
 Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
 
 Hypothesis S_in_W : S ⊆₁ W.
@@ -146,7 +146,7 @@ Proof. rewrite W_ex_IST. rewrite I_in_S. basic_solver. Qed.
 
 Definition D := C ∪₁ I ∪₁ (E ∩₁ NTid_ thread) ∪₁
   dom_rel (Grfi^? ⨾ Gppo ⨾ ⦗ I ⦘) ∪₁ 
-  dom_rel ((Gdata ∪ Grfi)^* ⨾ Grppo ⨾ ⦗ S ⦘) ∪₁ 
+  dom_rel ((Gdata ∪ Grfi)＊ ⨾ Grppo ⨾ ⦗ S ⦘) ∪₁ 
   codom_rel (⦗I⦘ ⨾ Grfi) ∪₁ codom_rel (Grfe ⨾ ⦗ R ∩₁ Acq ⦘).
 
 (*   (E ∩₁ R ∩₁ Acq ∩₁ codom_rel (⦗I⦘ ⨾ Grfi)). *)
@@ -163,7 +163,7 @@ Lemma D_in_E : D ⊆₁ E.
 Proof. 
   unfold D.
   (* TODO: introduce a lemma? *)
-  arewrite ((Gdata ∪ Grfi)＊ ⨾ Grppo ⊆ <|E|> ;; (Gdata ∪ Grfi)＊ ⨾ Grppo ;; <|E|>).
+  arewrite ((Gdata ∪ Grfi)＊ ⨾ Grppo ⊆ ⦗E⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ Grppo ⨾ ⦗E⦘).
   { rewrite (wf_rppoE WF) at 1.
     rewrite rtE. rewrite !seq_union_l, !seq_union_r, !seq_id_l.
     apply union_mori; [done|].
@@ -237,7 +237,7 @@ Proof.
   rewrite dom_rel_eqv_dom_rel.
   rewrite S_W_S.
   rewrite (dom_r (wf_rmw_depD WF)), !seqA.
-  arewrite (⦗GR_ex⦘ ⨾ Gsb^? ⨾ ⦗W⦘ ⊆ Gsb ;; <|W|>).
+  arewrite (⦗GR_ex⦘ ⨾ Gsb^? ⨾ ⦗W⦘ ⊆ Gsb ⨾ ⦗W⦘).
   { type_solver. }
   sin_rewrite WF.(rmw_dep_sb_W_in_rppo).
   apply dom_rppo_S_in_D.
@@ -1132,7 +1132,7 @@ Proof.
        2: { rewrite <- R_Acq_codom_rfe at 2.
             rewrite (dom_r (wf_rfeD WF)) at 1.
             basic_solver 21. }
-       arewrite (⦗Acq⦘ ⊆ (⦗D⦘ ∪ ⦗set_compl D⦘) ;; ⦗Acq⦘) at 1.
+       arewrite (⦗Acq⦘ ⊆ (⦗D⦘ ∪ ⦗set_compl D⦘) ⨾ ⦗Acq⦘) at 1.
        { unfolder. ins. desf. destruct (classic (D y)); eauto. }
        rewrite !seq_union_l, !seq_union_r.
        unionL.
@@ -1613,7 +1613,7 @@ Proof.
 
   remember (new_co G (I ∪₁ S ∩₁ Tid_ thread)
                    (E ∩₁ W ∩₁ Tid_ thread)) as new.
-  arewrite (<|E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)|>
+  arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
               ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘ ⊆
             ⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘
               ⨾ new ⨾ ⦗GW_ex \₁ E ∩₁ W ∩₁ Tid_ thread⦘).
@@ -1778,18 +1778,18 @@ Lemma dom_W_ex_acq_sb_W_D_in_CI :
   dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗W⦘ ⨾ ⦗D⦘) ⊆₁ C ∪₁ I.
 Proof.
   assert (dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗I⦘) ⊆₁ I) as AA.
-  { arewrite (<|I|> ⊆ <|W|> ;; <|I|>).
+  { arewrite (⦗I⦘ ⊆ ⦗W⦘ ⨾ ⦗I⦘).
     { generalize (issuedW TCCOH). basic_solver. }
-    arewrite (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗W⦘ ⊆ ⦗W⦘ ;; Gar).
+    arewrite (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗W⦘ ⊆ ⦗W⦘ ⨾ Gar).
     2: by apply ar_I_in_I.
-    arewrite (⦗GW_ex_acq⦘ ⊆ ⦗W⦘ ;; ⦗GW_ex_acq⦘).
+    arewrite (⦗GW_ex_acq⦘ ⊆ ⦗W⦘ ⨾ ⦗GW_ex_acq⦘).
     { generalize (W_ex_in_W WF). basic_solver. }
       by rewrite w_ex_acq_sb_w_in_ar. }
   unfold D at 1. rewrite !id_union, !seq_union_r, !dom_union.
   unionL.
   { unionR left.
     generalize (dom_sb_covered TCCOH). basic_solver. }
-  { unionR right. arewrite_id <|W|>. by rewrite seq_id_l. }
+  { unionR right. arewrite_id ⦗W⦘. by rewrite seq_id_l. }
   { arewrite (⦗GW_ex_acq⦘ ⊆ ⦗GW_ex_acq⦘ ⨾ ⦗set_compl is_init⦘).
     { generalize W_ex_acq_not_init. basic_solver. }
     arewrite_id ⦗W⦘. rewrite seq_id_l.
@@ -2181,7 +2181,7 @@ Proof.
   2: basic_solver.
   desf.
   { apply dom_data_D. basic_solver 10. }
-  assert ((Crfi ;; <|D|>) x y) as AA.
+  assert ((Crfi ⨾ ⦗D⦘) x y) as AA.
   { basic_solver 10. }
   apply cert_rfi_D in AA. unfolder in AA. desf.
 Qed.
@@ -2222,7 +2222,7 @@ Proof.
   { rewrite W_ex_IST. basic_solver. }
   rewrite Crppo_in_rppo.
   arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆
-            <|D|> ;; Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘).
+            ⦗D⦘ ⨾ Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘).
   { apply dom_rel_helper.
     rewrite IST_in_S.
     apply dom_rppo_S_in_D. }
