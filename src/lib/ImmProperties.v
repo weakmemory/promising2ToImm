@@ -9,9 +9,7 @@ Set Implicit Arguments.
 Section ImmProperties.
 Variable G : execution.
 Variable WF : Wf G.
-Variable COM : complete G.
 Variable sc : relation actid.
-Variable IMMCON : imm_consistent G sc.
 
 Notation "'acts'" := G.(acts).
 Notation "'sb'" := G.(sb).
@@ -81,32 +79,32 @@ Notation "'Sc'" := (fun x => is_true (is_sc lab x)).
 Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 
 Lemma ninit_sb_same_tid : <| set_compl is_init |> ;; sb ⊆ same_tid.
-Proof.
+Proof using.
   rewrite sb_tid_init'.
   basic_solver.
 Qed.
 
 Lemma ninit_rfi_same_tid : <| set_compl is_init |> ;; rfi ⊆ same_tid.
-Proof.
+Proof using.
   arewrite (rfi ⊆ sb).
   apply ninit_sb_same_tid.
 Qed.
 
 Lemma same_tid_trans : transitive same_tid.
-Proof.
+Proof using.
   red. unfold same_tid. ins.
   etransitivity; eauto.
 Qed.
 
 Lemma ninit_rfi_rmw_same_tid : <| set_compl is_init |> ;; rfi ;; rmw ⊆ same_tid.
-Proof.
+Proof using WF.
   rewrite WF.(wf_rmwt).
   sin_rewrite ninit_rfi_same_tid.
   apply transitiveI. apply same_tid_trans.
 Qed.
 
 Lemma rmw_non_init_lr : rmw ≡ ⦗set_compl is_init⦘ ⨾ rmw ;; ⦗set_compl is_init⦘.
-Proof.
+Proof using WF.
   split; [|basic_solver].
   rewrite WF.(rmw_from_non_init) at 1.
   rewrite <- seqA.
@@ -117,7 +115,7 @@ Proof.
 Qed.
 
 Lemma ninit_rfi_rmw_rt_same_tid : <| set_compl is_init |> ;; (rfi ;; rmw)^* ⊆ same_tid.
-Proof.
+Proof using WF.
   apply rt_ind_left with (P:= fun r => ⦗set_compl is_init⦘ ⨾ r).
   { by eauto with hahn. }
   { unfold same_tid. basic_solver 12. }

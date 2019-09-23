@@ -61,7 +61,7 @@ Lemma next_event_representation e state state' T smode
       (NEXT : next G (covered T) e)
       (STATE : @sim_state G smode (covered T) (tid e) state) :
   e = ThreadEvent (tid e) state.(eindex).
-Proof.
+Proof using.
   assert (~ is_init e) as NINIT.
   { intros H. apply NEXT.
     apply TCCOH. split; auto. apply NEXT. }
@@ -95,7 +95,7 @@ Qed.
 
 Lemma step_to_lts_step thread :
       (step thread) ⊆ (fun x y => exists pe, lts_step thread pe x y). 
-Proof.
+Proof using.
   intros state state' STEP.
   unfold lts_step. red in STEP.
   desc. cdes STEP.
@@ -149,7 +149,7 @@ Lemma sim_state_to_events_helper_add
     ⟪ INDEX_RMW  :  dom_rel rmw e ->
                     state'''.(eindex) = 2 + state.(eindex) ⟫ /\
     ⟪ SSH : @sim_state_helper G smode thread state''' state' ⟫.
-Proof.
+Proof using WF.
   eexists. exists state. exists yst.
   assert (wf_thread_state thread yst) as GPC'.
   { eapply wf_thread_state_step; eauto.
@@ -223,7 +223,7 @@ Lemma sim_state_to_events_helper_add_rmw
     ⟪ INDEX_RMW  :  dom_rel rmw e ->
                     state'''.(eindex) = 2 + state.(eindex) ⟫ /\
     ⟪ SSH : @sim_state_helper G smode thread state''' state' ⟫.
-Proof.
+Proof using.
   eexists. exists state. exists yst.
   assert ((step thread)＊ yst state') as STYZ.
   { apply clos_rt1n_rt in STEPS'.
@@ -285,7 +285,7 @@ Lemma sim_state_to_events_helper smode thread
     ⟪ INDEX_RMW  :  dom_rel rmw e ->
                     state'''.(eindex) = 2 + state.(eindex) ⟫ /\
     ⟪ SSH : sim_state_helper G smode state''' state' ⟫.
-Proof.
+Proof using WF.
   red in SSH. desc.
   assert ((fun x y => exists pe, lts_step thread pe x y)＊ state state') as STEPS'.
   { eapply clos_refl_trans_mori; eauto. apply step_to_lts_step. }
@@ -341,7 +341,7 @@ Lemma sim_state_to_events e state state' T smode
     ⟪ INDEX_RMW  : forall w (RMW: rmw e w),
         state'''.(eindex) = 2 + state.(eindex) ⟫ /\
     ⟪ SSH : @sim_state_helper G smode (tid e) state''' state' ⟫.
-Proof. 
+Proof using WF. 
   assert (e = ThreadEvent (tid e) state.(eindex)) as HH.
   { cdes SSH.
     eapply next_event_representation; eauto.
@@ -383,7 +383,7 @@ Lemma sim_state_cover_event C e index'
           C (ThreadEvent (tid e) index) <-> index < index'):
   forall index : nat,
       (C ∪₁ eq e) (ThreadEvent (tid e) index) <-> index < S index'.
-Proof.
+Proof using.
   ins. split.
   { rewrite <- REPR. intros [HH|HH]; simpls.
     2: by inv HH.
@@ -402,7 +402,7 @@ Lemma sim_state_cover_rmw_events C e e' index'
           C (ThreadEvent (tid e) index) <-> index < index'):
   forall index : nat,
       (C ∪₁ eq e ∪₁ eq e') (ThreadEvent (tid e) index) <-> index < S (S index').
-Proof.
+Proof using.
   ins. split.
   { rewrite <- REPR1, <- REPR2. intros [[HH|HH]|HH]; simpls.
     2-3: inv HH; omega.

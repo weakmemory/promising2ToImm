@@ -92,7 +92,7 @@ Notation "'I'" := (eissued  T).
 
 Lemma rf_rmw_S : <|W_ex|> ;; rf ;; rmw ;; <|S|> ≡
                  <|S|> ;; <| W_ex |> ;;  rf ;; rmw ;; <|S|>.
-Proof.
+Proof using WF ETCCOH.
   apply dom_rel_helper.
   rewrite rfi_union_rfe, seq_union_l, seq_union_r, dom_union.
   unionL.
@@ -111,7 +111,7 @@ Proof.
 Qed.
 
 Lemma rt_rf_rmw_S : dom_rel (<|W_ex|> ;; (rf ;; rmw)^* ;; <|S|>) ⊆₁ S.
-Proof.
+Proof using WF ETCCOH.
 cut (⦗W_ex⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ ⦗S⦘ ⨾ (fun _ _ => True)).
 by unfolder; ins; desf; eauto 21; eapply H; splits; eauto 10.
 apply rt_ind_left with (P:= fun r => ⦗W_ex⦘ ⨾ r ⨾ ⦗S⦘).
@@ -125,7 +125,7 @@ basic_solver.
 Qed.
 
 Lemma rfe_rmw_S : dom_rel (rfe ⨾ rmw ⨾ ⦗S⦘) ⊆₁ I.
-Proof.
+Proof using WF ETCCOH.
 rewrite (rmw_in_rppo WF).
 generalize (etc_rppo_S ETCCOH).
 basic_solver 21.
@@ -133,7 +133,7 @@ Qed.
 
 Lemma nI_rfrmw_in_rfirmw :
   ⦗set_compl I⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘ ≡ ⦗set_compl I⦘ ⨾ rfi ⨾ rmw ⨾ ⦗S⦘.
-Proof.
+Proof using WF ETCCOH.
   split.
   2: by arewrite (rfi ⊆ rf).
   rewrite rfi_union_rfe. rewrite !seq_union_l, !seq_union_r.
@@ -144,7 +144,7 @@ Qed.
 
 Lemma rt_rf_rmw_S' :
   (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ (rfi ⨾  rmw)^* ⨾ (⦗I⦘ ⨾ (rf ⨾ rmw)⁺)^? ⨾ ⦗S⦘.
-Proof.
+Proof using WF ETCCOH.
   apply rt_ind_left with (P:= fun r => r ⨾ ⦗S⦘).
   { by eauto with hahn. }
   { basic_solver 12. }
@@ -164,7 +164,7 @@ Qed.
 
 Lemma nI_rfrmw_rt_in_rfirmw_rt :
   ⦗set_compl I⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ ⦗set_compl I⦘ ⨾ (rfi ⨾ rmw)＊ ⨾ ⦗S⦘.
-Proof.
+Proof using WF ETCCOH.
   rewrite rt_rf_rmw_S'.
   rewrite crE. rewrite !seq_union_l, !seq_union_r, !seq_id_l.
   unionL; [done|].

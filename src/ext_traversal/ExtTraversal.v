@@ -135,10 +135,10 @@ Definition ext_itrav_step (e : actid) T T' :=
 Definition ext_trav_step T T' := exists e, ext_itrav_step e T T'.
 
 Lemma eissuedW T (ETCCOH : etc_coherent T) : eissued T ⊆₁ W.
-Proof. unfold eissued. eapply issuedW. apply ETCCOH. Qed.
+Proof using. unfold eissued. eapply issuedW. apply ETCCOH. Qed.
 
 Lemma reservedW T (ETCCOH : etc_coherent T) : reserved T ⊆₁ W.
-Proof.
+Proof using WF.
   arewrite (reserved T ⊆₁ reserved T \₁ eissued T ∪₁ reserved T ∩₁ eissued T).
   2: { rewrite eissuedW at 2; auto. rewrite etc_S_I_in_W_ex; auto.
        rewrite W_ex_in_W; auto. basic_solver. }
@@ -151,7 +151,7 @@ Lemma exists_next_to_reserve w T
   exists w',
     << SBB : (<|W_ex \₁ reserved T|> ;; sb)^? w' w >> /\
     << NB  : ~ codom_rel (<|W_ex \₁ reserved T|> ;; sb) w' >>.
-Proof.
+Proof using.
   generalize dependent w.
   set (Q w := ~ reserved T w ->
               exists w',
@@ -179,7 +179,7 @@ Qed.
 Lemma trav_step_to_ext_trav_step T (ETCCOH : etc_coherent T)
       TC' (TS : trav_step G sc (etc_TC T) TC') :
   exists T', ext_trav_step T T'.
-Proof.
+Proof using WF.
   red in TS. desf. cdes TS.
   desf.
   { exists (mkETC (mkTC (ecovered T ∪₁ eq e) (eissued T)) (reserved T)).
@@ -311,7 +311,7 @@ Qed.
 Lemma exists_ext_trav_step T (ETCCOH : etc_coherent T)
       e (N_FIN : next G (ecovered T) e) :
   exists T', ext_trav_step T T'.
-Proof.
+Proof using WF IMMCON.
   edestruct exists_trav_step; eauto.
   { apply ETCCOH. }
   eapply trav_step_to_ext_trav_step; eauto.
@@ -322,15 +322,15 @@ Definition same_ext_trav_config (T T' : ext_trav_config) :=
   reserved T ≡₁ reserved T'.
 
 Lemma same_ext_trav_config_refl : reflexive same_ext_trav_config.
-Proof. split; basic_solver. Qed.
+Proof using. split; basic_solver. Qed.
 
 Lemma same_ext_trav_config_sym : symmetric same_ext_trav_config.
-Proof.
+Proof using.
   unfold same_ext_trav_config; split; splits; ins; desf; symmetry; auto.
 Qed.
 
 Lemma same_ext_trav_config_trans : transitive same_ext_trav_config.
-Proof.
+Proof using.
   unfold same_ext_trav_config; split; splits; ins; desf; etransitivity; eauto.
 Qed.
 
@@ -342,7 +342,7 @@ Add Parametric Relation : ext_trav_config same_ext_trav_config
 
 Add Parametric Morphism : etc_coherent with signature
     same_ext_trav_config ==> iff as etc_coherent_more.
-Proof.
+Proof using.
   intros T T' EQT. cdes EQT.
   split.
   symmetry in EQT0.
@@ -360,7 +360,7 @@ Qed.
 Add Parametric Morphism : ext_itrav_step with signature
     eq ==> same_ext_trav_config ==> same_ext_trav_config ==> iff as
         ext_itrav_step_more.
-Proof.
+Proof using.
   intros x TA TB EQ TA' TB' EQ'.
   split.
   symmetry in EQ.
@@ -380,7 +380,7 @@ Qed.
 
 Lemma ext_trav_step_in_trav_step :
   ext_trav_step ⊆ etc_TC ⋄ (same_trav_config ∪ trav_step G sc).
-Proof.
+Proof using WF IMMCON.
   unfold ext_trav_step, ext_itrav_step, map_rel.
   intros T T'. ins. desf.
   3: { left. red. by split; symmetry. }
@@ -404,7 +404,7 @@ Qed.
 Definition ext_init_trav := mkETC (mkTC (is_init ∩₁ E) (is_init ∩₁ E)) (is_init ∩₁ E).
 
 Lemma ext_init_trav_coherent : etc_coherent ext_init_trav.
-Proof.
+Proof using WF IMMCON.
   unfold ext_init_trav.
   constructor; unfold eissued, ecovered; simpls.
   { by apply init_trav_coherent. }
@@ -415,7 +415,7 @@ Proof.
 Qed.
 
 Lemma ext_itrav_stepE e T T' (STEP : ext_itrav_step e T T') : E e.
-Proof.
+Proof using.
   red in STEP. desf.
   { eapply coveredE.
     2: apply COVEQ; basic_solver.
@@ -430,7 +430,7 @@ Qed.
 Lemma ext_itrav_step_nC e T T'
       (ETCCOH : etc_coherent T)
       (STEP : ext_itrav_step e T T') : ~ ecovered T e.
-Proof.
+Proof using WF.
   assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
   intros AA.
   red in STEP. desf.
@@ -450,7 +450,7 @@ Qed.
 Lemma ext_itrav_step_ninit e T T'
       (ETCCOH : etc_coherent T)
       (STEP : ext_itrav_step e T T') : ~ is_init e.
-Proof.
+Proof using WF.
   assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
   intros II. eapply ext_itrav_step_nC; eauto.
   eapply init_covered; eauto.
@@ -463,7 +463,7 @@ Lemma ext_itrav_step_cov_coverable T e
       (TSTEP : ext_itrav_step
                  e T (mkETC (mkTC (ecovered T ∪₁ eq e) (eissued T)) (reserved T))) :
   coverable G sc (etc_TC T) e.
-Proof.
+Proof using IMMCON.
   apply coverable_add_eq_iff; auto.
   apply covered_in_coverable; [|basic_solver].
   apply TSTEP.
@@ -474,7 +474,7 @@ Lemma ext_itrav_step_cov_next T e
       (TSTEP : ext_itrav_step
                  e T (mkETC (mkTC (ecovered T ∪₁ eq e) (eissued T)) (reserved T))) :
   next G (ecovered T) e.
-Proof.
+Proof using WF IMMCON.
   split; [split|].
   { eapply ext_itrav_stepE; eauto. }
   { eapply ext_itrav_step_cov_coverable; eauto. }
@@ -486,7 +486,7 @@ Lemma ext_itrav_step_iss_issuable T e
       (TSTEP : ext_itrav_step
                  e T (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e)) (reserved T ∪₁ eq e))) :
   issuable G sc (etc_TC T) e.
-Proof.
+Proof using WF IMMCON.
   apply issuable_add_eq_iff; auto.
   apply issued_in_issuable; [|basic_solver].
   apply TSTEP.
@@ -497,7 +497,7 @@ Lemma ext_itrav_step_iss_nI T e
       (TSTEP : ext_itrav_step
                  e T (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e)) (reserved T ∪₁ eq e))) :
   ~ eissued T e.
-Proof.
+Proof using.
   assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
   intros AA.
   red in TSTEP. desf.

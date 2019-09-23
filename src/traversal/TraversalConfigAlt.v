@@ -92,14 +92,14 @@ Record tc_coherent_alt T :=
 
 Lemma tc_I_ar_I WF T (TCCOH : tc_coherent_alt T) :
   dom_rel (<|W|> ;; ar⁺ ;; <|issued T|>) ⊆₁ issued T.
-Proof.
+Proof using.
   arewrite (ar ⊆ ar ∪ rf ;; rmw).
   apply TCCOH.
 Qed.
 
 Lemma tc_dr_pb_I WF T (TCCOH : tc_coherent_alt T) :
   dom_rel ( (detour ∪ rfe) ⨾ (ppo ∪ bob) ⨾ ⦗issued T⦘) ⊆₁ issued T.
-Proof.
+Proof using.
   rewrite (dom_l WF.(wf_detourD)).
   rewrite (dom_l WF.(wf_rfeD)).
   arewrite (detour ⊆ ar).
@@ -113,7 +113,7 @@ Qed.
  
 Lemma tc_coherent_alt_implies_tc_coherent T: 
   tc_coherent_alt T  -> tc_coherent G sc T.
-Proof.
+Proof using.
 intro H; destruct H.
 red; splits; eauto.
 - unfold coverable.
@@ -145,7 +145,7 @@ Qed.
 
 Lemma tc_coherent_implies_tc_coherent_alt WF WF_SC T: 
   tc_coherent G sc T  -> tc_coherent_alt T.
-Proof.
+Proof using.
   intro H; red in H; desf.
   unfold coverable, issuable in *.
   apply set_subset_inter_r in CC; desf.
@@ -170,7 +170,7 @@ Qed.
 
 Lemma tc_W_ex_sb_I WF T (TCCOH : tc_coherent_alt T) :
   dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
-Proof.
+Proof using.
   assert (tc_coherent G sc T) as TCCOH'.
   { by apply tc_coherent_alt_implies_tc_coherent. }
   arewrite (⦗issued T⦘ ⊆ ⦗W⦘ ;; ⦗issued T⦘).
@@ -183,7 +183,7 @@ Qed.
 
 Lemma scCsbI_C WF T (IMMCON : imm_consistent G sc) (TCCOH : tc_coherent G sc T) :
   sc ⨾ ⦗covered T ∪₁ dom_rel (sb^? ⨾ ⦗issued T⦘)⦘ ⊆ ⦗covered T⦘ ⨾ sc.
-Proof.
+Proof using.
   rewrite id_union. rewrite seq_union_r. unionL.
   { eapply sc_covered; eauto. }
   unfolder. ins. desf.

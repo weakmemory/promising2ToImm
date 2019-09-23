@@ -87,7 +87,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Definition rppo := (ctrl ∪ addr;;sb^? ∪ rmw_dep^? ;; <| R_ex |> ;; sb) ;; <| W |>.
 
 Lemma wf_rppoE : rppo ≡ <|E|> ;; rppo ;; <|E|>.
-Proof.
+Proof using WF.
   split; [|basic_solver].
   unfold rppo.
   rewrite WF.(wf_ctrlE) at 1.
@@ -98,7 +98,7 @@ Proof.
 Qed.
 
 Lemma wf_rppoD : rppo ≡ <|R|> ;; rppo ;; <|W|>.
-Proof.
+Proof using WF.
   split; [|basic_solver].
   unfold rppo.
   arewrite (R_ex ⊆₁ R_ex ∩₁ R) at 1.
@@ -110,28 +110,28 @@ Proof.
 Qed.
 
 Lemma addr_sb_W_in_rppo : addr ;; sb^? ;; <| W |> ⊆ rppo.
-Proof.
+Proof using.
   unfold rppo. basic_solver 10.
 Qed.
 
 Lemma ctrl_W_in_rppo : ctrl ;; <| W |> ⊆ rppo.
-Proof.
+Proof using.
   unfold rppo. basic_solver 10.
 Qed.
 
 Lemma rmw_dep_sb_W_in_rppo : rmw_dep ⨾ sb ⨾ ⦗W⦘ ⊆ rppo.
-Proof.
+Proof using WF.
   rewrite (dom_r WF.(wf_rmw_depD)).
   unfold rppo. basic_solver 10.
 Qed.
 
 Lemma R_ex_sb_W_in_rppo : ⦗R_ex⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ rppo.
-Proof.
+Proof using.
   unfold rppo. basic_solver 10.
 Qed.
 
 Lemma rppo_in_ppo : rppo ⊆ ppo.
-Proof.
+Proof using WF.
   unfold rppo, imm_common.ppo. hahn_frame.
   rewrite WF.(wf_ctrlD) at 1.
   rewrite (dom_l WF.(wf_addrD)) at 1.
@@ -149,10 +149,10 @@ Proof.
 Qed.
 
 Lemma rppo_in_sb : rppo ⊆ sb.
-Proof. by rewrite rppo_in_ppo, ppo_in_sb. Qed.
+Proof using WF. by rewrite rppo_in_ppo, ppo_in_sb. Qed.
 
 Lemma rppo_sb_in_rppo : rppo ;; sb ;; <|W|> ⊆ rppo.
-Proof.
+Proof using WF.
   unfold rppo.
   hahn_frame. arewrite_id ⦗W⦘. rewrite seq_id_l.
   rewrite !seq_union_l, !seqA.
@@ -165,13 +165,13 @@ Proof.
 Qed.
 
 Lemma rppo_cr_sb_in_rppo : rppo ;; sb^? ;; <|W|> ⊆ rppo.
-Proof.
+Proof using WF.
   rewrite crE. rewrite seq_union_l, seq_union_r. rewrite rppo_sb_in_rppo.
   basic_solver.
 Qed.
 
 Lemma data_rfi_rppo_in_ppo : ⦗R⦘ ⨾ (data ∪ rfi)＊ ⨾ rppo ⊆ ppo.
-Proof.
+Proof using.
   unfold rppo, imm_common.ppo.
   hahn_frame.
   rewrite <- rt_ct.
@@ -185,7 +185,7 @@ Qed.
 
 Lemma detour_rfe_data_rfi_rppo_in_detour_rfe_ppo :
   (detour ∪ rfe) ⨾ (data ∪ rfi)＊ ⨾ rppo ⊆ (detour ∪ rfe) ⨾ ppo.
-Proof.
+Proof using WF.
   rewrite (dom_r WF.(wf_detourD)) at 1.
   rewrite (dom_r WF.(wf_rfeD)) at 1.
   rewrite <- seq_union_l, !seqA.
@@ -193,13 +193,13 @@ Proof.
 Qed.
 
 Lemma rmw_in_rppo : rmw ⊆ rppo.
-Proof.
+Proof using WF.
   rewrite WF.(wf_rmwD), WF.(rmw_in_sb).
   unfold rppo. basic_solver 10.
 Qed.
 
 Lemma rmw_sb_W_in_rppo : rmw ⨾ sb ⨾ ⦗W⦘ ⊆ rppo.
-Proof.
+Proof using WF.
   rewrite (dom_l WF.(wf_rmwD)), WF.(rmw_in_sb), !seqA.
   arewrite (sb ⨾ sb ⊆ sb).
   { apply transitiveI. apply sb_trans. }
@@ -207,7 +207,7 @@ Proof.
 Qed.
 
 Lemma rmw_sb_cr_W_in_rppo : rmw ⨾ sb^? ⨾ ⦗W⦘ ⊆ rppo.
-Proof.
+Proof using WF.
   rewrite crE. rewrite seq_union_l, seq_union_r, seq_id_l.
   rewrite rmw_sb_W_in_rppo.
   rewrite rmw_in_rppo. eauto with hahn hahn_full.
@@ -217,7 +217,7 @@ End RPPO.
 
 Lemma sub_rppo_in G G' sc sc' (SUB : sub_execution G G' sc sc') :
   rppo G' ⊆ rppo G.
-Proof.
+Proof using.
   unfold rppo.
   rewrite (sub_ctrl SUB).
   rewrite (sub_addr SUB).
@@ -227,5 +227,3 @@ Proof.
   hahn_frame.
   basic_solver 12.
 Qed.
-
-

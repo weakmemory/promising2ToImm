@@ -11,13 +11,13 @@ Definition closedness_preserved memory memory' :=
 
 Lemma closedness_preserved_id memory :
   closedness_preserved memory memory.
-Proof. by intros view. Qed.
+Proof using. by intros view. Qed.
 
 Lemma closedness_preserved_add memory memory'
       loc from to msg
       (ADD : Memory.add memory loc from to msg memory'):
   closedness_preserved memory memory'.
-Proof.
+Proof using.
   intros view CP. red.
   intros loc'.
   erewrite Memory.add_o; eauto.
@@ -32,7 +32,7 @@ Lemma closedness_preserved_split memory memory'
       loc from to to' msg msg'
       (SPLIT : Memory.split memory loc from to to' msg msg' memory'):
   closedness_preserved memory memory'.
-Proof.
+Proof using.
   intros view CP. red.
   intros loc'.
   set (MM:=SPLIT).
@@ -50,7 +50,7 @@ Lemma tview_closedness_preserved_add tview memory memory'
       (ADD : Memory.add memory loc from to msg memory')
       (MEM_CLOSE : memory_close tview memory) :
   memory_close tview memory'.
-Proof.
+Proof using.
   red; splits; ins.
   all: eapply closedness_preserved_add; eauto.
   all: by apply MEM_CLOSE.
@@ -61,7 +61,7 @@ Lemma tview_closedness_preserved_split tview memory memory'
       (SPLIT : Memory.split memory loc from to to' msg msg' memory')
       (MEM_CLOSE : memory_close tview memory) :
   memory_close tview memory'.
-Proof.
+Proof using.
   red; splits; ins.
   all: eapply closedness_preserved_split; eauto.
   all: by apply MEM_CLOSE.

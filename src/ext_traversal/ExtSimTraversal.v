@@ -208,7 +208,7 @@ Lemma exists_ext_sim_trav_step T (ETCCOH : etc_coherent G sc T)
       (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w)
       T' (TS : ext_trav_step G sc T T') :
   exists T'', ext_sim_trav_step T T''.
-Proof.
+Proof using WF IMMCON.
   assert (tc_coherent G sc (etc_TC T)) as TCCOH.
   { apply ETCCOH. }
   assert (tc_coherent_alt G sc (etc_TC T)) as TCCOHalt.
@@ -648,6 +648,6 @@ Qed.
 Lemma ext_sim_trav_step_to_step T T' thread
       (TS : ext_isim_trav_step thread T T') :
   exists e T'', ext_itrav_step G sc e T T'' /\ tid e = thread.
-Proof. destruct TS; eauto. Qed.
+Proof using. destruct TS; eauto. Qed.
 
 End ExtSimTraversal.

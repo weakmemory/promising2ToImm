@@ -68,7 +68,7 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Lemma interval_disjoint_imm_le a b c d (LE : Time.le b c):
   Interval.disjoint (a, b) (c, d).
-Proof.
+Proof using.
   red; ins.
   destruct LHS as [LFROM LTO].
   destruct RHS as [RFROM RTO]; simpls.
@@ -87,7 +87,7 @@ Lemma sim_msg_f_issued f_to f_to' T rel b
       (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
       (SIMMEM : sim_msg G sc f_to b rel) :
   sim_msg G sc f_to' b rel.
-Proof.
+Proof using WF.
   red; red in SIMMEM.
   intros l; specialize (SIMMEM l).
   eapply max_value_new_f; eauto.
@@ -107,7 +107,7 @@ Lemma sim_mem_helper_f_issued f_to f_to' T rel b from v
       (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
       (HELPER : sim_mem_helper G sc f_to b from v rel) :
   sim_mem_helper G sc f_to' b from v rel.
-Proof.
+Proof using WF.
   red; red in HELPER; desc.
   rewrite (ISSEQ_TO b ISS).
   splits; auto.
@@ -120,7 +120,7 @@ Lemma sim_mem_covered_mori T T' f_to f_from threads thread memory
       (COVIN : covered T ⊆₁ covered T')
       (SIMMEM : sim_mem G sc T f_to f_from threads thread memory) :
   sim_mem G sc T' f_to f_from threads thread memory.
-Proof.
+Proof using WF.
   red in SIMMEM.
   red; splits.
   edestruct SIMMEM as [rel]; eauto; desc.
@@ -146,7 +146,7 @@ Lemma sim_mem_f_issued f_to f_from f_to' f_from' T threads thread memory
       (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e)
       (SIMMEM : sim_mem G sc T f_to f_from threads thread memory) :
   sim_mem G sc T f_to' f_from' threads thread memory.
-Proof.
+Proof using WF.
   red in SIMMEM.
   red; splits.
   edestruct SIMMEM as [rel]; eauto; desc.
@@ -170,7 +170,7 @@ Lemma rintervals_fS f_to f_from f_to' f_from' T (S : actid -> Prop) memory smode
       (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
       (RINTERVALS : reserved_time G T S f_to f_from memory smode):
   reserved_time G T S f_to' f_from' memory smode.
-Proof.
+Proof using.
   red. red in RINTERVALS.
   desf. desc.
   unnw; splits.
@@ -204,7 +204,7 @@ Lemma sim_prom_f_issued f_to f_from f_to' f_from' T thread promises
       (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e)
       (SIMPROM : sim_prom G sc T f_to f_from thread promises) :
   sim_prom G sc T f_to' f_from' thread promises.
-Proof.
+Proof using WF.
   red; ins. edestruct SIMPROM as [b]; eauto; desc.
   exists b; splits; auto.
   { by rewrite (ISSEQ_FROM b ISS). }
@@ -218,7 +218,7 @@ Lemma f_to_coherent_fS f_to f_from f_to' f_from' T S
       (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
       (FCOH: f_to_coherent G S f_to f_from):
   f_to_coherent G S f_to' f_from'.
-Proof.
+Proof using WF.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   cdes FCOH. red; splits; ins.
   all: try (rewrite (REQ_TO x));
@@ -238,7 +238,7 @@ Lemma sim_res_prom_fS f_to f_from f_to' f_from' T S thread promises
       (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
       (SIMRESPROM : sim_res_prom G T S f_to f_from thread promises) :
   sim_res_prom G T S f_to' f_from' thread promises.
-Proof.
+Proof using.
   red. ins. apply SIMRESPROM in RES. desc.
   set (CC:=RFRMWS).
   destruct_seq CC as [AA BB].
@@ -255,7 +255,7 @@ Lemma sc_view_f_issued f_to f_to' T sc_view
           max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view)):
   forall l,
     max_value f_to' (S_tm G l (covered T)) (LocFun.find l sc_view).
-Proof.
+Proof using WF.
   intros l; specialize (SC_REQ l).
   eapply max_value_new_f; eauto.
   intros x H; apply ISSEQ_TO.
@@ -271,7 +271,7 @@ Lemma simrel_common_fS T S f_to f_from f_to' f_from' PC smode
       (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
       (SIMREL: simrel_common G sc PC T S f_to f_from smode):
   simrel_common G sc PC T S f_to' f_from' smode.
-Proof.
+Proof using WF.
   assert (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e).
   { ins. apply REQ_TO. by apply ETCCOH.(etc_I_in_S). }
   assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
@@ -291,7 +291,7 @@ Lemma simrel_thread_local_fS thread T S f_to f_from f_to' f_from' PC smode
       (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
       (SIMREL: simrel_thread_local G sc PC T S f_to f_from thread smode):
   simrel_thread_local G sc PC T S f_to' f_from' thread smode.
-Proof.
+Proof using WF.
   assert (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e).
   { ins. apply REQ_TO. by apply ETCCOH.(etc_I_in_S). }
   assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
@@ -313,7 +313,7 @@ Lemma simrel_thread_fS thread T S f_to f_from f_to' f_from' PC smode
       (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
       (SIMREL: simrel_thread G sc PC T S f_to f_from thread smode):
   simrel_thread G sc PC T S f_to' f_from' thread smode.
-Proof.
+Proof using WF.
   cdes SIMREL. cdes COMMON. cdes LOCAL.
   red; splits; auto.
   { eapply simrel_common_fS; eauto. }
@@ -328,7 +328,7 @@ Lemma simrel_fS T S f_to f_from f_to' f_from' PC
       (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
       (SIMREL: simrel G sc PC T S f_to f_from):
   simrel G sc PC T S f_to' f_from'.
-Proof.
+Proof using WF.
   cdes SIMREL. red; splits.
   { eapply simrel_common_fS; eauto. }
   ins. eapply simrel_thread_local_fS; eauto.
@@ -346,7 +346,7 @@ Lemma max_value_leS locw w wprev s ts T S f_to f_from
       (ISSS : s ⊆₁ S)
       (NOCO : ⦗ eq w ⦘ ⨾ co ⨾ ⦗ s ⦘ ≡ ∅₂) :
   Time.le ts (f_to wprev).
-Proof.
+Proof using WF.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   red in MAXVAL. desc.
   destruct MAX as [[Y1 Y2]|[a_max Y1]].
@@ -409,7 +409,7 @@ Lemma sim_res_prom_other_thread T S f_to f_to' f_from f_from' thread promises S'
       (SEQ_FROM : forall e (SE: Tid_ thread e), f_from' e = f_from e)
       (RPROM : sim_res_prom G T S f_to f_from thread promises) :
   sim_res_prom G T (S ∪₁ S') f_to' f_from' thread promises.
-Proof.
+Proof using.
   red. ins. apply RPROM in RES. desf.
   destruct_seq RFRMWS as [AA BB].
   assert (~ S' b /\ ~ S' b') as [NSB NSB'].

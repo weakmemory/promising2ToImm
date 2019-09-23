@@ -14,7 +14,7 @@ Lemma message_view_wf_add
       (REL_WF : message_view_wf memory)
       (PROM : Memory.add memory loc from to msg memory') :
   message_view_wf memory'.
-Proof.
+Proof using.
   red. ins.
   erewrite Memory.add_o in GET; eauto.
   desf.
@@ -28,7 +28,7 @@ Lemma message_view_wf_split
       (REL_WF : message_view_wf memory)
       (PROM : Memory.split memory loc from to to' msg msg' memory') :
   message_view_wf memory'.
-Proof.
+Proof using.
   red. ins.
   erewrite Memory.split_o in GET; eauto.
   desf.
@@ -45,7 +45,7 @@ Lemma message_view_wf_lower
       (REL_WF : message_view_wf memory)
       (PROM : Memory.lower memory loc from to msg msg' memory') :
   message_view_wf memory'.
-Proof.
+Proof using.
   red. ins.
   erewrite Memory.lower_o in GET; eauto.
   desf.
@@ -59,7 +59,7 @@ Lemma message_view_wf_remove
       (REL_WF : message_view_wf memory)
       (PROM : Memory.remove memory loc from to msg memory') :
   message_view_wf memory'.
-Proof.
+Proof using.
   red. ins.
   erewrite Memory.remove_o in GET; eauto.
   desf. simpls.
@@ -71,7 +71,7 @@ Lemma message_view_wf_op
       (REL_WF : message_view_wf memory)
       (PROM : Memory.op memory loc from to msg memory' kind) :
   message_view_wf memory'.
-Proof.
+Proof using.
   destruct PROM.
   { eapply message_view_wf_add; eauto. }
   { eapply message_view_wf_split; eauto. }
@@ -85,7 +85,7 @@ Lemma message_view_wf_promise
       (PROM : Memory.promise promises memory loc from to
                              msg promises' memory' kind) :
   message_view_wf memory'.
-Proof.
+Proof using.
   destruct PROM.
   { eapply message_view_wf_add; eauto. }
   { eapply message_view_wf_split; eauto. }
@@ -94,7 +94,7 @@ Proof.
 Qed.
 
 Lemma message_view_wf_init : message_view_wf Memory.init.
-Proof.
+Proof using.
   red. ins. apply memory_init_o in GET. desf.
   unfold Message.elt in *. desf.
 Qed.
@@ -103,7 +103,7 @@ Lemma message_view_wf_future memory memory'
       (MVW    : message_view_wf memory)
       (FUTURE : Memory.future memory memory') :
   message_view_wf memory'.
-Proof.
+Proof using.
   induction FUTURE; auto.
   apply IHFUTURE.
   destruct H.
@@ -113,7 +113,7 @@ Qed.
 Lemma message_view_wf_future_init memory
       (FUTURE : Memory.future Memory.init memory) :
   message_view_wf memory.
-Proof.
+Proof using.
   eapply message_view_wf_future; eauto.
   apply message_view_wf_init.
 Qed.

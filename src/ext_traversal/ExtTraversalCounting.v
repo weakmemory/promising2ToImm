@@ -18,7 +18,7 @@ Definition countP (f: actid -> Prop) l :=
 
 Add Parametric Morphism : countP with signature
     set_subset ==> eq ==> le as countP_mori.
-Proof.
+Proof using.
   ins. unfold countP.
   induction y0.
   { simpls. }
@@ -29,7 +29,7 @@ Qed.
 
 Add Parametric Morphism : countP with signature
     set_equiv ==> eq ==> eq as countP_more.
-Proof.
+Proof using.
   ins. unfold countP.
   erewrite filterP_set_equiv; eauto.
 Qed.
@@ -53,7 +53,7 @@ Section ExtTraversalCounting.
   Lemma trav_steps_left_step_decrease (T T' : ext_trav_config)
         (STEP : ext_trav_step G sc T T') :
     trav_steps_left T > trav_steps_left T'.
-  Proof.
+  Proof using WF.
     assert (etc_coherent G sc T') as ETCCOH'.
     { red in STEP. desf. apply STEP. }
     assert (tc_coherent G sc (etc_TC T')) as TCCOH'.
@@ -181,7 +181,7 @@ Section ExtTraversalCounting.
   Lemma trav_steps_left_steps_decrease (T T' : ext_trav_config)
         (STEPS : (ext_trav_step G sc)⁺ T T') :
     trav_steps_left T > trav_steps_left T'.
-  Proof.
+  Proof using WF.
     induction STEPS.
     2: by intuition.
       by apply trav_steps_left_step_decrease.
@@ -190,14 +190,14 @@ Section ExtTraversalCounting.
   Lemma trav_steps_left_decrease_sim (T T' : ext_trav_config)
         (STEP : ext_sim_trav_step G sc T T') :
     trav_steps_left T > trav_steps_left T'.
-  Proof.
+  Proof using WF.
     apply trav_steps_left_steps_decrease. by apply ext_sim_trav_step_in_trav_steps.
   Qed.
   
   Lemma trav_steps_left_null_cov (T : ext_trav_config)
         (NULL : trav_steps_left T = 0) :
     E ⊆₁ ecovered T.
-  Proof.
+  Proof using.
     unfold trav_steps_left in *.
     assert (countP (set_compl (ecovered T)) (acts G) = 0) as HH by omega.
     clear NULL.
@@ -214,7 +214,7 @@ Section ExtTraversalCounting.
   Lemma trav_steps_left_ncov_nnull (T : ext_trav_config) e
         (EE : E e) (NCOV : ~ ecovered T e):
     trav_steps_left T <> 0.
-  Proof.
+  Proof using.
     destruct (classic (trav_steps_left T = 0)) as [EQ|NEQ]; auto.
     exfalso. apply NCOV. apply trav_steps_left_null_cov; auto.
   Qed.
@@ -222,7 +222,7 @@ Section ExtTraversalCounting.
   Lemma trav_steps_left_nnull_ncov (T : ext_trav_config) (ETCCOH : etc_coherent G sc T)
         (NNULL : trav_steps_left T > 0):
     exists e, E e /\ ~ ecovered T e.
-  Proof.
+  Proof using.
     assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
 
     assert (countP (set_compl (ecovered T)) (acts G) >=
@@ -257,7 +257,7 @@ Section ExtTraversalCounting.
   Lemma trav_steps_left_decrease_sim_trans (T T' : ext_trav_config)
         (STEPS : (ext_sim_trav_step G sc)⁺ T T') :
     trav_steps_left T > trav_steps_left T'.
-  Proof.
+  Proof using WF.
     induction STEPS.
     { by apply trav_steps_left_decrease_sim. }
     eapply lt_trans; eauto.
@@ -269,7 +269,7 @@ Section ExtTraversalCounting.
         (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
         (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w) :
     exists T', (ext_sim_trav_step G sc)＊ T T' /\ (G.(acts_set) ⊆₁ ecovered T').
-  Proof.
+  Proof using WF.
     assert
       (exists T' : ext_trav_config,
           (ext_sim_trav_step G sc)＊ T T' /\ trav_steps_left T' = 0).
@@ -294,7 +294,6 @@ Section ExtTraversalCounting.
     desc.
     eapply exists_next in HH0; eauto. desc.
     eapply exists_ext_trav_step in HH1; eauto.
-    2: by apply IMMCON.
     desc.
     apply exists_ext_sim_trav_step in HH1; eauto.
     2: by apply IMMCON.
@@ -313,7 +312,7 @@ Section ExtTraversalCounting.
   
   Lemma sim_traversal (IMMCON : imm_consistent G sc) :
     exists T, (ext_sim_trav_step G sc)＊ (ext_init_trav G) T /\ (G.(acts_set) ⊆₁ ecovered T).
-  Proof.
+  Proof using WF.
     apply sim_traversal_helper; auto.
     { by apply ext_init_trav_coherent. }
     { unfold ext_init_trav. simpls. basic_solver. }
@@ -334,7 +333,7 @@ Section ExtTraversalCounting.
         (TS : ext_isim_trav_step G sc thread' T T')
         (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T) :
     thread' = thread.
-  Proof.
+  Proof using WF.
     assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
     destruct (classic (thread' = thread)) as [|NEQ]; [by subst|].
     exfalso.
@@ -352,7 +351,7 @@ Section ExtTraversalCounting.
         (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
         (RMWCOV : forall r w : actid, rmw r w -> ecovered T r <-> ecovered T w) : 
     exists T', (ext_isim_trav_step G sc thread)＊ T T' /\ (G.(acts_set) ⊆₁ ecovered T').
-  Proof.
+  Proof using WF.
     edestruct sim_traversal_helper as [T']; eauto.
     desc. exists T'. splits; auto.
     clear H0.

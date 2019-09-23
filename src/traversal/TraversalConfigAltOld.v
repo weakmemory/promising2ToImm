@@ -100,7 +100,7 @@ Record tc_coherent_alt_old :=
 
 Lemma otc_rfrmw_I WF (tc_old : tc_coherent_alt_old) :
   dom_rel (rf ;; rmw ;; ⦗I⦘) ⊆₁ I.
-Proof.
+Proof using.
   rewrite rfi_union_rfe. rewrite !seq_union_l, dom_union.
   unionL.
   { apply tc_old. }
@@ -112,7 +112,7 @@ Qed.
 
 Lemma otc_tc_fwbob_I (tc_old : tc_coherent_alt_old) :
   dom_rel (fwbob⁺ ⨾ ⦗I⦘) ⊆₁ C.
-Proof.
+Proof using.
   rewrite ct_end, !seqA.
   rewrite (dom_rel_helper (otc_fwbob_I tc_old)).
   rewrite fwbob_in_sb.
@@ -123,7 +123,7 @@ Qed.
 
 Lemma otc_W_bob_I (tc_old : tc_coherent_alt_old) :
   dom_rel (⦗W⦘ ⨾ bob⁺ ⨾ ⦗I⦘) ⊆₁ I.
-Proof.
+Proof using.
   rewrite tc_bob; relsf; splits; [| type_solver].
   rewrite (dom_rel_helper (otc_tc_fwbob_I tc_old)).
   generalize (otc_W_C_in_I tc_old).
@@ -132,7 +132,7 @@ Qed.
 
 Lemma otc_I_ar_I_implied_helper_1 WF (tc_old : tc_coherent_alt_old) :
   dom_rel (⦗W⦘ ⨾  (bob ∪ ppo ∪ ⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘)^+ ⨾ ⦗I⦘) ⊆₁ I.
-Proof.
+Proof using.
   rewrite (bob_ppo_W_sb WF).
   rewrite crE.
   rewrite wf_ppoD at 1 2.
@@ -150,7 +150,7 @@ Qed.
 
 Lemma otc_I_ar_I_implied_helper_2  WF WF_SC (tc_old : tc_coherent_alt_old) :
    dom_rel (<|W|> ;; ar⁺ ;; <|I|>) ⊆₁ I.
-Proof.
+Proof using.
   unfold imm_s.ar, ar_int.
   arewrite (sc ∪ rfe ∪ (bob ∪ ppo ∪ detour ∪ ⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘) ⊆ 
                (bob ∪ ppo ∪ ⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘) ∪ (sc ∪ rfe ∪ detour)).
@@ -273,7 +273,7 @@ Qed.
 
 Lemma otc_rfrmw_ct_I WF (tc_old : tc_coherent_alt_old) :
   dom_rel ((rf ;; rmw)⁺ ;; <|I|>) ⊆₁ I.
-Proof.
+Proof using.
   intros x [y HH]. destruct_seq_r HH as IY.
   induction HH as [x y AA|x y z AA BB].
   2: by intuition.
@@ -283,7 +283,7 @@ Qed.
 
 Lemma otc_I_ar_rfrmw_I_implied_helper_2  WF IMMCON (tc_old : tc_coherent_alt_old) :
    dom_rel (<|W|> ;; (ar ∪ rf ;; rmw)⁺ ;; <|I|>) ⊆₁ I.
-Proof.
+Proof using.
   assert (wf_sc G sc) as WFS by apply IMMCON.
   rewrite ct_step with (r:=ar) at 1.
   rewrite unionC.

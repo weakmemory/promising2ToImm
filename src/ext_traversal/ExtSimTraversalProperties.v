@@ -58,7 +58,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Lemma ext_sim_trav_step_coherence (C C' : ext_trav_config)
       (STEP : ext_sim_trav_step G sc C C') :
   etc_coherent G sc C'.
-Proof.
+Proof using.
   red in STEP. desf.
   inv STEP; try apply TS.
   all: try apply TS2.
@@ -68,7 +68,7 @@ Qed.
 Lemma ext_sim_trav_step_ct_coherence (C C' : ext_trav_config)
       (STEPS : (ext_sim_trav_step G sc)⁺ C C') :
   etc_coherent G sc C'.
-Proof.
+Proof using.
   apply ct_end in STEPS. unfolder in STEPS.
   desf. eapply ext_sim_trav_step_coherence; eauto.
 Qed.
@@ -77,7 +77,7 @@ Lemma ext_sim_trav_step_rt_coherence (C C' : ext_trav_config)
       (STEPS : (ext_sim_trav_step G sc)＊ C C')
       (TCCOH : etc_coherent G sc C):
   etc_coherent G sc C'.
-Proof.
+Proof using.
   apply rtE in STEPS.
   unfolder in STEPS. desf.
   eapply ext_sim_trav_step_ct_coherence; eauto.
@@ -86,7 +86,7 @@ Qed.
 Lemma ext_sim_trav_step_issued_le (C C' : ext_trav_config)
       (STEP : ext_sim_trav_step G sc C C') :
   eissued C ⊆₁ eissued C'.
-Proof.
+Proof using.
   red in STEP. destruct STEP as [thread T].
   destruct T.
   all: unfold eissued; simpls.
@@ -96,7 +96,7 @@ Qed.
 Lemma ext_sim_trav_steps_issued_le (C C' : ext_trav_config)
       (STEPS : (ext_sim_trav_step G sc)＊ C C') :
   eissued C ⊆₁ eissued C'.
-Proof.
+Proof using.
   induction STEPS; auto.
   { by apply ext_sim_trav_step_issued_le. }
   etransitivity; eauto.
@@ -105,7 +105,7 @@ Qed.
 Lemma ext_sim_trav_step_covered_le (C C' : ext_trav_config)
       (STEP : ext_sim_trav_step G sc C C') :
   ecovered C ⊆₁ ecovered C'.
-Proof.
+Proof using.
   red in STEP. destruct STEP as [thread T].
   destruct T.
   all: unfold ecovered; simpls.
@@ -115,7 +115,7 @@ Qed.
 Lemma ext_sim_trav_steps_covered_le (C C' : ext_trav_config)
       (STEPS : (ext_sim_trav_step G sc)＊ C C') :
   ecovered C ⊆₁ ecovered C'.
-Proof.
+Proof using.
   induction STEPS; auto.
   { by apply ext_sim_trav_step_covered_le. }
   etransitivity; eauto.
@@ -125,7 +125,7 @@ Lemma ext_sim_trav_step_rel_covered (C C' : ext_trav_config)
       (STEP : ext_sim_trav_step G sc C C')
       (RELCOV : W ∩₁ Rel ∩₁ eissued C ⊆₁ ecovered C) :
   W ∩₁ Rel ∩₁ eissued C' ⊆₁ ecovered C'.
-Proof.
+Proof using.
   red in STEP. destruct STEP as [thread STEP].
   destruct STEP; unfold eissued, ecovered; simpls.
   1,2,4,6: by etransitivity; eauto; basic_solver.
@@ -142,7 +142,7 @@ Lemma ext_sim_trav_steps_rel_covered (C C' : ext_trav_config)
       (STEPS : (ext_sim_trav_step G sc)＊ C C')
       (RELCOV : W ∩₁ Rel ∩₁ eissued C ⊆₁ ecovered C) :
   W ∩₁ Rel ∩₁ eissued C' ⊆₁ ecovered C'.
-Proof.
+Proof using.
   induction STEPS.
   2: done.
   { eapply ext_sim_trav_step_rel_covered; eauto. }
@@ -153,7 +153,7 @@ Lemma ext_sim_trav_step_rmw_covered (C C' : ext_trav_config)
       (STEP : ext_sim_trav_step G sc C C')
       (RMWCOV : forall r w (RMW : rmw r w), ecovered C r <-> ecovered C w) :
   forall r w (RMW : rmw r w), ecovered C' r <-> ecovered C' w.
-Proof.
+Proof using WF.
   ins.
   red in STEP. destruct STEP as [thread STEP].
   apply WF.(wf_rmwD) in RMW.
@@ -200,7 +200,7 @@ Lemma ext_sim_trav_steps_rmw_covered (C C' : ext_trav_config)
       (STEPS : (ext_sim_trav_step G sc)＊ C C')
       (RMWCOV : forall r w (RMW : rmw r w), ecovered C r <-> ecovered C w) :
   forall r w (RMW : rmw r w), ecovered C' r <-> ecovered C' w.
-Proof.
+Proof using WF.
   induction STEPS.
   2: done.
   { eapply ext_sim_trav_step_rmw_covered; eauto. }
@@ -208,7 +208,7 @@ Proof.
 Qed.
 
 Lemma ext_sim_trav_step_in_trav_steps : ext_sim_trav_step G sc ⊆ (ext_trav_step G sc)⁺.
-Proof.
+Proof using.
   intros C C' [tid TT].
   inv TT.
   1-5: by apply t_step; eexists; eauto.
@@ -222,7 +222,7 @@ Lemma ext_isim_trav_step_new_e_tid thread (C C' : ext_trav_config)
       (STEP : ext_isim_trav_step G sc thread C C') :
   ecovered C' ∪₁ eissued C' ≡₁
   ecovered C ∪₁ eissued C ∪₁ (ecovered C' ∪₁ eissued C') ∩₁ Tid_ thread.
-Proof.
+Proof using WF.
   inv STEP; unfold ecovered, eissued; simpls.
   all: split; [|basic_solver].
   all: unionL; eauto with hahn.

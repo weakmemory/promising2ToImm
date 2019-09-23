@@ -19,7 +19,6 @@ Remove Hints plus_n_O.
 Section Traversal.
   Variable G : execution.
   Variable WF : Wf G.
-  Variable COM : complete G.
   Variable sc : relation actid.
   Variable IMMCON : imm_consistent G sc.
 
@@ -107,7 +106,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
   Add Parametric Morphism : itrav_step with signature
       eq ==> same_trav_config ==> same_trav_config ==> iff as
           itrav_step_more.
-  Proof.
+  Proof using.
     intros e.
     unfold same_trav_config, itrav_step; ins; desf.
     rename y0 into y.
@@ -140,7 +139,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
   Add Parametric Morphism : trav_step with signature
       same_trav_config ==> same_trav_config ==> iff as
           trav_step_more.
-  Proof.
+  Proof using.
     unfold trav_step; ins; desf.
     split; intros [e HH]; exists e.
     all: eapply itrav_step_more; eauto.
@@ -150,7 +149,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
   Add Parametric Morphism : traverse with signature
       same_trav_config ==> same_trav_config ==> iff as
           traverse_more.
-  Proof.
+  Proof using.
     intros x y H x' y' H'; desf; unnw.
     split; intros IND;
       [generalize dependent y'; generalize dependent y |
@@ -164,7 +163,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 
   Lemma step_mon C C' (T : trav_step C C') :
   covered C ⊆₁ covered C' /\ issued C ⊆₁ issued C'.
-  Proof.
+  Proof using.
     destruct T as [e [STEP | STEP]]; auto.
     unnw; unfolder in *; basic_solver 21.
     unnw; unfolder in *; basic_solver 21.
@@ -173,7 +172,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
   Lemma trav_step_coherence (C C' : trav_config) (T : trav_step C C')
         (H : tc_coherent G sc C):
     tc_coherent G sc C'.
-  Proof.
+  Proof using.
   assert (coverable G sc C ⊆₁ coverable G sc C' /\ issuable G sc C ⊆₁ issuable G sc C').
   by apply traversal_mon; apply step_mon; eauto.
   destruct T as [e [STEP | STEP]]; auto; unnw; desf.
@@ -190,13 +189,13 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
   Lemma trav_coherence (C C' : trav_config) (T : traverse C C')
         (H : tc_coherent G sc C):
     tc_coherent G sc C'.
-  Proof.
+  Proof using.
     apply clos_trans_tn1 in T.
     induction T; eapply trav_step_coherence; eauto.
   Qed.
   
   Lemma init_trav_coherent : tc_coherent G sc init_trav.
-  Proof.
+  Proof using WF IMMCON.
     unfold init_trav.
     red; splits; ins.
     - unfold coverable; ins.
@@ -224,7 +223,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
         (ACTS : E e)
         (N_COV : ~ P e) :
     exists e', sb^? e' e /\ next G P e'.
-  Proof.
+  Proof using.
     generalize dependent e.
     set (Q e := E e -> ~ P e ->
                 exists e' : actid, sb^? e' e /\ next G P e').
@@ -251,7 +250,9 @@ ins; desc; subst.
   Lemma exists_trav_step T (TCCOH : tc_coherent G sc T)
         e (N_FIN : next G (covered T) e) :
     exists T', trav_step T T'.
-  Proof.
+  Proof using WF IMMCON.
+    assert (complete G) as COM by apply IMMCON.
+
     rename e into e'.
     destruct (forall_not_or_exists (next G (covered T)) W)
       as [WNEXT|NWNEXT].

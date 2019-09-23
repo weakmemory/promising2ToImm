@@ -43,7 +43,7 @@ Lemma cert_graph_init Gf sc T S PC f_to f_from thread
     ⟪ IMMCON : imm_consistent G' sc' ⟫ /\
     ⟪ NTID  : NTid_ thread ∩₁ G'.(acts_set) ⊆₁ covered T' ⟫ /\
     ⟪ SIMREL : simrel_thread G' sc' PC T' S' f_to f_from thread sim_certification ⟫.
-Proof.
+Proof using.
 assert (exists G, G = rstG Gf T S thread) by eauto; desc.
 
 assert (WF_SC: wf_sc Gf sc).

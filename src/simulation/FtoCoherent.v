@@ -48,8 +48,7 @@ Notation "'W_ex'" := G.(W_ex).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
   
 Variable IE : I ⊆₁ E ∩₁ W.
-Variable INITINI: is_init ∩₁ E ⊆₁ I.
-Variables f_to f_from : actid -> Time.t.
+Variable INITINI: is_init ∩₁ E ⊆₁ I. Variables f_to f_from : actid -> Time.t.
 
 Definition f_to_coherent :=
   (* ⟪ NW  : forall a, ~ is_w lab a -> f_to a = tid_init ⟫ /\ *)
@@ -70,7 +69,7 @@ Variable FCOH : f_to_coherent.
 
 Lemma f_to_co_mon e e' (CO : co e e') (ISS : I e) (ISS' : I e') :
   Time.lt (f_to e) (f_to e').
-Proof.
+Proof using WF IMMCON FCOH.
   eapply TimeFacts.le_lt_lt.
   2: eapply FCOH; auto.
   { by apply FCOH. }
@@ -82,7 +81,7 @@ Qed.
 
 Lemma f_from_co_mon e e' (NINIT : ~ is_init e) (CO : co e e') (ISS : I e) (ISS' : I e') :
   Time.lt (f_from e) (f_from e').
-Proof.
+Proof using FCOH.
   eapply TimeFacts.lt_le_lt.
   { eapply FCOH; eauto. }
     by apply FCOH.
@@ -91,7 +90,7 @@ Qed.
 Lemma f_to_coherent_strict x y z (ISSX : I x) (ISSY : I y) (ISSZ : I z)
       (COXY: co x y) (COYZ: co y z) :
   Time.lt (f_to x) (f_from z).
-Proof.
+Proof using WF IMMCON FCOH.
   eapply TimeFacts.le_lt_lt.
   { apply FCOH.
     3: by apply COXY.
@@ -105,7 +104,7 @@ Qed.
 
 Lemma lt_init_ts e (EE : E e) (WW : W e) (ISS : I e) (NINIT : ~ is_init e) :
   Time.lt tid_init (f_to e).
-Proof.
+Proof using WF IMMCON IE INITINI FCOH.
   unfold is_w in *.
   destruct e; desf.
   cdes FCOH.
@@ -124,7 +123,7 @@ Qed.
 
 Lemma le_init_ts e (EE : E e) (WW : W e) (ISS : I e) :
   Time.le tid_init (f_to e).
-Proof.
+Proof using WF IMMCON IE INITINI FCOH.
   unfold is_w in *.
   destruct e; desf.
   { apply Time.le_lteq. right.
@@ -137,7 +136,7 @@ Qed.
 
 Lemma le_init_ts_from e (EE : E e) (WW : W e) (ISS : I e) (NINIT : ~ is_init e) :
   Time.le tid_init (f_from e).
-Proof.
+Proof using WF IMMCON IE INITINI FCOH.
   unfold is_w in *.
   destruct e; desf.
   cdes FCOH.
@@ -157,7 +156,7 @@ Qed.
 Lemma f_to_eq e e' (SAME_LOC : same_loc lab e e') (ISS : I e) (ISS' : I e')
       (FEQ : f_to e = f_to e') :
   e = e'.
-Proof.
+Proof using WF IMMCON IE FCOH.
   assert (E e /\ E e') as [EE EE']. 
   { by split; apply IE. }
   assert (W e /\ W e') as [WE WE']. 
@@ -180,7 +179,7 @@ Lemma f_from_eq e e' (SAME_LOC : same_loc lab e e') (ISS : I e) (ISS' : I e')
       (NINIT : ~ is_init e) (NINIT' : ~ is_init e')
       (FEQ : f_from e = f_from e') :
   e = e'.
-Proof.
+Proof using WF IMMCON IE FCOH.
   assert (E e /\ E e') as [EE EE']. 
   { by split; apply IE. }
   assert (W e /\ W e') as [WE WE']. 
