@@ -463,7 +463,7 @@ Proof using WF CON.
         destruct (Ordering.le Ordering.acqrel (Event_imm_promise.rmod ordr)); auto. }
       econstructor.
       2: by apply NPCH.
-      apply Memory.promise_lower; auto; simpls.
+      apply Memory.promise_lower; eauto; simpls.
       4: done.
       1,2: apply Memory.lower_exists_same; auto.
       1,2: constructor.

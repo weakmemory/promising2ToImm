@@ -26,7 +26,7 @@ Lemma sim_state_other_thread_step G
       (COVSTEP : forall a, tid a = thread -> C' a -> C a)
       (SIMSTATE: sim_state G smode C state) :
   sim_state G smode C' state.
-Proof.
+Proof using.
   cdes SIMSTATE.
   red. splits; eauto.
   ins. split; ins.

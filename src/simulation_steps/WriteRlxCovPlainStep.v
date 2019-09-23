@@ -326,7 +326,7 @@ Proof using WF CON.
         eexists; eauto. }
       { econstructor.
         2: by apply NPCH.
-        apply Memory.promise_lower; auto.
+        apply Memory.promise_lower; eauto.
         all: apply Memory.lower_exists_same; auto.
         all: by constructor. }
       { intros. exfalso.

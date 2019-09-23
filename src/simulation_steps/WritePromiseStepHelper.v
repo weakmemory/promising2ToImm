@@ -286,7 +286,7 @@ Lemma write_promise_step_helper f_to f_from T PC w locw valw ordw langst local s
                         (Memory.op_kind_split (f_to' ws) valws relws) ⟫ /\
      ⟪ REL_CLOSE : Memory.closed_opt_view rel memory' ⟫
    ⟫).
-Proof.
+Proof using WF.
   assert (Memory.inhabited PC.(Configuration.memory)) as INHAB.
   { by apply inhabited_future_init. }
 
