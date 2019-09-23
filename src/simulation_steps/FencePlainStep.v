@@ -95,7 +95,7 @@ Lemma fence_step PC T S f_to f_from thread f smode
     ⟪ SIMREL :
         smode = sim_normal -> simrel G sc PC T S f_to f_from ->
         simrel G sc PC' T' S f_to f_from ⟫.
-Proof.
+Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
 
   assert (COV : coverable G sc T f).
