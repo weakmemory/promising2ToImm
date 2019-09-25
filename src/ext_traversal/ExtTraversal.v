@@ -427,6 +427,29 @@ Proof using.
   apply RESEQ. basic_solver.
 Qed.
 
+Lemma ext_itrav_step_reserveW e T
+      (STEP : ext_itrav_step e T (mkETC (etc_TC T) (reserved T ∪₁ eq e))) :
+  W e.
+Proof using WF.
+  red in STEP. desf.
+  { exfalso. apply NCOV.
+    apply COVEQ. basic_solver. }
+  { exfalso. apply NISS.
+    apply ISSEQ. basic_solver. }
+  apply ETCCOH'.(reservedW). basic_solver.
+Qed.
+
+Lemma ext_itrav_step_reserve_nS e T
+      (STEP : ext_itrav_step e T (mkETC (etc_TC T) (reserved T ∪₁ eq e))) :
+  ~ reserved T e.
+Proof using.
+  red in STEP. desf.
+  { exfalso. apply NCOV.
+    apply COVEQ. basic_solver. }
+  exfalso. apply NISS.
+  apply ISSEQ. basic_solver.
+Qed.
+
 Lemma ext_itrav_step_nC e T T'
       (ETCCOH : etc_coherent T)
       (STEP : ext_itrav_step e T T') : ~ ecovered T e.

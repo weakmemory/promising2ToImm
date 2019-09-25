@@ -90,10 +90,9 @@ Notation "'S'" := (reserved T).
 Notation "'C'" := (ecovered T).
 Notation "'I'" := (eissued  T).
 
-Lemma rf_rmw_S : ⦗W_ex⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘ ≡
-                 ⦗S⦘ ⨾ ⦗ W_ex ⦘ ⨾  rf ⨾ rmw ⨾ ⦗S⦘.
+
+Lemma dom_rf_rmw_S : dom_rel (⦗W_ex⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ S.
 Proof using WF ETCCOH.
-  apply dom_rel_helper.
   rewrite rfi_union_rfe, seq_union_l, seq_union_r, dom_union.
   unionL.
   { arewrite (rfi ⊆ sb). rewrite WF.(rmw_in_sb).
@@ -108,6 +107,13 @@ Proof using WF ETCCOH.
   2: by apply ETCCOH.(etc_rppo_S).
   rewrite <- inclusion_id_rt, seq_id_l.
   basic_solver 10.
+Qed.
+
+Lemma rf_rmw_S : ⦗W_ex⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘ ≡
+                 ⦗S⦘ ⨾ ⦗ W_ex ⦘ ⨾  rf ⨾ rmw ⨾ ⦗S⦘.
+Proof using WF ETCCOH.
+  apply dom_rel_helper.
+  apply dom_rf_rmw_S.
 Qed.
 
 Lemma rt_rf_rmw_S : dom_rel (⦗W_ex⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘) ⊆₁ S.
