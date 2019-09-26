@@ -164,12 +164,12 @@ Proof using WF.
   rewrite (ISSEQ_FROM p); eauto.
 Qed.
 
-Lemma rintervals_fS f_to f_from f_to' f_from' T (S : actid -> Prop) memory smode
+Lemma rintervals_fS f_to f_from f_to' f_from' T (S : actid -> Prop) smode memory
       (ETCCOH : etc_coherent G sc (mkETC T S))
       (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
       (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
-      (RINTERVALS : reserved_time G T S f_to f_from memory smode):
-  reserved_time G T S f_to' f_from' memory smode.
+      (RINTERVALS : reserved_time G T S f_to f_from smode memory):
+  reserved_time G T S f_to' f_from' smode memory.
 Proof using.
   red. red in RINTERVALS.
   desf. desc.
