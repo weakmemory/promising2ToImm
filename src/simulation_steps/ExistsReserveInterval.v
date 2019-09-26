@@ -211,6 +211,49 @@ Proof using.
     by apply interval_disjoint_imm_le.
 Admitted.
 
+(* TODO: move to ImmProperties.v *)
+Lemma S_co_nS_co_S_imm S
+      (S_in_E : S ⊆₁ E)
+      (S_in_W : S ⊆₁ W) :
+  immediate (⦗S⦘ ⨾ co) ;; <|set_compl S|> ;; immediate (co ⨾ ⦗S⦘) ⊆
+            immediate (⦗S⦘ ⨾ co ⨾ ⦗S⦘).
+Proof using WF.
+  intros x y [z [AA BB]].
+  destruct_seq_l BB as CC.
+  set (DD := AA). destruct DD as [DD _]. destruct_seq_l DD as SX.
+  set (EE := BB). destruct EE as [EE _]. destruct_seq_r EE as SY.
+  assert (co x y) as CO.
+  { eapply WF.(co_trans); eauto. }
+  apply WF.(wf_coD) in CO. destruct_seq CO as [WX WY].
+  apply WF.(wf_coE) in CO. destruct_seq CO as [EX EY].
+  apply WF.(wf_coD) in DD. destruct_seq DD as [XLOC WZ].
+  apply WF.(wf_coE) in DD. destruct_seq DD as [EX' EZ].
+  apply is_w_loc in XLOC. desf.
+  assert (loc lab y = Some l /\ loc lab z = Some l) as [YLOC ZLOC].
+  { split; rewrite <- XLOC; symmetry; by apply WF.(wf_col). }
+
+  split.
+  { apply seq_eqv_lr. by splits. }
+  ins.
+  destruct_seq R1 as [A1 B1].
+  destruct_seq R2 as [A2 B2].
+  destruct (classic (c = z)) as [|CNEQ]; desf.
+  assert (loc lab c = Some l) as LOCC.
+  { rewrite <- YLOC. by apply WF.(wf_col). }
+  assert (E c) as EC.
+  { by apply S_in_E. }
+  assert (W c) as WC.
+  { by apply S_in_W. }
+  
+  assert (c <> x /\ c <> y) as [CNNEXT CNPREV].
+  { split; intros HH; subst; eapply WF.(co_irr); eauto. }
+
+  assert (co c z \/ co z c) as [QQ|QQ].
+  { eapply WF.(wf_co_total); eauto; unfolder; eauto. }
+  { eapply AA with (c:=c); apply seq_eqv_l; eauto. }
+  eapply BB with (c:=c); apply seq_eqv_r; eauto.
+Qed.
+
 Lemma exists_time_interval f_to f_from T S PC w locw valw langst local smode
       (IMMCON : imm_consistent G sc)
       (ETCCOH : etc_coherent G sc (mkETC T S))
@@ -358,27 +401,10 @@ Proof using.
     { eapply WF.(co_trans); eauto. }
 
     assert (immediate (⦗S⦘ ⨾ co ⨾ ⦗S⦘) wprev wnext) as COSIMM.
-    { (* TODO: generalize to a lemma. *)
-      split.
-      { apply seq_eqv_lr. by splits. }
-      ins.
-      destruct_seq R1 as [A1 B1].
-      destruct_seq R2 as [A2 B2].
-      destruct (classic (c = w)) as [|CNEQ]; desf.
-      assert (loc lab c = Some locw) as LOCC.
-      { rewrite <- LOCNEXT. by apply WF.(wf_col). }
-      assert (E c) as EC.
-      { by apply ETCCOH.(etc_S_in_E). }
-      assert (W c) as WC.
-      { by apply (reservedW WF ETCCOH). }
-      
-      assert (c <> wnext /\ c <> wprev) as [CNNEXT CNPREV].
-      { split; intros HH; subst; eapply WF.(co_irr); eauto. }
-
-      assert (co c w \/ co w c) as [CO|CO].
-      { eapply WF.(wf_co_total); eauto. by unfolder. }
-      { eapply PIMMCO with (c:=c); apply seq_eqv_l; eauto. }
-      eapply NIMMCO with (c:=c); apply seq_eqv_r; eauto. }
+    { apply S_co_nS_co_S_imm.
+      { apply ETCCOH. }
+      { apply (reservedW WF ETCCOH). }
+      exists w. split; auto. apply seq_eqv_l. by split. }
 
     (* assert (forall z (RFRMW : (⦗ issued T ⦘ ⨾ rf ⨾ rmw) z w), z = wprev) as PRFRMW. *)
     (* { ins. apply seq_eqv_l in RFRMW; destruct RFRMW as [ISSZ RFRMW]. *)
