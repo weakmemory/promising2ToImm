@@ -104,10 +104,27 @@ Proof using WF FCOH.
   eapply f_from_co_mon; eauto.
 Qed.
 
+(* TODO: move to ImmProperties.v. *)
+Lemma co_imm : co ≡ (immediate co)⁺.
+Proof using WF.
+  apply fsupp_imm_t; try apply WF.
+  rewrite WF.(wf_coE).
+  red. ins. eexists. ins. destruct_seq_l REL as AA.
+  apply AA.
+Qed.
+
+(* TODO: move to ImmProperties.v. *)
 Lemma co_P_co_rfrmw_rt_in_rfrmw_ct_P_rfrmw_ct P :
   (co ;; <|P|> ;; co) ∩ (rf ;; rmw)^* ⊆
   (rf ;; rmw)⁺ ;; <|P|> ;; (rf ;; rmw)⁺.
-Proof.
+Proof using.
+  rewrite co_imm at 1. rewrite co_imm at 2.
+  (* TODO: continue from here. *)
+
+  intros x y [[z [AA BB]] CC].
+  induction AA as [z w HH|z w u HH].
+  2: { apply IHHH; auto.
+
   arewrite (co ⨾ ⦗P⦘ ⨾ co ⊆ (co ⨾ ⦗P⦘ ⨾ co) ∩ co).
   { generalize WF.(co_trans). basic_solver. }
 
