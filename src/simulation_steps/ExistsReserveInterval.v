@@ -116,25 +116,9 @@ Qed.
 (* TODO: move to ImmProperties.v. *)
 Lemma co_P_co_rfrmw_rt_in_rfrmw_ct_P_rfrmw_ct P :
   (co ;; <|P|> ;; co) ∩ (rf ;; rmw)^* ⊆
-  (rf ;; rmw)⁺ ;; <|P|> ;; (rf ;; rmw)⁺.
+  (rf ;; rmw)⁺ ;; <|W_ex ∩₁ P|> ;; (rf ;; rmw)⁺.
 Proof using.
-  rewrite co_imm at 1. rewrite co_imm at 2.
-  (* TODO: continue from here. *)
-
-  intros x y [[z [AA BB]] CC].
-  induction AA as [z w HH|z w u HH].
-  2: { apply IHHH; auto.
-
-  arewrite (co ⨾ ⦗P⦘ ⨾ co ⊆ (co ⨾ ⦗P⦘ ⨾ co) ∩ co).
-  { generalize WF.(co_trans). basic_solver. }
-
-  intros x y [CO RFRMW].
-
-[z [COXZ COZY]]
-  destruct_seq_l COZY as PZ.
-  exists z. split.
-  2: apply seq_eqv_l; split; auto.
-  
+Admitted.
 
 (* TODO: move to a more appropriate place. *)
 Lemma co_S_memory_disjoint memory locw wp wn
@@ -232,7 +216,37 @@ Proof using.
     1,2: split; [split|]; eauto.
     2: done.
     exfalso.
-    (* TODO: it should contradict CONS. *)
+    
+    (* TODO: generalize to a lemma? *)
+    set (YY:=CONS).
+    destruct YY as [w [CONS1 CONS2]].
+    destruct_seq_l CONS2 as NSW.
+   
+    apply (dom_r WF.(wf_coD)) in CONS1. destruct_seq_r CONS1 as WW.
+    apply (dom_r WF.(wf_coE)) in CONS1. destruct_seq_r CONS1 as EW.
+    assert (loc lab w = Some locw) as WLOC.
+    { rewrite <- LOCN. by apply WF.(wf_col). }
+
+    assert (w <> b ) as WBNEQ  by (intros HH; desf).
+    assert (w <> b') as WBNEQ' by (intros HH; desf).
+
+    edestruct WF.(wf_co_total) as [|COBW].
+    3: by apply WBNEQ.
+    1,2: split; [split|]; eauto.
+    { apply COIMM with (c:=b).
+      all: apply seq_eqv_lr; splits; auto.
+      eapply WF.(co_trans); eauto. }
+
+    edestruct WF.(wf_co_total) as [PP|PP].
+    3: by apply WBNEQ'.
+    1,2: split; [split|]; eauto.
+    2: { apply COIMM with (c:=b').
+         all: apply seq_eqv_lr; splits; auto.
+         eapply WF.(co_trans); eauto. }
+    
+    apply NSW.
+    (* TODO: use co_P_co_rfrmw_rt_in_rfrmw_ct_P_rfrmw_ct. *)
+
     admit. }
 
   destruct CO as [CO|CO].
