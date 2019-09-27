@@ -31,6 +31,7 @@ Require Import ViewRel.
 Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
 Require Import SimulationRelProperties.
+Require Import ImmProperties.
 
 Set Implicit Arguments.
 
@@ -148,49 +149,6 @@ Proof using WF CON.
     { apply AA. }
     destruct_seq_l AA as BB. desf. }
   
-  (* TODO: make a lemma and move to more appropriate place *)
-  assert (forall x y z (COXY : co x y) (ICOZY : immediate co z y), co^? x z)
-    as co_imm_co_in_co_cr.
-  { ins. destruct (classic (x = z)) as [|NXZ]; subst; [by left|right].
-    assert (co z y) as COZY by apply ICOZY.
-    apply WF.(wf_coD) in COZY. destruct_seq COZY as [AA1 AA2].
-    apply WF.(wf_coE) in COZY. destruct_seq COZY as [AA3 AA4].
-    apply WF.(wf_coD) in COXY. destruct_seq COXY as [BB1 BB2].
-    apply WF.(wf_coE) in COXY. destruct_seq COXY as [BB3 BB4].
-    apply is_w_loc in AA2. desf.
-    set (CC:=COXY). apply WF.(wf_col) in CC. red in CC.
-    set (DD:=COZY). apply WF.(wf_col) in DD. red in DD.
-    edestruct WF.(wf_co_total); eauto.
-    1,2: split; [split|]; eauto.
-    exfalso. eapply ICOZY; eauto. }
-
-  (* TODO: make a lemma and move to more appropriate place *)
-  assert (wf_rfrmwsf: functional (rf ⨾ rmw)).
-  { intros x y z AA BB.
-    assert (immediate co x y) as ICOXY.
-    { eapply rfrmw_in_im_co; eauto. }
-    assert (co x y) as COXY by apply ICOXY.
-    assert (immediate co x z) as ICOXZ.
-    { eapply rfrmw_in_im_co; eauto. }
-    assert (co x z) as COXZ by apply ICOXZ.
-    apply WF.(wf_coD) in COXY. destruct_seq COXY as [BB1 BB2].
-    apply WF.(wf_coE) in COXY. destruct_seq COXY as [BB3 BB4].
-    apply WF.(wf_coD) in COXZ. destruct_seq COXZ as [AA1 AA2].
-    apply WF.(wf_coE) in COXZ. destruct_seq COXZ as [AA3 AA4].
-    apply is_w_loc in AA1. desf.
-    set (CC:=COXY). apply WF.(wf_col) in CC. red in CC.
-    set (DD:=COXZ). apply WF.(wf_col) in DD. red in DD.
-    destruct (classic (y = z)); auto.
-    edestruct WF.(wf_co_total); eauto.
-    1,2: split; [split|]; eauto.
-    { by etransitivity; [|by eauto]. }
-    { exfalso. by apply ICOXZ with (c:=y). }
-    exfalso. by apply ICOXY with (c:=z). }
-
-  (* TODO: make a lemma and move to more appropriate place *)
-  assert (dom_rf_rmw_S : dom_rel (⦗W_ex⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ S).
-  { rewrite (rf_rmw_S WF TCCOH). basic_solver. }
-  
   assert ((rf ⨾ rmw) wp w) as PRMW.
   { generalize PRMWI. unfold Execution.rfi. basic_solver. }
   assert (immediate co wp w) as ICOWPW.
@@ -227,17 +185,18 @@ Proof using WF CON.
         { unfold ts. apply Time.middle_spec. by apply FCOH. }
           by apply FCOH. }
       { rewrite upds. rewrite updo; auto.
-        destruct (classic (x = wp)); subst.
+        assert (co^? x wp) as [|COXWP]; subst.
+        { apply WF.(co_imm_co_in_co_cr). eexists. eauto. }
         { rewrite upds. reflexivity. }
+        assert (x <> wp) as NEQ.
+        { intros HH; subst. eapply WF.(co_irr); eauto. }
         rewrite updo; auto.
         apply Time.le_lteq; left.
         eapply TimeFacts.le_lt_lt.
         2: { unfold ts.
              apply Time.middle_spec with (lhs:=f_from wp) (rhs:=f_to wp).
                by apply FCOH. }
-        apply FCOH; auto.
-        apply co_imm_co_in_co_cr with (x:=x) in ICOWPW; auto.
-        destruct ICOWPW; desf. }
+        apply FCOH; auto. }
       { rewrite upds. rewrite updo; auto.
         apply FCOH; auto. eapply WF.(co_trans).
         { apply ICOWPW. }
@@ -261,7 +220,7 @@ Proof using WF CON.
       2: by rewrite upds.
       eapply wf_rfrmwf; eauto. }
     { exfalso. apply NSW.
-      apply dom_rf_rmw_S. eexists.
+      apply (dom_rf_rmw_S WF TCCOH). eexists.
       apply seq_eqv_l. split.
       { generalize PRMW. unfold Execution.W_ex. basic_solver 10. }
       apply seqA. apply seq_eqv_r. eauto. }
@@ -311,7 +270,7 @@ Proof using WF CON.
       intros [x AA]. apply seqA in AA.
       destruct_seq_r AA as BB. destruct BB as [BB|]; subst.
       2: by eapply wf_rfrmw_irr; eauto.
-      apply NSW. apply dom_rf_rmw_S.
+      apply NSW. apply (dom_rf_rmw_S WF TCCOH).
       exists x. apply seq_eqv_l. split.
       { generalize PRMW. unfold Execution.W_ex. basic_solver. }
       apply seqA. apply seq_eqv_r. eauto. }
@@ -377,7 +336,7 @@ Proof using WF CON.
     { generalize AA. unfold Execution.rfi. basic_solver. }
     destruct BB as [CC [BB|]]; subst.
     2: by eapply wf_rfrmw_irr; eauto.
-    apply NSW. apply dom_rf_rmw_S.
+    apply NSW. apply (dom_rf_rmw_S WF TCCOH).
     exists x. apply seq_eqv_l. split.
     { generalize PRMW. unfold Execution.W_ex. basic_solver. }
     apply seqA. apply seq_eqv_r. eauto. }

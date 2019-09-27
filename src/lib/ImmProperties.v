@@ -1,7 +1,7 @@
 Require Import Setoid.
 From hahn Require Import Hahn.
 From imm Require Import Events Execution Execution_eco
-     imm_common imm_s imm_s_hb CombRelations.
+     imm_common imm_s imm_s_hb CombRelations AuxDef.
 Require Import AuxRel AuxRel2.
 
 Set Implicit Arguments.
@@ -10,6 +10,7 @@ Section ImmProperties.
 Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
+Variable CON : imm_consistent G sc.
 
 Notation "'acts'" := G.(acts).
 Notation "'sb'" := G.(sb).
@@ -124,6 +125,132 @@ Proof using WF.
   rewrite AA.
   sin_rewrite ninit_rfi_rmw_same_tid.
   apply transitiveI. apply same_tid_trans.
+Qed.
+
+Lemma wf_immcof : functional (immediate co).
+Proof using WF.
+  intros x y z ICOXY ICOXZ.
+  assert (co x y) as COXY by apply ICOXY.
+  assert (co x z) as COXZ by apply ICOXZ.
+  apply WF.(wf_coD) in COXY. destruct_seq COXY as [BB1 BB2].
+  apply WF.(wf_coE) in COXY. destruct_seq COXY as [BB3 BB4].
+  apply WF.(wf_coD) in COXZ. destruct_seq COXZ as [AA1 AA2].
+  apply WF.(wf_coE) in COXZ. destruct_seq COXZ as [AA3 AA4].
+  apply is_w_loc in AA1. desf.
+  set (CC:=COXY). apply WF.(wf_col) in CC. red in CC.
+  set (DD:=COXZ). apply WF.(wf_col) in DD. red in DD.
+  destruct (classic (y = z)); auto.
+  edestruct WF.(wf_co_total); eauto.
+  1,2: split; [split|]; eauto.
+  { by etransitivity; [|by eauto]. }
+  { exfalso. by apply ICOXZ with (c:=y). }
+  exfalso. by apply ICOXY with (c:=z).
+Qed.
+  
+Lemma wf_rfrmwsf : functional (rf ⨾ rmw).
+Proof using WF CON.
+  rewrite rfrmw_in_im_co; eauto.
+  apply wf_immcof.
+Qed.
+
+Lemma P_co_nP_co_P_imm P
+      (P_in_E : P ⊆₁ E)
+      (P_in_W : P ⊆₁ W) :
+  immediate (⦗P⦘ ⨾ co) ;; <|set_compl P|> ;; immediate (co ⨾ ⦗P⦘) ⊆
+            immediate (⦗P⦘ ⨾ co ⨾ ⦗P⦘).
+Proof using WF.
+  intros x y [z [AA BB]].
+  destruct_seq_l BB as CC.
+  set (DD := AA). destruct DD as [DD _]. destruct_seq_l DD as PX.
+  set (EE := BB). destruct EE as [EE _]. destruct_seq_r EE as PY.
+  assert (co x y) as CO.
+  { eapply WF.(co_trans); eauto. }
+  apply WF.(wf_coD) in CO. destruct_seq CO as [WX WY].
+  apply WF.(wf_coE) in CO. destruct_seq CO as [EX EY].
+  apply WF.(wf_coD) in DD. destruct_seq DD as [XLOC WZ].
+  apply WF.(wf_coE) in DD. destruct_seq DD as [EX' EZ].
+  apply is_w_loc in XLOC. desf.
+  assert (loc y = Some l /\ loc z = Some l) as [YLOC ZLOC].
+  { split; rewrite <- XLOC; symmetry; by apply WF.(wf_col). }
+
+  split.
+  { apply seq_eqv_lr. by splits. }
+  ins.
+  destruct_seq R1 as [A1 B1].
+  destruct_seq R2 as [A2 B2].
+  destruct (classic (c = z)) as [|CNEQ]; desf.
+  assert (loc c = Some l) as LOCC.
+  { rewrite <- YLOC. by apply WF.(wf_col). }
+  assert (E c) as EC.
+  { by apply P_in_E. }
+  assert (W c) as WC.
+  { by apply P_in_W. }
+  
+  assert (c <> x /\ c <> y) as [CNNEXT CNPREV].
+  { split; intros HH; subst; eapply WF.(co_irr); eauto. }
+
+  assert (co c z \/ co z c) as [QQ|QQ].
+  { eapply WF.(wf_co_total); eauto; unfolder; eauto. }
+  { eapply AA with (c:=c); apply seq_eqv_l; eauto. }
+  eapply BB with (c:=c); apply seq_eqv_r; eauto.
+Qed.
+
+Lemma P_co_immediate_P_co_transp_in_co_cr P
+      (P_in_E : P ⊆₁ E)
+      (P_in_W : P ⊆₁ W) :
+  (<|P|> ;; co) ;; (immediate (<|P|>;; co))⁻¹ ⊆ co^?.
+Proof using WF.
+  intros x y [z [AA [BB CC]]].
+  destruct_seq_l AA as PZ.
+  destruct_seq_l BB as DD.
+  destruct (classic (x = y)) as [|NEQ]; subst; [by left|right].
+  apply WF.(wf_coD) in AA. destruct_seq AA as [WX WZ].
+  apply WF.(wf_coE) in AA. destruct_seq AA as [EX EZ].
+  apply WF.(wf_coD) in BB. destruct_seq BB as [WY ZLOC].
+  apply WF.(wf_coE) in BB. destruct_seq BB as [EY FF].
+  apply is_w_loc in ZLOC. desf.
+  assert (loc x = Some l /\ loc y = Some l) as [XLOC YLOC].
+  { rewrite <- !ZLOC. split; by apply WF.(wf_col). }
+  edestruct WF.(wf_co_total); eauto.
+  1,2: by split; [split|]; eauto.
+  exfalso.
+  apply CC with (c:=x).
+  all: apply seq_eqv_l; split; auto.
+Qed.
+
+(* TODO: rename in accordance with the previous lemma. *)
+Lemma co_imm_co_in_co_cr : co ;; (immediate co)⁻¹ ⊆ co^?.
+Proof using WF.
+  assert (co ≡ <|E∩₁W|>;;co) as AA.
+  { split; [|basic_solver].
+    rewrite WF.(wf_coE) at 1. rewrite WF.(wf_coD) at 1.
+    basic_solver. }
+  rewrite AA at 1 2.
+  apply P_co_immediate_P_co_transp_in_co_cr.
+  all: basic_solver.
+Qed.
+
+Lemma immediate_co_P_transp_co_P_in_co_cr P
+      (P_in_E : P ⊆₁ E)
+      (P_in_W : P ⊆₁ W) :
+  (immediate (co ;; <|P|>))⁻¹ ;; (co ;; <|P|>) ⊆ co^?.
+Proof using WF.
+  intros x y [z [[BB CC] AA]].
+  destruct_seq_r AA as PZ.
+  destruct_seq_r BB as DD.
+  destruct (classic (x = y)) as [|NEQ]; subst; [by left|right].
+  apply WF.(wf_coD) in AA. destruct_seq AA as [WZ WY].
+  apply WF.(wf_coE) in AA. destruct_seq AA as [EZ EY].
+  apply WF.(wf_coD) in BB. destruct_seq BB as [ZLOC WX].
+  apply WF.(wf_coE) in BB. destruct_seq BB as [FF EX].
+  apply is_w_loc in ZLOC. desf.
+  assert (loc x = Some l /\ loc y = Some l) as [XLOC YLOC].
+  { rewrite <- !ZLOC. split; symmetry; by apply WF.(wf_col). }
+  edestruct WF.(wf_co_total); eauto.
+  1,2: by split; [split|]; eauto.
+  exfalso.
+  apply CC with (c:=y).
+  all: apply seq_eqv_r; split; auto.
 Qed.
 
 End ImmProperties.
