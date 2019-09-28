@@ -130,7 +130,7 @@ Lemma co_S_memory_disjoint memory locw wp wn
   forall (to from : Time.t) (msg : Message.t)
          (IN : Memory.get locw to memory = Some (from, msg)),
     Interval.disjoint (f_to wp, f_from wn) (from, to).
-Proof using.
+Proof using WF IMMCON ETCCOH FCOH.
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
@@ -237,7 +237,7 @@ Proof using.
       all: apply seq_eqv_lr; splits; auto.
       eapply WF.(co_trans); eauto. }
 
-    edestruct WF.(wf_co_total) as [PP|PP].
+    edestruct WF.(wf_co_total) as [COWB'|PP].
     3: by apply WBNEQ'.
     1,2: split; [split|]; eauto.
     2: { apply COIMM with (c:=b').
@@ -245,9 +245,14 @@ Proof using.
          eapply WF.(co_trans); eauto. }
     
     apply NSW.
-    (* TODO: use co_P_co_rfrmw_rt_in_rfrmw_ct_P_rfrmw_ct. *)
-
-    admit. }
+    eapply (dom_rf_rmw_ct_S WF ETCCOH). simpls.
+    assert (((rf ;; rmw)⁺ ;; <|W_ex ∩₁ eq w|> ;; (rf ;; rmw)⁺) b b') as AA.
+    2: { destruct AA as [q [_ AA]].
+         generalize AA SB'. basic_solver 10. }
+    apply co_P_co_rfrmw_rt_in_rfrmw_ct_P_rfrmw_ct.
+    split; auto.
+    generalize COBW COWB'.
+    basic_solver 10. }
 
   destruct CO as [CO|CO].
   { assert (Time.le (f_to b') (f_to wp)) as HH.
@@ -256,14 +261,10 @@ Proof using.
   assert (Time.le (f_from wn) (f_from b)) as HH.
   { eapply co_S_f_from_le; eauto. }
     by apply interval_disjoint_imm_le.
-Admitted.
+Qed.
 
 (* TODO: move to a more appropriate place. *)
-Lemma f_to_coherent_add_S_middle memory local T S w wprev wnext
-      n_to n_from f_to f_from
-      (IMMCON : imm_consistent G sc)
-      (ETCCOH : etc_coherent G sc (mkETC T S))
-      (FCOH : f_to_coherent G S f_to f_from)
+Lemma f_to_coherent_add_S_middle memory local w wprev wnext n_to n_from
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local memory)
       (TFRMW : forall x y (SX : S x) (SY : S y) (CO : co x y)
@@ -281,7 +282,7 @@ Lemma f_to_coherent_add_S_middle memory local T S w wprev wnext
                 (n_from = Time.middle (f_to wprev) n_to /\
                  << NPRFRMW : ~ (rf ⨾ rmw) wprev w >>)) :
   f_to_coherent G (S ∪₁ eq w) (upd f_to w n_to) (upd f_from w n_from).
-Proof using WF.
+Proof using WF IMMCON ETCCOH FCOH.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   assert (S ⊆₁ E) as SinE by apply ETCCOH.
   assert (S ⊆₁ W) as SinW by apply (reservedW WF ETCCOH).
@@ -369,13 +370,13 @@ Proof using WF.
     { by apply FCOH. }
     { etransitivity; [|by apply PREVFROMLE].
       assert (co^? x wprev) as COXP.
-      { apply S_co_immediate_S_co_transp_in_co_cr with (S:=S); auto.
+      { apply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
         exists y. split; auto. basic_solver. }
       eapply co_S_f_to_le; eauto. }
     2: by apply WF.(co_irr) in CO.
     etransitivity; [by apply LETONEXT|].
     assert (co^? wnext y) as COXP.
-    { apply immediate_co_S_transp_co_S_in_co_cr with (S:=S); auto.
+    { apply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
       exists x. split; auto. basic_solver. }
     eapply co_S_f_from_le; eauto. }
   intros x y [ISSX|EQX] [ISSY|EQY] RFRMW; subst.
@@ -390,7 +391,7 @@ Proof using WF.
        eapply rfrmw_in_im_co in CC; eauto.
        destruct CC as [AA BB].
        assert (co^? wnext y) as [|COY]; subst.
-       { apply immediate_co_S_transp_co_S_in_co_cr with (S:=S); auto.
+       { apply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
          exists x. split; auto. basic_solver. }
        { destruct NTO as [[NN1 NN2]|[NN1 NN2]]; desf. }
        exfalso. by apply BB with (c:=wnext). }
@@ -398,18 +399,14 @@ Proof using WF.
   eapply rfrmw_in_im_co in CC; eauto.
   destruct CC as [AA BB].
   assert (co^? x wprev) as [|COY]; subst.
-  { apply S_co_immediate_S_co_transp_in_co_cr with (S:=S); auto.
+  { apply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
     exists y. split; auto. basic_solver. }
   { destruct NFROM as [[NN1 NN2]|[NN1 NN2]]; desf. }
   exfalso. by apply BB with (c:=wprev).
 Qed.
 
 (* TODO: move to a more appropriate place. *)
-Lemma reserved_time_add_S_middle memory local T S l w wprev wnext memory'
-      n_to n_from f_to f_from
-      (IMMCON : imm_consistent G sc)
-      (ETCCOH : etc_coherent G sc (mkETC T S))
-      (FCOH : f_to_coherent G S f_to f_from)
+Lemma reserved_time_add_S_middle memory local l w wprev wnext memory' n_to n_from
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local memory)
       (TFRMW : forall x y (SX : S x) (SY : S y) (CO : co x y)
@@ -438,7 +435,7 @@ Lemma reserved_time_add_S_middle memory local T S l w wprev wnext memory'
   reserved_time
     G T (S ∪₁ eq w) (upd f_to w n_to) (upd f_from w n_from)
     sim_normal memory'.
-Proof using.
+Proof using WF IMMCON ETCCOH FCOH.
   assert (~ issued T w) as NIW.
   { intros II. apply NSW. by apply ETCCOH.(etc_I_in_S). }
 
@@ -560,10 +557,7 @@ Proof using.
 (*       by etransitivity; [by apply DD|]. } *)
 Admitted.
 
-Lemma exists_time_interval f_to f_from T S PC w locw valw langst local smode
-      (IMMCON : imm_consistent G sc)
-      (ETCCOH : etc_coherent G sc (mkETC T S))
-      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
+Lemma exists_time_interval PC w locw valw langst local smode
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
       (PRMW : ~ codom_rel (⦗S \₁ issued T⦘ ⨾ rfi ⨾ rmw) w)
@@ -574,7 +568,6 @@ Lemma exists_time_interval f_to f_from T S PC w locw valw langst local smode
                 (TID : IdentMap.find thread' PC.(Configuration.threads) =
                        Some (langst, local)),
            Memory.le local.(Local.promises) PC.(Configuration.memory))
-      (FCOH : f_to_coherent G S f_to f_from)
       (RESERVED_TIME:
          reserved_time G T S f_to f_from smode PC.(Configuration.memory))
       (INHAB      : Memory.inhabited (Configuration.memory PC))
@@ -599,7 +592,7 @@ Lemma exists_time_interval f_to f_from T S PC w locw valw langst local smode
     ⟪ FCOH : f_to_coherent G (S ∪₁ eq w) f_to' f_from' ⟫ /\
     ⟪ RESERVED_TIME :
         reserved_time G T (S ∪₁ eq w) f_to' f_from' smode memory' ⟫.
-Proof using.
+Proof using WF IMMCON ETCCOH RELCOV FCOH.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   assert (etc_coherent G sc (mkETC T (S ∪₁ eq w))) as ETCCOH' by apply TSTEP.
 

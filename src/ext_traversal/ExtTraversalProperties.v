@@ -116,18 +116,24 @@ Proof using WF ETCCOH.
   apply dom_rf_rmw_S.
 Qed.
 
-Lemma rt_rf_rmw_S : dom_rel (⦗W_ex⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘) ⊆₁ S.
+Lemma dom_rf_rmw_rt_S : dom_rel (⦗W_ex⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘) ⊆₁ S.
 Proof using WF ETCCOH.
-cut (⦗W_ex⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ ⦗S⦘ ⨾ (fun _ _ => True)).
-by unfolder; ins; desf; eauto 21; eapply H; splits; eauto 10.
-apply rt_ind_left with (P:= fun r => ⦗W_ex⦘ ⨾ r ⨾ ⦗S⦘).
-by auto with hahn.
-by basic_solver.
-intros k H.
-sin_rewrite rmw_W_ex; rewrite !seqA.
-sin_rewrite H.
-seq_rewrite rf_rmw_S.
-basic_solver.
+  cut (⦗W_ex⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ ⦗S⦘ ⨾ (fun _ _ => True)).
+  { unfolder; ins; desf; eauto 21; eapply H; splits; eauto 10. }
+  apply rt_ind_left with (P:= fun r => ⦗W_ex⦘ ⨾ r ⨾ ⦗S⦘).
+  { auto with hahn. }
+  { basic_solver. }
+  intros k H.
+  sin_rewrite rmw_W_ex; rewrite !seqA.
+  sin_rewrite H.
+  seq_rewrite rf_rmw_S.
+  basic_solver.
+Qed.
+
+Lemma dom_rf_rmw_ct_S : dom_rel (⦗W_ex⦘ ⨾ (rf ⨾ rmw)⁺ ⨾ ⦗S⦘) ⊆₁ S.
+Proof using WF ETCCOH.
+  rewrite inclusion_t_rt.
+  apply dom_rf_rmw_rt_S.
 Qed.
 
 Lemma rfe_rmw_S : dom_rel (rfe ⨾ rmw ⨾ ⦗S⦘) ⊆₁ I.
@@ -161,7 +167,7 @@ Proof using WF ETCCOH.
   { arewrite (rfi ⊆ rf); arewrite_id (⦗I⦘); relsf. }
   relsf.
   sin_rewrite rmw_W_ex; rewrite !seqA.
-  rewrite (dom_rel_helper rt_rf_rmw_S).
+  rewrite (dom_rel_helper dom_rf_rmw_rt_S).
   seq_rewrite (dom_rel_helper rfe_rmw_S).
   arewrite (rfe ⊆ rf).
   rewrite ct_begin.
