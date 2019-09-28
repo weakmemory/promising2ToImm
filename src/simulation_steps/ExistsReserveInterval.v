@@ -406,6 +406,38 @@ Proof using WF IMMCON ETCCOH FCOH.
 Qed.
 
 (* TODO: move to a more appropriate place. *)
+Lemma message_to_event_add_S_middle memory l w memory' n_to n_from
+      (LOC : loc lab w = Some l)
+      (NIW : ~ issued T w)
+      (RESERVED_TIME:
+         reserved_time G T S f_to f_from sim_normal memory)
+      (MADD :
+        Memory.add memory l
+                   ((upd f_from w n_from) w)
+                   ((upd f_to w n_to) w)
+                   Message.reserve memory') :
+  message_to_event G T (upd f_to w n_to) (upd f_from w n_from) memory'.
+Proof using.
+  red in RESERVED_TIME. desc.
+  set (f_to':= upd f_to w n_to).
+  set (f_from':= upd f_from w n_from).
+
+  red; ins. erewrite Memory.add_o in MSG; eauto.
+  destruct (loc_ts_eq_dec (l0, to) (l, f_to' w)) as [[EQ1 EQ2]|NEQ].
+  { simpls; subst.
+    rewrite (loc_ts_eq_dec_eq l (f_to' w)) in MSG.
+    inv MSG. }
+  rewrite loc_ts_eq_dec_neq in MSG; simpls; auto.
+  apply MEM in MSG. destruct MSG as [MSG|MSG]; [by left|right].
+  destruct MSG as [b H]; desc.
+  assert (b <> w) as BNEQ.
+  { by intros H; subst. }
+  unfold f_to', f_from'.
+  exists b; splits; auto.
+  all: by rewrite updo.
+Qed.
+
+(* TODO: move to a more appropriate place. *)
 Lemma reserved_time_add_S_middle memory local l w wprev wnext memory' n_to n_from
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local memory)
@@ -439,24 +471,13 @@ Proof using WF IMMCON ETCCOH FCOH.
   assert (~ issued T w) as NIW.
   { intros II. apply NSW. by apply ETCCOH.(etc_I_in_S). }
 
-  red in RESERVED_TIME. desc.
+  cdes RESERVED_TIME.
   set (f_to':= upd f_to w n_to).
   set (f_from':= upd f_from w n_from).
 
   (* TODO: Extract to a separate lemma. *)
   assert (message_to_event G T (upd f_to w n_to) (upd f_from w n_from) memory') as MTE.
-  { red; ins. erewrite Memory.add_o in MSG; eauto.
-    destruct (loc_ts_eq_dec (l0, to) (l, f_to' w)) as [[EQ1 EQ2]|NEQ].
-    { simpls; subst.
-      rewrite (loc_ts_eq_dec_eq l (f_to' w)) in MSG.
-      inv MSG. }
-    rewrite loc_ts_eq_dec_neq in MSG; simpls; auto.
-    apply MEM in MSG. destruct MSG as [MSG|MSG]; [by left|right].
-    destruct MSG as [b H]; desc.
-    assert (b <> w) as BNEQ.
-    { by intros H; subst. }
-    exists b; splits; auto.
-    all: by rewrite updo. }
+  { eapply message_to_event_add_S_middle; eauto. }
 
   assert (half_message_to_events G T (S ∪₁ eq w) f_to' f_from' memory') as HMTE.
   { red; ins. erewrite Memory.add_o in MSG; eauto.
