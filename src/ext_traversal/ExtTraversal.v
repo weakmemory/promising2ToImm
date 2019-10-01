@@ -9,6 +9,12 @@ Require Export ExtTravRelations.
 Set Implicit Arguments.
 
 Section ExtTraversalConfig.
+(* TODO: move to a more appropriate place (imm). *)
+Lemma W_ex_in_E G (WF : Wf G): W_ex G ⊆₁ acts_set G.
+Proof.
+  unfold W_ex. rewrite WF.(wf_rmwE). basic_solver.
+Qed.
+
 Variable G : execution.
 Variable WF : Wf G.
 Variable COM : complete G.
