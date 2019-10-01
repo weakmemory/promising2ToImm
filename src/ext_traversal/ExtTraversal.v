@@ -5,16 +5,17 @@ From imm Require Import AuxDef Events Execution Execution_eco
 Require Import TraversalConfig Traversal.
 Require Import AuxRel AuxRel2.
 Require Export ExtTravRelations.
+Require Import TraversalProperties.
 
 Set Implicit Arguments.
 
-Section ExtTraversalConfig.
 (* TODO: move to a more appropriate place (imm). *)
 Lemma W_ex_in_E G (WF : Wf G): W_ex G ⊆₁ acts_set G.
 Proof.
   unfold W_ex. rewrite WF.(wf_rmwE). basic_solver.
 Qed.
 
+Section ExtTraversalConfig.
 Variable G : execution.
 Variable WF : Wf G.
 Variable COM : complete G.
@@ -111,9 +112,16 @@ Record etc_coherent (T : ext_trav_config) :=
       etc_dr_R_acq_I :
         dom_rel ((detour ∪ rfe) ⨾ ⦗R∩₁Acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
       etc_W_ex_sb_I : dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
-      etc_po_S      : dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗ reserved T ⦘) ⊆₁ reserved T;
+      
+      etc_sb_S :
+        dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗ reserved T ⦘) ∩₁
+        codom_rel (<|eissued T|> ;; rf ;; rmw) ⊆₁
+        reserved T;
+
       etc_rppo_S :
         dom_rel ((detour ∪ rfe) ⨾ (data ∪ rfi)＊ ⨾ rppo ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
+
+      etc_S_W_ex_rfrmw_I : reserved T ∩₁ W_ex ⊆₁ codom_rel (<|eissued T|> ;; rf ;; rmw);
     }.
 
 Definition ext_itrav_step (e : actid) T T' :=
@@ -128,13 +136,16 @@ Definition ext_itrav_step (e : actid) T T' :=
        ⟪ RES  : W_ex e -> reserved T e ⟫ /\
        ⟪ COVEQ: ecovered T' ≡₁ ecovered T ⟫ /\
        ⟪ ISSEQ: eissued  T' ≡₁ eissued  T ∪₁ eq e ⟫ /\
-       ⟪ RESEQ: reserved T' ≡₁ reserved T ∪₁ eq e ⟫
+       ⟪ RESEQ: reserved T' ≡₁
+                reserved T ∪₁ eq e ∪₁
+                (dom_rel (<|W_ex|> ;; sb ;; <|eissued T|>) ∩₁
+                 codom_rel (<|eq e|> ;; rfi ;; rmw)) ⟫
    ⟫ \/
    ⟪ RESERVE :
        ⟪ NISS : ~ reserved T e ⟫ /\
        ⟪ COVEQ: ecovered T' ≡₁ ecovered T ⟫ /\
        ⟪ ISSEQ: eissued  T' ≡₁ eissued  T ⟫ /\
-       ⟪ RESEQ: reserved T' ≡₁ reserved T ∪₁ (eq e) ⟫
+       ⟪ RESEQ: reserved T' ≡₁ reserved T ∪₁ eq e ⟫
   ⟫) /\
   ⟪ ETCCOH' : etc_coherent T' ⟫.
 
@@ -186,6 +197,99 @@ Lemma trav_step_to_ext_trav_step T (ETCCOH : etc_coherent T)
       TC' (TS : trav_step G sc (etc_TC T) TC') :
   exists T', ext_trav_step T T'.
 Proof using WF.
+  assert (tc_coherent G sc (etc_TC T)) as TCCOH.
+  { apply ETCCOH. }
+  assert (tc_coherent G sc TC') as TCCOH'.
+  { eapply trav_step_coherence; eauto. }
+
+  red in TS. desf. cdes TS.
+  desf.
+  { exists (mkETC (mkTC (ecovered T ∪₁ eq e) (eissued T)) (reserved T)).
+    eexists e.
+    red. splits.
+    { left. splits; auto. }
+    constructor; unfold eissued, ecovered; simpls.
+    all: try by apply ETCCOH.
+    (* TODO: generalize to a lemma *)
+    eapply trav_step_coherence.
+    2: by apply ETCCOH. 
+    eapply trav_step_more_Proper.
+    3: by eexists; eauto.
+    { apply same_tc_Reflexive. }
+    { red. simpls. split; by symmetry. }
+    unionR left. apply ETCCOH. }
+
+  assert (E e) as EE.
+  { eapply itrav_stepE with (T:= etc_TC T); eauto. }
+  assert (eq e ⊆₁ E) as EQEE.
+  { basic_solver. }
+
+  destruct
+  (classic (exists w,
+               (dom_rel (<|W_ex|> ;; sb ;; <|eq e|>) ∩₁
+                codom_rel (<|eissued T|> ;; rf ;; rmw) \₁ reserved T) w)) as [[w WHH]|NWHH].
+  2: { destruct (classic (reserved T e)) as [RES|NRES].
+       { exists (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e))
+                       (reserved T ∪₁ eq e ∪₁
+                        dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗issued (etc_TC T)⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw))).
+         exists e.
+         constructor; unfold eissued, ecovered; simpls.
+         { right. left. splits; eauto. }
+         unnw. constructor; unfold eissued, ecovered; simpls.
+         { eapply trav_step_coherence.
+           2: by apply ETCCOH. 
+           eapply trav_step_more_Proper.
+           3: by eexists; eauto.
+           { apply same_tc_Reflexive. }
+           red. simpls. split; by symmetry. }
+         { unionL; auto.
+           { apply ETCCOH. }
+           rewrite WF.(W_ex_in_E), WF.(wf_rmwE).
+           basic_solver. }
+         { unionL; [|basic_solver].
+           unionR left -> left. apply ETCCOH. }
+         { rewrite !set_minus_union_l. unionL.
+           3: basic_solver.
+           { rewrite <- ETCCOH.(etc_S_I_in_W_ex). basic_solver. }
+           rewrite set_minus_union_r.
+           basic_solver. }
+         (* TODO: continue from here. *)
+
+         etransitivity.
+         2: by apply ETCCOH.
+         unfold eissued; simpls.
+         basic_solver. }
+
+         all: try by (unionR left; apply ETCCOH).
+         all: try by apply ETCCOH.
+       
+
+  { destruct WHH as [[WSB RFRMW] NSW].
+    assert (W_ex w) as WEW.
+    { generalize WSB. basic_solver. }
+    assert (E w) as EW.
+    { by apply W_ex_in_E. }
+
+    exists (mkETC (mkTC (ecovered T) (eissued T)) (reserved T ∪₁ eq w)), w.
+    red. splits.
+    { do 2 right. splits; auto. }
+    split; unfold eissued, ecovered; simpls.
+    all: try by (unionR left; apply ETCCOH).
+    { unionL; [by apply ETCCOH|].
+      basic_solver. }
+    { rewrite set_minus_union_l. unionL; [by apply ETCCOH|].
+      generalize WEW. basic_solver. }
+    rewrite set_inter_union_l. unionL; [by apply ETCCOH|].
+    generalize RFRMW. unfold eissued. basic_solver. }
+
+  destruct (classic (reserved T e)) as [RES|NRES].
+  { exists (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e))
+                (reserved T ∪₁ eq e ∪₁ codom_rel (<|eq e|> ;; rfi ;; rmw))).
+    red. exists e. red. unfold eissued, ecovered; splits; simpls.
+    { right. left. splits; auto. }
+    split; unfold eissued, ecovered; simpls.
+    (* TODO: continue from here. *)
+
   red in TS. desf. cdes TS.
   desf.
   { exists (mkETC (mkTC (ecovered T ∪₁ eq e) (eissued T)) (reserved T)).
