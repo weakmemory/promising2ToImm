@@ -1,10 +1,11 @@
 Require Import Setoid.
 From hahn Require Import Hahn.
 From imm Require Import Events Execution Execution_eco
-     imm_common imm_s imm_s_hb CombRelations.
+     imm_common imm_s imm_s_hb CombRelations AuxDef.
 Require Import AuxRel AuxRel2.
 Require Import TraversalConfig Traversal.
 Require Import ExtTraversal.
+Require Import ImmProperties.
 
 Set Implicit Arguments.
 
@@ -90,23 +91,24 @@ Notation "'S'" := (reserved T).
 Notation "'C'" := (ecovered T).
 Notation "'I'" := (eissued  T).
 
+Lemma dom_rf_rmw_S_in_I : dom_rel (⦗W_ex⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ I.
+Proof using WF ETCCOH.
+  rewrite rmw_W_ex, !seqA.
+  arewrite (⦗W_ex⦘ ⨾ ⦗S⦘ ⊆ ⦗S ∩₁ W_ex⦘) by basic_solver.
+  rewrite ETCCOH.(etc_S_W_ex_rfrmw_I).
+  rewrite <- seqA with (r2:=rmw).
+  intros x [y HH].
+  destruct_seq HH as [WX BB].
+  destruct BB as [z BB].
+  destruct_seq_l BB as IZ.
+  assert (x = z); desf.
+  eapply wf_rfrmwf; eauto.
+Qed.
 
 Lemma dom_rf_rmw_S : dom_rel (⦗W_ex⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ S.
 Proof using WF ETCCOH.
-  rewrite rfi_union_rfe, seq_union_l, seq_union_r, dom_union.
-  unionL.
-  { arewrite (rfi ⊆ sb). rewrite WF.(rmw_in_sb).
-    arewrite (sb ⨾ sb ⊆ sb).
-    { apply transitiveI. apply sb_trans. }
-    apply ETCCOH. }
-  arewrite_id ⦗W_ex⦘. rewrite seq_id_l.
-  rewrite WF.(rmw_in_rppo).
-  etransitivity.
-  2: by apply ETCCOH.(etc_I_in_S).
-  etransitivity.
-  2: by apply ETCCOH.(etc_rppo_S).
-  rewrite <- inclusion_id_rt, seq_id_l.
-  basic_solver 10.
+  rewrite <- ETCCOH.(etc_I_in_S) at 2.
+  apply dom_rf_rmw_S_in_I.
 Qed.
 
 Lemma rf_rmw_S : ⦗W_ex⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘ ≡
