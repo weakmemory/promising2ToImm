@@ -125,10 +125,14 @@ Inductive ext_isim_trav_step : thread_id -> ext_trav_config -> ext_trav_config -
     (TS : ext_itrav_step
             G sc w T
             (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq w))
-                   (reserved T ∪₁ eq w))) :
+                   (reserved T ∪₁ eq w ∪₁
+                    (dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗eissued T⦘) ∩₁
+                     codom_rel (⦗eq w⦘ ⨾ rfi ⨾ rmw))))) :
     ext_isim_trav_step
       (tid w) T (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq w))
-                       (reserved T ∪₁ eq w))
+                       (reserved T ∪₁ eq w ∪₁
+                        (dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗eissued T⦘) ∩₁
+                         codom_rel (⦗eq w⦘ ⨾ rfi ⨾ rmw))))
 
 | ext_rlx_write_cover_step T
     w (WW : W w) (NREL : ~ Rel w) (NRMW : ~ codom_rel rmw w)

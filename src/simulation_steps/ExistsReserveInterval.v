@@ -115,15 +115,15 @@ Qed.
 
 (* TODO: move to ImmProperties.v. *)
 Lemma co_P_co_rfrmw_rt_in_rfrmw_ct_P_rfrmw_ct P :
-  (co ;; <|P|> ;; co) ∩ (rf ;; rmw)^* ⊆
-  (rf ;; rmw)⁺ ;; <|W_ex ∩₁ P|> ;; (rf ;; rmw)⁺.
+  (co ⨾ ⦗P⦘ ⨾ co) ∩ (rf ⨾ rmw)＊ ⊆
+  (rf ⨾ rmw)⁺ ⨾ ⦗W_ex ∩₁ P⦘ ⨾ (rf ⨾ rmw)⁺.
 Proof using.
 Admitted.
 
 (* TODO: move to a more appropriate place. *)
 Lemma co_S_memory_disjoint memory locw wp wn
-      (COIMM  : immediate (<|S|> ;; co ;; <|S|>) wp wn)
-      (CONS   : (co ;; <| set_compl S |> ;; co) wp wn)
+      (COIMM  : immediate (⦗S⦘ ⨾ co ⨾ ⦗S⦘) wp wn)
+      (CONS   : (co ⨾ ⦗ set_compl S ⦘ ⨾ co) wp wn)
       (LOCP   : loc lab wp = Some locw)
       (RESERVED_TIME:
          reserved_time G T S f_to f_from sim_normal memory) :
@@ -196,7 +196,7 @@ Proof using WF IMMCON ETCCOH FCOH.
   assert (loc lab b' = Some locw) as LOC'.
   { unfold location in *. rewrite <- LOC.
     symmetry. 
-    eapply inclusion_rt_ind with (r := rf ;; rmw) (r' := same_loc lab); eauto.
+    eapply inclusion_rt_ind with (r := rf ⨾ rmw) (r' := same_loc lab); eauto.
     { red. by unfold same_loc. }
     { apply WF.(wf_rfrmwl). }
     apply same_loc_trans. }
@@ -246,7 +246,7 @@ Proof using WF IMMCON ETCCOH FCOH.
     
     apply NSW.
     eapply (dom_rf_rmw_ct_S WF ETCCOH). simpls.
-    assert (((rf ;; rmw)⁺ ;; <|W_ex ∩₁ eq w|> ;; (rf ;; rmw)⁺) b b') as AA.
+    assert (((rf ⨾ rmw)⁺ ⨾ ⦗W_ex ∩₁ eq w⦘ ⨾ (rf ⨾ rmw)⁺) b b') as AA.
     2: { destruct AA as [q [_ AA]].
          generalize AA SB'. basic_solver 10. }
     apply co_P_co_rfrmw_rt_in_rfrmw_ct_P_rfrmw_ct.
@@ -274,13 +274,13 @@ Lemma f_to_coherent_add_S_middle memory local w wprev wnext n_to n_from
       (NIMMCO : immediate (co ⨾ ⦗S⦘) w wnext)
       (PIMMCO : immediate (⦗S⦘ ⨾ co) wprev w)
       (NTO    : (n_to = f_from wnext /\
-                 << NRFRMW : (rf ⨾ rmw) w wnext >>) \/
+                 ⟪ NRFRMW : (rf ⨾ rmw) w wnext ⟫) \/
                 (n_to = Time.middle (f_to wprev) (f_from wnext) /\
-                 << NNRFRMW : ~ (rf ⨾ rmw) w wnext >>))
+                 ⟪ NNRFRMW : ~ (rf ⨾ rmw) w wnext ⟫))
       (NFROM  : (n_from = f_to wprev /\
-                 << PRFRMW : (rf ⨾ rmw) wprev w >>) \/
+                 ⟪ PRFRMW : (rf ⨾ rmw) wprev w ⟫) \/
                 (n_from = Time.middle (f_to wprev) n_to /\
-                 << NPRFRMW : ~ (rf ⨾ rmw) wprev w >>)) :
+                 ⟪ NPRFRMW : ~ (rf ⨾ rmw) wprev w ⟫)) :
   f_to_coherent G (S ∪₁ eq w) (upd f_to w n_to) (upd f_from w n_from).
 Proof using WF IMMCON ETCCOH FCOH.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
@@ -450,13 +450,13 @@ Lemma reserved_time_add_S_middle memory local l w wprev wnext memory' n_to n_fro
       (NIMMCO : immediate (co ⨾ ⦗S⦘) w wnext)
       (PIMMCO : immediate (⦗S⦘ ⨾ co) wprev w)
       (NTO    : (n_to = f_from wnext /\
-                 << NRFRMW : (rf ⨾ rmw) w wnext >>) \/
+                 ⟪ NRFRMW : (rf ⨾ rmw) w wnext ⟫) \/
                 (n_to = Time.middle (f_to wprev) (f_from wnext) /\
-                 << NNRFRMW : ~ (rf ⨾ rmw) w wnext >>))
+                 ⟪ NNRFRMW : ~ (rf ⨾ rmw) w wnext ⟫))
       (NFROM  : (n_from = f_to wprev /\
-                 << PRFRMW : (rf ⨾ rmw) wprev w >>) \/
+                 ⟪ PRFRMW : (rf ⨾ rmw) wprev w ⟫) \/
                 (n_from = Time.middle (f_to wprev) n_to /\
-                 << NPRFRMW : ~ (rf ⨾ rmw) wprev w >>))
+                 ⟪ NPRFRMW : ~ (rf ⨾ rmw) wprev w ⟫))
       (RESERVED_TIME:
          reserved_time G T S f_to f_from sim_normal memory)
       (MADD :

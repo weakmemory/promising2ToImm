@@ -156,7 +156,7 @@ Qed.
 Lemma P_co_nP_co_P_imm P
       (P_in_E : P ⊆₁ E)
       (P_in_W : P ⊆₁ W) :
-  immediate (⦗P⦘ ⨾ co) ;; <|set_compl P|> ;; immediate (co ⨾ ⦗P⦘) ⊆
+  immediate (⦗P⦘ ⨾ co) ⨾ ⦗set_compl P⦘ ⨾ immediate (co ⨾ ⦗P⦘) ⊆
             immediate (⦗P⦘ ⨾ co ⨾ ⦗P⦘).
 Proof using WF.
   intros x y [z [AA BB]].
@@ -198,7 +198,7 @@ Qed.
 Lemma P_co_immediate_P_co_transp_in_co_cr P
       (P_in_E : P ⊆₁ E)
       (P_in_W : P ⊆₁ W) :
-  (<|P|> ;; co) ;; (immediate (<|P|>;; co))⁻¹ ⊆ co^?.
+  (⦗P⦘ ⨾ co) ⨾ (immediate (⦗P⦘⨾ co))⁻¹ ⊆ co^?.
 Proof using WF.
   intros x y [z [AA [BB CC]]].
   destruct_seq_l AA as PZ.
@@ -219,9 +219,9 @@ Proof using WF.
 Qed.
 
 (* TODO: rename in accordance with the previous lemma. *)
-Lemma co_imm_co_in_co_cr : co ;; (immediate co)⁻¹ ⊆ co^?.
+Lemma co_imm_co_in_co_cr : co ⨾ (immediate co)⁻¹ ⊆ co^?.
 Proof using WF.
-  assert (co ≡ <|E∩₁W|>;;co) as AA.
+  assert (co ≡ ⦗E∩₁W⦘⨾co) as AA.
   { split; [|basic_solver].
     rewrite WF.(wf_coE) at 1. rewrite WF.(wf_coD) at 1.
     basic_solver. }
@@ -233,7 +233,7 @@ Qed.
 Lemma immediate_co_P_transp_co_P_in_co_cr P
       (P_in_E : P ⊆₁ E)
       (P_in_W : P ⊆₁ W) :
-  (immediate (co ;; <|P|>))⁻¹ ;; (co ;; <|P|>) ⊆ co^?.
+  (immediate (co ⨾ ⦗P⦘))⁻¹ ⨾ (co ⨾ ⦗P⦘) ⊆ co^?.
 Proof using WF.
   intros x y [z [[BB CC] AA]].
   destruct_seq_r AA as PZ.
