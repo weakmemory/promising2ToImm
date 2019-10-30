@@ -315,7 +315,7 @@ Qed.
 Lemma trav_step_to_ext_trav_step T (ETCCOH : etc_coherent T)
       TC' (TS : trav_step G sc (etc_TC T) TC') :
   exists T', ext_trav_step T T'.
-Proof using WF.
+Proof using WF IMMCON.
   unionL.
   assert (tc_coherent G sc (etc_TC T)) as TCCOH.
   { apply ETCCOH. }
@@ -523,8 +523,8 @@ Proof using WF.
   1-4: by unionL; [by apply ETCCOH|].
   rewrite !set_inter_union_l.
   unionL; [by apply ETCCOH|].
-  admit.
-Admitted.
+  rewrite EQEISS. by apply issuable_W_ex_in_codom_I_rfrmw.
+Qed.
 
 Lemma exists_ext_trav_step T (ETCCOH : etc_coherent T)
       e (N_FIN : next G (ecovered T) e) :
