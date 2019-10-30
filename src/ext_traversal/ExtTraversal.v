@@ -319,6 +319,15 @@ Proof using WF.
   assert (eq e ⊆₁ E) as EQEE.
   { basic_solver. }
 
+  assert (eq e ⊆₁ issuable G sc (etc_TC T)) as EQEISS by basic_solver.
+  assert (dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁ covered (etc_TC T)) as COVSBE.
+  { rewrite EQEISS. arewrite (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⊆ fwbob).
+    unfold issuable. basic_solver 10. }
+  assert (dom_rel ((detour ∪ rfe) ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁ issued (etc_TC T)) as ISSSBE.
+  { rewrite EQEISS. by apply dom_detour_rfe_acq_sb_issuable. }
+  assert (dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁ issued (etc_TC T)) as WEXACQE.
+  { rewrite EQEISS. by apply dom_wex_sb_issuable. }
+
   destruct
   (classic (exists w,
                (dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗eq e⦘) ∩₁
@@ -329,6 +338,8 @@ Proof using WF.
     assert (E w) as EW by (by apply WF.(W_ex_in_E)).
     assert (eq w ⊆₁ E) as EQWE.
     { basic_solver. }
+    assert (eq w ⊆₁ dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗eq e⦘)) as EQWSB.
+    { generalize WHH. basic_solver 10. }
     exists (mkETC (mkTC (ecovered T) (eissued T))
                   (reserved T ∪₁ eq w)).
     exists w.
@@ -340,6 +351,12 @@ Proof using WF.
     { rewrite set_minus_union_l.
       unionL; [by apply ETCCOH|].
       basic_solver. }
+    1-3: rewrite id_union, !seq_union_r, dom_union.
+    1-3: unionL; [by apply ETCCOH|].
+    1-3: rewrite EQWSB.
+    1-3: rewrite <- !seqA, dom_rel_eqv_dom_rel, !seqA.
+    1-3: by arewrite (sb ⨾ ⦗W_ex⦘ ⨾ sb ⊆ sb) by (generalize (@sb_trans G); basic_solver).
+
     (* TODO: continue from here. *)
 
     { eapply trav_step_coherence.
