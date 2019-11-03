@@ -569,84 +569,15 @@ Proof using WF IMMCON ETCCOH FCOH.
   { intros H; subst.
     eapply Time.lt_strorder with (x:=f_from y).
     rewrite <- FT at 1. by apply Time.middle_spec. }
-  (* TODO: continue from here. *)
   { subst.
-    assert (Time.lt (f_to x) (f_to wprev)) as DD.
-    { eapply f_to_co_mon; eauto. }
-    eapply Time.lt_strorder with (x:=f_to x).
-    rewrite FT at 2.
-    etransitivity; [by apply DD|]. by apply Time.middle_spec. }
-  eapply PIMMCO.
-  all: apply seq_eqv_l; split; eauto. }
-
-(* { red. splits. *)
-(*     intros x y [ISSX|HX]; subst. *)
-(*     { assert (x <> w) as XNEQ. *)
-(*       { intros H; desf. } *)
-(*       rewrite updo; auto. *)
-(*       intros [ISSY|HY] JJ CO II; subst. *)
-(*       { assert (y <> w) as YNEQ. *)
-(*         { intros H; desf. } *)
-(*         rewrite updo in II; auto. } *)
-(*       rewrite upds in II. *)
-(*       assert (loc lab x = Some locw) as XLOC. *)
-(*       { rewrite <- LOC. by apply WF.(wf_col). } *)
-(*       destruct NFROM as [[NFROM BB]|[NFROM BB]]. *)
-(*       { desc; subst. *)
-(*         eapply f_to_eq in II; eauto. *)
-(*         { subst. apply BB. } *)
-(*         red. by rewrite XLOC. } *)
-(*       exfalso. *)
-(*       edestruct WF.(wf_co_total) with (a:=x) (b:=wprev) as [COWX|COWX]. *)
-(*       1-2: split; [split|]; eauto. *)
-(*       1-2: by apply TCCOH in ISSX; apply ISSX. *)
-(*       { intros H; subst.  *)
-(*         edestruct Time.middle_spec as [AA _]. *)
-(*         { apply PREVNLT. } *)
-(*         rewrite <- II in AA. *)
-(*           by apply Time.lt_strorder in AA. } *)
-(*       { subst. *)
-(*         edestruct Time.middle_spec as [AA CC]. *)
-(*         { apply PREVNLT. } *)
-(*         assert (Time.lt (f_to x) (f_to wprev)) as DD. *)
-(*         { eapply f_to_co_mon; eauto. } *)
-(*         rewrite II in DD. *)
-(*         eapply Time.lt_strorder. *)
-(*           by etransitivity; [by apply DD|]. } *)
-(*       eapply PIMMCO. *)
-(*       all: apply seq_eqv_l; split; eauto. } *)
-(*     intros [ISSY|HY] JJ CO II; subst. *)
-(*     2: by apply WF.(co_irr) in CO. *)
-(*     assert (y <> x) as YNEQ. *)
-(*     { intros H. desf. } *)
-(*     rewrite upds in *; auto. rewrite updo in II; auto. *)
-(*     assert (loc lab y = Some locw) as XLOC. *)
-(*     { rewrite <- LOC. symmetry. by apply WF.(wf_col). } *)
-(*     destruct NTO as [[NTO BB]|[NTO BB]]. *)
-(*     { desc; subst. *)
-(*       eapply f_from_eq in II; eauto. *)
-(*       { subst. apply BB. } *)
-(*       red. by rewrite XLOC. } *)
-(*     exfalso. *)
-(*     edestruct WF.(wf_co_total) with (a:=y) (b:=wnext) as [COWX|COWX]. *)
-(*     1-2: split; [split|]; eauto. *)
-(*     1-2: by apply TCCOH in ISSY; apply ISSY. *)
-(*     { intros H; subst.  *)
-(*       edestruct Time.middle_spec as [AA CC]. *)
-(*       { apply NPLT. } *)
-(*       rewrite II in CC. *)
-(*         by apply Time.lt_strorder in CC. } *)
-(*     { eapply NIMMCO. *)
-(*       all: apply seq_eqv_r; split; eauto. } *)
-(*     subst. *)
-(*     edestruct Time.middle_spec as [AA CC]. *)
-(*     { apply NPLT. } *)
-(*     assert (Time.lt (f_from wnext) (f_from y)) as DD. *)
-(*     { eapply f_from_co_mon; eauto. } *)
-(*     rewrite <- II in DD. *)
-(*     eapply Time.lt_strorder. *)
-(*       by etransitivity; [by apply DD|]. } *)
-Admitted.
+    assert (Time.lt (f_from wnext) (f_from y)) as DD.
+    { eapply f_from_co_mon; eauto. }
+    eapply Time.lt_strorder with (x:=f_from y).
+    rewrite <- FT at 1.
+    etransitivity; [|by apply DD]. by apply Time.middle_spec. }
+  eapply NIMMCO with (c:=y).
+  all: apply seq_eqv_r; split; auto.
+Qed.
 
 Lemma exists_time_interval PC w locw valw langst local smode
       (TSTEP : ext_itrav_step
