@@ -487,16 +487,13 @@ Proof using All.
       exfalso. apply NCOV. by apply FINALT. }
     eapply SIM_RPROM in H; eauto. desc.
     exfalso.
-    apply seq_eqv_lr in RFRMWS. destruct RFRMWS as [AA _].
-    apply AA. eapply w_covered_issued.
+    apply NOISS. eapply w_covered_issued.
     { apply COMMON. }
     split.
     { eapply reservedW; auto.
       { apply COMMON. }
-      apply AA. }
-    apply FINALT. split; [by apply AA|]. eapply etc_S_in_E.
-    { apply COMMON. }
-    apply AA. }
+      done. }
+    apply FINALT. by split. }
   assert (Local.is_terminal local) as LCTR by (constructor; auto).
   assert (wf_thread_state thread state') as GPC'.
   { eapply wf_thread_state_steps; eauto. }
@@ -681,13 +678,10 @@ Proof using All.
   destruct msg as [val msg|].
   2: { desc. eapply HMEM in AA. desc.
        exfalso.
-       apply seq_eqv_lr in RFRMWS. destruct RFRMWS as [AA _].
-       apply AA. eapply w_covered_issued; eauto.
+       apply NOISS. eapply w_covered_issued; eauto.
        split.
-       { apply (reservedW WF ETCCOH).
-         apply AA. }
-       apply FINALT. apply ETCCOH.(etc_S_in_E).
-       apply AA. }
+       { by apply (reservedW WF ETCCOH). }
+         by apply FINALT. }
   assert (val = final_memory l); [|by subst].
   desc. red in MEM.
   set (BB := AA).
@@ -851,16 +845,15 @@ Proof using All.
       desc. apply NCOV. by apply FINALT. }
     eapply SIM_RPROM in HH; eauto.
     desc.
-    apply seq_eqv_lr in RFRMWS. destruct RFRMWS as [AA _].
-    apply AA. eapply w_covered_issued.
+    apply NOISS. eapply w_covered_issued.
     { apply COMMON0. }
     split.
     { eapply reservedW; auto.
       { apply COMMON0. }
-      apply AA. }
+      done. }
     apply FINALT. eapply etc_S_in_E.
     { apply COMMON0. }
-    apply AA. }
+    done. }
 
   desc.
   destruct langst as [lang' state'].

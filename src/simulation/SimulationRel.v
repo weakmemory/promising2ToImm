@@ -85,13 +85,14 @@ Definition sim_prom (thread : thread_id) promises :=
 
 Definition sim_res_prom (thread : thread_id) promises :=
   forall l to from (RES : Memory.get l to promises = Some (from, Message.reserve)),
-  exists b b',
-    ⟪ LOC  : Loc_ l b ⟫ /\
-    ⟪ RFRMWS : (⦗ Tid_ thread ∩₁ S \₁ I ⦘ ⨾ (rfi ⨾ rmw)＊ ⨾ ⦗ Tid_ thread ∩₁ S \₁ I ⦘) b b' ⟫ /\
-    ⟪ FROM    : f_from b = from ⟫ /\
-    ⟪ TO      : f_to b' = to ⟫ /\
-    ⟪ NOBEF   : codom_rel (⦗I⦘ ⨾ rf ⨾ rmw) b  ⟫ /\
-    ⟪ NOAFT   : ~ dom_rel (rfi ⨾ rmw ⨾ ⦗Tid_ thread ∩₁ S⦘) b' ⟫.
+  exists b,
+    ⟪ ACTS  :   E b ⟫ /\
+    ⟪ TID   : tid b = thread ⟫ /\
+    ⟪ RES   :   S b ⟫ /\
+    ⟪ NOISS : ~ I b ⟫ /\
+    ⟪ LOC   : Loc_ l b ⟫ /\
+    ⟪ FROM  : f_from b = from ⟫ /\
+    ⟪ TO    : f_to b = to ⟫.
 
 Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
     forall l b (EB: E b) (ISSB: I b) (LOC: Loc_ l b)
@@ -140,13 +141,13 @@ Definition message_to_event (memory : Memory.t) :=
 Definition half_message_to_events (memory : Memory.t) :=
   forall l to from
          (MSG : Memory.get l to memory = Some (from, Message.reserve)),
-  exists b b',
-    ⟪ LOC  : Loc_ l b ⟫ /\
-    ⟪ RFRMWS : (⦗ S \₁ I ⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗ S \₁ I ⦘) b b' ⟫ /\
-    ⟪ FROM    : f_from b = from ⟫ /\
-    ⟪ TO      : f_to b' = to ⟫ /\
-    ⟪ NOBEF   : codom_rel (⦗I⦘ ⨾ rf ⨾ rmw) b  ⟫ /\
-    ⟪ NOAFT   : ~ dom_rel (rf ⨾ rmw ⨾ ⦗S⦘) b' ⟫.
+  exists b,
+    ⟪ ACTS  :   E b ⟫ /\
+    ⟪ RES   :   S b ⟫ /\
+    ⟪ NOISS : ~ I b ⟫ /\
+    ⟪ LOC   : Loc_ l b ⟫ /\
+    ⟪ FROM  : f_from b = from ⟫ /\
+    ⟪ TO    : f_to   b = to ⟫.
 
 Definition reserved_time smode memory :=
   match smode with
@@ -158,8 +159,7 @@ Definition reserved_time smode memory :=
                            f_to x = f_from y -> (rf ⨾ rmw) x y ⟫)
   | sim_certification => 
     (* During certification *)
-    (⟪ FOR_SPLIT    : ⦗ set_compl S ⦘ ⨾ (immediate co) ⊆ sb ⟫ /\
-     ⟪ RMW_RESERVED : codom_rel rmw ⊆₁ S ⟫)
+    ⟪ FOR_SPLIT    : ⦗ set_compl S ⦘ ⨾ (immediate co) ⊆ sb ⟫
   end.
 
 Definition simrel_common

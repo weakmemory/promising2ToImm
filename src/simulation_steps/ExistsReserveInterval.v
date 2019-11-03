@@ -185,24 +185,13 @@ Proof using WF IMMCON ETCCOH FCOH.
       by apply interval_disjoint_imm_le. }
 
   apply HMEM in IN. desf.
-  set (CC:=RFRMWS).
-  destruct_seq CC as [AA BB].
-  destruct AA as [SB _].
-  destruct BB as [SB' _].
-  assert (E b /\ E b') as [EB EB'].
-  { by split; apply ETCCOH.(etc_S_in_E). }
-  assert (W b /\ W b') as [WB WB'].
-  { by split; apply (reservedW WF ETCCOH). }
-  assert (loc lab b' = Some locw) as LOC'.
-  { unfold location in *. rewrite <- LOC.
-    symmetry. 
-    eapply inclusion_rt_ind with (r := rf ⨾ rmw) (r' := same_loc lab); eauto.
-    { red. by unfold same_loc. }
-    { apply WF.(wf_rfrmwl). }
-    apply same_loc_trans. }
+  assert (E b) as EB.
+  { by apply ETCCOH.(etc_S_in_E). }
+  assert (W b) as WB.
+  { by apply (reservedW WF ETCCOH). }
 
-  assert (co^? b' wp \/ co^? wn b) as CO.
-  { destruct (classic (b' = wp)) as [|PNEQ]; subst.
+  assert (co^? b wp \/ co^? wn b) as CO.
+  { destruct (classic (b = wp)) as [|PNEQ]; subst.
     { by left; left. }
     destruct (classic (b = wn)) as [|NNEQ]; subst.
     { by right; left. }
@@ -216,46 +205,11 @@ Proof using WF IMMCON ETCCOH FCOH.
     1,2: split; [split|]; eauto.
     2: done.
     exfalso.
-    
-    (* TODO: generalize to a lemma? *)
-    set (YY:=CONS).
-    destruct YY as [w [CONS1 CONS2]].
-    destruct_seq_l CONS2 as NSW.
-   
-    apply (dom_r WF.(wf_coD)) in CONS1. destruct_seq_r CONS1 as WW.
-    apply (dom_r WF.(wf_coE)) in CONS1. destruct_seq_r CONS1 as EW.
-    assert (loc lab w = Some locw) as WLOC.
-    { rewrite <- LOCN. by apply WF.(wf_col). }
-
-    assert (w <> b ) as WBNEQ  by (intros HH; desf).
-    assert (w <> b') as WBNEQ' by (intros HH; desf).
-
-    edestruct WF.(wf_co_total) as [|COBW].
-    3: by apply WBNEQ.
-    1,2: split; [split|]; eauto.
-    { apply COIMM with (c:=b).
-      all: apply seq_eqv_lr; splits; auto.
-      eapply WF.(co_trans); eauto. }
-
-    edestruct WF.(wf_co_total) as [COWB'|PP].
-    3: by apply WBNEQ'.
-    1,2: split; [split|]; eauto.
-    2: { apply COIMM with (c:=b').
-         all: apply seq_eqv_lr; splits; auto.
-         eapply WF.(co_trans); eauto. }
-    
-    apply NSW.
-    eapply (dom_rf_rmw_ct_S WF ETCCOH). simpls.
-    assert (((rf ⨾ rmw)⁺ ⨾ ⦗W_ex ∩₁ eq w⦘ ⨾ (rf ⨾ rmw)⁺) b b') as AA.
-    2: { destruct AA as [q [_ AA]].
-         generalize AA SB'. basic_solver 10. }
-    apply co_P_co_rfrmw_rt_in_rfrmw_ct_P_rfrmw_ct.
-    split; auto.
-    generalize COBW COWB'.
-    basic_solver 10. }
+    eapply COIMM.
+    all: apply seq_eqv_lr; splits; eauto. }
 
   destruct CO as [CO|CO].
-  { assert (Time.le (f_to b') (f_to wp)) as HH.
+  { assert (Time.le (f_to b) (f_to wp)) as HH.
     { eapply co_S_f_to_le; eauto. }
     symmetry. by apply interval_disjoint_imm_le. }
   assert (Time.le (f_from wn) (f_from b)) as HH.
@@ -445,6 +399,7 @@ Lemma reserved_time_add_S_middle memory local l w wprev wnext memory' n_to n_fro
                       (FTOFROM : f_to x = f_from y),
           (rf ⨾ rmw) x y)
       (LOC : loc lab w = Some l)
+      (EW  : E w)
       (NSW : ~ S w)
       (PRMW : ~ codom_rel (⦗S \₁ issued T⦘ ⨾ rf ⨾ rmw) w)
       (NIMMCO : immediate (co ⨾ ⦗S⦘) w wnext)
@@ -478,34 +433,22 @@ Proof using WF IMMCON ETCCOH FCOH.
   (* TODO: Extract to a separate lemma. *)
   assert (message_to_event G T (upd f_to w n_to) (upd f_from w n_from) memory') as MTE.
   { eapply message_to_event_add_S_middle; eauto. }
-
+  
   assert (half_message_to_events G T (S ∪₁ eq w) f_to' f_from' memory') as HMTE.
   { red; ins. erewrite Memory.add_o in MSG; eauto.
     destruct (loc_ts_eq_dec (l0, to) (l, f_to' w)) as [[EQ1 EQ2]|NEQ].
     { simpls; subst.
       rewrite (loc_ts_eq_dec_eq l (f_to' w)) in MSG.
       inv MSG.
-      clear MSG. exists w, w. splits; auto.
-      { apply seq_eqv_lr. splits; [basic_solver| |basic_solver].
-        apply rt_refl. }
-      1,2: admit. }
+      clear MSG. exists w. splits; auto. by right. }
     rewrite loc_ts_eq_dec_neq in MSG; simpls; auto.
     apply HMEM in MSG. desc.
-    set (CC:=RFRMWS).
-    destruct_seq CC as [AA BB].
     assert (b <> w) as BNEQ.
-    { intros H; subst. apply NSW. apply AA. }
-    assert (b' <> w) as BNEQ'.
-    { intros H; subst. apply NSW. apply BB. }
-    exists b, b'.
+    { intros H; subst. by apply NSW. }
+    exists b.
     splits; eauto.
-    { apply seq_eqv_lr; splits; auto.
-      all: generalize AA BB BNEQ BNEQ'; basic_solver. }
-    1,2: by unfold f_from', f_to'; rewrite updo.
-    intros [z ZZ]. apply seqA in ZZ. destruct_seq_r ZZ as QQ.
-    destruct QQ as [QQ|]; subst.
-    { apply NOAFT. exists z. apply seqA. basic_solver. }
-    apply PRMW. exists b'. apply seq_eqv_l. split; auto. }
+    { by left. }
+    1,2: by unfold f_from', f_to'; rewrite updo. }
 
   red. splits; auto.
 
@@ -639,7 +582,9 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH.
   { apply ETCCOH'. unfold eissued. split; simpls. basic_solver. }
 
   assert (smode = sim_normal); subst.
-  { destruct smode; simpls. exfalso. apply NSW. apply RESERVED_TIME. apply WEXW. }
+  { destruct smode; simpls. exfalso.
+    admit. }
+    (* apply NSW. apply RESERVED_TIME. apply WEXW. } *)
 
   assert ((E ∩₁ W ∩₁ Loc_ locw) w) as WEW.
   { split; [split|]; auto. }

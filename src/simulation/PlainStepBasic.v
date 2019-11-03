@@ -185,30 +185,11 @@ Proof using WF.
     { destruct PCSTEP. simpls. rewrite IdentMap.gso in TID'; auto. }
     eapply PROM_DISJOINT; eauto. }
   { red. ins. unnw. (* sim_res_prom *)
-    edestruct SIM_RPROM as [b [b' AA]]; eauto.
+    edestruct SIM_RPROM as [b AA]; eauto.
     desf.
-    exists b, b'. splits; auto.
-    2: { generalize ISSIN. generalize NOBEF.
-         basic_solver 10. }
-    2: { intros HH. apply NOAFT.
-         unfolder in HH. desf.
-         exists y, z. split; auto.
-         apply seq_eqv_r. do 2 (split; auto).
-         destruct (classic (S y)) as [|NSY]; auto.
-         exfalso. apply NEQ.
-         symmetry. apply NINS. by split. }
-    apply seq_eqv_lr in RFRMWS. destruct RFRMWS as [AA [BB CC]].
-    apply seq_eqv_lr. splits; auto.
-    { split; [by split; try apply SIN; apply AA|].
-      intros DD.
-      assert (Tid_ thread b) as EE.
-      { apply NINISS. split; auto. apply AA. }
-      apply NEQ. rewrite <- EE. apply AA. }
-    split; [by split; try apply SIN; apply CC|].
-    intros DD.
-    assert (Tid_ thread b') as EE.
-    { apply NINISS. split; auto. apply CC. }
-    apply NEQ. rewrite <- EE. apply CC. }
+    exists b. splits; auto.
+    intros HH.
+    apply NEQ. symmetry. apply NINISS. by split. }
   red. ins. unnw.
   edestruct SIM_MEM0 as [rel]; eauto.
   simpls; desc.

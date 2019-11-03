@@ -113,7 +113,6 @@ Hypothesis AT : rmw_atomicity G.
 Hypothesis IT_new_co: I ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
 Hypothesis E_to_S: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘).
 Hypothesis Grfe_E : dom_rel Grfe ⊆₁ I.
-Hypothesis W_ex_IST : GW_ex ⊆₁ I ∪₁ S ∩₁ Tid_ thread.
 Hypothesis E_F_AcqRel_in_C: E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
 Hypothesis COMP_ACQ: forall r (IN: (E ∩₁ R ∩₁ Acq) r), exists w, Grf w r.
 Hypothesis urr_helper: dom_rel ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ Grelease ⨾ ⦗I⦘) ⊆₁ C.
@@ -137,10 +136,10 @@ Hypothesis W_ex_acq_sb_S : dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ 
 
 Hypothesis F_sb_S_in_C : dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ C.
 
-Lemma W_ex_E : GW_ex ⊆₁ S.
-Proof using W_ex_IST I_in_S.
-  rewrite W_ex_IST. rewrite I_in_S. clear. basic_solver.
-Qed.
+(* Lemma W_ex_E : GW_ex ⊆₁ S. *)
+(* Proof using W_ex_IST I_in_S. *)
+(*   rewrite W_ex_IST. rewrite I_in_S. clear. basic_solver. *)
+(* Qed. *)
 
 (******************************************************************************)
 (**  the set D   *)
@@ -1178,8 +1177,9 @@ Proof using All.
   rewrite !seqA, <- id_inter.
   arewrite (GW_ex ∩₁ (E \₁ S) ⊆₁ (GW_ex ∩₁ E) \₁ S).
   { basic_solver. }
-  rewrite W_ex_E. basic_solver.
-Qed.
+Admitted.
+(*   rewrite W_ex_E. basic_solver. *)
+(* Qed. *)
 
 Lemma cert_hb : Chb ≡ Ghb.
 Proof using All.
@@ -1583,7 +1583,7 @@ Qed.
 
 Lemma cert_rmw_atomicity : rmw_atomicity certG.
 Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E S_in_W 
-      TCCOH_rst_new_T W_ex_IST W_hb_sc_hb_to_I_NTid detour_E.
+      TCCOH_rst_new_T W_hb_sc_hb_to_I_NTid detour_E.
   clear OLD_VAL NEW_VAL SAME ACYC_EXT CSC COMP_ACQ.
   generalize (atomicity_alt WF (coherence_sc_per_loc COH) AT).
   intro AT'; clear AT.
@@ -1606,9 +1606,10 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
                     (E ∩₁ W ∩₁ Tid_ thread) ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘).
   { cut (new_co G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread) ⨾ ⦗GW_ex⦘ ⊆ Gco).
     { basic_solver 21. }
-    rewrite W_ex_IST.
-    rewrite (new_co_I IST_new_co); try apply WF.
-    basic_solver. }
+    admit. }
+    (* rewrite W_ex_IST. *)
+    (* rewrite (new_co_I IST_new_co); try apply WF. *)
+    (* basic_solver. } *)
 
   rewrite (new_co_in IST_new_co) at 1; try apply WF.
   relsf; unionL.
@@ -1643,28 +1644,29 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
     destruct TT; desf; try subst z2; eauto. 
     { apply co_irr in H3; auto. }
     eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone. }
-  rewrite W_ex_IST.
-  subst new.
+Admitted.
+(*   rewrite W_ex_IST. *)
+(*   subst new. *)
 
-  rewrite (inter_inclusion
-             (@T_I_new_co_I_T G (I ∪₁ S ∩₁ Tid_ thread) 
-                              (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
+(*   rewrite (inter_inclusion *)
+(*              (@T_I_new_co_I_T G (I ∪₁ S ∩₁ Tid_ thread)  *)
+(*                               (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))). *)
 
-  rewrite (inter_eq (wf_rfD WF)), (inter_eq (wf_rfE WF)), 
-  (inter_inclusion (wf_rfl WF)), (inter_inclusion (wf_rmwl WF)),
-  (inter_inclusion (wf_col WF)).
-  unfolder; ins; desc. subst z0 z3. 
-  assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence).
-  assert (K: Gco z4 z1 \/ Gco z1 z4).
-  { eapply WF; try basic_solver 2.
-    intro; subst z1; eauto. }
-  destruct K.
-  2: revert AT'; unfold fr; basic_solver 12.
-  eapply (new_co_irr IST_new_co); try apply WF. 
-  eapply (new_co_trans IST_new_co); try apply WF. 
-  apply H3.
-  apply new_co_helper; [apply WF| apply WF| basic_solver 12].
-Qed.
+(*   rewrite (inter_eq (wf_rfD WF)), (inter_eq (wf_rfE WF)),  *)
+(*   (inter_inclusion (wf_rfl WF)), (inter_inclusion (wf_rmwl WF)), *)
+(*   (inter_inclusion (wf_col WF)). *)
+(*   unfolder; ins; desc. subst z0 z3.  *)
+(*   assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence). *)
+(*   assert (K: Gco z4 z1 \/ Gco z1 z4). *)
+(*   { eapply WF; try basic_solver 2. *)
+(*     intro; subst z1; eauto. } *)
+(*   destruct K. *)
+(*   2: revert AT'; unfold fr; basic_solver 12. *)
+(*   eapply (new_co_irr IST_new_co); try apply WF.  *)
+(*   eapply (new_co_trans IST_new_co); try apply WF.  *)
+(*   apply H3. *)
+(*   apply new_co_helper; [apply WF| apply WF| basic_solver 12]. *)
+(* Qed. *)
 
 (******************************************************************************)
 (** **   *)
@@ -2241,19 +2243,22 @@ Proof using All.
     apply seq_eqv_lr in RFE. destruct RFE as [IW [RFE DZ]].
     eapply dom_cert_detour_rfe_D. basic_solver 10. }
   { by rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S. }
-  { rewrite W_ex_IST. basic_solver. }
-  rewrite Crppo_in_rppo.
-  arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆
-            ⦗D⦘ ⨾ Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘).
-  { apply dom_rel_helper.
-    rewrite IST_in_S.
-    apply dom_rppo_S_in_D. }
-  arewrite ((Gdata ∪ Crfi)＊ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (Gdata ∪ Crfi)＊ ⨾ ⦗D⦘).
-  { apply dom_rel_helper.
-    apply dom_data_Crfi_D_in_D. }
-  rewrite <- !seqA.
-  do 4 rewrite AuxRel.dom_seq.
-  apply dom_cert_detour_rfe_D. 
-Qed.
+  { unfold dom_sb_S_rfrmw. simpls.
+    (* TODO: should be easy. *)
+    admit. }
+  { rewrite Crppo_in_rppo.
+    arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆
+                    ⦗D⦘ ⨾ Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘).
+    { apply dom_rel_helper.
+      rewrite IST_in_S.
+      apply dom_rppo_S_in_D. }
+    arewrite ((Gdata ∪ Crfi)＊ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (Gdata ∪ Crfi)＊ ⨾ ⦗D⦘).
+    { apply dom_rel_helper.
+      apply dom_data_Crfi_D_in_D. }
+    rewrite <- !seqA.
+    do 4 rewrite AuxRel.dom_seq.
+    apply dom_cert_detour_rfe_D. }
+  admit.
+Admitted.
 
 End CertExec.

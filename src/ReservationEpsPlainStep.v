@@ -230,10 +230,6 @@ Proof using WF CON.
     as RST.
   { red in RESERVED_TIME.
     red. desf; desc; splits.
-    5: { rewrite RMW_RESERVED. basic_solver. }
-    4: { etransitivity.
-         2: by apply FOR_SPLIT.
-         basic_solver. }
     { (* TODO: make a lemma message_to_event_f_issued and
                and move to SimulationRelProperties.v *)
       red. ins.
@@ -242,31 +238,24 @@ Proof using WF CON.
     { (* TODO: make a separate lemma? *)
       red. ins. apply HMEM in MSG. desf.
       assert (b <> w) as NBW.
-      { intros AA; subst. apply NSW.
-        apply seq_eqv_lr in RFRMWS. apply RFRMWS. }
-      assert (b' <> w) as NBW'.
-      { intros AA; subst. apply NSW.
-        apply seq_eqv_lr in RFRMWS. apply RFRMWS. }
-      destruct (classic (b' = wp)) as [|NEQ]; subst.
+      { intros AA; subst. by apply NSW. }
+      destruct (classic (b = wp)) as [|NEQ]; subst.
       2: { unfold f_to', f_from'.
-           exists b, b'. splits; eauto.
-           { destruct_seq RFRMWS as [AA BB].
-             apply seq_eqv_lr. splits; auto.
-             all: generalize AA BB NBW NBW'; basic_solver. }
-           1,2: by rewrite !updo; auto.
-           intros [x AA]. apply seqA in AA.
-           destruct_seq_r AA as BB. destruct BB as [BB|]; subst.
-           { apply NOAFT. eexists. apply seqA. apply seq_eqv_r. eauto. }
-           apply NEQ. eapply wf_rfrmwf; eauto. }
+           exists b. splits; eauto.
+           { by left. }
+           1,2: by rewrite !updo; auto. }
       unfold f_to', f_from'.
-      exists b, w.
+      exists w.
       splits; auto.
+      { by right. }
+      3: by rewrite upds.
+      2: { rewrite upds.
+           apply 
+}
       { destruct_seq RFRMWS as [AA BB].
         apply seq_eqv_lr. splits; auto.
         2: { apply rt_unit. exists wp. split; auto. }
         all: generalize AA BB NBW NBW'; basic_solver. }
-      { by rewrite updo. }
-      { by rewrite upds. }
       intros [x AA]. apply seqA in AA.
       destruct_seq_r AA as BB. destruct BB as [BB|]; subst.
       2: by eapply wf_rfrmw_irr; eauto.

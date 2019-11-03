@@ -164,16 +164,14 @@ Proof using WF CON.
         { eapply issuableW; eauto. }
         sin_rewrite sb_from_f_in_fwbob. apply ISS. }
       edestruct SIM_RPROM as [w]; eauto; desc.
-      apply seq_eqv_l in RFRMWS. destruct RFRMWS as [AA _].
+      assert (W w) as WW.
+      { eapply WF.(reservedW); eauto. }
       exists w. splits; auto.
-      { apply TCCOH.(etc_S_in_E). apply AA. }
-      { eapply WF.(reservedW); eauto. apply AA. }
-      { intros NCOV. apply AA. eapply w_covered_issued; eauto.
-        split; auto. eapply WF.(reservedW); eauto. apply AA. }
-      { by apply AA. }
+      { intros NCOV. apply NOISS. eapply w_covered_issued; eauto.
+        split; auto. }
       arewrite (eq w ⊆₁ S).
       2: by apply TCCOH.
-      generalize AA. basic_solver. }
+      generalize RES. basic_solver. }
     desc.
     edestruct (same_thread G w f) as [SBB|SBB]; eauto.
     { intros H. apply NCOV. by apply TCCOH. }

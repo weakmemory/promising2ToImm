@@ -369,8 +369,6 @@ assert (S_in_W : S ⊆₁ is_w G.(lab)).
 assert (ST_in_E : S ∩₁ Tid_ thread ⊆₁ acts_set G).
 { subst. rewrite E_E0; eauto. unfold E0.
   unionR left -> right. basic_solver 10. }
-assert (W_ex_IST : W_ex G ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread).
-{ subst. eapply W_ex_IST; eauto. }
 
 assert
 (F_SB_S :
@@ -780,12 +778,9 @@ red. splits.
               (acts_set (rstG Gf T S thread))).
     erewrite E_F_Sc_in_C; eauto.
     basic_solver. }
-  split; unnw.
-  { subst G.
-    rewrite cert_sb.
-    eapply cert_co_for_split; eauto. }
-  rewrite rmw_W_ex. subst.
-  rewrite W_ex_IST; eauto. basic_solver. }
+  unnw. subst G.
+  rewrite cert_sb.
+  eapply cert_co_for_split; eauto. }
 red. splits.
 eexists. eexists. splits; auto.
 { apply GPC. }
@@ -831,103 +826,49 @@ all: eauto.
 { red. ins. (* sim_res_prom *)
   eapply SIM_RPROM in RES.
   desc.
-  assert (~ issued T b /\ (S ∩₁ Tid_ thread) b) as [NIB SB].
-  { apply seq_eqv_lr in RFRMWS. unfolder in RFRMWS. desf. }
   assert (acts_set Gf b) as FEB.
-  { apply ETCCOH.(etc_S_in_E). apply SB. }
-  set (AA:=RFRMWS).
-  apply seq_eqv_lr in AA. destruct AA as [_ [RFIRMW SB']].
-  assert (~ is_init b) as NINITB.
-  { intros AA. apply NIB. eapply init_issued with (G:=Gf); eauto.
-    split; auto. }
-  assert (same_tid b b') as STT.
-  { eapply WF.(ninit_rfi_rmw_rt_same_tid).
-    apply seq_eqv_l. by split. }
-
+  { by apply ETCCOH.(etc_S_in_E). }
   assert (acts_set G b) as EB.
-  { subst. eapply ST_in_E; eauto. }
+  { subst. eapply ST_in_E; eauto. by split. }
 
-  assert (acts_set G b') as EB'.
-  { subst. eapply ST_in_E; eauto. split; apply SB'. }
+  (* assert (~ issued T b /\ (S ∩₁ Tid_ thread) b) as [NIB SB]. *)
+  (* { apply seq_eqv_lr in RFRMWS. unfolder in RFRMWS. desf. } *)
+  (* set (AA:=RFRMWS). *)
+  (* apply seq_eqv_lr in AA. destruct AA as [_ [RFIRMW SB']]. *)
+  (* assert (~ is_init b) as NINITB. *)
+  (* { intros AA. apply NIB. eapply init_issued with (G:=Gf); eauto. *)
+  (*   split; auto. } *)
+  (* assert (same_tid b b') as STT. *)
+  (* { eapply WF.(ninit_rfi_rmw_rt_same_tid). *)
+  (*   apply seq_eqv_l. by split. } *)
 
-  destruct NOBEF as [w HH]. apply seq_eqv_l in HH. destruct HH as [IW RFRMW].
-  destruct RFRMW as [r [RF RMW]].
+  (* assert (acts_set G b') as EB'. *)
+  (* { subst. eapply ST_in_E; eauto. split; apply SB'. } *)
 
-  assert (acts_set G r) as ER.
-  { subst. eapply dom_sb_TS_in_E; eauto.
-    exists b. apply seq_eqv_r. split.
-    2: by split; apply SB.
-    eapply inclusion_step_cr; [done|].
-      by apply WF.(rmw_in_sb). }
+  (* destruct NOBEF as [w HH]. apply seq_eqv_l in HH. destruct HH as [IW RFRMW]. *)
+  (* destruct RFRMW as [r [RF RMW]]. *)
 
-  assert (rmw G r b) as GRMW.
-  { subst. unfold rstG, restrict. simpls.
-    apply seq_eqv_lr. splits; auto.
-    all: eapply E_E0; eauto. }
-  assert (D G T S thread r) as DR.
-  { apply dom_rppo_S_in_D. exists b.
-    apply seq_eqv_r. split; [|by apply SB].
-    apply rmw_in_rppo; auto. }
+  (* assert (acts_set G r) as ER. *)
+  (* { subst. eapply dom_sb_TS_in_E; eauto. *)
+  (*   exists b. apply seq_eqv_r. split. *)
+  (*   2: by split; apply SB. *)
+  (*   eapply inclusion_step_cr; [done|]. *)
+  (*     by apply WF.(rmw_in_sb). } *)
 
-  exists b, b'. splits; auto.
-  { erewrite same_lab_u2v_loc in LOC; eauto.
-    rewrite <- lab_G_eq_lab_Gf; eauto.
-      by apply same_lab_u2v_comm. }
-  { apply seq_eqv_lr. splits.
-    3: { generalize SB'. basic_solver. }
-    { generalize SB. basic_solver. }
+  (* assert (rmw G r b) as GRMW. *)
+  (* { subst. unfold rstG, restrict. simpls. *)
+  (*   apply seq_eqv_lr. splits; auto. *)
+  (*   all: eapply E_E0; eauto. } *)
+  (* assert (D G T S thread r) as DR. *)
+  (* { apply dom_rppo_S_in_D. exists b. *)
+  (*   apply seq_eqv_r. split; [|by apply SB]. *)
+  (*   apply rmw_in_rppo; auto. } *)
 
-    (* eapply clos_refl_trans_mori. *)
-    (* { rewrite seq_union_l. unionR left. done. } *)
-
-    (* assert (dom_rel (rppo G ⨾ ⦗S⦘ ) ⊆₁ D G T S thread) as AA. *)
-    (* { unfold D. unionR left -> left -> right. *)
-    (*   rewrite <- inclusion_id_rt. by rewrite seq_id_l. } *)
-    (* eapply clos_refl_trans_mori. *)
-    (* { by rewrite <- AA. } *)
-
-    (* ⦗Tid_ thread ∩₁ S \₁ issued T⦘ ⨾ (rf Gf ⨾ rmw Gf)＊ ⨾ ⦗S \₁ issued T⦘ ⊆ *)
-    (* ((rf G ⨾ ⦗D G T S thread⦘) ⨾ rmw G)＊ *)
-
-
-    admit.  }
-  { exists w. apply seq_eqv_l. split; auto.
-    exists r. split; auto.
-    left. apply seq_eqv_r.
-    split; auto.
-    subst. unfold rstG, restrict. simpls.
-    apply seq_eqv_lr. splits; auto.
-    2: { eapply E_E0; eauto. }
-    eapply E_E0; eauto. eapply I_in_E; eauto. }
-  intros [q HH].
-  apply NOAFT. exists q.
-  apply seqA in HH. apply seq_eqv_r in HH. destruct HH as [RFRMWQ [TQ QIST]].
-  assert (S q) as SQ.
-  { destruct QIST as [AA|AA].
-    2: by apply AA.
-    apply ETCCOH.(etc_I_in_S). apply AA. }
-  apply seqA.
-  apply seq_eqv_r. split; auto.
-  destruct RFRMWQ as [r' [RF' RMW']].
-  exists r'. split.
-  3: by split.
-  2: { subst. generalize RMW'. unfold rstG, restrict.
-       simpls. basic_solver. }
-  assert ((rf (certG G Gsc T S thread lab') ⨾ ⦗D G T S thread⦘)
-            b' r') as BB.
-  { apply seq_eqv_r.
-    split.
-    { apply RF'. }
-    apply dom_rppo_S_in_D. exists q.
-    apply seq_eqv_r. split; auto.
-    apply rmw_in_rppo; auto. }
-  apply cert_rf_D in BB; auto.
-  apply seq_eqv_r in BB. destruct BB as [BB _].
-  split.
-  { generalize BB. subst. unfold rstG, restrict.
-    simpls. basic_solver. }
-  destruct RF' as [_ AA].
-  apply cert_sb in AA. by apply (sub_sb_in SUB). }
+  exists b. splits; auto.
+  { right. by split. }
+  erewrite same_lab_u2v_loc in LOC; eauto.
+  rewrite <- lab_G_eq_lab_Gf; eauto.
+    by apply same_lab_u2v_comm. }
 { red. ins. (* sim_mem *)
   edestruct SIM_MEM with (b:=b) as [rel_opt]; eauto.
   { erewrite same_lab_u2v_loc in LOC; eauto.
@@ -1042,6 +983,6 @@ eexists. red. splits.
 { apply STEPS'. }
 { intros HH. inv HH. }
 done.
-Admitted.
+Qed.
 
 End Cert.

@@ -184,11 +184,9 @@ Proof using.
     rewrite (REQ_TO b); auto. by apply ETCCOH.(etc_I_in_S). }
   { red. ins. specialize (HMEM l to from MSG).
     desc.
-    set (CC:=RFRMWS).
-    destruct_seq CC as [AA BB].
-    exists b, b'. splits; auto.
-    { erewrite REQ_FROM; eauto. apply AA. }
-    erewrite REQ_TO; eauto. apply BB. }
+    exists b. splits; auto.
+    { erewrite REQ_FROM; eauto. }
+    erewrite REQ_TO; eauto. }
   intros x y SX SY COXY H.
   apply TFRMW; auto.
   rewrite <- (REQ_FROM y SY).
@@ -240,11 +238,9 @@ Lemma sim_res_prom_fS f_to f_from f_to' f_from' T S thread promises
   sim_res_prom G T S f_to' f_from' thread promises.
 Proof using.
   red. ins. apply SIMRESPROM in RES. desc.
-  set (CC:=RFRMWS).
-  destruct_seq CC as [AA BB].
-  do 2 eexists. splits; eauto.
-  { erewrite REQ_FROM; eauto. apply AA. }
-  erewrite REQ_TO; eauto. apply BB.
+  eexists. splits; eauto.
+  { erewrite REQ_FROM; eauto. }
+  erewrite REQ_TO; eauto.
 Qed.
 
 Lemma sc_view_f_issued f_to f_to' T sc_view
@@ -411,23 +407,7 @@ Lemma sim_res_prom_other_thread T S f_to f_to' f_from f_from' thread promises S'
   sim_res_prom G T (S ∪₁ S') f_to' f_from' thread promises.
 Proof using.
   red. ins. apply RPROM in RES. desf.
-  destruct_seq RFRMWS as [AA BB].
-  assert (~ S' b /\ ~ S' b') as [NSB NSB'].
-  { split; intros CC; eapply SNT; eauto.
-    { apply AA. }
-    apply BB. }
-  exists b, b'. splits; auto.
-  { apply seq_eqv_lr. splits; auto.
-    all: generalize AA BB; basic_solver. }
-  { apply SEQ_FROM. apply AA. }
-  { apply SEQ_TO. apply BB. }
-  intros [x HH]. apply seqA in HH. destruct_seq_r HH as CC.
-  destruct CC as [CC DD].
-  apply NOAFT. exists x.
-  apply seqA. apply seq_eqv_r.
-  do 2 (split; auto).
-  destruct DD as [|DD]; auto.
-  apply SNT in DD. desf.
+  exists b. splits; auto. by left.
 Qed.
 
 End SimRelProps.
