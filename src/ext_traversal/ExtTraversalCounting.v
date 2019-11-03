@@ -34,6 +34,25 @@ Proof using.
   erewrite filterP_set_equiv; eauto.
 Qed.
 
+Lemma countP_strict_mori e l P P'
+      (IN : P ⊆₁ P')
+      (INP  : ~ P e)
+      (INP' :  P' e)
+      (INL  : In e l) :
+  countP P l < countP P' l.
+Proof.
+  generalize dependent e.
+  induction l; simpls.
+  ins. desf.
+  { unfold countP; simpls. desf. simpls.
+    apply le_lt_n_Sm. by apply countP_mori. }
+  unfold countP; simpls. desf; simpls.
+  { apply lt_n_S. eapply IHl; eauto. }
+  { exfalso. apply n. by apply IN. }
+  { apply le_lt_n_Sm. by apply countP_mori. }
+    by apply IHl with (e:=e).
+Qed.
+
 Section ExtTraversalCounting.
   Variable G : execution.
   Variable sc : relation actid.
@@ -72,113 +91,40 @@ Section ExtTraversalCounting.
       assert (countP (set_compl (ecovered T)) (acts G) >
               countP (set_compl (ecovered T')) (acts G)) as HH.
       2: omega.
-      rewrite COVEQ.
-      unfold countP.
-      assert (List.In e (acts G)) as LL.
-      { apply TCCOH'.(coveredE). apply COVEQ. basic_solver. }
-      induction (acts G).
-      { done. }
-      destruct l as [|h l].
-      { assert (a = e); subst.
-        { inv LL. }
-        simpls. desf.
-        exfalso. apply s0. by right. }
-      destruct LL as [|H]; subst.
-      2: { apply IHl in H. clear IHl.
-           simpls. desf; simpls; try omega.
-           all: try by (exfalso; apply s0; left; apply NNPP).
-             by exfalso; apply s; left; apply NNPP. }
-      clear IHl.
-      assert (exists l', l' = h :: l) as [l' HH] by eauto.
-      rewrite <- HH. clear h l HH.
-      simpls. desf; simpls.
-      { exfalso. apply s0. by right. }
-      assert (length (filterP (set_compl (ecovered T ∪₁ eq e)) l') <=
-              length (filterP (set_compl (ecovered T)) l')).
-      2: omega.
-      eapply countP_mori; auto.
-      basic_solver. }
+      eapply countP_strict_mori with (e:=e); auto.
+      { rewrite COVEQ. basic_solver. }
+      { unfold set_compl. intros HH. apply HH. apply COVEQ. basic_solver. }
+      apply TCCOH'.(coveredE). apply COVEQ. basic_solver. }
     { unfold trav_steps_left.
-      rewrite COVEQ, RESEQ.
+      rewrite COVEQ.
+      assert (reserved T' e) as RESE.
+      { apply RESEQ. basic_solver. }
+      assert (W e) as WE by (by apply (reservedW WF ETCCOH')).
+      assert (countP (W ∩₁ set_compl (reserved T )) (acts G) >=
+              countP (W ∩₁ set_compl (reserved T')) (acts G)).
+      { apply countP_mori; auto. rewrite RESEQ. basic_solver 10. }
       assert (countP (W ∩₁ set_compl (eissued T )) (acts G) >
-              countP (W ∩₁ set_compl (eissued T')) (acts G)) as HH.
-      2: { specialize (AA e).
-  Admitted.
-  (*          omega. } *)
-  (*     clear AA. *)
-  (*     rewrite ISSEQ. *)
-  (*     unfold countP. *)
-  (*     assert (List.In e (acts G)) as LL. *)
-  (*     { apply TCCOH'.(issuedE). apply ISSEQ. basic_solver. } *)
-  (*     assert (W e) as WE. *)
-  (*     { apply TCCOH'.(issuedW). apply ISSEQ. basic_solver. } *)
-  (*     induction (acts G). *)
-  (*     { done. } *)
-  (*     destruct l as [|h l]. *)
-  (*     { assert (a = e); subst. *)
-  (*       { inv LL. } *)
-  (*       simpls. desf. *)
-  (*       { exfalso. apply s0. by right. } *)
-  (*       all: by exfalso; apply n; split. } *)
-  (*     destruct LL as [|H]; subst. *)
-  (*     2: { apply IHl in H. clear IHl. *)
-  (*          simpls. desf; simpls; try omega. *)
-  (*          1-2: by exfalso; apply n; destruct s0 as [H1 H2]; *)
-  (*            split; auto; intros HH; apply H2; left. *)
-  (*          all: by exfalso; apply n; destruct s as [H1 H2]; *)
-  (*            split; auto; intros HH; apply H2; left. } *)
-  (*     clear IHl. *)
-  (*     assert (exists l', l' = h :: l) as [l' HH] by eauto. *)
-  (*     rewrite <- HH. clear h l HH. *)
-  (*     simpls. desf; simpls. *)
-  (*     { exfalso. apply s0. by right. } *)
-  (*     2: { exfalso. apply s. by right. } *)
-  (*     2: { exfalso. apply n. by split. } *)
-  (*     assert (length (filterP (W ∩₁ set_compl (eissued T ∪₁ eq e)) l') <= *)
-  (*             length (filterP (W ∩₁ set_compl (eissued T)) l')). *)
-  (*     2: omega. *)
-  (*     eapply countP_mori; auto. *)
-  (*     basic_solver. } *)
-  (*   clear AA. *)
-  (*   unfold trav_steps_left. *)
-  (*   rewrite COVEQ, ISSEQ. *)
-  (*   assert (countP (W ∩₁ set_compl (reserved T )) (acts G) > *)
-  (*           countP (W ∩₁ set_compl (reserved T')) (acts G)) as HH. *)
-  (*   2: omega. *)
-  (*   rewrite RESEQ. *)
-  (*   unfold countP. *)
-  (*   assert (List.In e (acts G)) as LL. *)
-  (*   { apply ETCCOH'.(etc_S_in_E). apply RESEQ. basic_solver. } *)
-  (*   assert (W e) as WE. *)
-  (*   { apply (reservedW WF ETCCOH'). apply RESEQ. basic_solver. } *)
-  (*   induction (acts G). *)
-  (*   { done. } *)
-  (*   destruct l as [|h l]. *)
-  (*   { assert (a = e); subst. *)
-  (*     { inv LL. } *)
-  (*     simpls. desf. *)
-  (*     { exfalso. apply s0. by right. } *)
-  (*     all: by exfalso; apply n; split. } *)
-  (*   destruct LL as [|H]; subst. *)
-  (*   2: { apply IHl in H. clear IHl. *)
-  (*        simpls. desf; simpls; try omega. *)
-  (*        1-2: by exfalso; apply n; destruct s0 as [H1 H2]; *)
-  (*          split; auto; intros HH; apply H2; left. *)
-  (*        all: by exfalso; apply n; destruct s as [H1 H2]; *)
-  (*          split; auto; intros HH; apply H2; left. } *)
-  (*   clear IHl. *)
-  (*   assert (exists l', l' = h :: l) as [l' HH] by eauto. *)
-  (*   rewrite <- HH. clear h l HH. *)
-  (*   simpls. desf; simpls. *)
-  (*   { exfalso. apply s0. by right. } *)
-  (*   2: { exfalso. apply s. by right. } *)
-  (*   2: { exfalso. apply n. by split. } *)
-  (*   assert (length (filterP (W ∩₁ set_compl (reserved T ∪₁ eq e)) l') <= *)
-  (*           length (filterP (W ∩₁ set_compl (reserved T)) l')). *)
-  (*   2: omega. *)
-  (*   eapply countP_mori; auto. *)
-  (*   basic_solver. *)
-  (* Qed. *)
+              countP (W ∩₁ set_compl (eissued T')) (acts G)).
+      2: omega.
+      apply countP_strict_mori with (e:=e).
+      { rewrite ISSEQ. basic_solver. }
+      { intros BB. apply BB. apply ISSEQ. basic_solver. }
+      { by split. }
+        by apply ETCCOH'.(etc_S_in_E). }
+    unfold trav_steps_left.
+    rewrite COVEQ, ISSEQ.
+    assert (countP (W ∩₁ set_compl (reserved T )) (acts G) >
+            countP (W ∩₁ set_compl (reserved T')) (acts G)).
+    2: omega.
+    assert (reserved T' e) as RESE.
+    { apply RESEQ. basic_solver. }
+    assert (W e) as WE by (by apply (reservedW WF ETCCOH')).
+    apply countP_strict_mori with (e:=e).
+    { rewrite RESEQ. basic_solver. }
+    { intros BB. apply BB. apply RESEQ. basic_solver. }
+    { by split. }
+      by apply ETCCOH'.(etc_S_in_E).
+  Qed.
 
   Lemma trav_steps_left_steps_decrease (T T' : ext_trav_config)
         (STEPS : (ext_trav_step G sc)⁺ T T') :
