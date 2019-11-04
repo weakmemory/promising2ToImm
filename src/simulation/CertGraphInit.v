@@ -778,9 +778,32 @@ red. splits.
               (acts_set (rstG Gf T S thread))).
     erewrite E_F_Sc_in_C; eauto.
     basic_solver. }
-  unnw. subst G.
-  rewrite cert_sb.
-  eapply cert_co_for_split; eauto. }
+  splits.
+  { subst G.
+    rewrite cert_sb.
+    eapply cert_co_for_split; eauto. }
+  subst G. unfold W_ex. rewrite cert_sb. unfold certG. simpls.
+  rewrite <- seqA, codom_eqv1.
+  arewrite (codom_rel (⦗E0 Gf T S thread⦘ ⨾ rmw Gf) ⊆₁ is_w Gf.(lab)).
+  { rewrite WF.(wf_rmwD). basic_solver. }
+  (* TODO: introduce a lemma *)
+  arewrite (E0 Gf T S thread ⊆₁ E0 Gf T S thread ∩₁ E0 Gf T S thread).
+  rewrite <- set_interA.
+  unfold E0 at 1. rewrite !set_inter_union_r, !set_inter_union_l.
+  unionL.
+  4: { rewrite WF.(wf_rmwD). type_solver 10. }
+  { rewrite w_covered_issued; eauto. basic_solver 10. }
+  { basic_solver 10. }
+  unfold sb. unfold rstG, restrict.
+  arewrite (Tid_ thread ∩₁ S ⊆₁ Tid_ thread ∩₁ S ∩₁ E0 Gf T S thread).
+  { assert (Tid_ thread ∩₁ S ⊆₁ E0 Gf T S thread) as AA.
+    { unfold E0. basic_solver 10. }
+    generalize AA. basic_solver. }
+  clear.
+  unfolder. ins. desf; eexists; eauto.
+  unfold acts_set; simpls. splits; [|by eauto].
+  right. splits; auto.
+  all: apply in_filterP_iff; splits; auto. }
 red. splits.
 eexists. eexists. splits; auto.
 { apply GPC. }
