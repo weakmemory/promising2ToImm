@@ -94,6 +94,14 @@ Definition sim_res_prom (thread : thread_id) promises :=
     ⟪ FROM  : f_from b = from ⟫ /\
     ⟪ TO    : f_to b = to ⟫.
 
+Definition sim_res_mem (thread : thread_id) (local : Local.t) mem :=
+    forall l b (EB: E b) (RESB: S b) (NISSB: ~ I b) (LOC: Loc_ l b),
+      ⟪ INMEM : Memory.get l (f_to b) mem =
+                 Some (f_from b, Message.reserve) ⟫ /\
+      (⟪ TID  : tid b = thread ⟫ ->
+       ⟪ PROM : Memory.get l (f_to b) local.(Local.promises) =
+                Some (f_from b, Message.reserve) ⟫).
+
 Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
     forall l b (EB: E b) (ISSB: I b) (LOC: Loc_ l b)
            v (VAL: val lab b = Some v),
@@ -220,6 +228,7 @@ Definition simrel_thread_local (thread : thread_id) (smode : sim_mode) :=
     ⟪ SIM_RPROM : sim_res_prom thread local.(Local.promises) ⟫ /\
 
     ⟪ SIM_MEM : sim_mem thread local memory ⟫ /\
+    ⟪ SIM_RES_MEM : sim_res_mem thread local memory ⟫ /\
     ⟪ SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread ⟫ /\
     ⟪ PLN_RLX_EQ : pln_rlx_eq local.(Local.tview) ⟫ /\
     ⟪ MEM_CLOSE : memory_close local.(Local.tview) memory ⟫ /\

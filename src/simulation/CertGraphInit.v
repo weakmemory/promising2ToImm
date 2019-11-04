@@ -957,6 +957,12 @@ all: eauto.
           basic_solver. }
   exists p_v. splits; eauto.
   rewrite ISS_OLD; auto. }
+{ red. ins.
+  assert (loc (lab Gf) b = Some l) as AA.
+  { rewrite <- LOC. symmetry.
+    erewrite same_lab_u2v_loc; eauto.
+      by rewrite <- lab_G_eq_lab_Gf. }
+  apply SIM_RES_MEM; auto. }
 { red. splits; red; ins. (* sim_tview *)
   { assert
       (t_cur (certG G Gsc T S thread lab') Gsc thread l

@@ -164,6 +164,18 @@ Proof using WF.
   rewrite (ISSEQ_FROM p); eauto.
 Qed.
 
+Lemma sim_res_mem_f_issued f_to f_from f_to' f_from' T (S : actid -> Prop)
+      threads thread memory
+      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
+      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
+      (SIMMEM : sim_res_mem G T S f_to f_from threads thread memory) :
+  sim_res_mem G T S f_to' f_from' threads thread memory.
+Proof using WF.
+  red in SIMMEM.
+  red. unnw. ins.
+  rewrite (REQ_TO b RESB); rewrite (REQ_FROM b RESB). by apply SIMMEM.
+Qed.
+
 Lemma rintervals_fS f_to f_from f_to' f_from' T (S : actid -> Prop) smode memory
       (ETCCOH : etc_coherent G sc (mkETC T S))
       (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
@@ -298,6 +310,7 @@ Proof using WF.
   { eapply sim_prom_f_issued; eauto. apply ETCCOH. }
   { eapply sim_res_prom_fS; eauto. }
   { eapply sim_mem_f_issued; eauto. apply ETCCOH. }
+  { eapply sim_res_mem_f_issued; eauto. }
   eapply sim_tview_f_issued; eauto. apply ETCCOH.
 Qed.
 

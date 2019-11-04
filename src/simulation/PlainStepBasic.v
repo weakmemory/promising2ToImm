@@ -168,9 +168,9 @@ Proof using WF.
   2: { red. ins.
        edestruct SIM_PROM as [w H]; eauto.
        des. exists w; splits; auto. }
-  6: { eapply sim_state_other_thread_step; eauto; desf. }
-  5: { by red; splits; ins; apply CLOSED_PRES; apply MEM_CLOSE. }
-  4: { destruct T as [C I]. destruct T' as [C' I'].
+  7: { eapply sim_state_other_thread_step; eauto; desf. }
+  6: { by red; splits; ins; apply CLOSED_PRES; apply MEM_CLOSE. }
+  5: { destruct T as [C I]. destruct T' as [C' I'].
        eapply sim_tview_other_thread_step.
        3: by apply COVIN.
        all: eauto.
@@ -190,6 +190,12 @@ Proof using WF.
     exists b. splits; auto.
     intros HH.
     apply NEQ. symmetry. apply NINISS. by split. }
+  2: { red. ins. unnw.
+       split.
+       { by apply SIM_RES_MEM0. }
+       intros HH. apply SIM_RES_MEM; eauto.
+       apply NNPP. intros AA. apply NEQ. rewrite <- HH. symmetry.
+       apply NINS. by split. }
   red. ins. unnw.
   edestruct SIM_MEM0 as [rel]; eauto.
   simpls; desc.

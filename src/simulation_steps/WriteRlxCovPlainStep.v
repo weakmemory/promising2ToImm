@@ -454,6 +454,16 @@ Proof using WF CON.
       all: destruct (Loc.eq_dec l locw).
       2,4: by apply Time.bot_spec.
       all: by apply Time.le_lteq; left; apply FGT. }
+    { red. ins. splits.
+      { by apply SIM_RES_MEM. }
+      ins. erewrite Memory.remove_o; eauto. desf.
+      2: by apply SIM_RES_MEM.
+      simpls. desf.
+      exfalso.
+      assert (b = w); desf.
+      eapply f_to_eq with (I:=S); eauto.
+      { generalize TCCOH.(etc_S_in_E), (reservedW WF TCCOH). basic_solver. }
+      red. by rewrite LOC. }
     { eapply sim_tview_write_step; eauto.
       { etransitivity; [by apply TCCOH|].
         intros x H; apply H. }

@@ -595,6 +595,15 @@ Proof using WF CON.
       { apply sb_in_hb; eauto. }
       { apply r_step. by apply co_in_eco. }
         by apply TCCOH.(etc_I_in_S). }
+    { red. ins. splits.
+      { by apply SIM_RES_MEM. }
+      ins. erewrite Memory.remove_o; eauto. desf.
+      2: by apply SIM_RES_MEM.
+      simpls. desf.
+      exfalso.
+      assert (b = (ThreadEvent (tid r) (Datatypes.S (eindex state)))); desf.
+      eapply f_to_eq with (I:=S); eauto.
+      red. by rewrite LOC. }
     { assert (doma (sb ⨾ ⦗eq r⦘) (covered T)) as SBCOV.
       { red. ins. apply NEXT. eexists; eauto. }
       eapply sim_tview_write_step; eauto.
