@@ -176,6 +176,46 @@ Proof using WF ETCCOH.
   basic_solver 21.
 Qed.
 
+Lemma rt_rf_rmw_S'' :
+(rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊)⁺ ⨾ sb^? ⨾ ⦗S⦘ ⊆ 
+ ⦗I⦘ ⨾ (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊)⁺ ⨾ sb^? ⨾ ⦗S⦘.
+Proof.
+  apply ct_ind_left with (P:= fun r => r ⨾ sb^? ;; ⦗S⦘).
+- by eauto with hahn.
+- rewrite !seqA.
+  cut (dom_rel (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊ ⨾  sb^? ⨾ ⦗S⦘)  ⊆₁ I).
+  + intro A.
+    rewrite (dom_rel_helper A).
+rewrite <- ct_step; basic_solver 12.
+  + arewrite (rfi ⊆ sb).
+    rewrite (rmw_in_sb WF) at 2.
+    generalize (@sb_trans G); ins; relsf.
+    arewrite (⦗S⦘ ⊆ ⦗S⦘ ⨾ ⦗S⦘).
+    basic_solver.
+    rewrite (reservedW WF ETCCOH) at 1.
+    sin_rewrite (rmw_sb_cr_W_in_rppo WF).
+    generalize (etc_rppo_S ETCCOH). 
+    basic_solver 12.
+- intros k H. 
+  rewrite !seqA, H.
+  cut (dom_rel (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊ ⨾ ⦗I⦘)  ⊆₁ I).
+  + intro A.
+    seq_rewrite (dom_rel_helper A).
+    arewrite_id ⦗I⦘ at 2; rels.
+    rewrite ct_begin at 2.
+rewrite inclusion_t_rt.
+ basic_solver 21.
+  + arewrite (rfi ⊆ sb).
+    rewrite (rmw_in_sb WF) at 2.
+    generalize (@sb_trans G); ins; relsf.
+    arewrite (⦗I⦘ ⊆ ⦗I⦘ ⨾ ⦗I⦘).
+    basic_solver.
+    rewrite (eissuedW ETCCOH) at 1.
+    rewrite (etc_I_in_S ETCCOH) at 1.
+    sin_rewrite (rmw_sb_cr_W_in_rppo WF).
+    generalize (etc_rppo_S ETCCOH); basic_solver 12.
+Qed.
+
 Lemma nI_rfrmw_rt_in_rfirmw_rt :
   ⦗set_compl I⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ ⦗set_compl I⦘ ⨾ (rfi ⨾ rmw)＊ ⨾ ⦗S⦘.
 Proof using WF ETCCOH.
