@@ -458,3 +458,5 @@ Proof.
   right.
   apply HMTE in MSG. desf. eexists. splits; eauto.
 Qed.
+
+End SimRelProps.
