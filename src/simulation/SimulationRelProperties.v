@@ -423,4 +423,19 @@ Proof using.
   exists b. splits; auto. by left.
 Qed.
 
+Lemma reserved_to_message T S f_to f_from threads thread memory
+      (TCCOH : tc_coherent G sc T)
+      (SIMMEM    : sim_mem     G sc T f_to f_from threads thread memory)
+      (SIMRESMEM : sim_res_mem G T  S f_to f_from threads thread memory) :
+  forall l b (RESB: S b) (LOC: Loc_ l b),
+    exists msg, Memory.get l (f_to b) memory = Some (f_from b, msg).
+Proof using.
+  ins. destruct (classic (issued T b)) as [AA|AA].
+  2: { eexists. by apply SIMRESMEM. }
+  assert (exists v, val lab b = Some v) as [v BB].
+  { apply is_w_val. eapply issuedW; eauto. }
+  edestruct SIMMEM as [msg CC]; eauto.
+  simpls. desf. eauto.
+Qed.
+
 End SimRelProps.

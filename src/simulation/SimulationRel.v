@@ -95,7 +95,7 @@ Definition sim_res_prom (thread : thread_id) promises :=
     ⟪ TO    : f_to b = to ⟫.
 
 Definition sim_res_mem (thread : thread_id) (local : Local.t) mem :=
-    forall l b (EB: E b) (RESB: S b) (NISSB: ~ I b) (LOC: Loc_ l b),
+    forall l b (RESB: S b) (NISSB: ~ I b) (LOC: Loc_ l b),
       ⟪ INMEM : Memory.get l (f_to b) mem =
                  Some (f_from b, Message.reserve) ⟫ /\
       (⟪ TID  : tid b = thread ⟫ ->
@@ -103,8 +103,7 @@ Definition sim_res_mem (thread : thread_id) (local : Local.t) mem :=
                 Some (f_from b, Message.reserve) ⟫).
 
 Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
-    forall l b (EB: E b) (ISSB: I b) (LOC: Loc_ l b)
-           v (VAL: val lab b = Some v),
+    forall l b (ISSB: I b) (LOC: Loc_ l b) v (VAL: val lab b = Some v),
     exists rel_opt,
       let rel := rel_opt.(View.unwrap) in
       ⟪ INMEM : Memory.get l (f_to b) mem =

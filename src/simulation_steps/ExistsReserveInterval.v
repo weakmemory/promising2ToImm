@@ -357,9 +357,18 @@ Proof using WF IMMCON ETCCOH FCOH.
   exfalso. by apply BB with (c:=wprev).
 Qed.
 
-Lemma S_le_max_ts locw memory local thread wprev n_from
-      (SIM_MEM : sim_mem G sc T f_to f_from thread local memory)
-  Time.le (f_to x) n_from
+Lemma S_le_max_ts locw memory local thread x
+      (SX   : S x)
+      (XLOC : loc lab x = Some locw)
+      (SIMMEM    : sim_mem     G sc T f_to f_from thread local memory)
+      (SIMRESMEM : sim_res_mem G T S f_to f_from thread local memory) :
+  Time.le (f_to x) (Memory.max_ts locw memory).
+Proof using ETCCOH.
+  eapply reserved_to_message in SX; eauto.
+  2: by apply ETCCOH.
+  desf.
+  eapply Memory.max_ts_spec; eauto.
+Qed.
 
 Lemma f_to_coherent_add_S_after locw memory local w wprev n_from
       (SIM_MEM : sim_mem G sc T f_to f_from
