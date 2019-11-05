@@ -266,10 +266,8 @@ Proof using WF.
     unfold val, is_w in *. desf.
     all: eexists; eauto. }
   eapply MSG_PRES in P_INMEM. desc.
-  edestruct (SIM_MEM0 l) as [p_rel''].
-  { cdes COMMON0. apply TCCOH0. apply ISSP'. }
-  all: eauto; simpls.
-  desc.
+  edestruct (SIM_MEM0 l) with (b:=p) as [p_rel'' HH]; eauto.
+  simpls. desc.
   rewrite P_INMEM in INMEM1. inv INMEM1.
   eexists; eexists; splits; eauto.
 Qed.

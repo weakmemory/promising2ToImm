@@ -438,4 +438,23 @@ Proof using.
   simpls. desf. eauto.
 Qed.
 
-End SimRelProps.
+Lemma memory_to_event T S f_to f_from memory
+      (ETCCOH : etc_coherent G sc (mkETC T S))
+      (MTE  :      message_to_event G T   f_to f_from memory)
+      (HMTE : half_message_to_event G T S f_to f_from memory) :
+  forall l to from msg
+         (MSG : Memory.get l to memory = Some (from, msg)),
+    (to = Time.bot /\ from = Time.bot) \/
+    exists b,
+    ⟪ ACTS : E b ⟫ /\
+    ⟪ SB   : S b ⟫ /\
+    ⟪ LOC  : Loc_ l b ⟫ /\
+    ⟪ FROM : f_from b = from ⟫ /\
+    ⟪ TO   : f_to b = to ⟫.
+Proof.
+  ins. destruct msg.
+  { apply MTE in MSG. desf; eauto.
+    right. eexists. splits; eauto. by apply ETCCOH.(etc_I_in_S). }
+  right.
+  apply HMTE in MSG. desf. eexists. splits; eauto.
+Qed.

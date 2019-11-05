@@ -67,3 +67,11 @@ Proof using.
   rewrite Heq. apply HPi. ins.
   apply le_S_n in H. by apply IHn.
 Qed.
+
+Lemma immediate_inter_mori {A} (x y : relation A) (IN : y ⊆ x) :
+  y ∩ (immediate x) ⊆ immediate y.
+Proof.
+  intros e e' [HH BB].
+  split; auto.
+  ins. eapply BB; apply IN; eauto.
+Qed.

@@ -145,7 +145,7 @@ Definition message_to_event (memory : Memory.t) :=
     ⟪ FROM : f_from b = from ⟫ /\
     ⟪ TO   : f_to b = to ⟫.
 
-Definition half_message_to_events (memory : Memory.t) :=
+Definition half_message_to_event (memory : Memory.t) :=
   forall l to from
          (MSG : Memory.get l to memory = Some (from, Message.reserve)),
   exists b,
@@ -161,7 +161,7 @@ Definition reserved_time smode memory :=
   | sim_normal =>
     (* During normal simulation *)
     (⟪ MEM   : message_to_event memory ⟫ /\
-     ⟪ HMEM  : half_message_to_events memory ⟫ /\
+     ⟪ HMEM  : half_message_to_event memory ⟫ /\
      ⟪ TFRMW : forall x y, S x -> S y -> co x y ->
                            f_to x = f_from y -> (rf ⨾ rmw) x y ⟫)
   | sim_certification => 

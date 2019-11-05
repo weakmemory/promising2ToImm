@@ -146,6 +146,48 @@ Proof using WF.
   { exfalso. by apply ICOXZ with (c:=y). }
   exfalso. by apply ICOXY with (c:=z).
 Qed.
+
+Lemma wf_immcotf : functional (immediate co)⁻¹.
+Proof using WF.
+  intros x y z ICOXY ICOXZ. red in ICOXY. red in ICOXZ.
+  assert (co y x) as COXY by apply ICOXY.
+  assert (co z x) as COXZ by apply ICOXZ.
+  apply WF.(wf_coD) in COXY. destruct_seq COXY as [BB1 BB2].
+  apply WF.(wf_coE) in COXY. destruct_seq COXY as [BB3 BB4].
+  apply WF.(wf_coD) in COXZ. destruct_seq COXZ as [AA1 AA2].
+  apply WF.(wf_coE) in COXZ. destruct_seq COXZ as [AA3 AA4].
+  apply is_w_loc in AA2. desf.
+  set (CC:=COXY). apply WF.(wf_col) in CC. red in CC.
+  set (DD:=COXZ). apply WF.(wf_col) in DD. red in DD.
+  destruct (classic (y = z)); auto.
+  edestruct WF.(wf_co_total); eauto.
+  1,2: split; [split|]; eauto.
+  { exfalso. by apply ICOXY with (c:=z). }
+  exfalso. by apply ICOXZ with (c:=y).
+Qed.
+
+Lemma wf_immcoPtf P : functional (immediate (<|P|> ;; co))⁻¹.
+Proof using WF.
+  intros x y z ICOXY ICOXZ. red in ICOXY. red in ICOXZ.
+  assert (co y x /\ P y) as [COXY PY].
+  { destruct ICOXY as [AA BB]. generalize AA. basic_solver. }
+  assert (co z x /\ P z) as [COXZ PZ].
+  { destruct ICOXZ as [AA BB]. generalize AA. basic_solver. }
+  apply WF.(wf_coD) in COXY. destruct_seq COXY as [BB1 BB2].
+  apply WF.(wf_coE) in COXY. destruct_seq COXY as [BB3 BB4].
+  apply WF.(wf_coD) in COXZ. destruct_seq COXZ as [AA1 AA2].
+  apply WF.(wf_coE) in COXZ. destruct_seq COXZ as [AA3 AA4].
+  apply is_w_loc in AA2. desf.
+  set (CC:=COXY). apply WF.(wf_col) in CC. red in CC.
+  set (DD:=COXZ). apply WF.(wf_col) in DD. red in DD.
+  destruct (classic (y = z)); auto.
+  edestruct WF.(wf_co_total); eauto.
+  1,2: split; [split|]; eauto.
+  { exfalso. apply ICOXY with (c:=z).
+    all: apply seq_eqv_l; split; auto. }
+  exfalso. apply ICOXZ with (c:=y).
+  all: apply seq_eqv_l; split; auto.
+Qed.
   
 Lemma wf_rfrmwsf : functional (rf ⨾ rmw).
 Proof using WF CON.
