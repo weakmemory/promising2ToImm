@@ -372,6 +372,37 @@ Proof using ETCCOH.
   eapply Memory.max_ts_spec; eauto.
 Qed.
 
+(* TODO: move to more appropriate place *)
+Lemma rfrmwP_in_immPco P P'
+    (DRES : dom_rel (rf ;; rmw ;; <|P'|>) ⊆₁ P) :
+  rf ;; rmw ;; <|P'|> ⊆ immediate (⦗P⦘ ⨾ co).
+Proof using WF IMMCON.
+  assert (sc_per_loc G) as SPL.
+  { apply coherence_sc_per_loc. apply IMMCON. }
+
+  rewrite <- immediate_inter_mori with (x:=co).
+  2: basic_solver.
+  apply inclusion_inter_r.
+  2: { rewrite <- seqA. rewrite rfrmw_in_im_co; eauto. basic_solver. }
+  rewrite <- rf_rmw_in_co; auto.
+  2: by apply IMMCON.
+  generalize DRES. basic_solver 10.
+Qed.
+
+(* TODO: move to more appropriate place *)
+Lemma no_next_S_max_ts locw memory local w x
+      (SIM_RES_MEM : sim_res_mem G T S f_to f_from (tid w) local memory)
+      (SIM_MEM : sim_mem G sc T f_to f_from (tid w) local memory)
+      (WLOC : loc lab w = Some locw)
+      (NCO : ~ (exists wnext : actid, (co ⨾ ⦗S⦘) w wnext))
+      (NSW : ~ S w)
+      (SX : S x)
+      (RFRMW : (rf ⨾ rmw) x w) :
+  f_to x = Memory.max_ts locw memory.
+Proof using.
+Admitted.
+
+
 Lemma f_to_coherent_add_S_after locw memory local w wprev n_from
       (RESERVED_TIME:
          reserved_time G T S f_to f_from sim_normal memory)
@@ -383,6 +414,7 @@ Lemma f_to_coherent_add_S_after locw memory local w wprev n_from
           (rf ⨾ rmw) x y)
       (WLOC : loc lab w = Some locw)
       (NSW : ~ S w)
+      (DRES : dom_rel (rf ⨾ rmw ⨾ ⦗eq w⦘) ⊆₁ S)
       (NCO : ~ exists wnext, (co ⨾ ⦗S⦘) w wnext)
       (PIMMCO : immediate (⦗S⦘ ⨾ co) wprev w)
       (NFROM  : (n_from = Memory.max_ts locw memory /\
@@ -421,15 +453,6 @@ Proof using WF IMMCON ETCCOH FCOH.
   set (ts := Memory.max_ts locw memory).
   set (f_to' := upd f_to w (Time.incr (Time.incr (Memory.max_ts locw memory)))).
 
-  (* set (A := *)
-  (*        exists wprev, ⟪ WPISS : issued T wprev ⟫ /\ *)
-  (*                      ⟪ RFRMW : (rf ⨾ rmw) wprev w ⟫). *)
-  (* assert (exists n_from, *)
-  (*            ⟪ NFROM_SPEC : ((n_from = ts) /\ A) \/ ((n_from = Time.incr ts) /\ ~ A) ⟫ ) *)
-  (*   as [n_from NFROM]. *)
-  (* { destruct (classic A) as [H|H]. *)
-  (*   { by exists ts; left. } *)
-  (*   by exists (Time.incr ts); right. } *)
   assert (Time.le ts n_from) as LENFROM_R.
   { destruct NFROM as [[N _]|[N _]]; subst; [reflexivity|].
     apply Time.le_lteq; left. apply DenseOrder.incr_spec. }
@@ -450,31 +473,6 @@ Proof using WF IMMCON ETCCOH FCOH.
     2: by apply Time.incr_spec.
     done. }
 
-  (* assert (Time.lt (f_to wprev) (Time.incr (Time.incr ts))) as LTPREVTO. *)
-  (* { etransitivity. } *)
-
-  (* assert (Time.le (f_to wprev) n_from) as PREVFROMLE. *)
-  (* { destruct NFROM as [[N1 N2]|[N1 N2]]; subst; [reflexivity|]. *)
-  (*   apply Time.le_lteq; left. by apply Time.middle_spec. } *)
-
-  (* assert (Time.lt n_from n_to) as LTFROMTO. *)
-  (* { desf. *)
-  (*   { by apply Time.middle_spec. } *)
-  (*   eapply TimeFacts.lt_le_lt. *)
-  (*   2: reflexivity. *)
-  (*     by do 2 apply Time.middle_spec. } *)
-  
-  (* assert (Time.le (Time.middle (f_to wprev) (f_from wnext)) n_to) as LETO1. *)
-  (* { desf; try reflexivity. *)
-  (*   all: by apply Time.le_lteq; left; apply Time.middle_spec. } *)
-
-  (* assert (Time.le n_to (f_from wnext)) as LETONEXT. *)
-  (* { desf; try reflexivity. *)
-  (*   all: by apply Time.le_lteq; left; apply Time.middle_spec. } *)
-  
-  (* splits; auto. *)
-  (* 2: { by constructor. } *)
-
   red; splits; unfold f_from'.
   { ins; rewrite updo; [by apply FCOH|].
     intros Y; subst. by destruct H. }
@@ -490,12 +488,7 @@ Proof using WF IMMCON ETCCOH FCOH.
     all: try rewrite !updo.
     all: try by intros H; subst.
     { by apply FCOH. }
-    { (* TODO: generalize to lemma! *)
-      apply (wf_coD WF) in CO.
-      apply seq_eqv_l in CO; destruct CO as [WX CO].
-      apply seq_eqv_r in CO; destruct CO as [CO WY].
-      unfold is_w in WX; destruct (lab x) eqn:LAB; desc; try by desf.
-      etransitivity; [|by apply LENFROM_R].
+    { etransitivity; [|by apply LENFROM_R].
       eapply S_le_max_ts; eauto.
       rewrite <- WLOC. by apply WF.(wf_col). }
     { exfalso. eapply NCO. eexists; apply seq_eqv_r; eauto. }
@@ -505,16 +498,15 @@ Proof using WF IMMCON ETCCOH FCOH.
   all: try rewrite !updo.
   all: try by intros H; subst.
   { by apply FCOH. }
-  { destruct NFROM as [[EQ HH]|[EQ NWPREV]]; subst; unnw.
+  { (* TODO: extract some reasoning *)
+    destruct NFROM as [[EQ HH]|[EQ NWPREV]]; subst; unnw.
     2: { exfalso.
          assert (x = wprev); desf.
          eapply wf_immcoPtf; eauto; red.
-         eapply immediate_inter_mori.
-         2: { split.
-              2: { eapply rfrmw_in_im_co; eauto. }
-              apply seq_eqv_l. split; auto.
-              eapply rfrmw_in_im_co; eauto. }
-         basic_solver. }
+         eapply rfrmwP_in_immPco with (P':=eq y); eauto.
+         apply seqA. basic_solver. }
+    
+    (* TODO: continue from here *)
     assert (wprev = x); subst.
     { eapply wf_rfrmwf; eauto. }
     destruct (classic (f_to x = ts)) as [|NEQ]; [done|exfalso].
@@ -526,92 +518,39 @@ Proof using WF IMMCON ETCCOH FCOH.
     set (SX := ISSX).
     eapply reserved_to_message in SX; eauto. desc.
     edestruct Memory.max_ts_spec as [[from [msg' HMEM]] TS]; eauto.
-    red in TS. apply Time.le_lteq in TS; destruct TS as [TS|]; [clear NEQ|by subst].
+    red in TS.
     cdes RESERVED_TIME.
-memory_to_event 
-    (* TODO: continue from here *)
+    eapply memory_to_event in HMEM; eauto.
+    apply Time.le_lteq in TS; destruct TS as [TS|]; [clear NEQ|by subst].
+    desf.
+    { rewrite HMEM in TS. by apply time_lt_bot in TS. }
+    rename b into wmax.
 
-    apply MEM in HMEM. destruct HMEM as [[H1 H2]|HMEM].
-    { rewrite H1 in TS. by apply time_lt_bot in TS. }
-    destruct HMEM as [wmax H]; desc. rewrite <- TO in TS.
     assert (wmax <> y) as WWNEQ.
-    { intros H; desf. }
-    assert ((E ∩₁ W ∩₁ (fun x0 => loc lab x0 = Some locw)) wmax) as WWM.
-    { split; [split|]; eauto. by apply TCCOH. }
-    assert ((E ∩₁ W ∩₁ (fun x0 => loc lab x0 = Some locw)) x) as WXX.
-    { split; [split|]; eauto. by apply TCCOH. }
-    assert (co wmax y) as COWY.
-    { edestruct WF.(wf_co_total).
-      3: by apply WWNEQ.
-      1-3: by eauto.
-      exfalso. apply WNONEXT; eexists; apply seq_eqv_r; eauto. }
-    assert (wmax <> x) as WXNEQ.
-    { intros H; subst. eapply Time.lt_strorder; eauto. }
-    assert (co x wmax) as COXW.
-    { edestruct WF.(wf_co_total).
-      3: by apply WXNEQ.
-      1-2,4: by eauto.
-      exfalso. eapply Time.lt_strorder; etransitivity. apply TS.
-      eapply f_to_co_mon; eauto. }
-    eapply rfrmw_in_im_co; eauto. }
-  all: exfalso; eapply rfrmw_in_im_co in RFRMW; eauto.
-  { eapply WNONEXT. eexists; apply seq_eqv_r; split; eauto.
-    apply RFRMW. }
-  eapply WF.(co_irr). apply RFRMW. }
+    { intros PP; desf. }
+    edestruct WF.(wf_co_total) with (a:=wmax) (b:=y) as [CO|CO]; auto.
+    1,2: by split; [split|]; eauto.
+    2: { apply NCO. eexists. apply seq_eqv_r. eauto. }
 
-  red; splits; unfold f_from'.
-  { ins; rewrite updo; [by apply FCOH|].
-    intros Y; subst. destruct H. desf. }
-  { ins; rewrite updo; [by apply FCOH|].
-    intros Y; subst. destruct H. desf. }
-  { intros x [ISS|]; subst.
-    { rewrite !updo; [by apply FCOH | |].
-      all: by intros Y; subst. }
-    ins. }
-  { intros x y [ISSX|EQX] [ISSY|EQY] CO; subst.
-    all: try rewrite !upds.
-    all: try rewrite !updo.
-    all: try by intros H; subst.
-    { by apply FCOH. }
-    { etransitivity; [|by apply PREVFROMLE].
-      assert (co^? x wprev) as COXP.
-      { apply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
-        exists y. split; auto. basic_solver. }
-      eapply co_S_f_to_le; eauto. }
-    2: by apply WF.(co_irr) in CO.
-    etransitivity; [by apply LETONEXT|].
-    assert (co^? wnext y) as COXP.
-    { apply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
-      exists x. split; auto. basic_solver. }
-    eapply co_S_f_from_le; eauto. }
-  intros x y [ISSX|EQX] [ISSY|EQY] RFRMW; subst.
-  all: try rewrite !upds.
-  all: try rewrite !updo.
-  all: try by intros H; subst.
-  { by apply FCOH. }
-  3: { exfalso. eapply WF.(co_irr).
-       eapply rfrmw_in_im_co in RFRMW; eauto.
-       apply RFRMW. }
-  2: { set (CC:=RFRMW).
-       eapply rfrmw_in_im_co in CC; eauto.
-       destruct CC as [AA BB].
-       assert (co^? wnext y) as [|COY]; subst.
-       { apply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
-         exists x. split; auto. basic_solver. }
-       { destruct NTO as [[NN1 NN2]|[NN1 NN2]]; desf. }
-       exfalso. by apply BB with (c:=wnext). }
-  set (CC:=RFRMW).
-  eapply rfrmw_in_im_co in CC; eauto.
-  destruct CC as [AA BB].
-  assert (co^? x wprev) as [|COY]; subst.
-  { apply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
-    exists y. split; auto. basic_solver. }
-  { destruct NFROM as [[NN1 NN2]|[NN1 NN2]]; desf. }
-  exfalso. by apply BB with (c:=wprev).
+    destruct (classic (wmax = x)) as [|WXNEQ]; subst.
+    { rewrite TO in TS. eapply Time.lt_strorder; eauto. }
+
+    edestruct WF.(wf_co_total) with (a:=wmax) (b:=x) as [CO'|CO']; auto.
+    1,2: by split; [split|]; eauto.
+    2: by eapply PIMMCO with (c:=wmax); apply seq_eqv_l.
+    eapply Time.lt_strorder.
+    etransitivity; [by apply TS|].
+    rewrite <- TO.
+    eapply f_to_co_mon; eauto. }
+
+  all: exfalso; eapply rfrmw_in_im_co in RFRMW; eauto.
+  { eapply NCO. eexists; apply seq_eqv_r; split; eauto.
+    apply RFRMW. }
+  eapply WF.(co_irr). apply RFRMW.
 Qed.
 
 (* TODO: move to a more appropriate place. *)
-Lemma message_to_event_add_S_middle memory l w memory' n_to n_from
+Lemma message_to_event_add_S memory l w memory' n_to n_from
       (LOC : loc lab w = Some l)
       (NIW : ~ issued T w)
       (RESERVED_TIME:
@@ -767,7 +706,7 @@ Proof using WF IMMCON ETCCOH FCOH.
     { by left. }
     1,2: by unfold f_from', f_to'; rewrite updo. }
   splits; auto.
-  { eapply message_to_event_add_S_middle; eauto. }
+  { eapply message_to_event_add_S; eauto. }
   unfold f_to', f_from'.
   intros x y [SX|] [SY|] CO FT; subst.
   4: { exfalso. eapply co_irr; eauto. }
@@ -831,6 +770,169 @@ Proof using WF IMMCON ETCCOH FCOH.
   all: apply seq_eqv_r; split; auto.
 Qed.
 
+(* TODO: move to a more appropriate place. *)
+Lemma reserved_time_add_S_after smode locw memory memory' local w wprev n_from
+      (SIM_MEM : sim_mem G sc T f_to f_from
+                         (tid w) local memory)
+      (SIM_RES_MEM : sim_res_mem G T S f_to f_from (tid w) local memory)
+      (TFRMW : forall x y (SX : S x) (SY : S y) (CO : co x y)
+                      (FTOFROM : f_to x = f_from y),
+          (rf ⨾ rmw) x y)
+      (WLOC : loc lab w = Some locw)
+      (NSW : ~ S w)
+      (NCO : ~ exists wnext, (co ⨾ ⦗S⦘) w wnext)
+      (PIMMCO : immediate (⦗S⦘ ⨾ co) wprev w)
+      (NFROM  : (n_from = Memory.max_ts locw memory /\
+                 ⟪ PRFRMW : (rf ⨾ rmw) wprev w ⟫) \/
+                (n_from = Time.incr (Memory.max_ts locw memory) /\
+                 ⟪ NPRFRMW : ~ (rf ⨾ rmw) wprev w ⟫))
+      (RESERVED_TIME:
+         reserved_time G T S f_to f_from smode memory)
+      (MADD :
+        Memory.add memory locw
+                   ((upd f_from w n_from) w)
+                   ((upd f_to w (Time.incr (Time.incr (Memory.max_ts locw memory)))) w)
+                   Message.reserve memory') :     
+  reserved_time
+    G T (S ∪₁ eq w) (upd f_to w (Time.incr (Time.incr (Memory.max_ts locw memory))))
+    (upd f_from w n_from)
+    smode memory'.
+Proof using WF IMMCON ETCCOH FCOH.
+  assert (sc_per_loc G) as SPL.
+  { apply coherence_sc_per_loc. apply IMMCON. }
+
+  assert (S ⊆₁ E ∩₁ W) as SEW.
+  { generalize ETCCOH.(etc_S_in_E). generalize (reservedW WF ETCCOH). basic_solver. }
+
+  assert (~ issued T w) as NIW.
+  { intros II. apply NSW. by apply ETCCOH.(etc_I_in_S). }
+
+  set (f_to':= upd f_to w (Time.incr (Time.incr (Memory.max_ts locw memory)))).
+  set (f_from':= upd f_from w n_from).
+
+  assert (S wprev /\ co wprev w) as [ISSPREV COPREV].
+  { destruct PIMMCO as [H _]. apply seq_eqv_l in H; desf. }
+  assert (E wprev) as EPREV.
+  { by apply ETCCOH.(etc_S_in_E). }
+  assert (W wprev) as WPREV.
+  { by apply (reservedW WF ETCCOH). }
+
+  assert (~ is_init w) as WNINIT.
+  { apply no_co_to_init in COPREV; auto. by destruct_seq_r COPREV as AA. }
+  
+  assert (E w) as EW.
+  { apply WF.(wf_coE) in COPREV. by destruct_seq COPREV as [AA BB]. }
+
+  (* assert (Time.lt (f_to wprev) n_to) as LTPREVTO. *)
+  (* { desf; by apply Time.middle_spec. } *)
+
+  (* assert (Time.le (f_to wprev) n_from) as PREVFROMLE. *)
+  (* { destruct NFROM as [[N1 N2]|[N1 N2]]; subst; [reflexivity|]. *)
+  (*   apply Time.le_lteq; left. by apply Time.middle_spec. } *)
+
+  (* assert (Time.lt n_from n_to) as LTFROMTO. *)
+  (* { desf. *)
+  (*   { by apply Time.middle_spec. } *)
+  (*   eapply TimeFacts.lt_le_lt. *)
+  (*   2: reflexivity. *)
+  (*     by do 2 apply Time.middle_spec. } *)
+
+  (* assert (Time.le (Time.middle (f_to wprev) (f_from wnext)) n_to) as LETO1. *)
+  (* { desf; try reflexivity. *)
+  (*   all: by apply Time.le_lteq; left; apply Time.middle_spec. } *)
+
+  (* assert (Time.le n_to (f_from wnext)) as LETONEXT. *)
+  (* { desf; try reflexivity. *)
+  (*   all: by apply Time.le_lteq; left; apply Time.middle_spec. } *)
+  
+  cdes RESERVED_TIME. red.
+  destruct smode; desc; unnw.
+  2: { split.
+       { rewrite <- FOR_SPLIT. basic_solver. }
+       rewrite RMW_BEF_S. basic_solver 10. }
+
+  (* TODO: Extract to a separate lemma. *)
+  assert (half_message_to_event G T (S ∪₁ eq w) f_to' f_from' memory') as HMTE.
+  { red; ins. erewrite Memory.add_o in MSG; eauto.
+    destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[EQ1 EQ2]|NEQ].
+    { simpls; subst.
+      rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in MSG.
+      inv MSG.
+      clear MSG. exists w. splits; auto. by right. }
+    rewrite loc_ts_eq_dec_neq in MSG; simpls; auto.
+    apply HMEM in MSG. desc.
+    assert (b <> w) as BNEQ.
+    { intros H; subst. by apply NSW. }
+    exists b.
+    splits; eauto.
+    { by left. }
+    1,2: by unfold f_from', f_to'; rewrite updo. }
+  splits; auto.
+  { eapply message_to_event_add_S; eauto. }
+  unfold f_to', f_from'.
+  intros x y [SX|] [SY|] CO FT; subst.
+  4: { exfalso. eapply co_irr; eauto. }
+  { rewrite updo in FT; [|by intros AA; desf].
+    rewrite updo in FT; [|by intros AA; desf].
+      by apply TFRMW0. }
+  all: destruct (classic (x = y)) as [|NEQ]; [by desf|].
+  { rewrite updo in FT; auto.
+    rewrite upds in FT.
+    assert (same_loc lab x wprev) as LXPREV.
+    { etransitivity.
+      { apply WF.(wf_col); eauto. }
+      symmetry. by apply WF.(wf_col). }
+    destruct NFROM as [[NFROM BB]|[NFROM BB]]; unnw.
+    { desc; subst.
+Admitted.
+(*       eapply f_to_eq with (I:=S) in FT; eauto; subst; desc. *)
+(*       subst. apply BB. } *)
+(*     exfalso. *)
+(*     assert (E x) as EX by (by apply ETCCOH.(etc_S_in_E)). *)
+(*     assert (W x) as WX by (by apply (reservedW WF ETCCOH)). *)
+(*     edestruct WF.(wf_co_total) with (a:=x) (b:=wprev) as [COWX|COWX]. *)
+(*     1-2: split; [split|]; eauto. *)
+(*     { intros H; subst. *)
+(*       eapply Time.lt_strorder with (x:=f_to wprev). *)
+(*       rewrite FT at 2. by apply Time.middle_spec. } *)
+(*     { subst. *)
+(*       assert (Time.lt (f_to x) (f_to wprev)) as DD. *)
+(*       { eapply f_to_co_mon; eauto. } *)
+(*       eapply Time.lt_strorder with (x:=f_to x). *)
+(*       rewrite FT at 2. *)
+(*       etransitivity; [by apply DD|]. by apply Time.middle_spec. } *)
+(*     eapply PIMMCO. *)
+(*     all: apply seq_eqv_l; split; eauto. } *)
+(*   rewrite upds in FT; auto. *)
+(*   rewrite updo in FT; auto. *)
+(*   assert (same_loc lab wnext y) as LXPREV. *)
+(*   { etransitivity. *)
+(*     { symmetry. apply WF.(wf_col). apply CONEXT. } *)
+(*     apply WF.(wf_col); eauto. } *)
+(*   assert (~ is_init y) as NINITY. *)
+(*   { apply no_co_to_init in CO; auto. by destruct_seq_r CO as BB. } *)
+(*   destruct NTO as [[NTO BB]|[NTO BB]]; unnw. *)
+(*   { desc; subst. *)
+(*     eapply f_from_eq with (I:=S) in FT; eauto; subst; desc. *)
+(*     subst. apply BB. } *)
+(*   exfalso. *)
+(*   assert (E y) as EY by (by apply ETCCOH.(etc_S_in_E)). *)
+(*   assert (W y) as WY by (by apply (reservedW WF ETCCOH)). *)
+(*   edestruct WF.(wf_co_total) with (a:=wnext) (b:=y) as [COWY|COWY]. *)
+(*   1-2: split; [split|]; eauto. *)
+(*   { intros H; subst. *)
+(*     eapply Time.lt_strorder with (x:=f_from y). *)
+(*     rewrite <- FT at 1. by apply Time.middle_spec. } *)
+(*   { subst. *)
+(*     assert (Time.lt (f_from wnext) (f_from y)) as DD. *)
+(*     { eapply f_from_co_mon; eauto. } *)
+(*     eapply Time.lt_strorder with (x:=f_from y). *)
+(*     rewrite <- FT at 1. *)
+(*     etransitivity; [|by apply DD]. by apply Time.middle_spec. } *)
+(*   eapply NIMMCO with (c:=y). *)
+(*   all: apply seq_eqv_r; split; auto. *)
+(* Qed. *)
+
 Lemma exists_time_interval PC w locw valw langst local smode
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
@@ -846,6 +948,8 @@ Lemma exists_time_interval PC w locw valw langst local smode
          reserved_time G T S f_to f_from smode PC.(Configuration.memory))
       (INHAB      : Memory.inhabited (Configuration.memory PC))
       (CLOSED_MEM : Memory.closed (Configuration.memory PC))
+      (SIM_RES_MEM :
+         sim_res_mem G T S f_to f_from (tid w) local (Configuration.memory PC))
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local PC.(Configuration.memory))
       (SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) (tid w))
@@ -1145,345 +1249,23 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH.
   { apply DISJOINT. }
   { unfold f_from', f_to'. by rewrite !upds. }
   
+  destruct PRMWE as [wprev PRMWE].
+  assert (issued T wprev) as IWPREV.
+  { admit. }
+  assert (immediate (⦗S⦘ ⨾ co) wprev w) as PIMMCO.
+  { admit. }
+  
+  cdes RESERVED_TIME.
+  assert (f_to_coherent G (S ∪₁ eq w) f_to' f_from') as FCOH'.
+  { eapply f_to_coherent_add_S_after; eauto.
+    left. red in NFROM. desf. exfalso. apply NFROM0.
+    red. exists wprev. splits; auto. }
+
+  assert (reserved_time G T (S ∪₁ eq w) f_to' f_from' sim_normal memory') as REST'.
+  { admit. }
+
   exists promises', memory'. splits; auto.
-  (* TODO: continue from here. *)
-
-(* { red. splits. *)
-(*     { red; ins. erewrite Memory.add_o in MSG; eauto. *)
-(*       destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[EQ1 EQ2]|NEQ]. *)
-(*       { simpls; subst. *)
-(*         rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in MSG. *)
-(*         inv MSG. clear MSG. right. *)
-(*         exists w; splits; auto. *)
-(*           by right. } *)
-(*       rewrite loc_ts_eq_dec_neq in MSG; simpls; auto. *)
-(*       apply MEM in MSG. destruct MSG as [MSG|MSG]; [by left|right]. *)
-(*       destruct MSG as [b H]; desc. *)
-(*       assert (b <> w) as BNEQ. *)
-(*       { by intros H; subst. } *)
-(*       exists b; splits; auto. *)
-(*       { by left. } *)
-(*       all: by rewrite updo. } *)
-(*     intros x y [ISSX|HX]; subst. *)
-(*     { assert (x <> w) as XNEQ. *)
-(*       { intros H; desf. } *)
-(*       rewrite updo; auto. *)
-(*       intros [ISSY|HY] JJ CO II; subst. *)
-(*       { assert (y <> w) as YNEQ. *)
-(*         { intros H; desf. } *)
-(*         rewrite updo in II; auto. } *)
-(*       rewrite upds in II. *)
-(*       assert (loc lab x = Some locw) as XLOC. *)
-(*       { rewrite <- LOC. by apply WF.(wf_col). } *)
-(*       destruct NFROM as [[NFROM BB]|[NFROM BB]]. *)
-(*       { desc; subst. *)
-(*         eapply f_to_eq in II; eauto. *)
-(*         { subst. apply BB. } *)
-(*         red. by rewrite XLOC. } *)
-(*       exfalso. *)
-(*       edestruct WF.(wf_co_total) with (a:=x) (b:=wprev) as [COWX|COWX]. *)
-(*       1-2: split; [split|]; eauto. *)
-(*       1-2: by apply TCCOH in ISSX; apply ISSX. *)
-(*       { intros H; subst.  *)
-(*         edestruct Time.middle_spec as [AA _]. *)
-(*         { apply PREVNLT. } *)
-(*         rewrite <- II in AA. *)
-(*           by apply Time.lt_strorder in AA. } *)
-(*       { subst. *)
-(*         edestruct Time.middle_spec as [AA CC]. *)
-(*         { apply PREVNLT. } *)
-(*         assert (Time.lt (f_to x) (f_to wprev)) as DD. *)
-(*         { eapply f_to_co_mon; eauto. } *)
-(*         rewrite II in DD. *)
-(*         eapply Time.lt_strorder. *)
-(*           by etransitivity; [by apply DD|]. } *)
-(*       eapply PIMMCO. *)
-(*       all: apply seq_eqv_l; split; eauto. } *)
-(*     intros [ISSY|HY] JJ CO II; subst. *)
-(*     2: by apply WF.(co_irr) in CO. *)
-(*     assert (y <> x) as YNEQ. *)
-(*     { intros H. desf. } *)
-(*     rewrite upds in *; auto. rewrite updo in II; auto. *)
-(*     assert (loc lab y = Some locw) as XLOC. *)
-(*     { rewrite <- LOC. symmetry. by apply WF.(wf_col). } *)
-(*     destruct NTO as [[NTO BB]|[NTO BB]]. *)
-(*     { desc; subst. *)
-(*       eapply f_from_eq in II; eauto. *)
-(*       { subst. apply BB. } *)
-(*       red. by rewrite XLOC. } *)
-(*     exfalso. *)
-(*     edestruct WF.(wf_co_total) with (a:=y) (b:=wnext) as [COWX|COWX]. *)
-(*     1-2: split; [split|]; eauto. *)
-(*     1-2: by apply TCCOH in ISSY; apply ISSY. *)
-(*     { intros H; subst.  *)
-(*       edestruct Time.middle_spec as [AA CC]. *)
-(*       { apply NPLT. } *)
-(*       rewrite II in CC. *)
-(*         by apply Time.lt_strorder in CC. } *)
-(*     { eapply NIMMCO. *)
-(*       all: apply seq_eqv_r; split; eauto. } *)
-(*     subst. *)
-(*     edestruct Time.middle_spec as [AA CC]. *)
-(*     { apply NPLT. } *)
-(*     assert (Time.lt (f_from wnext) (f_from y)) as DD. *)
-(*     { eapply f_from_co_mon; eauto. } *)
-(*     rewrite <- II in DD. *)
-(*     eapply Time.lt_strorder. *)
-(*       by etransitivity; [by apply DD|]. } *)
-
-    exists promises'; exists memory'; splits; eauto; unfold f_to', f_from'.
-    all: by ins; rewrite updo; auto; intros H; subst. }
-
-  left. (* ISSUING *)
-  assert
-  (f_to_coherent G (issued T ∪₁ eq w)
-    (upd f_to w (Time.incr (Time.incr (Memory.max_ts locw (Configuration.memory PC)))))
-    (upd f_from w n_from)) as N_FCOH.
-  { red; splits.
-    { ins; rewrite updo; [by apply FCOH|].
-      intros Y; subst. by destruct H. }
-    { ins; rewrite updo; [by apply FCOH|].
-      intros Y; subst. by destruct H. }
-    { intros x [ISS|]; subst.
-      { rewrite !updo; [by apply FCOH | |].
-        all: by intros Y; subst. }
-      unfold f_to', f_from', ts in *.
-        by rewrite !upds in *. }
-    { intros x y [ISSX|EQX] [ISSY|EQY] CO; subst.
-      all: try rewrite !upds.
-      all: try rewrite !updo.
-      all: try by intros H; subst.
-      { by apply FCOH. }
-      { (* TODO: generalize to lemma! *)
-        apply (wf_coD WF) in CO.
-        apply seq_eqv_l in CO; destruct CO as [WX CO].
-        apply seq_eqv_r in CO; destruct CO as [CO WY].
-        unfold is_w in WX; destruct (lab x) eqn:LAB; desc; try by desf.
-        edestruct SIM_MEM.
-        3,4: by unfold loc, val; rewrite LAB; eauto.
-        { apply (wf_coE WF) in CO.
-          apply seq_eqv_l in CO; desf. }
-        all: eauto.
-        desc.
-        apply (wf_col WF) in CO; red in CO; unfold loc in *; desf.
-        all: etransitivity; [by eapply Memory.max_ts_spec; eauto|].
-        all: by apply LENFROM_R. }
-      { exfalso. eapply WNONEXT. eexists; apply seq_eqv_r; eauto. }
-      exfalso. by apply co_irr in CO. }
-    intros x y [ISSX|EQX] [ISSY|EQY] RFRMW; subst.
-    all: try rewrite !upds.
-    all: try rewrite !updo.
-    all: try by intros H; subst.
-    { by apply FCOH. }
-    { destruct NFROM as [[EQ [wprev HH]]|[EQ NWPREV]]; subst.
-      2: by exfalso; apply NWPREV; eexists; split; eauto.
-      red in RESERVED_TIME. destruct smode; desc.
-      2: { exfalso. apply WNISS. apply RMW_ISSUED.
-           destruct RFRMW as [z [RF RMW]].
-             by exists z. }
-      assert (wprev = x); [|subst].
-      eapply wf_rfrmwf; eauto.
-      destruct (classic (f_to x = ts)) as [|NEQ]; [done|exfalso].
-      unfold ts in *.
-      assert (E x) as EX.
-      { hahn_rewrite (dom_l (wf_rfE WF)) in RFRMW; revert RFRMW; basic_solver. }
-      assert (co x y) as COXY.
-      { apply rf_rmw_in_co; cdes IMMCON; eauto using coherence_sc_per_loc. }
-      assert (Loc_ locw x) as LOCX.
-      { hahn_rewrite (wf_col WF) in COXY; unfold same_loc in COXY; congruence. }
-      assert (exists valx, val lab x = Some valx) as [valx VALX].
-      { apply is_w_val. hahn_rewrite (dom_l (wf_coD WF)) in COXY; revert COXY; basic_solver. }
-      edestruct SIM_MEM as [xrel].
-      2: by apply ISSX.
-      by eauto.
-      by apply LOCX.
-      by eauto.
-      destruct H as [INMEM H'']; desc.
-      edestruct Memory.max_ts_spec as [[from [val [rel HMEM]]] TS].
-      { apply INMEM. }
-      red in TS. apply Time.le_lteq in TS; destruct TS as [TS|]; [clear NEQ|by subst].
-      apply MEM in HMEM. destruct HMEM as [[H1 H2]|HMEM].
-      { rewrite H1 in TS. by apply time_lt_bot in TS. }
-      destruct HMEM as [wmax H]; desc. rewrite <- TO in TS.
-      assert (wmax <> y) as WWNEQ.
-      { intros H; desf. }
-      assert ((E ∩₁ W ∩₁ (fun x0 => loc lab x0 = Some locw)) wmax) as WWM.
-      { split; [split|]; eauto. by apply TCCOH. }
-      assert ((E ∩₁ W ∩₁ (fun x0 => loc lab x0 = Some locw)) x) as WXX.
-      { split; [split|]; eauto. by apply TCCOH. }
-      assert (co wmax y) as COWY.
-      { edestruct WF.(wf_co_total).
-        3: by apply WWNEQ.
-        1-3: by eauto.
-        exfalso. apply WNONEXT; eexists; apply seq_eqv_r; eauto. }
-      assert (wmax <> x) as WXNEQ.
-      { intros H; subst. eapply Time.lt_strorder; eauto. }
-      assert (co x wmax) as COXW.
-      { edestruct WF.(wf_co_total).
-        3: by apply WXNEQ.
-        1-2,4: by eauto.
-        exfalso. eapply Time.lt_strorder; etransitivity. apply TS.
-        eapply f_to_co_mon; eauto. }
-      eapply rfrmw_in_im_co; eauto. }
-    all: exfalso; eapply rfrmw_in_im_co in RFRMW; eauto.
-    { eapply WNONEXT. eexists; apply seq_eqv_r; split; eauto.
-      apply RFRMW. }
-    eapply WF.(co_irr). apply RFRMW. }
-
-  assert (forall z (ISSZ : issued T z) (LOCZ : loc lab z = Some locw),
-             Time.le (f_to z) ts) as YY.
-  { ins.
-    red in SIM_MEM.
-    assert (E z) as EZ.
-    { apply TCCOH in ISSZ. apply ISSZ. }
-    assert (W z) as WZ.
-    { apply TCCOH in ISSZ. apply ISSZ. }
-    destruct (is_w_val lab z WZ) as [vz VALZ].
-    edestruct SIM_MEM with (b:=z) as [p_rel']; eauto.
-    desc.
-    apply Memory.max_ts_spec in INMEM.
-    destruct INMEM as [_ LE].
-    apply LE. }
-
-  assert (forall z (ISSZ : issued T z) (LOCZ : loc lab z = Some locw),
-             ~ Time.lt ts (f_to z) ) as XX.
-  { ins. intros LL.
-    eapply Time.lt_strorder.
-    eapply TimeFacts.le_lt_lt; [|apply LL].
-      by apply YY. }
-
-  set (rel'' := if Rel w
-                then TView.cur (Local.tview local)
-                else TView.rel (Local.tview local) locw).
-
-  assert (Time.le (View.rlx rel'' locw)
-                  (View.rlx (TView.cur (Local.tview local)) locw)) as GG.
-  { unfold rel''. destruct (Rel w).
-    { reflexivity. }
-    eapply rel_le_cur; eauto. }
-
-  assert (Time.lt (View.rlx rel'' locw)
-                  (Time.incr (Time.incr (Memory.max_ts locw (Configuration.memory PC)))))
-    as INCRLT.
-  { eapply TimeFacts.le_lt_lt; [by apply GG|].
-    cdes SIM_TVIEW. specialize (CUR locw). cdes CUR.
-    destruct MAX as [[Y1 Y2]|[a_max Y1]].
-    { unfold LocFun.find in *.
-      rewrite Y2. eapply TimeFacts.le_lt_lt.
-      { apply Time.bot_spec. }
-      apply Time.incr_spec. }
-    desc.
-    destruct INam as [z INam].
-    red in INam. hahn_rewrite seq_eqvC in INam.
-    hahn_rewrite <- seqA in INam.
-    apply seq_eqv_r in INam. destruct INam as [INam TINIT].
-    assert (ISSA := INam). apply urr_covered in ISSA; auto.
-    apply seq_eqv_l in ISSA. destruct ISSA as [ISSA _].
-    apply seq_eqv_r in INam. destruct INam as [INam COVA].
-    eapply TimeFacts.le_lt_lt; eauto.
-    eapply TimeFacts.le_lt_lt.
-    2: by apply Time.incr_spec.
-    apply Time.le_lteq. left.
-    eapply TimeFacts.le_lt_lt.
-    2: by apply Time.incr_spec.
-    apply wf_urrD in INam.
-    apply seq_eqv_l in INam. destruct INam as [[WA LOCA] URR].
-    assert (exists aval, val lab a_max = Some aval) as [aval AVAL].
-    { unfold val. type_solver. }
-    edestruct SIM_MEM with (b:=a_max) as [rel]; eauto.
-    eapply issuedE; eauto. }
-
-  exists promises'; exists memory'; splits; eauto; unfold f_to', f_from', ts.
-  3,4: by ins; rewrite updo; auto; intros H; subst.
-  { rewrite upds; auto. }
-  { rewrite upds; auto.
-    cdes SIM_TVIEW. clear ACQ REL.
-    specialize (CUR locw).
-    unfold LocFun.find in *.
-    unfold rel'. apply Time.join_spec.
-    2: { simpls. unfold TimeMap.singleton, LocFun.add.
-         rewrite Loc.eq_dec_eq. unfold f_to', ts.
-         rewrite upds. apply DenseOrder_le_PreOrder. }
-    apply Time.join_spec.
-    { apply Time.le_lteq. by left. }
-    destruct PREL0 as [PP|PP]; desc.
-    { rewrite PREL. apply Time.bot_spec. }
-    specialize (P_MSG locw).
-    cdes P_MSG.
-    destruct MAX as [[Y1 Y2]|[a_max Y1]].
-    { unfold LocFun.find in *. rewrite Y2.
-      apply Time.bot_spec. }
-    desc.
-    destruct INam as [MSG|[U1 U2]].
-    2: { subst. etransitivity; eauto.
-         etransitivity; [by apply YY|].
-         apply Time.le_lteq. left.
-         etransitivity; apply Time.incr_spec. }
-    etransitivity; eauto.
-    etransitivity.
-    2: { apply Time.le_lteq. left.
-         etransitivity; apply Time.incr_spec. }
-    apply YY.
-    { eapply msg_rel_issued; eauto.
-      exists p. apply seq_eqv_r. split; eauto. }
-    destruct MSG as [z [URR _]].
-    red in URR. apply seq_eqv_l in URR.
-    apply URR. }
-  { red. red in RESERVED_TIME. destruct smode; desc; [|splits]; auto.
-    2-3: etransitivity; eauto; basic_solver.
-    splits.
-    { red; ins. erewrite Memory.add_o in MSG; eauto.
-      destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[EQ1 EQ2]|NEQ]; simpls; subst.
-      { rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in MSG. inv MSG. clear MSG.
-        right. exists w; splits; auto.
-          by right. }
-      rewrite (loc_ts_eq_dec_neq NEQ) in MSG.
-      apply MEM in MSG. destruct MSG as [MSG|MSG]; [by left|right].
-      destruct MSG as [b MSG]; desc.
-      exists b. assert (b <> w) as BWNEQ; [by intros SS; desf|].
-      unnw. rewrite !updo; auto.
-      splits; auto.
-        by left. }
-    intros x y [ISSX|EQX] [ISSY|EQY] NINIT CO; subst.
-    all: try rewrite !upds.
-    all: try rewrite !updo; auto.
-    all: try by intros H; subst.
-    3: by apply WF.(co_irr) in CO.
-    { intros KK. 
-      destruct NFROM as [[NN1 NN2]|[NN1 NN2]].
-      { subst. red in NN2. desc.
-        destruct (classic (wprev = x)) as [|NEQ]; [by subst|].
-        exfalso.
-        assert (E x) as EX.
-        { apply TCCOH in ISSX. apply ISSX. }
-        assert (W x) as WX.
-        { apply TCCOH in ISSX. apply ISSX. }
-        assert (loc lab x = Some locw) as LOCX.
-        { rewrite <- LOC. by apply WF.(wf_col). }
-        assert (loc lab wprev = Some locw) as LOCWP.
-        { rewrite <- LOC. apply WF.(wf_col). eapply rfrmw_in_im_co; eauto. }
-        edestruct WF.(wf_co_total) with (a:=wprev) (b:=x) as [COWX|COWX]; auto.
-        1,2: split; [split|]; eauto.
-        1,2: by apply TCCOH in WPISS; apply WPISS.
-        { eapply rfrmw_in_im_co; eauto. }
-        assert (Time.lt (f_to x) (f_to wprev)) as LL.
-        { eapply f_to_co_mon; eauto. }
-        rewrite KK in LL.
-        eapply XX.
-        3: by apply LL.
-        all: eauto. }
-      exfalso. eapply XX.
-      { apply ISSX. }
-      { rewrite <- LOC. by apply WF.(wf_col). }
-      rewrite KK. rewrite NN1. apply Time.incr_spec. }
-    intros HH. exfalso.
-    assert (Time.lt (f_from y) (f_to y)) as FF by (apply FCOH; auto).
-    eapply XX.
-    3: { etransitivity; [|by apply FF].
-         rewrite <- HH. etransitivity; apply Time.incr_spec. }
-    { done. }
-    rewrite <- LOC. symmetry. by apply WF.(wf_col). }
-  eapply SIM_HELPER; auto. by ins; rewrite updo; auto; intros H; subst.
-Qed.
+  all: admit.
+Admitted.
 
 End Aux.
