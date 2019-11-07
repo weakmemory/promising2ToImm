@@ -549,43 +549,8 @@ Proof using WF IMMCON ETCCOH FCOH.
          eapply wf_immcoPtf; eauto; red.
          eapply rfrmwP_in_immPco with (P':=eq y); eauto.
          apply seqA. basic_solver. }
-    
-    (* TODO: continue from here *)
-    assert (wprev = x); subst.
-    { eapply wf_rfrmwf; eauto. }
-    destruct (classic (f_to x = ts)) as [|NEQ]; [done|exfalso].
-    unfold ts in *.
-    assert (co x y) as COXY.
-    { apply rf_rmw_in_co; cdes IMMCON; eauto using coherence_sc_per_loc. }
-    assert (loc lab x = Some locw) as LOCX.
-    { hahn_rewrite (wf_col WF) in COXY; unfold same_loc in COXY; congruence. }
-    set (SX := ISSX).
-    eapply reserved_to_message in SX; eauto. desc.
-    edestruct Memory.max_ts_spec as [[from [msg' HMEM]] TS]; eauto.
-    red in TS.
     cdes RESERVED_TIME.
-    eapply memory_to_event in HMEM; eauto.
-    apply Time.le_lteq in TS; destruct TS as [TS|]; [clear NEQ|by subst].
-    desf.
-    { rewrite HMEM in TS. by apply time_lt_bot in TS. }
-    rename b into wmax.
-
-    assert (wmax <> y) as WWNEQ.
-    { intros PP; desf. }
-    edestruct WF.(wf_co_total) with (a:=wmax) (b:=y) as [CO|CO]; auto.
-    1,2: by split; [split|]; eauto.
-    2: { apply NCO. eexists. apply seq_eqv_r. eauto. }
-
-    destruct (classic (wmax = x)) as [|WXNEQ]; subst.
-    { rewrite TO in TS. eapply Time.lt_strorder; eauto. }
-
-    edestruct WF.(wf_co_total) with (a:=wmax) (b:=x) as [CO'|CO']; auto.
-    1,2: by split; [split|]; eauto.
-    2: by eapply PIMMCO with (c:=wmax); apply seq_eqv_l.
-    eapply Time.lt_strorder.
-    etransitivity; [by apply TS|].
-    rewrite <- TO.
-    eapply f_to_co_mon; eauto. }
+    eapply no_next_S_max_ts; eauto. }
 
   all: exfalso; eapply rfrmw_in_im_co in RFRMW; eauto.
   { eapply NCO. eexists; apply seq_eqv_r; split; eauto.
@@ -928,54 +893,28 @@ Proof using WF IMMCON ETCCOH FCOH.
       symmetry. by apply WF.(wf_col). }
     destruct NFROM as [[NFROM BB]|[NFROM BB]]; unnw.
     { desc; subst.
-Admitted.
-(*       eapply f_to_eq with (I:=S) in FT; eauto; subst; desc. *)
-(*       subst. apply BB. } *)
-(*     exfalso. *)
-(*     assert (E x) as EX by (by apply ETCCOH.(etc_S_in_E)). *)
-(*     assert (W x) as WX by (by apply (reservedW WF ETCCOH)). *)
-(*     edestruct WF.(wf_co_total) with (a:=x) (b:=wprev) as [COWX|COWX]. *)
-(*     1-2: split; [split|]; eauto. *)
-(*     { intros H; subst. *)
-(*       eapply Time.lt_strorder with (x:=f_to wprev). *)
-(*       rewrite FT at 2. by apply Time.middle_spec. } *)
-(*     { subst. *)
-(*       assert (Time.lt (f_to x) (f_to wprev)) as DD. *)
-(*       { eapply f_to_co_mon; eauto. } *)
-(*       eapply Time.lt_strorder with (x:=f_to x). *)
-(*       rewrite FT at 2. *)
-(*       etransitivity; [by apply DD|]. by apply Time.middle_spec. } *)
-(*     eapply PIMMCO. *)
-(*     all: apply seq_eqv_l; split; eauto. } *)
-(*   rewrite upds in FT; auto. *)
-(*   rewrite updo in FT; auto. *)
-(*   assert (same_loc lab wnext y) as LXPREV. *)
-(*   { etransitivity. *)
-(*     { symmetry. apply WF.(wf_col). apply CONEXT. } *)
-(*     apply WF.(wf_col); eauto. } *)
-(*   assert (~ is_init y) as NINITY. *)
-(*   { apply no_co_to_init in CO; auto. by destruct_seq_r CO as BB. } *)
-(*   destruct NTO as [[NTO BB]|[NTO BB]]; unnw. *)
-(*   { desc; subst. *)
-(*     eapply f_from_eq with (I:=S) in FT; eauto; subst; desc. *)
-(*     subst. apply BB. } *)
-(*   exfalso. *)
-(*   assert (E y) as EY by (by apply ETCCOH.(etc_S_in_E)). *)
-(*   assert (W y) as WY by (by apply (reservedW WF ETCCOH)). *)
-(*   edestruct WF.(wf_co_total) with (a:=wnext) (b:=y) as [COWY|COWY]. *)
-(*   1-2: split; [split|]; eauto. *)
-(*   { intros H; subst. *)
-(*     eapply Time.lt_strorder with (x:=f_from y). *)
-(*     rewrite <- FT at 1. by apply Time.middle_spec. } *)
-(*   { subst. *)
-(*     assert (Time.lt (f_from wnext) (f_from y)) as DD. *)
-(*     { eapply f_from_co_mon; eauto. } *)
-(*     eapply Time.lt_strorder with (x:=f_from y). *)
-(*     rewrite <- FT at 1. *)
-(*     etransitivity; [|by apply DD]. by apply Time.middle_spec. } *)
-(*   eapply NIMMCO with (c:=y). *)
-(*   all: apply seq_eqv_r; split; auto. *)
-(* Qed. *)
+      assert (f_to x = f_to wprev) as FF.
+      2: { eapply f_to_eq with (I:=S) in FF; eauto; desf. }
+      rewrite FT. symmetry.
+      eapply no_next_S_max_ts; eauto. }
+    exfalso. eapply Time.lt_strorder.
+    eapply TimeFacts.le_lt_lt.
+    2: by apply DenseOrder.incr_spec.
+    subst. rewrite <- FT.
+    eapply S_le_max_ts; eauto.
+    rewrite <- WLOC. by apply WF.(wf_col). }
+  rewrite upds in FT.
+  rewrite updo in FT; auto.
+  exfalso. eapply Time.lt_strorder.
+  etransitivity; [|by apply DenseOrder.incr_spec].
+  etransitivity; [|by apply DenseOrder.incr_spec].
+  rewrite FT.
+  eapply TimeFacts.lt_le_lt.
+  2: { eapply S_le_max_ts with (x:=y); eauto.
+       rewrite <- WLOC. symmetry. by apply WF.(wf_col). }
+  apply FCOH; auto.
+  apply no_co_to_init in CO; auto. by destruct_seq_r CO as AA.
+Qed.
 
 Lemma exists_time_interval PC w locw valw langst local smode
       (TSTEP : ext_itrav_step
