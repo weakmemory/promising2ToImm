@@ -1235,17 +1235,24 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH.
   destruct PRMWE as [wprev PRMWE].
   assert (issued T wprev) as IWPREV.
   { admit. }
+  assert (S wprev) as SWPREV by (by apply ETCCOH.(etc_I_in_S)).
   assert (immediate (⦗S⦘ ⨾ co) wprev w) as PIMMCO.
   { admit. }
   
   cdes RESERVED_TIME.
   assert (f_to_coherent G (S ∪₁ eq w) f_to' f_from') as FCOH'.
   { eapply f_to_coherent_add_S_after; eauto.
+    { intros x [y HH]. apply seqA in HH. destruct_seq_r HH as AA; subst.
+      assert (x = wprev); desf.
+      eapply wf_rfrmwf; eauto. }
     left. red in NFROM. desf. exfalso. apply NFROM0.
     red. exists wprev. splits; auto. }
 
   assert (reserved_time G T (S ∪₁ eq w) f_to' f_from' sim_normal memory') as REST'.
-  { admit. }
+  { eapply reserved_time_add_S_after; eauto.
+    red in NFROM. desf.
+    2: { exfalso. apply NFROM0. red. eauto. }
+    left. desf. }
 
   exists promises', memory'. splits; auto.
   all: admit.
