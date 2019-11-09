@@ -931,7 +931,7 @@ Lemma exists_time_interval_for_reserve PC w locw valw langst local smode
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local PC.(Configuration.memory))
       (MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory))
-      (TID : IdentMap.find thread PC.(Configuration.threads) = Some (langst, local)) :
+      (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local)) :
   let memory := PC.(Configuration.memory) in
   exists f_to' f_from' promises' memory',
     ⟪ PADD :
