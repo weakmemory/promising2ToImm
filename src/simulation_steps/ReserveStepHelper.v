@@ -162,8 +162,6 @@ Lemma reserve_step_helper w locw valw langst
                  max_value f_to' (S_tm G l (covered T)) (LocFun.find l sc_view) ⟫ /\
     ⟪ CLOSED_SC : Memory.closed_timemap sc_view memory' ⟫ /\
 
-    ⟪ NEW_CLOSE : Memory.closed_timemap (TimeMap.singleton locw (f_to' w)) memory' ⟫ /\
-
     ⟪ MEM_PROMISE :
         Memory.promise (Local.promises local) memory locw (f_from' w) (f_to' w)
                        Message.reserve promises' memory' Memory.op_kind_add ⟫ /\
@@ -205,46 +203,16 @@ Proof using WF.
   (* assert (tc_coherent G sc (mkTC (covered T) (issued T ∪₁ eq w))) as TCCOH'. *)
   (* { eapply trav_step_coherence; eauto. exists w; right. by splits. } *)
 
-  edestruct exists_time_interval_for_reserve; eauto.
-  (* TODO: continue from here *)
-
-  3: by apply TCCOH.
-  all: eauto.
+  subst.
+  edestruct exists_time_interval_for_reserve as [f_to']; eauto.
   desc.
-  exists p_rel; split; auto.
-  split; auto.
+
+  eexists f_to', f_from', promises', memory'.
+  splits; eauto.
+
+  (* TODO: continue from here *)
   destruct H1; desc.
   { red in H; desc. simpls. left.
-    assert (Memory.closed_timemap
-              (TimeMap.singleton locw (f_to' w)) memory') as NEW_CLOSE.
-    { unfold TimeMap.singleton, LocFun.add.
-      red. intros loc. erewrite Memory.add_o; eauto.
-      destruct (Loc.eq_dec loc locw) as [|NEQ]; subst.
-      { eexists; eexists; eexists. 
-        rewrite loc_ts_eq_dec_eq. eauto. }
-      rewrite loc_ts_eq_dec_neq.
-      2: by left.
-      unfold LocFun.find, LocFun.init.
-      rewrite INHAB. destruct Message.elt.
-      eauto. }
-
-    assert (exists promises'', 
-               if Rel w
-               then Memory.remove promises' locw (f_from' w) (f_to' w) valw
-                                  (Some
-                                     (View.join
-                                        (View.join
-                                           (if Rel w
-                                            then TView.cur (Local.Local.tview local)
-                                            else TView.rel (Local.Local.tview local) locw) 
-                                           (View.unwrap p_rel))
-                                        (View.singleton_ur locw (f_to' w)))) promises''
-               else promises'' = promises')
-      as [promises'' PEQ].
-    { destruct (is_rel lab w); eauto.
-      apply Memory.remove_exists.
-      erewrite Memory.add_o; eauto.
-        by rewrite loc_ts_eq_dec_eq. }
 
     assert (Memory.closed_timemap
               (TimeMap.join
