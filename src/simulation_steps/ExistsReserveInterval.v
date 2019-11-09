@@ -1073,25 +1073,11 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH.
     { eapply WF.(co_trans); eauto. }
 
     assert (immediate (⦗S⦘ ⨾ co ⨾ ⦗S⦘) wprev wnext) as COSIMM.
-    { admit. }
-      (* apply S_co_nS_co_S_imm. *)
-      (* { apply ETCCOH. } *)
-      (* { apply (reservedW WF ETCCOH). } *)
-      (* exists w. split; auto. apply seq_eqv_l. by split. } *)
+    { apply P_co_nP_co_P_imm; auto.
+      { apply ETCCOH. }
+      { apply (reservedW WF ETCCOH). }
+      exists w. split; auto. apply seq_eqv_l. by split. }
 
-    (* assert (forall z (RFRMW : (⦗ issued T ⦘ ⨾ rf ⨾ rmw) z w), z = wprev) as PRFRMW. *)
-    (* { ins. apply seq_eqv_l in RFRMW; destruct RFRMW as [ISSZ RFRMW]. *)
-    (*   eapply rfrmw_in_im_co in RFRMW; eauto. destruct RFRMW as [CO IMM]. *)
-    (*   destruct (classic (z = wprev)) as [|NEQ]; auto. *)
-    (*   exfalso. *)
-    (*   edestruct WF.(wf_co_total). *)
-    (*   3: by apply NEQ. *)
-    (*   1,2: split; [split|]; eauto. *)
-    (*   1,2: by apply TCCOH in ISSZ; apply ISSZ. *)
-    (*   { erewrite (WF.(wf_col) z w); [|by apply CO]. *)
-    (*       by rewrite LOC. } *)
-    (*   { by apply (IMM wprev). } *)
-    (*   eapply PIMMCO. all: apply seq_eqv_l; eauto. } *)
     cdes RESERVED_TIME. desc.
     assert (~ (rf ⨾ rmw) w wnext) as NRFRMWNEXT.
     { intros AA. apply NSW. eapply (dom_rf_rmw_S WF ETCCOH).
@@ -1238,7 +1224,11 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH.
     apply seq_eqv_r. split; eauto. by right. }
   assert (S wprev) as SWPREV by (by apply ETCCOH.(etc_I_in_S)).
   assert (immediate (⦗S⦘ ⨾ co) wprev w) as PIMMCO.
-  { admit. }
+  { eapply rfrmwP_in_immPco with (P':=eq w).
+    2: { apply seqA. basic_solver. }
+    intros x [y HH]. apply seqA in HH. destruct_seq_r HH as AA; subst.
+    assert (x = wprev); desf.
+    eapply wf_rfrmwf; eauto. }
   
   cdes RESERVED_TIME.
   assert (f_to_coherent G (S ∪₁ eq w) f_to' f_from') as FCOH'.
@@ -1258,6 +1248,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH.
   exists promises', memory'. splits; auto.
   all: ins; unfold f_to', f_from'; rewrite updo; auto.
   all: intros HH; desf.
-Admitted.
+Qed.
 
 End Aux.
