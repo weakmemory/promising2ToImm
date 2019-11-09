@@ -167,7 +167,7 @@ Proof using WF CON.
   { apply (wf_rfE WF) in RF. apply seq_eqv_l in RF; desf. }
 
   edestruct SIM_MEM as [rel' DOM].
-  2: by apply WISS.
+  { by apply WISS. }
   all: eauto.
   simpls. desc.
   rewrite INMEM in INMEM0. inv INMEM0. clear INMEM0.

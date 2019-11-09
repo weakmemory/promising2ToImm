@@ -14,7 +14,6 @@ From imm Require Import AuxDef.
 
 Require Import AuxRel2.
 Require Import TraversalConfig.
-Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimState.
 Require Import MemoryAux.
@@ -1096,8 +1095,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH.
     cdes RESERVED_TIME. desc.
     assert (~ (rf ⨾ rmw) w wnext) as NRFRMWNEXT.
     { intros AA. apply NSW. eapply (dom_rf_rmw_S WF ETCCOH).
-      exists wnext. apply seq_eqv_l. split; auto.
-      apply seqA. apply seq_eqv_r. by split. }
+      exists wnext. apply seqA. apply seq_eqv_r. by split. }
     
     set (n_to := Time.middle (f_to wprev) (f_from wnext)).
     set (f_to' := upd f_to w n_to).
@@ -1150,7 +1148,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH.
     { eapply reserved_time_add_S_middle; eauto. }
     
     do 2 eexists. splits; eauto.
-    all: admit. }
+    all: ins; unfold f_to', f_from'; rewrite updo; auto.
+    all: intros HH; desf. }
 
   set (ts := Memory.max_ts locw (Configuration.memory PC)).
   set (f_to' := upd f_to w (Time.incr (Time.incr ts))).
@@ -1234,7 +1233,9 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH.
   
   destruct PRMWE as [wprev PRMWE].
   assert (issued T wprev) as IWPREV.
-  { admit. }
+  { eapply dom_rf_rmw_S_in_I with (T:= (mkETC T (S ∪₁ eq w))); eauto.
+    eexists. apply seqA.
+    apply seq_eqv_r. split; eauto. by right. }
   assert (S wprev) as SWPREV by (by apply ETCCOH.(etc_I_in_S)).
   assert (immediate (⦗S⦘ ⨾ co) wprev w) as PIMMCO.
   { admit. }
@@ -1255,7 +1256,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH.
     left. desf. }
 
   exists promises', memory'. splits; auto.
-  all: admit.
+  all: ins; unfold f_to', f_from'; rewrite updo; auto.
+  all: intros HH; desf.
 Admitted.
 
 End Aux.

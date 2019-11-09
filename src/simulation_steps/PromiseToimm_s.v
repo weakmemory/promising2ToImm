@@ -175,7 +175,8 @@ Proof using.
     { eapply PROM_IN_MEM; eauto. }
     done. }
   eexists. eexists. eexists; eauto. splits; eauto.
-  2: by eapply memory_close_le; eauto.
+  3: by eapply memory_close_le; eauto.
+  2: { red. ins. edestruct SIM_RES_MEM as [rel_opt H]; eauto. }
   red. ins.
   edestruct SIM_MEM as [rel_opt H]; eauto.
   simpls. desf.
@@ -414,6 +415,7 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF.
     red. unfold View.unwrap, View.bot, TimeMap.bot. simpls.
     ins. eexists. eexists. eexists.
     unfold Memory.get, Cell.get. simpls. }
+  { red; simpls. }
   { unfold Local.init. simpls.
     unfold TView.bot. red; simpls.
     unfold View.bot.

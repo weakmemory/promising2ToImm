@@ -164,9 +164,7 @@ Proof using WF CON.
   { apply (wf_rfE WF) in RF. apply seq_eqv_l in RF; desf. }
 
   cdes SIM_MEM.
-  edestruct SIM_MEM0 as [rel DOM'].
-  2: by apply WISS.
-  all: eauto.
+  edestruct SIM_MEM0 with (b:=w) as [rel DOM']; eauto.
   desc.
 
   assert (Event_imm_promise.same_g_events lab (r :: nil) ev) as SAME.

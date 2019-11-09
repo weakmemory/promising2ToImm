@@ -409,14 +409,10 @@ Proof using WF CON.
       (* TODO: generalize! *)
       assert (l = locw -> Time.lt (f_to w) (f_to b)) as FGT.
       { ins; subst. eapply f_to_co_mon; eauto.
+        assert (E b /\ W b) as [EB WB] by (by apply TCCOH).
         assert (co w b \/ co b w) as H; [|destruct H as [|H]; [done|exfalso]].
-        { assert (W b) as WB.
-          { by apply TCCOH. }
-          edestruct (@wf_co_total G WF (Some locw)).
-          3: by eauto.
-          1,2: by red; split; [red; split|]; auto.
-            by right.
-              by left. }
+        { edestruct (@wf_co_total G WF (Some locw)); eauto.
+          all: by red; split; [red; split|]; auto. }
         cdes CON.
         eapply Cint.
         eexists; split.

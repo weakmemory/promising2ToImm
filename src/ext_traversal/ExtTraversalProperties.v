@@ -91,48 +91,49 @@ Notation "'S'" := (reserved T).
 Notation "'C'" := (ecovered T).
 Notation "'I'" := (eissued  T).
 
-Lemma dom_rf_rmw_S_in_I : dom_rel (⦗W_ex⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ I.
+Lemma dom_rf_rmw_S_in_I : dom_rel (rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ I.
 Proof using WF ETCCOH.
   rewrite rmw_W_ex, !seqA.
   arewrite (⦗W_ex⦘ ⨾ ⦗S⦘ ⊆ ⦗S ∩₁ W_ex⦘) by basic_solver.
   rewrite ETCCOH.(etc_S_W_ex_rfrmw_I).
   rewrite <- seqA with (r2:=rmw).
   intros x [y HH].
-  destruct_seq HH as [WX BB].
+  destruct_seq_r HH as BB.
   destruct BB as [z BB].
   destruct_seq_l BB as IZ.
   assert (x = z); desf.
   eapply wf_rfrmwf; eauto.
 Qed.
 
-Lemma dom_rf_rmw_S : dom_rel (⦗W_ex⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ S.
+Lemma dom_rf_rmw_S : dom_rel (rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ S.
 Proof using WF ETCCOH.
   rewrite <- ETCCOH.(etc_I_in_S) at 2.
   apply dom_rf_rmw_S_in_I.
 Qed.
 
-Lemma rf_rmw_S : ⦗W_ex⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘ ≡
-                 ⦗S⦘ ⨾ ⦗ W_ex ⦘ ⨾  rf ⨾ rmw ⨾ ⦗S⦘.
+Lemma rf_rmw_S : rf ⨾ rmw ⨾ ⦗S⦘ ≡
+                 ⦗S⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘.
 Proof using WF ETCCOH.
   apply dom_rel_helper.
   apply dom_rf_rmw_S.
 Qed.
 
-Lemma dom_rf_rmw_rt_S : dom_rel (⦗W_ex⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘) ⊆₁ S.
+Lemma dom_rf_rmw_rt_S : dom_rel ((rf ⨾ rmw)＊ ⨾ ⦗S⦘) ⊆₁ S.
 Proof using WF ETCCOH.
-  cut (⦗W_ex⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ ⦗S⦘ ⨾ (fun _ _ => True)).
+  cut ((rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ ⦗S⦘ ⨾ (fun _ _ => True)).
   { unfolder; ins; desf; eauto 21; eapply H; splits; eauto 10. }
-  apply rt_ind_left with (P:= fun r => ⦗W_ex⦘ ⨾ r ⨾ ⦗S⦘).
+  apply rt_ind_left with (P:= fun r => r ⨾ ⦗S⦘).
   { auto with hahn. }
   { basic_solver. }
   intros k H.
   sin_rewrite rmw_W_ex; rewrite !seqA.
   sin_rewrite H.
+  arewrite_id ⦗W_ex⦘. rewrite seq_id_l.
   seq_rewrite rf_rmw_S.
   basic_solver.
 Qed.
 
-Lemma dom_rf_rmw_ct_S : dom_rel (⦗W_ex⦘ ⨾ (rf ⨾ rmw)⁺ ⨾ ⦗S⦘) ⊆₁ S.
+Lemma dom_rf_rmw_ct_S : dom_rel ((rf ⨾ rmw)⁺ ⨾ ⦗S⦘) ⊆₁ S.
 Proof using WF ETCCOH.
   rewrite inclusion_t_rt.
   apply dom_rf_rmw_rt_S.
@@ -168,7 +169,6 @@ Proof using WF ETCCOH.
   arewrite ((rfi ⨾ rmw)＊ ⨾ (⦗I⦘ ⨾ (rf ⨾ rmw)⁺)^? ⊆ (rf ⨾ rmw)＊).
   { arewrite (rfi ⊆ rf); arewrite_id (⦗I⦘); relsf. }
   relsf.
-  sin_rewrite rmw_W_ex; rewrite !seqA.
   rewrite (dom_rel_helper dom_rf_rmw_rt_S).
   seq_rewrite (dom_rel_helper rfe_rmw_S).
   arewrite (rfe ⊆ rf).

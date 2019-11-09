@@ -201,13 +201,11 @@ Proof using WF CON.
   assert (tid w = tid r) as TIDWR.
   { destruct (sb_tid_init WRSB); desf. }
 
-  edestruct SIM_MEM as [rel DOM].
-  { apply WACT. }
+  edestruct SIM_MEM with (b:=w) as [rel DOM].
   all: eauto.
   simpls. desc.
 
-  edestruct SIM_MEM as [rel' DOM'].
-  { apply WPACT. }
+  edestruct SIM_MEM with (b:=w') as [rel' DOM'].
   all: eauto.
   simpls. desc.
   clear DOM'1.
@@ -577,7 +575,7 @@ Proof using WF CON.
       unfold View.singleton_ur, TimeMap.singleton, LocFun.init; simpls.
       unfold LocFun.add. rewrite Loc.eq_dec_eq.
       apply Time.le_lteq. left. eapply f_to_co_mon; eauto.
-      assert (W b) as WB.
+      assert (E b /\ W b) as [EB WB].
       { apply TCCOH in ISSB. apply ISSB. }
       edestruct WF.(wf_co_total) with (a:=w) (b:=b) as [CO|CO]; eauto.
       1,2: split; [split|]; eauto.
