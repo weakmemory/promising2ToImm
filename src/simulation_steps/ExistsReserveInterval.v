@@ -926,16 +926,12 @@ Lemma exists_time_interval_for_reserve PC w locw valw langst local smode
            Memory.le local.(Local.promises) PC.(Configuration.memory))
       (RESERVED_TIME:
          reserved_time G T S f_to f_from smode PC.(Configuration.memory))
-      (INHAB      : Memory.inhabited (Configuration.memory PC))
-      (CLOSED_MEM : Memory.closed (Configuration.memory PC))
       (SIM_RES_MEM :
          sim_res_mem G T S f_to f_from (tid w) local (Configuration.memory PC))
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local PC.(Configuration.memory))
-      (SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) (tid w))
-      (PLN_RLX_EQ : pln_rlx_eq local.(Local.tview))
       (MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory))
-      (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local)) :
+      (TID : IdentMap.find thread PC.(Configuration.threads) = Some (langst, local)) :
   let memory := PC.(Configuration.memory) in
   exists f_to' f_from' promises' memory',
     ⟪ PADD :
