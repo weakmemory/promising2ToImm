@@ -74,8 +74,6 @@ Variable T : trav_config.
 Variable S : actid -> Prop.
 Variable ETCCOH : etc_coherent G sc (mkETC T S).
 
-Variable RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T.
-
 Variable f_to f_from : actid -> Time.t.
 Variable FCOH : f_to_coherent G S f_to f_from.
 
@@ -915,7 +913,7 @@ Proof using WF IMMCON ETCCOH FCOH.
   apply no_co_to_init in CO; auto. by destruct_seq_r CO as AA.
 Qed.
 
-Lemma exists_time_interval PC w locw valw langst local smode
+Lemma exists_time_interval_for_reserve PC w locw valw langst local smode
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
       (PRMW : ~ codom_rel (⦗S \₁ issued T⦘ ⨾ rfi ⨾ rmw) w)
@@ -952,7 +950,7 @@ Lemma exists_time_interval PC w locw valw langst local smode
     ⟪ FCOH : f_to_coherent G (S ∪₁ eq w) f_to' f_from' ⟫ /\
     ⟪ RESERVED_TIME :
         reserved_time G T (S ∪₁ eq w) f_to' f_from' smode memory' ⟫.
-Proof using WF IMMCON ETCCOH RELCOV FCOH.
+Proof using WF IMMCON ETCCOH FCOH.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   assert (etc_coherent G sc (mkETC T (S ∪₁ eq w))) as ETCCOH' by apply TSTEP.
 
