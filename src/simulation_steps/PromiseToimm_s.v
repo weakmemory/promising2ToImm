@@ -751,9 +751,7 @@ Proof using All.
   assert (SS := SIM_MEM).
   assert (issued T w) as IIW.
   { eapply w_covered_issued; eauto. split; auto. }
-  edestruct SS as [rel_opt].
-  { apply ACTS0. }
-  all: eauto.
+  edestruct SS with (b:=w) as [rel_opt]; eauto.
   simpls. desc. clear H1.
   destruct (classic (b = w)) as [|NEQ]; subst.
   { rewrite <- TO in *. rewrite INMEM in AA. inv AA. }
