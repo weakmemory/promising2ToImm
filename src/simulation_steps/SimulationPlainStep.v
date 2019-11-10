@@ -36,6 +36,7 @@ Require Import FencePlainStep.
 Require Import ReadPlainStep.
 Require Import WriteRlxCovPlainStep.
 Require Import RMWRlxCovPlainStep.
+Require Import ReservePlainStep.
 (* TODO: Require Import WritePlainStep. *)
 (* TODO: Require Import RMWPlainStep. *)
 
@@ -120,8 +121,8 @@ Proof using WF CON.
     cdes TS. desf; unfold eissued, ecovered in *; simpls.
     { exfalso. apply NCOV. apply COVEQ. basic_solver. }
     { exfalso. apply NISS. apply ISSEQ. basic_solver. }
-
-    admit. }
+    edestruct reserve_step; eauto.
+    desc. do 3 eexists. splits; eauto. }
 
   { (* Relaxed write issuing *)
     admit. }
