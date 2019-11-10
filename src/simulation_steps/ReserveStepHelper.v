@@ -91,7 +91,8 @@ Hypothesis SC_REQ :
 
 Variable thread : thread_id.
 Variable local : Local.t.
-Hypothesis SIM_PROM : sim_prom G sc T f_to f_from thread local.(Local.promises).
+Hypothesis SIM_PROM     : sim_prom     G sc T   f_to f_from thread local.(Local.promises).
+Hypothesis SIM_RES_PROM : sim_res_prom G    T S f_to f_from thread local.(Local.promises).
 
 Hypothesis CLOSED_SC : Memory.closed_timemap PC.(Configuration.sc) PC.(Configuration.memory).
 
@@ -166,7 +167,8 @@ Lemma reserve_step_helper w locw langst
                (TID : IdentMap.find thread' threads' = Some (langst, local)),
           Memory.le local.(Local.Local.promises) memory' ⟫ /\
 
-    ⟪ SIM_PROM : sim_prom G sc T f_to' f_from' (tid w) promises'  ⟫ /\
+    ⟪ SIM_PROM     : sim_prom     G sc T             f_to' f_from' (tid w) promises'  ⟫ /\
+    ⟪ SIM_RES_PROM : sim_res_prom G    T (S ∪₁ eq w) f_to' f_from' (tid w) promises'  ⟫ /\
 
     ⟪ PROM_DISJOINT :
         forall thread' langst' local'
@@ -293,6 +295,18 @@ Proof using All.
     exists b; splits; auto.
     cdes IMMCON.
     eapply sim_mem_helper_f_issued with (T:=T) (f_to:=f_to); eauto. }
+  { red. ins.
+    erewrite Memory.add_o in RES; eauto.
+    destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[A' B']|LL].
+    { simpls; rewrite A' in *; rewrite B' in *.
+      rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in RES.
+      inv RES. exists w. splits; auto. by right. }
+    rewrite (loc_ts_eq_dec_neq LL) in RES.
+    edestruct SIM_RES_PROM as [b H]; eauto; desc.
+    exists b. splits; auto.
+    { by left. }
+    { by rewrite REQ_FROM. }
+      by rewrite REQ_TO. }
   { ins.
     rewrite IdentMap.gso in TID'; auto.
     destruct (loc_ts_eq_dec (loc, to) (locw, (f_to' w))) as [EQ|NEQ]; simpls.

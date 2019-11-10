@@ -138,7 +138,6 @@ Proof using WF CON.
     exists state; eexists.
     rewrite IdentMap.gss.
     splits; eauto.
-    { admit. }
     { eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
     eapply tview_closedness_preserved_add; eauto. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
@@ -156,6 +155,6 @@ Proof using WF CON.
   { eapply coveredE; eauto. }
   rewrite issuedE; eauto.
   all: basic_solver.
-Admitted.
+Qed.
 
-End WritePlainStep.
+End ReservePlainStep.
