@@ -252,12 +252,9 @@ Proof using WF.
     rewrite <- REQ_FROM in FROM; auto.
     exists b; splits; auto.
     cdes IMMCON.
-    admit. }
-  (* TODO: continue from here *)
-    (* eapply sim_mem_helper_fS. *)
-    (* 6: by apply HELPER0. *)
-    (* 5: by apply ISSEQ_TO. *)
-    (* all: auto. } *)
+    eapply sim_mem_helper_f_issued with (T:=T) (f_to:=f_to); eauto.
+    { apply ETCCOH. }
+    ins. apply REQ_TO. by apply ETCCOH.(etc_I_in_S). }
 
   { eapply closedness_preserved_add; eauto. }
 
