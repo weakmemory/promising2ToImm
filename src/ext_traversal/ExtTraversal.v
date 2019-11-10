@@ -6,39 +6,9 @@ Require Import TraversalConfig Traversal.
 Require Import AuxRel AuxRel2.
 Require Export ExtTravRelations.
 Require Import TraversalProperties.
+Require Import ImmProperties.
 
 Set Implicit Arguments.
-
-(* TODO: move to a more appropriate place (imm). *)
-Lemma W_ex_in_E G (WF : Wf G): W_ex G ⊆₁ acts_set G.
-Proof.
-  unfold W_ex. rewrite WF.(wf_rmwE). basic_solver.
-Qed.
-
-(* TODO: move to a more appropriate place (imm). *)
-Lemma rfrmw_in_eco G
-      (WF : Wf G) (SPL : sc_per_loc G) (COMP : complete G) :
-  rf G ;; rmw G ⊆ eco G.
-Proof.
-  rewrite rf_in_eco. rewrite rmw_in_fr; auto.
-  rewrite fr_in_eco.
-  apply transitiveI. by apply eco_trans.
-Qed.
-
-(* TODO: move to a more appropriate place (imm). *)
-Lemma rfrmw_sb_irr G sc
-      (WF : Wf G) (IMMCON : imm_consistent G sc) : 
-  irreflexive (rf G ;; rmw G ;; sb G).
-Proof.
-  arewrite (rf G ⨾ rmw G ⊆ eco G).
-  { apply rfrmw_in_eco; auto.
-    apply coherence_sc_per_loc.
-    all: by apply IMMCON. }
-  rewrite sb_in_hb.
-  rewrite irreflexive_seqC.
-  arewrite (eco G ⊆ (eco G)^?).
-  apply IMMCON.
-Qed.
 
 Section ExtTraversalConfig.
 Variable G : execution.
@@ -222,7 +192,7 @@ Lemma dom_r_sb_new_reserved e r T (ETCCOH : etc_coherent T) :
   dom_rel (r ⨾ sb ⨾ ⦗reserved T ∪₁ eq e ∪₁
            dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw)⦘) ≡₁
   dom_rel (r ⨾ sb ⨾ ⦗reserved T ∪₁ eq e⦘).
-Proof.
+Proof using.
   split; [|basic_solver 20].
   rewrite id_union. rewrite !seq_union_r, dom_union.
   unionL; [done|].
@@ -236,7 +206,7 @@ Lemma dom_r_rppo_new_reserved e r T (ETCCOH : etc_coherent T) :
   dom_rel (r ⨾ rppo ⨾ ⦗reserved T ∪₁ eq e ∪₁
            dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw)⦘) ≡₁
   dom_rel (r ⨾ rppo ⨾ ⦗reserved T ∪₁ eq e⦘).
-Proof.
+Proof using WF.
   split; [|basic_solver 20].
   rewrite id_union. rewrite !seq_union_r, dom_union.
   unionL; [done|].
@@ -252,7 +222,7 @@ Lemma dom_sb_new_reserved e T (ETCCOH : etc_coherent T) :
   dom_rel (sb ⨾ ⦗reserved T ∪₁ eq e ∪₁
            dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw)⦘) ≡₁
   dom_rel (sb ⨾ ⦗reserved T ∪₁ eq e⦘).
-Proof.
+Proof using WF.
   assert (sb ≡ <| fun _ => True |> ;; sb) as AA by basic_solver.
   rewrite AA at 1 3.
   rewrite !seqA. by apply dom_r_sb_new_reserved.
@@ -260,55 +230,9 @@ Qed.
 
 Lemma dom_rfe_rppo_S_in_I T (ETCCOH : etc_coherent T) :
   dom_rel (rfe ⨾ rppo ⨾ ⦗reserved T⦘) ⊆₁ eissued T.
-Proof.
+Proof using WF.
   rewrite <- etc_rppo_S; auto.
   rewrite <- inclusion_id_rt. rewrite seq_id_l.
-  basic_solver 10.
-Qed.
-
-(* TODO: move to lib/AuxRel2.v *)
-Lemma seq_codom_dom_inter_iff {A} (r r' : relation A) :
-  codom_rel r ∩₁ dom_rel r' ≡₁ ∅ <-> r ⨾ r' ≡ ∅₂.
-Proof.
-  ins. split.
-  { by apply seq_codom_dom_inter. }
-  intros AA.
-  split; [|basic_solver].
-  unfolder. ins. desf.
-  eapply AA. eexists. eauto.
-Qed.
-
-(* TODO: move to lib/ImmProperties.v *)
-Lemma W_ex_in_codom_rfrmw : W_ex ⊆₁ codom_rel (rf ⨾ rmw).
-Proof.
-  intros x [y RMW].
-  assert (exists z, rf z y) as [z RF].
-  { apply IMMCON.
-    apply (dom_l WF.(wf_rmwE)) in RMW. destruct_seq_l RMW as AA. split; auto.
-    apply (dom_l WF.(wf_rmwD)) in RMW. destruct_seq_l RMW as BB. type_solver. }
-  exists z. eexists. eauto.
-Qed.
-
-(* TODO: move to lib/ImmProperties.v *)
-Lemma dom_rfrmw_issuable_in_I T (TCCOH : tc_coherent G sc T) :
-  dom_rel (rf ⨾ rmw ⨾ ⦗issuable G sc T⦘) ⊆₁ issued T.
-Proof.
-  rewrite <- rfrmw_coverable_issuable_in_I; eauto.
-  basic_solver 10.
-Qed.
-
-(* TODO: move to lib/ImmProperties.v *)
-Lemma I_rfrmw_issuable T (TCCOH : tc_coherent G sc T) :
-  rf ⨾ rmw ⨾ ⦗issuable G sc T⦘ ≡ <|issued T|> ⨾ rf ⨾ rmw ⨾ ⦗issuable G sc T⦘.
-Proof. apply dom_rel_helper. by apply dom_rfrmw_issuable_in_I. Qed.
-
-(* TODO: move to lib/ImmProperties.v *)
-Lemma issuable_W_ex_in_codom_I_rfrmw T (TCCOH : tc_coherent G sc T) :
-  issuable G sc T ∩₁ W_ex ⊆₁ codom_rel (⦗issued T⦘ ⨾ rf ⨾ rmw).
-Proof.
-  rewrite W_ex_in_codom_rfrmw.
-  rewrite set_interC. rewrite <- codom_eqv1, seqA.
-  rewrite I_rfrmw_issuable; auto.
   basic_solver 10.
 Qed.
 
@@ -496,7 +420,7 @@ Proof using WF IMMCON.
     apply set_union_mori.
     2: arewrite (rfi ⊆ rf); basic_solver 10.
     rewrite set_inter_union_l. unionL; [by apply ETCCOH|].
-    rewrite <- issuable_W_ex_in_codom_I_rfrmw; auto.
+    rewrite <- issuable_W_ex_in_codom_I_rfrmw; eauto.
     basic_solver. }
   assert (W_ex e) as WEXE.
   { apply NNPP. intuition. }

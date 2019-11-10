@@ -223,7 +223,7 @@ Definition simrel_thread_local (thread : thread_id) (smode : sim_mode) :=
           Memory.get loc to local .(Local.promises) = None \/
           Memory.get loc to local'.(Local.promises) = None ⟫ /\
 
-    ⟪ SIM_PROM  : sim_prom      thread local.(Local.promises) ⟫ /\
+    ⟪ SIM_PROM  : sim_prom     thread local.(Local.promises) ⟫ /\
     ⟪ SIM_RPROM : sim_res_prom thread local.(Local.promises) ⟫ /\
 
     ⟪ SIM_MEM : sim_mem thread local memory ⟫ /\

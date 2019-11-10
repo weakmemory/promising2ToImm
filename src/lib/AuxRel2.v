@@ -70,8 +70,19 @@ Qed.
 
 Lemma immediate_inter_mori {A} (x y : relation A) (IN : y ⊆ x) :
   y ∩ (immediate x) ⊆ immediate y.
-Proof.
+Proof using.
   intros e e' [HH BB].
   split; auto.
   ins. eapply BB; apply IN; eauto.
+Qed.
+
+Lemma seq_codom_dom_inter_iff {A} (r r' : relation A) :
+  codom_rel r ∩₁ dom_rel r' ≡₁ ∅ <-> r ⨾ r' ≡ ∅₂.
+Proof using.
+  ins. split.
+  { by apply seq_codom_dom_inter. }
+  intros AA.
+  split; [|basic_solver].
+  unfolder. ins. desf.
+  eapply AA. eexists. eauto.
 Qed.

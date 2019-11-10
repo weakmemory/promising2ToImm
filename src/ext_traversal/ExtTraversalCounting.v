@@ -40,7 +40,7 @@ Lemma countP_strict_mori e l P P'
       (INP' :  P' e)
       (INL  : In e l) :
   countP P l < countP P' l.
-Proof.
+Proof using.
   generalize dependent e.
   induction l; simpls.
   ins. desf.

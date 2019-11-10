@@ -319,4 +319,40 @@ Proof using WF.
   apply AA.
 Qed.
 
+Lemma W_ex_in_E : W_ex ⊆₁ acts_set G.
+Proof using WF.
+  unfold Execution.W_ex. rewrite WF.(wf_rmwE). basic_solver.
+Qed.
+
+Lemma rfrmw_in_eco (SPL : sc_per_loc G) (COMP : complete G) :
+  rf ;; rmw ⊆ eco.
+Proof using WF.
+  rewrite rf_in_eco. rewrite rmw_in_fr; auto.
+  rewrite fr_in_eco.
+  apply transitiveI. by apply eco_trans.
+Qed.
+
+Lemma rfrmw_sb_irr : 
+  irreflexive (rf ;; rmw ;; sb).
+Proof using WF CON.
+  arewrite (rf ⨾ rmw ⊆ eco).
+  { apply rfrmw_in_eco; auto.
+    apply coherence_sc_per_loc.
+    all: by apply CON. }
+  rewrite sb_in_hb.
+  rewrite irreflexive_seqC.
+  arewrite (eco ⊆ eco^?).
+  apply CON. 
+Qed.
+
+Lemma W_ex_in_codom_rfrmw : W_ex ⊆₁ codom_rel (rf ⨾ rmw).
+Proof using WF CON.
+  intros x [y RMW].
+  assert (exists z, rf z y) as [z RF].
+  { apply CON.
+    apply (dom_l WF.(wf_rmwE)) in RMW. destruct_seq_l RMW as AA. split; auto.
+    apply (dom_l WF.(wf_rmwD)) in RMW. destruct_seq_l RMW as BB. type_solver. }
+  exists z. eexists. eauto.
+Qed.
+
 End ImmProperties.

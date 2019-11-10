@@ -79,8 +79,7 @@ Variable FCOH : f_to_coherent G S f_to f_from.
 
 (* TODO: move to a more appropriate place. *)
 Lemma f_to_coherent_add_S_middle memory local w wprev wnext n_to n_from
-      (SIM_MEM : sim_mem G sc T f_to f_from
-                         (tid w) local memory)
+      (SIM_MEM : sim_mem G sc T f_to f_from (tid w) local memory)
       (FFNEQ : f_to wprev <> f_from wnext)
       (NSW : ~ S w)
       (NIMMCO : immediate (co ⨾ ⦗S⦘) w wnext)
