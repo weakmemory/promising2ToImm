@@ -28,6 +28,8 @@ Require Import FtoCoherent.
 Require Import AuxRel2.
 Require Import ExistsReserveInterval.
 Require Import ReserveStepHelper.
+Require Import MemoryClosedness.
+Require Import SimulationRelProperties.
 
 Set Implicit Arguments.
 
@@ -80,116 +82,40 @@ Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Lemma reserve_step PC T S f_to f_from thread w smode
       (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
-      (TID : tid w = thread)
       (TSTEP : ext_itrav_step
-                 G sc w (mkETC T S) (mkETC T (S ∪₁ eq w))) :
-  let T' := (mkTC (covered T) (issued T ∪₁ eq w)) in
+                 G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
+      (WTID : thread = tid w) :
   let S' := S ∪₁ eq w in
   exists PC' f_to' f_from',
     ⟪ PCSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T S' f_to' f_from' thread smode ⟫ /\
     ⟪ SIMREL :
         smode = sim_normal -> simrel G sc PC T S f_to f_from ->
-        simrel G sc PC' T' S' f_to' f_from' ⟫.
+        simrel G sc PC' T S' f_to' f_from' ⟫.
 Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
+  subst.
   
-  edestruct reserve_step_helper; eauto.
+  assert (tc_coherent G sc T) as TCCOHs by apply TCCOH.
 
+  assert (W w) as WW.
+  { eapply ext_itrav_step_reserveW with (T := mkETC T S); eauto. }
 
-  assert (ISS : issuable G sc T w).
-  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
-  assert (WNISS : ~ issued T w).
-  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
-
-  assert (W w /\ E w) as [TYPE WACT].
-  { split; apply ISS. }
-
-  assert (tc_coherent G sc T) as sTCCOH by apply TCCOH.
-
-  assert (~ covered T w) as WNCOV.
-  { intros H. apply WNISS.
-    eapply w_covered_issued; eauto. split; auto. }
-
-  assert (~ is_init w) as WNINIT.
-  { intros H; apply WNCOV. by apply TCCOH. }
+  assert (E w) as EW.
+  { eapply ext_itrav_stepE with (T := mkETC T S); eauto. }
   
-  assert (tc_coherent G sc (mkTC (covered T) (issued T ∪₁ eq w))) as TCCOH_NEW.
-  { apply TSTEP. }
- 
-  assert (exists ex ordw locw valw,
-             lab w = Astore ex ordw locw valw) as PARAMS; desf.
-  { unfold is_w in TYPE.
-    destruct (lab w); desf; eexists; eauto. }
-  assert (loc lab w = Some locw) as WLOC.
-  { by unfold loc; rewrite PARAMS. }
-  assert (val lab w = Some valw) as WVAL.
-  { by unfold val; rewrite PARAMS. }
-
-  assert (W ∩₁ Rel ∩₁ (issued T ∪₁ eq w) ⊆₁ covered T) as RELCOV_NEW.
-  { simpls. rewrite !set_inter_union_r.
-    rewrite (set_interA W Rel (eq w)).
-    arewrite (Rel ∩₁ eq w ⊆₁ ∅).
-    { intros x [H]; desf. }
-    generalize RELCOV; basic_solver. }
+  assert (exists locw, loc lab w = Some locw) as [locw WLOC] by (by apply is_w_loc).
   
-  cdes SIM_MEM. 
-  edestruct write_promise_step_helper as [p_rel H].
-  13: by apply FCOH.
-  all: eauto.
-  desc. destruct H1 as [H|H].
-  { cdes H; clear H.
-    set (pe :=
-           ThreadEvent.promise
-             locw (f_from' w) (f_to' w) valw
-             (Some
-                (View.join
-                   (View.join
-                      (if is_rel lab w
-                       then TView.cur (Local.tview local)
-                       else TView.rel (Local.tview local) locw) (View.unwrap p_rel))
-                   (View.singleton_ur locw (f_to' w))))
-             Memory.op_kind_add).
+  edestruct reserve_step_helper as [f_to']; eauto. simpls; desc.
 
-    eexists; exists f_to'; exists f_from'.
-    apply and_assoc. apply pair_app; unnw.
-    { split.
-      { set (pe' := None).
-        assert (pe' = ThreadEvent.get_event pe) as H.
-        { unfold pe. simpls. }
-        rewrite H. clear H.
-        econstructor; eauto.
-        apply Thread.step_promise.
-        constructor.
-        2: by simpls.
-        constructor; eauto. }
-      destruct (is_rel lab w); simpls; subst.
-      red; splits; red; splits; eauto.
-      simpls.
-      exists state; eexists.
-      rewrite IdentMap.gss.
-      splits; eauto.
-      eapply sim_tview_f_issued; eauto. }
-    intros [PCSTEP SIMREL_THREAD']; split; auto.
-    intros SMODE SIMREL.
-    eapply simrel_f_issued in SIMREL; eauto.
-    eapply full_simrel_step.
-    13: by apply SIMREL.
-    11: { ins. rewrite IdentMap.Facts.add_in_iff.
-          split; auto. intros [|]; auto; subst.
-          apply IdentMap.Facts.in_find_iff.
-            by rewrite LLH. }
-    all: simpls; eauto.
-    7: by eapply msg_preserved_add; eauto.
-    6: by eapply closedness_preserved_add; eauto.
-    { eapply coveredE; eauto. }
-    rewrite issuedE; eauto.
-    all: basic_solver. }
-  cdes H. clear H.
+  assert (forall e, issued T e -> f_to' e = f_to e) as ISSEQ_TO.
+  { ins. apply REQ_TO. by apply TCCOH.(etc_I_in_S). }
+
   set (pe :=
          ThreadEvent.promise
-           locw (f_from' w) (f_to' w) valw rel 
-           (Memory.op_kind_split (f_to' ws) valws relws)).
+           locw (f_from' w) (f_to' w) Message.reserve
+           Memory.op_kind_add).
+
   eexists; exists f_to'; exists f_from'.
   apply and_assoc. apply pair_app; unnw.
   { split.
@@ -198,22 +124,38 @@ Proof using WF CON.
       { unfold pe. simpls. }
       rewrite H. clear H.
       econstructor; eauto.
+      2: by unfold pe; desf.
       apply Thread.step_promise.
       constructor.
       2: by simpls.
-      constructor; eauto. }
+      econstructor; eauto. }
     subst.
     red; splits; red; splits; eauto.
-    { intros. desf. }
+    { apply TSTEP. }
+    { eapply Memory.add_inhabited; eauto. }
+    { eapply Memory.add_closed; eauto. }
     simpls.
     exists state; eexists.
     rewrite IdentMap.gss.
-    destruct (is_rel lab w); simpls.
     splits; eauto.
-    { eapply sim_tview_f_issued; eauto. }
-    eapply tview_closedness_preserved_split; eauto. }
+    { admit. }
+    { eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
+    eapply tview_closedness_preserved_add; eauto. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
-  intros SMODE'. desf.
-Qed.
+  intros SMODE SIMREL.
+  eapply simrel_fS in SIMREL; eauto.
+  eapply full_simrel_step.
+  15: by apply SIMREL.
+  13: { ins. rewrite IdentMap.Facts.add_in_iff.
+        split; auto. intros [|]; auto; subst.
+        apply IdentMap.Facts.in_find_iff.
+          by rewrite LLH. }
+  all: simpls; eauto.
+  8: by eapply msg_preserved_add; eauto.
+  7: by eapply closedness_preserved_add; eauto.
+  { eapply coveredE; eauto. }
+  rewrite issuedE; eauto.
+  all: basic_solver.
+Admitted.
 
 End WritePlainStep.

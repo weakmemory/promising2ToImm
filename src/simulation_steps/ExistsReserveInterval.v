@@ -916,7 +916,6 @@ Qed.
 Lemma exists_time_interval_for_reserve PC w locw langst local smode
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
-      (PRMW : ~ codom_rel (⦗S \₁ issued T⦘ ⨾ rfi ⨾ rmw) w)
       (LOC : loc lab w = Some locw)
       (PROM_IN_MEM :
          forall thread' langst local

@@ -128,7 +128,6 @@ Lemma reserve_step_helper w locw langst
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
-      (PRMW : ~ codom_rel (⦗S \₁ issued T⦘ ⨾ rfi ⨾ rmw) w)
       (LOC : loc lab w = Some locw)
       (WTID : thread = tid w) :
   let memory := PC.(Configuration.memory) in
