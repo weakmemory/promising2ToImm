@@ -66,6 +66,26 @@ Notation "'Acq'" := (is_acq lab).
 Notation "'Acqrel'" := (is_acqrel lab).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
+Variable T : trav_config.
+Variable S : actid -> Prop.
+Variables f_to f_from : actid -> Time.t.
+Hypothesis FCOH: f_to_coherent G S f_to f_from.
+
+Variables f_to' f_from' : actid -> Time.t.
+
+Variable REQ_TO   : forall e (SS :        S e), f_to'   e = f_to   e.
+Variable ISSEQ_TO : forall e (ISS: issued T e), f_to'   e = f_to   e.
+
+Variable REQ_FROM   : forall e (SS :        S e), f_from'   e = f_from   e.
+Variable ISSEQ_FROM : forall e (ISS: issued T e), f_from'   e = f_from   e.
+
+Variable IMMCON : imm_consistent G sc.
+
+Variable TCCOH : tc_coherent G sc T.
+Variable ETCCOH : etc_coherent G sc (mkETC T S).
+
+Variable RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T.
+
 Lemma interval_disjoint_imm_le a b c d (LE : Time.le b c):
   Interval.disjoint (a, b) (c, d).
 Proof using.
@@ -79,15 +99,11 @@ Proof using.
   done.
 Qed.
 
-Lemma sim_msg_f_issued f_to f_to' T rel b 
-      (TCCOH : tc_coherent G sc T)
-      (IMMCON : imm_consistent G sc)
-      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
+Lemma sim_msg_f_issued rel b 
       (ISS : issued T b)
-      (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
       (SIMMEM : sim_msg G sc f_to b rel) :
   sim_msg G sc f_to' b rel.
-Proof using WF.
+Proof using WF IMMCON TCCOH RELCOV ISSEQ_TO.
   red; red in SIMMEM.
   intros l; specialize (SIMMEM l).
   eapply max_value_new_f; eauto.
@@ -99,23 +115,18 @@ Proof using WF.
       eexists; apply seq_eqv_r; split; eauto.
 Qed.
 
-Lemma sim_mem_helper_f_issued f_to f_to' T rel b from v
-      (TCCOH : tc_coherent G sc T)
-      (IMMCON : imm_consistent G sc)
-      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
+Lemma sim_mem_helper_f_issued rel b from v
       (ISS : issued T b)
-      (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
       (HELPER : sim_mem_helper G sc f_to b from v rel) :
   sim_mem_helper G sc f_to' b from v rel.
-Proof using WF.
+Proof using WF IMMCON TCCOH RELCOV ISSEQ_TO.
   red; red in HELPER; desc.
   rewrite (ISSEQ_TO b ISS).
   splits; auto.
   eapply sim_msg_f_issued; eauto.
 Qed.
 
-Lemma sim_mem_covered_mori T T' f_to f_from threads thread memory
-      (TCCOH : tc_coherent G sc T)
+Lemma sim_mem_covered_mori T' threads thread memory
       (ISSEQ : issued T ≡₁ issued T')
       (COVIN : covered T ⊆₁ covered T')
       (SIMMEM : sim_mem G sc T f_to f_from threads thread memory) :
@@ -138,15 +149,10 @@ Proof using WF.
   eexists; split; eauto.
 Qed.
 
-Lemma sim_mem_f_issued f_to f_from f_to' f_from' T threads thread memory
-      (TCCOH : tc_coherent G sc T)
-      (IMMCON : imm_consistent G sc)
-      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-      (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
-      (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e)
+Lemma sim_mem_f_issued threads thread memory
       (SIMMEM : sim_mem G sc T f_to f_from threads thread memory) :
   sim_mem G sc T f_to' f_from' threads thread memory.
-Proof using WF.
+Proof using WF IMMCON RELCOV TCCOH ISSEQ_TO ISSEQ_FROM.
   red in SIMMEM.
   red; splits.
   edestruct SIMMEM as [rel]; eauto; desc.
@@ -164,25 +170,19 @@ Proof using WF.
   rewrite (ISSEQ_FROM p); eauto.
 Qed.
 
-Lemma sim_res_mem_f_issued f_to f_from f_to' f_from' T (S : actid -> Prop)
-      threads thread memory
-      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
-      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
+Lemma sim_res_mem_f_issued threads thread memory
       (SIMMEM : sim_res_mem G T S f_to f_from threads thread memory) :
   sim_res_mem G T S f_to' f_from' threads thread memory.
-Proof using WF.
+Proof using WF REQ_TO REQ_FROM.
   red in SIMMEM.
   red. unnw. ins.
-  rewrite (REQ_TO b RESB); rewrite (REQ_FROM b RESB). by apply SIMMEM.
+  rewrite (REQ_TO RESB); rewrite (REQ_FROM RESB). by apply SIMMEM.
 Qed.
 
-Lemma rintervals_fS f_to f_from f_to' f_from' T (S : actid -> Prop) smode memory
-      (ETCCOH : etc_coherent G sc (mkETC T S))
-      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
-      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
+Lemma rintervals_fS smode memory
       (RINTERVALS : reserved_time G T S f_to f_from smode memory):
   reserved_time G T S f_to' f_from' smode memory.
-Proof using.
+Proof using ETCCOH REQ_TO REQ_FROM.
   red. red in RINTERVALS.
   desf. desc.
   unnw; splits.
@@ -192,8 +192,8 @@ Proof using.
     destruct MEM as [MEM|MEM]; [by left; apply MEM|right].
     destruct MEM as [b H]; desc.
     exists b; splits; auto.
-    { rewrite (REQ_FROM b); auto. by apply ETCCOH.(etc_I_in_S). }
-    rewrite (REQ_TO b); auto. by apply ETCCOH.(etc_I_in_S). }
+    { rewrite REQ_FROM; auto. by apply ETCCOH.(etc_I_in_S). }
+    rewrite REQ_TO; auto. by apply ETCCOH.(etc_I_in_S). }
   { red. ins. specialize (HMEM l to from MSG).
     desc.
     exists b. splits; auto.
@@ -201,20 +201,15 @@ Proof using.
     erewrite REQ_TO; eauto. }
   intros x y SX SY COXY H.
   apply TFRMW; auto.
-  rewrite <- (REQ_FROM y SY).
-  rewrite <- (REQ_TO   x SX).
+  rewrite <- (REQ_FROM SY).
+  rewrite <- (REQ_TO   SX).
   done.
 Qed.
 
-Lemma sim_prom_f_issued f_to f_from f_to' f_from' T thread promises 
-      (TCCOH : tc_coherent G sc T)
-      (IMMCON : imm_consistent G sc)
-      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-      (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
-      (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e)
+Lemma sim_prom_f_issued thread promises 
       (SIMPROM : sim_prom G sc T f_to f_from thread promises) :
   sim_prom G sc T f_to' f_from' thread promises.
-Proof using WF.
+Proof using WF IMMCON TCCOH RELCOV ISSEQ_TO ISSEQ_FROM.
   red; ins. edestruct SIMPROM as [b]; eauto; desc.
   exists b; splits; auto.
   { by rewrite (ISSEQ_FROM b ISS). }
@@ -222,17 +217,11 @@ Proof using WF.
   eapply sim_mem_helper_f_issued; eauto.
 Qed.
 
-Lemma f_to_coherent_fS f_to f_from f_to' f_from' T S
-      (ETCCOH : etc_coherent G sc (mkETC T S))
-      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
-      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
-      (FCOH: f_to_coherent G S f_to f_from):
-  f_to_coherent G S f_to' f_from'.
-Proof using WF.
-  assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
+Lemma f_to_coherent_fS : f_to_coherent G S f_to' f_from'.
+Proof using WF TCCOH ETCCOH FCOH REQ_TO REQ_FROM.
   cdes FCOH. red; splits; ins.
-  all: try (rewrite (REQ_TO x));
-    try (rewrite (REQ_FROM x)); try (rewrite (REQ_FROM y)); auto.
+  all: try (rewrite REQ_TO);
+    try (rewrite REQ_FROM); try (rewrite REQ_FROM); auto.
   all: apply ETCCOH.(etc_I_in_S); auto.
   all: eapply w_covered_issued; eauto; split.
   2,4: by apply TCCOH.
@@ -240,30 +229,22 @@ Proof using WF.
   all: by destruct H.
 Qed.
 
-Lemma sim_res_prom_fS f_to f_from f_to' f_from' T S thread promises 
-      (ETCCOH : etc_coherent G sc (mkETC T S))
-      (IMMCON : imm_consistent G sc)
-      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
-      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
+Lemma sim_res_prom_fS thread promises 
       (SIMRESPROM : sim_res_prom G T S f_to f_from thread promises) :
   sim_res_prom G T S f_to' f_from' thread promises.
-Proof using.
+Proof using REQ_TO REQ_FROM.
   red. ins. apply SIMRESPROM in RES. desc.
   eexists. splits; eauto.
   { erewrite REQ_FROM; eauto. }
   erewrite REQ_TO; eauto.
 Qed.
 
-Lemma sc_view_f_issued f_to f_to' T sc_view
-      (TCCOH : tc_coherent G sc T)
-      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-      (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e)
+Lemma sc_view_f_issued sc_view
       (SC_REQ : forall l,
           max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view)):
   forall l,
     max_value f_to' (S_tm G l (covered T)) (LocFun.find l sc_view).
-Proof using WF.
+Proof using WF RELCOV TCCOH ISSEQ_TO.
   intros l; specialize (SC_REQ l).
   eapply max_value_new_f; eauto.
   intros x H; apply ISSEQ_TO.
@@ -271,82 +252,51 @@ Proof using WF.
   eapply S_tm_covered; eauto.
 Qed.
 
-Lemma simrel_common_fS T S f_to f_from f_to' f_from' PC smode
-      (ETCCOH : etc_coherent G sc (mkETC T S))
-      (IMMCON : imm_consistent G sc)
-      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
-      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
+Lemma simrel_common_fS PC smode
       (SIMREL: simrel_common G sc PC T S f_to f_from smode):
   simrel_common G sc PC T S f_to' f_from' smode.
-Proof using WF.
-  assert (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e).
-  { ins. apply REQ_TO. by apply ETCCOH.(etc_I_in_S). }
-  assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
-  { ins. apply REQ_FROM. by apply ETCCOH.(etc_I_in_S). }
+Proof using WF RELCOV ETCCOH FCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL.
   red; splits; auto.
   { eapply f_to_coherent_fS; eauto. }
-  { ins. eapply sc_view_f_issued; eauto. apply ETCCOH. }
+  { ins. eapply sc_view_f_issued; eauto. }
   eapply rintervals_fS; eauto.
 Qed.
 
-Lemma simrel_thread_local_fS thread T S f_to f_from f_to' f_from' PC smode
-      (ETCCOH : etc_coherent G sc (mkETC T S))
-      (IMMCON : imm_consistent G sc)
-      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
-      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
+Lemma simrel_thread_local_fS thread PC smode
       (SIMREL: simrel_thread_local G sc PC T S f_to f_from thread smode):
   simrel_thread_local G sc PC T S f_to' f_from' thread smode.
-Proof using WF.
-  assert (ISSEQ_TO   : forall e (ISS: issued T e), f_to'   e = f_to   e).
-  { ins. apply REQ_TO. by apply ETCCOH.(etc_I_in_S). }
-  assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
-  { ins. apply REQ_FROM. by apply ETCCOH.(etc_I_in_S). }
+Proof using WF IMMCON RELCOV ETCCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL.
   red; splits; auto.
   eexists; eexists; eexists; splits; eauto.
-  { eapply sim_prom_f_issued; eauto. apply ETCCOH. }
+  { eapply sim_prom_f_issued; eauto. }
   { eapply sim_res_prom_fS; eauto. }
-  { eapply sim_mem_f_issued; eauto. apply ETCCOH. }
+  { eapply sim_mem_f_issued; eauto. }
   { eapply sim_res_mem_f_issued; eauto. }
-  eapply sim_tview_f_issued; eauto. apply ETCCOH.
+  eapply sim_tview_f_issued; eauto.
 Qed.
 
-Lemma simrel_thread_fS thread T S f_to f_from f_to' f_from' PC smode
-      (ETCCOH : etc_coherent G sc (mkETC T S))
-      (IMMCON : imm_consistent G sc)
-      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
-      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
+Lemma simrel_thread_fS thread PC smode
       (SIMREL: simrel_thread G sc PC T S f_to f_from thread smode):
   simrel_thread G sc PC T S f_to' f_from' thread smode.
-Proof using WF.
+Proof using WF IMMCON RELCOV ETCCOH FCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL. cdes COMMON. cdes LOCAL.
   red; splits; auto.
   { eapply simrel_common_fS; eauto. }
   eapply simrel_thread_local_fS; eauto.
 Qed.
 
-Lemma simrel_fS T S f_to f_from f_to' f_from' PC
-      (ETCCOH : etc_coherent G sc (mkETC T S))
-      (IMMCON : imm_consistent G sc)
-      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-      (REQ_TO   : forall e (SE: S e), f_to'   e = f_to   e)
-      (REQ_FROM : forall e (SE: S e), f_from' e = f_from e)
+Lemma simrel_fS PC
       (SIMREL: simrel G sc PC T S f_to f_from):
   simrel G sc PC T S f_to' f_from'.
-Proof using WF.
+Proof using WF IMMCON RELCOV FCOH ETCCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL. red; splits.
   { eapply simrel_common_fS; eauto. }
   ins. eapply simrel_thread_local_fS; eauto.
 Qed.
 
-Lemma max_value_leS locw w wprev s ts T S f_to f_from
-      (IMMCOH : imm_consistent G sc)
-      (ETCCOH : etc_coherent G sc (mkETC T S))
-      (FCOH : f_to_coherent G S f_to f_from)
+Lemma max_value_leS locw w wprev s ts
       (LOC : loc lab w = Some locw)
       (NS : ~ S w)
       (COIMM : immediate (⦗ S ⦘ ⨾ co) wprev w)
@@ -355,8 +305,7 @@ Lemma max_value_leS locw w wprev s ts T S f_to f_from
       (ISSS : s ⊆₁ S)
       (NOCO : ⦗ eq w ⦘ ⨾ co ⨾ ⦗ s ⦘ ≡ ∅₂) :
   Time.le ts (f_to wprev).
-Proof using WF.
-  assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
+Proof using WF IMMCON ETCCOH FCOH TCCOH.
   red in MAXVAL. desc.
   destruct MAX as [[Y1 Y2]|[a_max Y1]].
   { rewrite Y2. apply Time.bot_spec. }
@@ -412,24 +361,21 @@ Qed.
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 Notation "'Tid_' t"  := (fun x => tid x =  t) (at level 1).
 
-Lemma sim_res_prom_other_thread T S f_to f_to' f_from f_from' thread promises S'
+Lemma sim_res_prom_other_thread thread promises S'
       (SNT : S' ⊆₁ NTid_ thread)
-      (SEQ_TO   : forall e (SE: Tid_ thread e), f_to'   e = f_to   e)
-      (SEQ_FROM : forall e (SE: Tid_ thread e), f_from' e = f_from e)
       (RPROM : sim_res_prom G T S f_to f_from thread promises) :
   sim_res_prom G T (S ∪₁ S') f_to' f_from' thread promises.
-Proof using.
+Proof using REQ_TO REQ_FROM.
   red. ins. apply RPROM in RES. desf.
   exists b. splits; auto. by left.
 Qed.
 
-Lemma reserved_to_message T S f_to f_from threads thread memory
-      (TCCOH : tc_coherent G sc T)
+Lemma reserved_to_message threads thread memory
       (SIMMEM    : sim_mem     G sc T f_to f_from threads thread memory)
       (SIMRESMEM : sim_res_mem G T  S f_to f_from threads thread memory) :
   forall l b (RESB: S b) (LOC: Loc_ l b),
     exists msg, Memory.get l (f_to b) memory = Some (f_from b, msg).
-Proof using.
+Proof using TCCOH.
   ins. destruct (classic (issued T b)) as [AA|AA].
   2: { eexists. by apply SIMRESMEM. }
   assert (exists v, val lab b = Some v) as [v BB].
@@ -438,8 +384,7 @@ Proof using.
   simpls. desf. eauto.
 Qed.
 
-Lemma memory_to_event T S f_to f_from memory
-      (ETCCOH : etc_coherent G sc (mkETC T S))
+Lemma memory_to_event memory
       (MTE  :      message_to_event G T   f_to f_from memory)
       (HMTE : half_message_to_event G T S f_to f_from memory) :
   forall l to from msg
@@ -451,12 +396,119 @@ Lemma memory_to_event T S f_to f_from memory
     ⟪ LOC  : Loc_ l b ⟫ /\
     ⟪ FROM : f_from b = from ⟫ /\
     ⟪ TO   : f_to b = to ⟫.
-Proof.
+Proof using ETCCOH.
   ins. destruct msg.
   { apply MTE in MSG. desf; eauto.
     right. eexists. splits; eauto. by apply ETCCOH.(etc_I_in_S). }
   right.
   apply HMTE in MSG. desf. eexists. splits; eauto.
+Qed.
+
+Lemma S_le_max_ts locw memory local thread x
+      (SX   : S x)
+      (XLOC : loc lab x = Some locw)
+      (SIMMEM    : sim_mem     G sc T f_to f_from thread local memory)
+      (SIMRESMEM : sim_res_mem G T S f_to f_from thread local memory) :
+  Time.le (f_to x) (Memory.max_ts locw memory).
+Proof using TCCOH.
+  eapply reserved_to_message in SX; eauto.
+  desf.
+  eapply Memory.max_ts_spec; eauto.
+Qed.
+
+Lemma co_S_memory_disjoint memory locw wp wn
+      (COIMM  : immediate (⦗S⦘ ⨾ co ⨾ ⦗S⦘) wp wn)
+      (CONS   : (co ⨾ ⦗ set_compl S ⦘ ⨾ co) wp wn)
+      (LOCP   : loc lab wp = Some locw)
+      (RESERVED_TIME:
+         reserved_time G T S f_to f_from sim_normal memory) :
+  forall (to from : Time.t) (msg : Message.t)
+         (IN : Memory.get locw to memory = Some (from, msg)),
+    Interval.disjoint (f_to wp, f_from wn) (from, to).
+Proof using WF IMMCON ETCCOH FCOH TCCOH.
+  assert (sc_per_loc G) as SPL.
+  { apply coherence_sc_per_loc. apply IMMCON. }
+
+  assert (S wp /\ co wp wn /\ S wn) as [SWP [COPN SWN]].
+  { destruct COIMM as [AA _]. by destruct_seq AA as [BB CC]. }
+  assert (E wp /\ E wn) as [EWP EWN].
+  { by split; apply ETCCOH.(etc_S_in_E). }
+  assert (W wp /\ W wn) as [WWP WWN].
+  { by split; apply (reservedW WF ETCCOH). }
+  assert (loc lab wn = Some locw) as LOCN.
+  { rewrite <- LOCP. symmetry. by apply WF.(wf_col). }
+
+  assert (~ is_init wn) as WNNIN.
+  { apply no_co_to_init in COPN; auto.
+    destruct_seq_r COPN as AA. desf. }
+
+  red in RESERVED_TIME. desc.
+  ins. destruct msg as [v rel|].
+  { apply MEM in IN. desf.
+    { red. ins. inv RHS. simpls.
+      apply Time.le_lteq in TO. destruct TO as [TT|]; subst.
+      { by apply time_lt_bot in TT. }
+        by apply Time.lt_strorder in FROM. }
+    assert (S b) as SB.
+    { by apply ETCCOH.(etc_I_in_S). }
+    assert (W b) as WB.
+    { by apply TCCOH. }
+    assert (co^? b wp \/ co^? wn b) as CO.
+    { destruct (classic (b = wp)) as [|PNEQ]; subst.
+      { by left; left. }
+      destruct (classic (b = wn)) as [|NNEQ]; subst.
+      { by right; left. }
+      edestruct WF.(wf_co_total) as [|LIMM].
+      3: by apply PNEQ.
+      1,2: split; [split|]; eauto.
+      { by left; right. }
+      right; right.
+      edestruct WF.(wf_co_total) as [LHN|].
+      3: by apply NNEQ.
+      1,2: split; [split|]; eauto.
+      2: done.
+      exfalso.
+      clear COPN.
+      eapply COIMM; apply seq_eqv_lr; eauto. }
+    destruct CO as [CO|CO].
+    { assert (Time.le (f_to b) (f_to wp)) as HH.
+      { eapply co_S_f_to_le; eauto. }
+      symmetry. by apply interval_disjoint_imm_le. }
+    assert (Time.le (f_from wn) (f_from b)) as HH.
+    { eapply co_S_f_from_le; eauto. }
+      by apply interval_disjoint_imm_le. }
+
+  apply HMEM in IN. desf.
+  assert (E b) as EB.
+  { by apply ETCCOH.(etc_S_in_E). }
+  assert (W b) as WB.
+  { by apply (reservedW WF ETCCOH). }
+
+  assert (co^? b wp \/ co^? wn b) as CO.
+  { destruct (classic (b = wp)) as [|PNEQ]; subst.
+    { by left; left. }
+    destruct (classic (b = wn)) as [|NNEQ]; subst.
+    { by right; left. }
+    edestruct WF.(wf_co_total) as [|LIMM].
+    3: by apply PNEQ.
+    1,2: split; [split|]; eauto.
+    { by left; right. }
+    right; right.
+    edestruct WF.(wf_co_total) as [LHN|].
+    3: by apply NNEQ.
+    1,2: split; [split|]; eauto.
+    2: done.
+    exfalso.
+    eapply COIMM.
+    all: apply seq_eqv_lr; splits; eauto. }
+
+  destruct CO as [CO|CO].
+  { assert (Time.le (f_to b) (f_to wp)) as HH.
+    { eapply co_S_f_to_le; eauto. }
+    symmetry. by apply interval_disjoint_imm_le. }
+  assert (Time.le (f_from wn) (f_from b)) as HH.
+  { eapply co_S_f_from_le; eauto. }
+    by apply interval_disjoint_imm_le.
 Qed.
 
 End SimRelProps.

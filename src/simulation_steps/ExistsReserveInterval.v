@@ -77,31 +77,6 @@ Variable ETCCOH : etc_coherent G sc (mkETC T S).
 Variable f_to f_from : actid -> Time.t.
 Variable FCOH : f_to_coherent G S f_to f_from.
 
-(* TODO: move to a more appropriate place. *)
-Lemma co_S_f_to_le w w'
-      (SW  : S w)
-      (SW' : S w')
-      (CO  : co^? w w') :
-  Time.le (f_to w) (f_to w').
-Proof using WF IMMCON FCOH.
-  destruct CO as [|CO]; [subst; reflexivity|].
-  apply Time.le_lteq; left.
-  eapply f_to_co_mon; eauto.
-Qed.
-
-(* TODO: move to a more appropriate place. *)
-Lemma co_S_f_from_le w w'
-      (NINIT : ~ is_init w)
-      (SW  : S w)
-      (SW' : S w')
-      (CO  : co^? w w') :
-  Time.le (f_from w) (f_from w').
-Proof using WF FCOH.
-  destruct CO as [|CO]; [subst; reflexivity|].
-  apply Time.le_lteq; left.
-  eapply f_from_co_mon; eauto.
-Qed.
-
 (* TODO: move to ImmProperties.v. *)
 Lemma co_imm : co ≡ (immediate co)⁺.
 Proof using WF.
@@ -109,103 +84,6 @@ Proof using WF.
   rewrite WF.(wf_coE).
   red. ins. eexists. ins. destruct_seq_l REL as AA.
   apply AA.
-Qed.
-
-(* TODO: move to a more appropriate place. *)
-Lemma co_S_memory_disjoint memory locw wp wn
-      (COIMM  : immediate (⦗S⦘ ⨾ co ⨾ ⦗S⦘) wp wn)
-      (CONS   : (co ⨾ ⦗ set_compl S ⦘ ⨾ co) wp wn)
-      (LOCP   : loc lab wp = Some locw)
-      (RESERVED_TIME:
-         reserved_time G T S f_to f_from sim_normal memory) :
-  forall (to from : Time.t) (msg : Message.t)
-         (IN : Memory.get locw to memory = Some (from, msg)),
-    Interval.disjoint (f_to wp, f_from wn) (from, to).
-Proof using WF IMMCON ETCCOH FCOH.
-  assert (sc_per_loc G) as SPL.
-  { apply coherence_sc_per_loc. apply IMMCON. }
-  assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
-
-  assert (S wp /\ co wp wn /\ S wn) as [SWP [COPN SWN]].
-  { destruct COIMM as [AA _]. by destruct_seq AA as [BB CC]. }
-  assert (E wp /\ E wn) as [EWP EWN].
-  { by split; apply ETCCOH.(etc_S_in_E). }
-  assert (W wp /\ W wn) as [WWP WWN].
-  { by split; apply (reservedW WF ETCCOH). }
-  assert (loc lab wn = Some locw) as LOCN.
-  { rewrite <- LOCP. symmetry. by apply WF.(wf_col). }
-
-  assert (~ is_init wn) as WNNIN.
-  { apply no_co_to_init in COPN; auto.
-    destruct_seq_r COPN as AA. desf. }
-
-  red in RESERVED_TIME. desc.
-  ins. destruct msg as [v rel|].
-  { apply MEM in IN. desf.
-    { red. ins. inv RHS. simpls.
-      apply Time.le_lteq in TO. destruct TO as [TT|]; subst.
-      { by apply time_lt_bot in TT. }
-        by apply Time.lt_strorder in FROM. }
-    assert (S b) as SB.
-    { by apply ETCCOH.(etc_I_in_S). }
-    assert (W b) as WB.
-    { by apply TCCOH. }
-    assert (co^? b wp \/ co^? wn b) as CO.
-    { destruct (classic (b = wp)) as [|PNEQ]; subst.
-      { by left; left. }
-      destruct (classic (b = wn)) as [|NNEQ]; subst.
-      { by right; left. }
-      edestruct WF.(wf_co_total) as [|LIMM].
-      3: by apply PNEQ.
-      1,2: split; [split|]; eauto.
-      { by left; right. }
-      right; right.
-      edestruct WF.(wf_co_total) as [LHN|].
-      3: by apply NNEQ.
-      1,2: split; [split|]; eauto.
-      2: done.
-      exfalso.
-      clear COPN.
-      eapply COIMM; apply seq_eqv_lr; eauto. }
-    destruct CO as [CO|CO].
-    { assert (Time.le (f_to b) (f_to wp)) as HH.
-      { eapply co_S_f_to_le; eauto. }
-      symmetry. by apply interval_disjoint_imm_le. }
-    assert (Time.le (f_from wn) (f_from b)) as HH.
-    { eapply co_S_f_from_le; eauto. }
-      by apply interval_disjoint_imm_le. }
-
-  apply HMEM in IN. desf.
-  assert (E b) as EB.
-  { by apply ETCCOH.(etc_S_in_E). }
-  assert (W b) as WB.
-  { by apply (reservedW WF ETCCOH). }
-
-  assert (co^? b wp \/ co^? wn b) as CO.
-  { destruct (classic (b = wp)) as [|PNEQ]; subst.
-    { by left; left. }
-    destruct (classic (b = wn)) as [|NNEQ]; subst.
-    { by right; left. }
-    edestruct WF.(wf_co_total) as [|LIMM].
-    3: by apply PNEQ.
-    1,2: split; [split|]; eauto.
-    { by left; right. }
-    right; right.
-    edestruct WF.(wf_co_total) as [LHN|].
-    3: by apply NNEQ.
-    1,2: split; [split|]; eauto.
-    2: done.
-    exfalso.
-    eapply COIMM.
-    all: apply seq_eqv_lr; splits; eauto. }
-
-  destruct CO as [CO|CO].
-  { assert (Time.le (f_to b) (f_to wp)) as HH.
-    { eapply co_S_f_to_le; eauto. }
-    symmetry. by apply interval_disjoint_imm_le. }
-  assert (Time.le (f_from wn) (f_from b)) as HH.
-  { eapply co_S_f_from_le; eauto. }
-    by apply interval_disjoint_imm_le.
 Qed.
 
 (* TODO: move to a more appropriate place. *)
@@ -353,20 +231,6 @@ Proof using WF IMMCON ETCCOH FCOH.
     exists y. split; auto. basic_solver. }
   { destruct NFROM as [[NN1 NN2]|[NN1 NN2]]; desf. }
   exfalso. by apply BB with (c:=wprev).
-Qed.
-
-(* TODO: move to SimulationRelProperties.v *)
-Lemma S_le_max_ts locw memory local thread x
-      (SX   : S x)
-      (XLOC : loc lab x = Some locw)
-      (SIMMEM    : sim_mem     G sc T f_to f_from thread local memory)
-      (SIMRESMEM : sim_res_mem G T S f_to f_from thread local memory) :
-  Time.le (f_to x) (Memory.max_ts locw memory).
-Proof using ETCCOH.
-  eapply reserved_to_message in SX; eauto.
-  2: by apply ETCCOH.
-  desf.
-  eapply Memory.max_ts_spec; eauto.
 Qed.
 
 (* TODO: move to more appropriate place *)
@@ -804,6 +668,8 @@ Lemma reserved_time_add_S_after smode locw memory memory' local w wprev n_from
     (upd f_from w n_from)
     smode memory'.
 Proof using WF IMMCON ETCCOH FCOH.
+  assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
+
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
 
@@ -829,28 +695,6 @@ Proof using WF IMMCON ETCCOH FCOH.
   assert (E w) as EW.
   { apply WF.(wf_coE) in COPREV. by destruct_seq COPREV as [AA BB]. }
 
-  (* assert (Time.lt (f_to wprev) n_to) as LTPREVTO. *)
-  (* { desf; by apply Time.middle_spec. } *)
-
-  (* assert (Time.le (f_to wprev) n_from) as PREVFROMLE. *)
-  (* { destruct NFROM as [[N1 N2]|[N1 N2]]; subst; [reflexivity|]. *)
-  (*   apply Time.le_lteq; left. by apply Time.middle_spec. } *)
-
-  (* assert (Time.lt n_from n_to) as LTFROMTO. *)
-  (* { desf. *)
-  (*   { by apply Time.middle_spec. } *)
-  (*   eapply TimeFacts.lt_le_lt. *)
-  (*   2: reflexivity. *)
-  (*     by do 2 apply Time.middle_spec. } *)
-
-  (* assert (Time.le (Time.middle (f_to wprev) (f_from wnext)) n_to) as LETO1. *)
-  (* { desf; try reflexivity. *)
-  (*   all: by apply Time.le_lteq; left; apply Time.middle_spec. } *)
-
-  (* assert (Time.le n_to (f_from wnext)) as LETONEXT. *)
-  (* { desf; try reflexivity. *)
-  (*   all: by apply Time.le_lteq; left; apply Time.middle_spec. } *)
-  
   cdes RESERVED_TIME. red.
   destruct smode; desc; unnw.
   2: { split.
@@ -907,7 +751,7 @@ Proof using WF IMMCON ETCCOH FCOH.
   etransitivity; [|by apply DenseOrder.incr_spec].
   rewrite FT.
   eapply TimeFacts.lt_le_lt.
-  2: { eapply S_le_max_ts with (x:=y); eauto.
+  2: { eapply S_le_max_ts with (x:=y) (S:=S); eauto.
        rewrite <- WLOC. symmetry. by apply WF.(wf_col). }
   apply FCOH; auto.
   apply no_co_to_init in CO; auto. by destruct_seq_r CO as AA.

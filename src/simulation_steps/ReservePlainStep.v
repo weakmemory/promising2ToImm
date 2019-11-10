@@ -111,6 +111,9 @@ Proof using WF CON.
   assert (forall e, issued T e -> f_to' e = f_to e) as ISSEQ_TO.
   { ins. apply REQ_TO. by apply TCCOH.(etc_I_in_S). }
 
+  assert (forall e, issued T e -> f_from' e = f_from e) as ISSEQ_FROM.
+  { ins. apply REQ_FROM. by apply TCCOH.(etc_I_in_S). }
+
   set (pe :=
          ThreadEvent.promise
            locw (f_from' w) (f_to' w) Message.reserve

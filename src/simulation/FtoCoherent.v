@@ -198,6 +198,29 @@ Proof using WF IMMCON IE FCOH.
     by apply DenseOrder.lt_strorder in HH.
 Qed.
 
+Lemma co_S_f_to_le w w'
+      (SW  : I w)
+      (SW' : I w')
+      (CO  : co^? w w') :
+  Time.le (f_to w) (f_to w').
+Proof using WF IMMCON FCOH.
+  destruct CO as [|CO]; [subst; reflexivity|].
+  apply Time.le_lteq; left.
+  eapply f_to_co_mon; eauto.
+Qed.
+
+Lemma co_S_f_from_le w w'
+      (NINIT : ~ is_init w)
+      (SW  : I w)
+      (SW' : I w')
+      (CO  : co^? w w') :
+  Time.le (f_from w) (f_from w').
+Proof using WF FCOH.
+  destruct CO as [|CO]; [subst; reflexivity|].
+  apply Time.le_lteq; left.
+  eapply f_from_co_mon; eauto.
+Qed.
+
 End Props.
 
 End FtoCoherent.
