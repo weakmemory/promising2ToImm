@@ -913,12 +913,11 @@ Proof using WF IMMCON ETCCOH FCOH.
   apply no_co_to_init in CO; auto. by destruct_seq_r CO as AA.
 Qed.
 
-Lemma exists_time_interval_for_reserve PC w locw valw langst local smode
+Lemma exists_time_interval_for_reserve PC w locw langst local smode
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
       (PRMW : ~ codom_rel (⦗S \₁ issued T⦘ ⨾ rfi ⨾ rmw) w)
       (LOC : loc lab w = Some locw)
-      (VAL : val lab w = Some valw)
       (PROM_IN_MEM :
          forall thread' langst local
                 (TID : IdentMap.find thread' PC.(Configuration.threads) =

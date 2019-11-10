@@ -126,13 +126,12 @@ Hypothesis SIM_RES_MEM :
 Hypothesis SIM_MEM : sim_mem G sc T f_to f_from thread local PC.(Configuration.memory).
 Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread.
 
-Lemma reserve_step_helper w locw valw langst
+Lemma reserve_step_helper w locw langst
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
       (PRMW : ~ codom_rel (⦗S \₁ issued T⦘ ⨾ rfi ⨾ rmw) w)
       (LOC : loc lab w = Some locw)
-      (VAL : val lab w = Some valw)
       (WTID : thread = tid w) :
   let memory := PC.(Configuration.memory) in
   let sc_view := PC.(Configuration.sc) in
@@ -189,15 +188,38 @@ Proof using WF.
   subst.
   edestruct exists_time_interval_for_reserve as [f_to']; eauto.
   desc.
+  
+  assert (~ S w) as NSW.
+  { eapply ext_itrav_step_reserve_nS with (T:=mkETC T S); eauto. }
 
   assert (forall e, issued T e -> f_to' e = f_to e) as ISSEQ_TO.
   { ins. apply REQ_TO. by apply ETCCOH.(etc_I_in_S). }
   assert (forall e, issued T e -> f_from' e = f_from e) as ISSEQ_FROM.
   { ins. apply REQ_FROM. by apply ETCCOH.(etc_I_in_S). }
 
+  assert (W w) as WW.
+  { eapply ext_itrav_step_reserveW with (T := mkETC T S); eauto. }
+
+  assert (E w) as EW.
+  { eapply ext_itrav_stepE with (T := mkETC T S); eauto. }
+
   assert (forall l b (SB : S b) (BLOC : loc lab b = Some l),
              l <> locw \/ f_to b <> f_to' w) as SNEQ.
-  { admit. }
+  { ins.
+    arewrite (f_to b = f_to' b).
+    { symmetry. by apply REQ_TO. }
+    (* TODO: generalize to a lemma *)
+    destruct (classic (l = locw)); [right|by left]; subst.
+    intros HH.
+    assert (b = w); desf.
+    eapply f_to_eq with (I:=S ∪₁ eq w) (f_to:=f_to'); eauto.
+    4: by right.
+    3: by left.
+    2: by red; rewrite BLOC; desf.
+    unionL.
+    { apply set_subset_inter_r; split; [by apply ETCCOH|].
+      apply (reservedW WF ETCCOH). }
+    basic_solver. }
 
   assert (forall l b (ISSB : issued T b) (BLOC : loc lab b = Some l),
              l <> locw \/ f_to b <> f_to' w) as INEQ.
