@@ -84,7 +84,6 @@ Hypothesis THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
     exists langst, IdentMap.find (tid e) PC.(Configuration.threads) = Some langst.
 
 Variable smode : sim_mode.
-Hypothesis SC_COV : smode = sim_certification -> E∩₁F∩₁Sc ⊆₁ covered T.
 Hypothesis SC_REQ :
   smode = sim_normal -> 
   forall (l : Loc.t),
@@ -95,7 +94,6 @@ Variable local : Local.t.
 Hypothesis SIM_PROM : sim_prom G sc T f_to f_from thread local.(Local.promises).
 
 Hypothesis CLOSED_SC : Memory.closed_timemap PC.(Configuration.sc) PC.(Configuration.memory).
-(* (FUTURE : Memory.future Memory.init (Configuration.memory PC)) *)
 
 Hypothesis PROM_DISJOINT :
   forall thread' langst' local'
@@ -182,7 +180,7 @@ Lemma reserve_step_helper w locw langst
 
     ⟪ SIM_MEM     : sim_mem G sc T f_to' f_from' (tid w) local' memory' ⟫ /\
     ⟪ SIM_RES_MEM : sim_res_mem G T (S ∪₁ eq w) f_to' f_from' (tid w) local' memory' ⟫.
-Proof using WF.
+Proof using All.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
 
   subst.
@@ -191,6 +189,9 @@ Proof using WF.
   
   assert (~ S w) as NSW.
   { eapply ext_itrav_step_reserve_nS with (T:=mkETC T S); eauto. }
+
+  assert (~ issued T w) as NISSB.
+  { intros AA. apply NSW. by apply ETCCOH.(etc_I_in_S). }
 
   assert (forall e, issued T e -> f_to' e = f_to e) as ISSEQ_TO.
   { ins. apply REQ_TO. by apply ETCCOH.(etc_I_in_S). }
@@ -250,8 +251,29 @@ Proof using WF.
   { ins. eapply sc_view_f_issued with (f_to:=f_to); eauto. }
   { eapply Memory.add_closed_timemap; eauto. }
   { apply Memory.promise_add; eauto; ins.
-    admit. }
-  { ins.
+    assert (codom_rel (<|issued T|> ;; rf ;; rmw) w) as [b HH].
+    { eapply etc_S_W_ex_rfrmw_I with (T:=mkETC T (S ∪₁ eq w)).
+      { apply TSTEP. }
+      split; [by right|].
+      eapply TSTEP. split; [by right|]; simpls. }
+    destruct_seq_l HH as AA.
+    assert (W b) as WB.
+    { eapply issuedW; eauto. }
+    set (VB:=WB).
+    eapply is_w_val in VB. desc.
+    assert (loc lab b = Some locw) as BLOC.
+    { rewrite <- LOC. by apply wf_rfrmwl. }
+    set (BB:=AA).
+    edestruct SIM_MEM; eauto. simpls. desc.
+    do 3 eexists.
+    arewrite (f_from' w = f_to b); eauto.
+    arewrite (f_to b = f_to' b).
+    { symmetry. by apply ISSEQ_TO. }
+    symmetry.
+    eapply FCOH0; eauto.
+    2: by right.
+    left. by apply ETCCOH.(etc_I_in_S). }
+ { ins.
     destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
     { subst. rewrite IdentMap.gss in TID0.
       inv TID0; simpls; clear TID0. }
@@ -320,6 +342,6 @@ Proof using WF.
   all: erewrite Memory.add_o; eauto.
   all: assert (l = locw) by (rewrite LOC0 in LOC; inv LOC); subst.
   all: by rewrite loc_ts_eq_dec_eq.
-Admitted.
+Qed.
 
 End ReserveStepHelper.
