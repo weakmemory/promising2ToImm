@@ -295,4 +295,28 @@ Proof using WF.
   all: apply seq_eqv_r; split; auto.
 Qed.
 
+Lemma rfrmwP_in_immPco P P'
+    (DRES : dom_rel (rf ;; rmw ;; <|P'|>) ⊆₁ P) :
+  rf ;; rmw ;; <|P'|> ⊆ immediate (⦗P⦘ ⨾ co).
+Proof using WF CON.
+  assert (sc_per_loc G) as SPL.
+  { apply coherence_sc_per_loc. apply CON. }
+
+  rewrite <- immediate_inter_mori with (x:=co).
+  2: basic_solver.
+  apply inclusion_inter_r.
+  2: { rewrite <- seqA. rewrite rfrmw_in_im_co; eauto. basic_solver. }
+  rewrite <- rf_rmw_in_co; auto.
+  2: by apply CON.
+  generalize DRES. basic_solver 10.
+Qed.
+
+Lemma co_imm : co ≡ (immediate co)⁺.
+Proof using WF.
+  apply fsupp_imm_t; try apply WF.
+  rewrite WF.(wf_coE).
+  red. ins. eexists. ins. destruct_seq_l REL as AA.
+  apply AA.
+Qed.
+
 End ImmProperties.

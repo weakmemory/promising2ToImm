@@ -77,22 +77,11 @@ Variable ETCCOH : etc_coherent G sc (mkETC T S).
 Variable f_to f_from : actid -> Time.t.
 Variable FCOH : f_to_coherent G S f_to f_from.
 
-(* TODO: move to ImmProperties.v. *)
-Lemma co_imm : co ≡ (immediate co)⁺.
-Proof using WF.
-  apply fsupp_imm_t; try apply WF.
-  rewrite WF.(wf_coE).
-  red. ins. eexists. ins. destruct_seq_l REL as AA.
-  apply AA.
-Qed.
-
 (* TODO: move to a more appropriate place. *)
 Lemma f_to_coherent_add_S_middle memory local w wprev wnext n_to n_from
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local memory)
-      (TFRMW : forall x y (SX : S x) (SY : S y) (CO : co x y)
-                      (FTOFROM : f_to x = f_from y),
-          (rf ⨾ rmw) x y)
+      (FFNEQ : f_to wprev <> f_from wnext)
       (NSW : ~ S w)
       (NIMMCO : immediate (co ⨾ ⦗S⦘) w wnext)
       (PIMMCO : immediate (⦗S⦘ ⨾ co) wprev w)
@@ -147,10 +136,7 @@ Proof using WF IMMCON ETCCOH FCOH.
   assert (Time.lt (f_to wprev) (f_from wnext)) as NPLT.
   { assert (Time.le (f_to wprev) (f_from wnext)) as H.
     { apply FCOH; auto. }
-    apply Time.le_lteq in H. destruct H as [|H]; [done|exfalso].
-    apply TFRMW in H; auto.
-    eapply rfrmw_in_im_co in H; eauto.
-      by eapply H; [apply COPREV|]. }
+    apply Time.le_lteq in H. destruct H as [|H]; [done|desf]. }
   
   assert (Time.le n_from (Time.middle (f_to wprev) (f_from wnext))) as LEFROMTO1.
   { desf; try reflexivity.
@@ -233,90 +219,12 @@ Proof using WF IMMCON ETCCOH FCOH.
   exfalso. by apply BB with (c:=wprev).
 Qed.
 
-(* TODO: move to more appropriate place *)
-Lemma rfrmwP_in_immPco P P'
-    (DRES : dom_rel (rf ;; rmw ;; <|P'|>) ⊆₁ P) :
-  rf ;; rmw ;; <|P'|> ⊆ immediate (⦗P⦘ ⨾ co).
-Proof using WF IMMCON.
-  assert (sc_per_loc G) as SPL.
-  { apply coherence_sc_per_loc. apply IMMCON. }
-
-  rewrite <- immediate_inter_mori with (x:=co).
-  2: basic_solver.
-  apply inclusion_inter_r.
-  2: { rewrite <- seqA. rewrite rfrmw_in_im_co; eauto. basic_solver. }
-  rewrite <- rf_rmw_in_co; auto.
-  2: by apply IMMCON.
-  generalize DRES. basic_solver 10.
-Qed.
-
-(* TODO: move to more appropriate place *)
-Lemma no_next_S_max_ts locw memory local w x
-      (MTE  : message_to_event G T f_to f_from memory)
-      (HMTE : half_message_to_event G T S f_to f_from memory)
-      (SIM_RES_MEM : sim_res_mem G T S f_to f_from (tid w) local memory)
-      (SIM_MEM : sim_mem G sc T f_to f_from (tid w) local memory)
-      (WLOC : loc lab w = Some locw)
-      (NCO : ~ (exists wnext : actid, (co ⨾ ⦗S⦘) w wnext))
-      (NSW : ~ S w)
-      (SX : S x)
-      (RFRMW : (rf ⨾ rmw) x w) :
-  f_to x = Memory.max_ts locw memory.
-Proof using WF IMMCON FCOH ETCCOH.
-  assert (complete G) as COMPL by apply IMMCON.
-  assert (sc_per_loc G) as SPL.
-  { apply coherence_sc_per_loc. apply IMMCON. }
-  assert (co x w) as COXW by (by apply rf_rmw_in_co).
-  assert (loc lab x = Some locw) as XLOC. 
-  { rewrite <- WLOC. by apply WF.(wf_col). }
-
-  set (XX:=SX).
-  eapply reserved_to_message in XX; eauto.
-  2: by apply ETCCOH.
-  desf.
-  edestruct Memory.max_ts_spec as [[from [msg' HMEM]] TS]; eauto.
-  red in TS.
-  eapply memory_to_event in HMEM; eauto.
-  apply Time.le_lteq in TS; destruct TS as [TS|]; [|by subst].
-  desf.
-  { rewrite HMEM in TS. by apply time_lt_bot in TS. }
-  rename b into wmax.
-  exfalso.
-  
-  assert (E w /\ E x) as [EW EX].
-  { apply WF.(wf_coE) in COXW. destruct_seq COXW as [AA BB]. desf. }
-  assert (W w /\ W x) as [WW WX].
-  { apply WF.(wf_coD) in COXW. destruct_seq COXW as [AA BB]. desf. }
-  assert (W wmax) as WWMAX.
-  { by apply (reservedW WF ETCCOH). }
-  
-  assert (wmax <> w) as WWNEQ.
-  { intros PP; desf. }
-  edestruct WF.(wf_co_total) with (a:=wmax) (b:=w) as [CO|CO]; auto.
-  1,2: by split; [split|]; eauto.
-  2: { apply NCO. eexists. apply seq_eqv_r. eauto. }
-
-  destruct (classic (wmax = x)) as [|WXNEQ]; subst.
-  { rewrite TO in TS. eapply Time.lt_strorder; eauto. }
-
-  edestruct WF.(wf_co_total) with (a:=wmax) (b:=x) as [CO'|CO']; auto.
-  1,2: by split; [split|]; eauto.
-  2: { eapply rfrmw_in_im_co; eauto. }
-  eapply Time.lt_strorder.
-  etransitivity; [by apply TS|].
-  rewrite <- TO.
-  eapply f_to_co_mon; eauto.
-Qed.
-
 Lemma f_to_coherent_add_S_after locw memory local w wprev n_from
       (RESERVED_TIME:
          reserved_time G T S f_to f_from sim_normal memory)
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local memory)
       (SIM_RES_MEM : sim_res_mem G T S f_to f_from (tid w) local memory)
-      (TFRMW : forall x y (SX : S x) (SY : S y) (CO : co x y)
-                      (FTOFROM : f_to x = f_from y),
-          (rf ⨾ rmw) x y)
       (WLOC : loc lab w = Some locw)
       (NSW : ~ S w)
       (DRES : dom_rel (rf ⨾ rmw ⨾ ⦗eq w⦘) ⊆₁ S)
@@ -453,11 +361,9 @@ Qed.
 
 (* TODO: move to a more appropriate place. *)
 Lemma reserved_time_add_S_middle smode memory local l w wprev wnext memory' n_to n_from
+      (FFNEQ : f_to wprev <> f_from wnext)
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local memory)
-      (TFRMW : forall x y (SX : S x) (SY : S y) (CO : co x y)
-                      (FTOFROM : f_to x = f_from y),
-          (rf ⨾ rmw) x y)
       (LOC : loc lab w = Some l)
       (EW  : E w)
       (NSW : ~ S w)
@@ -521,10 +427,7 @@ Proof using WF IMMCON ETCCOH FCOH.
   assert (Time.lt (f_to wprev) (f_from wnext)) as NPLT.
   { assert (Time.le (f_to wprev) (f_from wnext)) as H.
     { apply FCOH; auto. }
-    apply Time.le_lteq in H. destruct H as [|H]; [done|exfalso].
-    apply TFRMW in H; auto.
-    eapply rfrmw_in_im_co in H; eauto.
-      by eapply H; [apply COPREV|]. }
+    apply Time.le_lteq in H. destruct H as [|H]; [done|desf]. }
   
   assert (Time.le n_from (Time.middle (f_to wprev) (f_from wnext))) as LEFROMTO1.
   { desf; try reflexivity.
@@ -582,7 +485,7 @@ Proof using WF IMMCON ETCCOH FCOH.
   4: { exfalso. eapply co_irr; eauto. }
   { rewrite updo in FT; [|by intros AA; desf].
     rewrite updo in FT; [|by intros AA; desf].
-      by apply TFRMW0. }
+      by apply TFRMW. }
   all: destruct (classic (x = y)) as [|NEQ]; [by desf|].
   { rewrite updo in FT; auto.
     rewrite upds in FT.
@@ -642,12 +545,8 @@ Qed.
 
 (* TODO: move to a more appropriate place. *)
 Lemma reserved_time_add_S_after smode locw memory memory' local w wprev n_from
-      (SIM_MEM : sim_mem G sc T f_to f_from
-                         (tid w) local memory)
+      (SIM_MEM : sim_mem G sc T f_to f_from (tid w) local memory)
       (SIM_RES_MEM : sim_res_mem G T S f_to f_from (tid w) local memory)
-      (TFRMW : forall x y (SX : S x) (SY : S y) (CO : co x y)
-                      (FTOFROM : f_to x = f_from y),
-          (rf ⨾ rmw) x y)
       (WLOC : loc lab w = Some locw)
       (NSW : ~ S w)
       (NCO : ~ exists wnext, (co ⨾ ⦗S⦘) w wnext)
@@ -724,7 +623,7 @@ Proof using WF IMMCON ETCCOH FCOH.
   4: { exfalso. eapply co_irr; eauto. }
   { rewrite updo in FT; [|by intros AA; desf].
     rewrite updo in FT; [|by intros AA; desf].
-      by apply TFRMW0. }
+      by apply TFRMW. }
   all: destruct (classic (x = y)) as [|NEQ]; [by desf|].
   { rewrite updo in FT; auto.
     rewrite upds in FT.
@@ -914,6 +813,13 @@ Proof using WF IMMCON ETCCOH FCOH.
       { apply (reservedW WF ETCCOH). }
       exists w. split; auto. apply seq_eqv_l. by split. }
 
+    assert (f_to wprev <> f_from wnext) as FFNEQ.
+    { intros HH.
+      cdes RESERVED_TIME.
+      apply TFRMW in HH; auto.
+      eapply rfrmw_in_im_co in HH; eauto.
+        by eapply HH; [apply COPREV|]. }
+
     cdes RESERVED_TIME. desc.
     assert (~ (rf ⨾ rmw) w wnext) as NRFRMWNEXT.
     { intros AA. apply NSW. eapply (dom_rf_rmw_S WF ETCCOH).
@@ -1060,7 +966,7 @@ Proof using WF IMMCON ETCCOH FCOH.
     apply seq_eqv_r. split; eauto. by right. }
   assert (S wprev) as SWPREV by (by apply ETCCOH.(etc_I_in_S)).
   assert (immediate (⦗S⦘ ⨾ co) wprev w) as PIMMCO.
-  { eapply rfrmwP_in_immPco with (P':=eq w).
+  { eapply rfrmwP_in_immPco with (P':=eq w); eauto.
     2: { apply seqA. basic_solver. }
     intros x [y HH]. apply seqA in HH. destruct_seq_r HH as AA; subst.
     assert (x = wprev); desf.
