@@ -1,0 +1,219 @@
+Require Import PArith Arith.
+From hahn Require Import Hahn.
+Require Import PromisingLib.
+From Promising2 Require Import Configuration TView View Time Event Cell Thread Memory Local.
+From imm Require Import Events.
+From imm Require Import Execution.
+From imm Require Import Execution_eco.
+From imm Require Import imm_s_hb.
+From imm Require Import imm_s.
+From imm Require Import imm_common.
+From imm Require Import CombRelations.
+From imm Require Import CombRelationsMore.
+From imm Require Import ProgToExecution.
+
+Require Import TraversalConfig.
+Require Import ExtTraversal.
+Require Import MaxValue.
+Require Import ViewRel.
+Require Import ViewRelHelpers.
+Require Import SimulationRel.
+Require Import SimulationPlainStepAux.
+Require Import PlainStepBasic.
+Require Import SimState.
+Require Import SimStateHelper.
+Require Import PromiseLTS.
+Require Import MemoryAux.
+Require Import FtoCoherent.
+Require Import AuxRel2.
+Require Import ExistsReserveInterval.
+Require Import ReserveStepHelper.
+
+Set Implicit Arguments.
+
+Section ReservePlainStep.
+
+Variable G : execution.
+Variable WF : Wf G.
+Variable sc : relation actid.
+Variable CON : imm_consistent G sc.
+
+Notation "'E'" := G.(acts_set).
+Notation "'sb'" := G.(sb).
+Notation "'rf'" := G.(rf).
+Notation "'co'" := G.(co).
+Notation "'rmw'" := G.(rmw).
+Notation "'data'" := G.(data).
+Notation "'addr'" := G.(addr).
+Notation "'ctrl'" := G.(ctrl).
+
+Notation "'fr'" := G.(fr).
+Notation "'coe'" := G.(coe).
+Notation "'coi'" := G.(coi).
+Notation "'deps'" := G.(deps).
+Notation "'rfi'" := G.(rfi).
+Notation "'rfe'" := G.(rfe).
+Notation "'detour'" := G.(detour).
+Notation "'hb'" := G.(hb).
+Notation "'sw'" := G.(sw).
+
+Notation "'lab'" := G.(lab).
+
+Notation "'R'" := (fun a => is_true (is_r lab a)).
+Notation "'W'" := (fun a => is_true (is_w lab a)).
+Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'RW'" := (R ∪₁ W).
+Notation "'FR'" := (F ∪₁ R).
+Notation "'FW'" := (F ∪₁ W).
+
+Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).
+Notation "'Rlx'" := (fun a => is_true (is_rlx lab a)).
+Notation "'Rel'" := (fun a => is_true (is_rel lab a)).
+Notation "'Acq'" := (fun a => is_true (is_acq lab a)).
+Notation "'Acqrel'" := (fun a => is_true (is_acqrel lab a)).
+Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
+Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
+
+Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
+Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
+
+Lemma reserve_step PC T S f_to f_from thread w smode
+      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
+      (TID : tid w = thread)
+      (TSTEP : ext_itrav_step
+                 G sc w (mkETC T S) (mkETC T (S ∪₁ eq w))) :
+  let T' := (mkTC (covered T) (issued T ∪₁ eq w)) in
+  let S' := S ∪₁ eq w in
+  exists PC' f_to' f_from',
+    ⟪ PCSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
+    ⟪ SIMREL :
+        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
+        simrel G sc PC' T' S' f_to' f_from' ⟫.
+Proof using WF CON.
+  cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
+  
+  edestruct reserve_step_helper; eauto.
+
+
+  assert (ISS : issuable G sc T w).
+  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
+  assert (WNISS : ~ issued T w).
+  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
+
+  assert (W w /\ E w) as [TYPE WACT].
+  { split; apply ISS. }
+
+  assert (tc_coherent G sc T) as sTCCOH by apply TCCOH.
+
+  assert (~ covered T w) as WNCOV.
+  { intros H. apply WNISS.
+    eapply w_covered_issued; eauto. split; auto. }
+
+  assert (~ is_init w) as WNINIT.
+  { intros H; apply WNCOV. by apply TCCOH. }
+  
+  assert (tc_coherent G sc (mkTC (covered T) (issued T ∪₁ eq w))) as TCCOH_NEW.
+  { apply TSTEP. }
+ 
+  assert (exists ex ordw locw valw,
+             lab w = Astore ex ordw locw valw) as PARAMS; desf.
+  { unfold is_w in TYPE.
+    destruct (lab w); desf; eexists; eauto. }
+  assert (loc lab w = Some locw) as WLOC.
+  { by unfold loc; rewrite PARAMS. }
+  assert (val lab w = Some valw) as WVAL.
+  { by unfold val; rewrite PARAMS. }
+
+  assert (W ∩₁ Rel ∩₁ (issued T ∪₁ eq w) ⊆₁ covered T) as RELCOV_NEW.
+  { simpls. rewrite !set_inter_union_r.
+    rewrite (set_interA W Rel (eq w)).
+    arewrite (Rel ∩₁ eq w ⊆₁ ∅).
+    { intros x [H]; desf. }
+    generalize RELCOV; basic_solver. }
+  
+  cdes SIM_MEM. 
+  edestruct write_promise_step_helper as [p_rel H].
+  13: by apply FCOH.
+  all: eauto.
+  desc. destruct H1 as [H|H].
+  { cdes H; clear H.
+    set (pe :=
+           ThreadEvent.promise
+             locw (f_from' w) (f_to' w) valw
+             (Some
+                (View.join
+                   (View.join
+                      (if is_rel lab w
+                       then TView.cur (Local.tview local)
+                       else TView.rel (Local.tview local) locw) (View.unwrap p_rel))
+                   (View.singleton_ur locw (f_to' w))))
+             Memory.op_kind_add).
+
+    eexists; exists f_to'; exists f_from'.
+    apply and_assoc. apply pair_app; unnw.
+    { split.
+      { set (pe' := None).
+        assert (pe' = ThreadEvent.get_event pe) as H.
+        { unfold pe. simpls. }
+        rewrite H. clear H.
+        econstructor; eauto.
+        apply Thread.step_promise.
+        constructor.
+        2: by simpls.
+        constructor; eauto. }
+      destruct (is_rel lab w); simpls; subst.
+      red; splits; red; splits; eauto.
+      simpls.
+      exists state; eexists.
+      rewrite IdentMap.gss.
+      splits; eauto.
+      eapply sim_tview_f_issued; eauto. }
+    intros [PCSTEP SIMREL_THREAD']; split; auto.
+    intros SMODE SIMREL.
+    eapply simrel_f_issued in SIMREL; eauto.
+    eapply full_simrel_step.
+    13: by apply SIMREL.
+    11: { ins. rewrite IdentMap.Facts.add_in_iff.
+          split; auto. intros [|]; auto; subst.
+          apply IdentMap.Facts.in_find_iff.
+            by rewrite LLH. }
+    all: simpls; eauto.
+    7: by eapply msg_preserved_add; eauto.
+    6: by eapply closedness_preserved_add; eauto.
+    { eapply coveredE; eauto. }
+    rewrite issuedE; eauto.
+    all: basic_solver. }
+  cdes H. clear H.
+  set (pe :=
+         ThreadEvent.promise
+           locw (f_from' w) (f_to' w) valw rel 
+           (Memory.op_kind_split (f_to' ws) valws relws)).
+  eexists; exists f_to'; exists f_from'.
+  apply and_assoc. apply pair_app; unnw.
+  { split.
+    { set (pe' := MachineEvent.silent).
+      assert (pe' = ThreadEvent.get_machine_event pe) as H.
+      { unfold pe. simpls. }
+      rewrite H. clear H.
+      econstructor; eauto.
+      apply Thread.step_promise.
+      constructor.
+      2: by simpls.
+      constructor; eauto. }
+    subst.
+    red; splits; red; splits; eauto.
+    { intros. desf. }
+    simpls.
+    exists state; eexists.
+    rewrite IdentMap.gss.
+    destruct (is_rel lab w); simpls.
+    splits; eauto.
+    { eapply sim_tview_f_issued; eauto. }
+    eapply tview_closedness_preserved_split; eauto. }
+  intros [PCSTEP SIMREL_THREAD']; split; auto.
+  intros SMODE'. desf.
+Qed.
+
+End WritePlainStep.
