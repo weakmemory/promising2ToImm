@@ -119,7 +119,7 @@ Proof using WF SIM_MEM INHAB.
   subst.
   destruct (classic (codom_rel (⦗ issued T ⦘ ⨾ rf ⨾ rmw) w)) as [[wprev PRMWE]|].
   2: { eexists; split; [|by left; splits; eauto].
-       simpls. split; auto. by apply Memory.closed_timemap_bot. }
+       simpls. splits; auto. by apply Memory.closed_timemap_bot. }
   destruct_seq_l PRMWE as ISSPREV.
   assert (E wprev) as EPREV.
   { apply WF.(wf_rfrmwE) in PRMWE. by destruct_seq PRMWE as [AA BB]. }
@@ -131,7 +131,8 @@ Proof using WF SIM_MEM INHAB.
   { by apply is_w_val. }
   edestruct SIM_MEM as [p_rel REL]; simpls; desc.
   all: eauto.
-  exists p_rel; split; [auto|right; exists wprev; splits; eauto].
+  exists p_rel; splits; auto.
+  right; exists wprev; splits; eauto.
   apply HELPER.
 Qed.
 
@@ -235,12 +236,14 @@ Proof using WF IMMCON ETCCOH FCOH.
   assert (W w) as WW.
   { by apply (reservedW WF ETCCOH). }
   
-  assert (~ covered T w) as WNCOV.
-  { admit. }
   assert (~ issued T w) as WNISS.
-  { admit. }
+  { (* TODO: fix ext_itrav_step_iss_nI and use it then *)
+    admit. }
+  assert (~ covered T w) as WNCOV.
+  { intros HH. apply WNISS.
+    eapply w_covered_issued; [by apply ETCCOH|by split]. }
   assert (~ is_init w) as WNINIT.
-  { admit. }
+  { intros HH. apply WNCOV. eapply init_covered; [by apply ETCCOH| by split]. }
 
   assert (W_ex w) as WEXW.
   { apply ETCCOH. by split. }
@@ -271,8 +274,13 @@ Proof using WF IMMCON ETCCOH FCOH.
   assert (S wprev) as SPREV.
   { by apply ETCCOH.(etc_I_in_S). }
   
+  assert (dom_rel (rf ⨾ rmw ⨾ ⦗eq w⦘) ⊆₁ S) as DRFRMWS.
+  { intros x [y HH]. apply seqA in HH. destruct_seq_r HH as AA; subst.
+    assert (x = wprev); desf.
+    eapply wf_rfrmwf; eauto. }
   assert (immediate (⦗S⦘ ⨾ co) wprev w) as IMMSPREV.
-  { admit. }
+  { eapply (rfrmwP_in_immPco WF IMMCON) with (P':=eq w); auto.
+    apply seqA. basic_solver. }
 
   assert (exists vprev, val lab wprev = Some vprev) as [vprev PREVVAL] by (by apply is_w_val).
 
@@ -368,8 +376,10 @@ Proof using WF IMMCON ETCCOH FCOH.
   do 2 eexists. splits; eauto.
 
   assert (Time.lt (f_from w) (f_to w)) as WFLT by (by apply FCOH).
-  assert (Message.wf (Message.full valw p_rel)) as MWF.
-  { admit. }
+  assert (View.opt_wf p_rel) as RELWF.
+  { apply opt_wf_unwrap. constructor.
+    desc. rewrite REL_PLN_RLX. reflexivity. }
+  assert (Message.wf (Message.full valw p_rel)) as MWF by (by constructor).
 
   assert (exists promises_add,
              Memory.add promises_cancel locw
