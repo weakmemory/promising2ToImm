@@ -224,3 +224,10 @@ Qed.
 End Props.
 
 End FtoCoherent.
+
+Add Parametric Morphism : f_to_coherent with signature
+  eq ==> set_equiv ==> eq ==> eq ==> iff as f_to_coherent_more.
+Proof.
+  ins. split; intros HH.
+  all: red; splits; ins; try apply HH; auto; by apply H.
+Qed.

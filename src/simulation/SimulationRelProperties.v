@@ -567,4 +567,46 @@ Proof using WF IMMCON FCOH ETCCOH TCCOH.
   eapply f_to_co_mon; eauto.
 Qed.
 
+Add Parametric Morphism : message_to_event with signature
+    eq ==> same_trav_config ==> eq ==> eq ==> eq ==> iff
+       as message_to_event_more.
+Proof.
+  ins. split; intros HH; red.
+  all: ins; apply HH in MSG; desf; auto.
+  all: right; eexists; splits; eauto; by apply H.
+Qed.
+
+Add Parametric Morphism : half_message_to_event with signature
+    eq ==> same_trav_config ==> set_equiv ==> eq ==> eq ==> eq ==> iff
+       as half_message_to_event_more.
+Proof.
+  ins. split; intros HH; red.
+  all: ins; apply HH in MSG; desf; auto.
+  all: eexists; splits; eauto; try by apply H0.
+  all: by intros AA; apply NOISS; apply H.
+Qed.
+
+Add Parametric Morphism : reserved_time with signature
+  eq ==> same_trav_config ==> set_equiv ==> eq ==> eq ==> eq ==> eq ==> iff
+      as reserved_time_more.
+Proof.
+  ins. split; intros HH.
+  { match goal with
+    | H : sim_mode |- _ => destruct H
+    end; [|by red; splits; rewrite <- H0; apply HH].
+    red; cdes HH; splits; [by rewrite <- H| |by ins; apply HH; auto; apply H0].
+    eapply half_message_to_event_more.
+    7: by eauto.
+    all: eauto.
+    2: by symmetry.
+      by apply same_trav_config_sym. }
+  match goal with
+  | H : sim_mode |- _ => destruct H
+  end; [|by red; splits; rewrite H0; apply HH].
+  red; cdes HH; splits; [by rewrite H| |by ins; apply HH; auto; apply H0].
+  eapply half_message_to_event_more.
+  7: by eauto.
+  all: eauto.
+Qed.
+
 End SimRelProps.

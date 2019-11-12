@@ -160,6 +160,7 @@ Lemma exists_time_interval_for_issue_reserved_no_next
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local)) :
   let promises := local.(Local.promises) in
   let memory   := PC.(Configuration.memory) in
+  let T'       := mkTC (covered T) (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists p_rel,
     (* TODO: introduce a definition *)
@@ -219,7 +220,7 @@ Lemma exists_time_interval_for_issue_reserved_no_next
                          (View.singleton_ur locw (f_to w))) ⟫ /\
 
         ⟪ RESERVED_TIME :
-            reserved_time G T S' f_to f_from smode memory_add ⟫.
+            reserved_time G T' S' f_to f_from smode memory_add ⟫.
 Proof using WF IMMCON ETCCOH FCOH.
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
@@ -402,12 +403,45 @@ Proof using WF IMMCON ETCCOH FCOH.
     edestruct Memory.get_disjoint with (t1:=f_to w) (t2:=to2)
                                        (m:=PC.(Configuration.memory)); eauto.
     desf. }
-  
+
+  assert (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ S) as NEWS.
+  { arewrite (dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ ∅).
+    generalize SW. basic_solver. }
+
+  assert (reserved_time G (mkTC (covered T) (issued T ∪₁ eq w))
+                        S f_to f_from smode memory_add) as REST.
+  { destruct smode; [|by apply RESERVED_TIME].
+    red. splits.
+    3: by apply RESERVED_TIME.
+    all: red; ins; erewrite Memory.add_o in MSG; eauto.
+    all: destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [LTEQ|LTNEQ].
+    { simpls. desc; subst. right. exists w. splits; eauto.
+      { clear. basic_solver. }
+      rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG. }
+    { rewrite loc_ts_eq_dec_neq in MSG; eauto.
+      erewrite Memory.remove_o in MSG; eauto.
+      rewrite loc_ts_eq_dec_neq in MSG; eauto.
+      eapply RESERVED_TIME in MSG.
+      generalize MSG. clear. basic_solver 10. }
+    { simpls. desc; subst. 
+      rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG. }
+    rewrite loc_ts_eq_dec_neq in MSG; eauto.
+    erewrite Memory.remove_o in MSG; eauto.
+    rewrite loc_ts_eq_dec_neq in MSG; eauto.
+    eapply RESERVED_TIME in MSG.
+    desc. exists b. splits; eauto.
+    intros [|AA]; [by desf|subst].
+    simpls. destruct LTNEQ as [AA|AA]; apply AA; auto.
+    rewrite LOC0 in LOC. inv LOC. }
+
   do 2 eexists. splits; eauto.
-  { admit. }
+  { by rewrite NEWS. }
   { red. splits; eauto.
     red. admit. }
-  admit.
+  eapply reserved_time_more.
+  3: by apply NEWS.
+  all: eauto.
+  apply same_trav_config_refl.
 Admitted.
 
 End Aux.
