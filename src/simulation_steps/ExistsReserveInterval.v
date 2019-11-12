@@ -68,14 +68,14 @@ Notation "'Acq'" := (is_acq lab).
 Notation "'Acqrel'" := (is_acqrel lab).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
-Variable IMMCON : imm_consistent G sc.
+Hypothesis IMMCON : imm_consistent G sc.
 
 Variable T : trav_config.
 Variable S : actid -> Prop.
-Variable ETCCOH : etc_coherent G sc (mkETC T S).
+Hypothesis ETCCOH : etc_coherent G sc (mkETC T S).
 
 Variable f_to f_from : actid -> Time.t.
-Variable FCOH : f_to_coherent G S f_to f_from.
+Hypothesis FCOH : f_to_coherent G S f_to f_from.
 
 (* TODO: move to a more appropriate place. *)
 Lemma f_to_coherent_add_S_middle memory local w wprev wnext n_to n_from
