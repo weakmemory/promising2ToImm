@@ -84,6 +84,7 @@ Lemma exists_time_interval_for_issue_reserved
                  (mkETC
                     (mkTC (covered T) (issued T ∪₁ eq w))
                     (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
+      (SW : S w)
       (LOC : loc lab w = Some locw)
       (VAL : val lab w = Some valw)
       (PROM_IN_MEM :
@@ -101,11 +102,12 @@ Lemma exists_time_interval_for_issue_reserved
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local)) :
   let promises := local.(Local.promises) in
   let memory   := PC.(Configuration.memory) in
+  let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists f_to' f_from',
-    ⟪ FCOH : f_to_coherent G (issued T ∪₁ eq w) f_to' f_from' ⟫ /\
-
+    ⟪ FCOH : f_to_coherent G S' f_to' f_from' ⟫ /\
 
   exists p_rel,
+    (* TODO: introduce a definition *)
     (⟪ REL_PLN_RLX : View.pln p_rel.(View.unwrap) = View.rlx p_rel.(View.unwrap) ⟫ /\
      ⟪ P_MEM_CLOS : Memory.closed_timemap (View.rlx p_rel.(View.unwrap)) memory ⟫ /\
      ⟪ P_REL_CH :
@@ -124,19 +126,11 @@ Lemma exists_time_interval_for_issue_reserved
 
   exists promises_cancel memory_cancel,
      ⟪ PCANCEL :
-         (⟪ PREM :
-            Memory.remove promises locw (f_from w) (f_to w)
-                          Message.reserve promises_cancel ⟫ /\
-          ⟪ SW : S w ⟫) \/
-         (promises_cancel = promises /\
-          << NSW : ~ S w >>) ⟫ /\
+         Memory.remove promises locw (f_from w) (f_to w)
+                       Message.reserve promises_cancel ⟫ /\
      ⟪ MCANCEL :
-         (Memory.remove memory locw (f_from w) (f_to w)
-                        Message.reserve memory_cancel /\
-          << SW : S w >>) \/
-         (memory_cancel = memory /\
-          << NSW : ~ S w >>) ⟫ /\
-  
+         Memory.remove memory locw (f_from w) (f_to w)
+                       Message.reserve memory_cancel ⟫ /\
 
      True.
 
