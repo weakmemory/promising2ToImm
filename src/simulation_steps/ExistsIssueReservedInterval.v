@@ -19,6 +19,7 @@ Require Import SimState.
 Require Import MemoryAux.
 Require Import MaxValue.
 Require Import ViewRel.
+Require Import ViewRelHelpers.
 Require Import Event_imm_promise.
 Require Import ExtTraversal.
 Require Import ExtTraversalProperties.
@@ -347,46 +348,41 @@ Proof using WF IMMCON ETCCOH FCOH.
   { desc.
     destruct PRELSPEC0; desc.
     { rewrite PREL. apply Time.bot_spec. }
+    assert (p = wprev); subst.
+    { eapply wf_rfrmwf; eauto. }
+    apply Time.le_lteq. left.
+    eapply TimeFacts.le_lt_lt.
+    2: by apply PREVNLT.
+    cdes SIM_TVIEW. cdes CUR.
+    eapply max_value_leS with (w:=w).
+    9: by apply P_MSG.
+    all: eauto.
+    { intros [AA|AA].
+      2: { desc. subst. eapply co_irr; eauto. }
+      (* TODO: introduce msg_rel_co_irr lemma. *)
+      destruct AA as [w' [AA BB]].
+      eapply release_co_urr_irr; eauto.
+      1-3: by apply IMMCON.
+      eexists; split; [|eexists]; eauto. }
+    { unionL; [|clear; basic_solver].
+      (* TODO: introduce msg_relD lemma. *)
+      unfold CombRelations.msg_rel.
+      intros x [y [HH _]]. eapply wf_urrD in HH.
+      destruct_seq_l HH as AA. apply AA. }
+    { unionL.
+      2: { generalize SPREV. clear. basic_solver. }
+      (* TODO: introduce a lemma *)
+      etransitivity.
+      2: by apply ETCCOH.(etc_I_in_S).
+      intros x HH.
+      eapply msg_rel_issued; eauto.
+      eexists. apply seq_eqv_r. split; eauto. }
+    split; [|basic_solver].
+    intros x y QQ. destruct_seq QQ as [COXY TCUR].
+    destruct TCUR as [TCUR|[AA TCUR]]; subst.
+    2: { eapply co_irr; eauto. eapply co_trans; eauto. }
+    (* TODO: introduce msg_rel_co_irr lemma. *)
     admit. }
-
-    (* cdes SIM_TVIEW. *)
-    (* specialize (CUR locw). *)
-    (* unfold LocFun.find in *. *)
-    (* unfold rel', rel''0. apply Time.join_spec. *)
-    (* { apply Time.join_spec. *)
-    (*   { apply Time.le_lteq. left. apply REL_VIEW_LT. } *)
-    (*   destruct PREL0; desc. *)
-    (*   { subst. simpls. apply Time.bot_spec. } *)
-    (*   apply Time.le_lteq. left. *)
-    (*   eapply TimeFacts.le_lt_lt; [|by apply PREVNLT]. *)
-    (*   eapply max_value_leS with (w:=w); eauto. *)
-    (*   { intros x [HH|HH]. *)
-    (*     2: by desf. *)
-    (*     unfold CombRelations.msg_rel, CombRelations.urr in HH. *)
-    (*     hahn_rewrite seqA in HH. apply seq_eqv_l in HH. apply HH. } *)
-    (*   { intros x [HH|HH]. *)
-    (*     2: by desf. *)
-    (*     eapply msg_rel_issued; eauto. *)
-    (*     exists p. apply seq_eqv_r. split; eauto. } *)
-    (*   split; [|basic_solver]. *)
-    (*   intros x y QQ. apply seq_eqv_l in QQ. destruct QQ as [QQ' QQ]; subst. *)
-    (*   apply seq_eqv_r in QQ. destruct QQ as [COXY [MSG|[MSG EQ]]]. *)
-    (*   2: { subst. eapply WF.(co_irr). eapply WF.(co_trans). *)
-    (*        { apply COXY. } *)
-    (*        eapply rfrmw_in_im_co in INRMW; eauto. apply INRMW. } *)
-    (*   assert (msg_rel locw ⨾ (rf ⨾ rmw) ⊆ msg_rel locw) as YY. *)
-    (*   { unfold CombRelations.msg_rel, imm_s_hb.release, rs.  *)
-    (*     rewrite !seqA. by rewrite rt_unit. } *)
-    (*   assert (msg_rel locw y x) as MSGYX. *)
-    (*   { apply YY. eexists. eauto. } *)
-    (*   unfold CombRelations.msg_rel in MSGYX. *)
-    (*   destruct MSGYX as [z [URR RELES]]. *)
-    (*   eapply release_co_urr_irr; eauto. *)
-    (*   1-4: by apply IMMCON. *)
-    (*   eexists; split; [|eexists; split]; eauto. } *)
-    (* unfold f_to'. rewrite upds. simpls. *)
-    (* unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. *)
-    (* apply DenseOrder_le_PreOrder. } *)
 
   assert (Time.le (View.rlx rel' locw) (f_to w)) as REL_VIEW_LE.
   { unfold rel'.
