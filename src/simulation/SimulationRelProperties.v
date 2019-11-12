@@ -298,7 +298,7 @@ Qed.
 
 Lemma max_value_leS locw w wprev s ts
       (LOC : loc lab w = Some locw)
-      (NS : ~ S w)
+      (NS : ~ s w)
       (COIMM : immediate (⦗ S ⦘ ⨾ co) wprev w)
       (MAXVAL : max_value f_to s ts)
       (LOCS : s ⊆₁ Loc_ locw)
