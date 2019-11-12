@@ -343,16 +343,60 @@ Proof using WF IMMCON ETCCOH FCOH.
 
   set (rel' := View.join (View.join rel'' (View.unwrap p_rel))
                          (View.singleton_ur locw (f_to w))).
+  assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to w)) as PREL_LE.
+  { desc.
+    destruct PRELSPEC0; desc.
+    { rewrite PREL. apply Time.bot_spec. }
+    admit. }
+
+    (* cdes SIM_TVIEW. *)
+    (* specialize (CUR locw). *)
+    (* unfold LocFun.find in *. *)
+    (* unfold rel', rel''0. apply Time.join_spec. *)
+    (* { apply Time.join_spec. *)
+    (*   { apply Time.le_lteq. left. apply REL_VIEW_LT. } *)
+    (*   destruct PREL0; desc. *)
+    (*   { subst. simpls. apply Time.bot_spec. } *)
+    (*   apply Time.le_lteq. left. *)
+    (*   eapply TimeFacts.le_lt_lt; [|by apply PREVNLT]. *)
+    (*   eapply max_value_leS with (w:=w); eauto. *)
+    (*   { intros x [HH|HH]. *)
+    (*     2: by desf. *)
+    (*     unfold CombRelations.msg_rel, CombRelations.urr in HH. *)
+    (*     hahn_rewrite seqA in HH. apply seq_eqv_l in HH. apply HH. } *)
+    (*   { intros x [HH|HH]. *)
+    (*     2: by desf. *)
+    (*     eapply msg_rel_issued; eauto. *)
+    (*     exists p. apply seq_eqv_r. split; eauto. } *)
+    (*   split; [|basic_solver]. *)
+    (*   intros x y QQ. apply seq_eqv_l in QQ. destruct QQ as [QQ' QQ]; subst. *)
+    (*   apply seq_eqv_r in QQ. destruct QQ as [COXY [MSG|[MSG EQ]]]. *)
+    (*   2: { subst. eapply WF.(co_irr). eapply WF.(co_trans). *)
+    (*        { apply COXY. } *)
+    (*        eapply rfrmw_in_im_co in INRMW; eauto. apply INRMW. } *)
+    (*   assert (msg_rel locw ⨾ (rf ⨾ rmw) ⊆ msg_rel locw) as YY. *)
+    (*   { unfold CombRelations.msg_rel, imm_s_hb.release, rs.  *)
+    (*     rewrite !seqA. by rewrite rt_unit. } *)
+    (*   assert (msg_rel locw y x) as MSGYX. *)
+    (*   { apply YY. eexists. eauto. } *)
+    (*   unfold CombRelations.msg_rel in MSGYX. *)
+    (*   destruct MSGYX as [z [URR RELES]]. *)
+    (*   eapply release_co_urr_irr; eauto. *)
+    (*   1-4: by apply IMMCON. *)
+    (*   eexists; split; [|eexists; split]; eauto. } *)
+    (* unfold f_to'. rewrite upds. simpls. *)
+    (* unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. *)
+    (* apply DenseOrder_le_PreOrder. } *)
+
   assert (Time.le (View.rlx rel' locw) (f_to w)) as REL_VIEW_LE.
   { unfold rel'.
     unfold View.join, TimeMap.join. simpls.
     unfold TimeMap.singleton, LocFun.add.
     rewrite Loc.eq_dec_eq.
     apply Time.join_spec; [|reflexivity].
-    apply Time.join_spec.
-    { apply Time.le_lteq; auto. }
-    admit. }
-
+    apply Time.join_spec; auto.
+    apply Time.le_lteq; auto. }
+    
   assert (Memory.get locw (f_to w) (Local.promises local) =
           Some (f_from w, Message.reserve)) as PMSG.
   { eapply SIM_RES_MEM; eauto. }
