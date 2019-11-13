@@ -660,10 +660,10 @@ Proof using WF IMMCON.
   apply TSTEP.
 Qed.
 
-Lemma ext_itrav_step_iss_nI T e
+Lemma ext_itrav_step_iss_nI T e S'
       (ETCCOH : etc_coherent T)
       (TSTEP : ext_itrav_step
-                 e T (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e)) (reserved T ∪₁ eq e))) :
+                 e T (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e)) S')) :
   ~ eissued T e.
 Proof using.
   assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
