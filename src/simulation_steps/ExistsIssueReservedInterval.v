@@ -367,7 +367,7 @@ Lemma exists_time_interval_for_issue_reserved_no_next
     in
     let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
                            (View.singleton_ur locw (f_to w))) in
-
+    << RELWFEQ : View.pln rel' = View.rlx rel' >> /\
     ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to w) ⟫ /\
     ⟪ REL_VIEW_LE : Time.le (View.rlx rel' locw) (f_to w) ⟫ /\
 
@@ -387,6 +387,8 @@ Lemma exists_time_interval_for_issue_reserved_no_next
         ⟪ MADD :
             Memory.add memory_cancel locw (f_from w) (f_to w)
                        (Message.full valw (Some rel')) memory_add ⟫ /\
+
+        << RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add >> /\
 
         ⟪ FCOH : f_to_coherent G S' f_to f_from ⟫ /\
 
@@ -589,17 +591,22 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     as [memory_cancel MCANCEL].
   { by apply Memory.remove_exists. }
 
-  simpls. splits; eauto.
-  do 2 eexists. splits; eauto.
-
   assert (Time.lt (f_from w) (f_to w)) as WFLT by (by apply FCOH).
-  assert (View.opt_wf (Some rel')) as RELWF.
-  { apply opt_wf_unwrap. simpls.
-    constructor. desc.
-    unfold rel'. simpls. rewrite REL_PLN_RLX.
+
+  assert (View.pln rel' = View.rlx rel') as RELWFEQ.
+  { unfold rel'. simpls. desc. rewrite REL_PLN_RLX.
     arewrite (View.pln rel'' = View.rlx rel'').
     2: reflexivity.
     unfold rel''. destruct (Rel w); apply PLN_RLX_EQ. }
+  assert (View.opt_wf (Some rel')) as RELWF.
+  { apply opt_wf_unwrap. simpls.
+    constructor. 
+    arewrite (View.pln rel' = View.rlx rel').
+    apply TimeMap.le_PreOrder. }
+  
+  simpls. splits; eauto.
+  do 2 eexists. splits; eauto.
+
   assert (Message.wf (Message.full valw (Some rel'))) as MWF by (by constructor).
 
   assert (exists promises_add,
@@ -665,6 +672,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     simpls. destruct LTNEQ as [AA|AA]; apply AA; auto.
     rewrite LOC0 in LOC. inv LOC. }
 
+  assert (Memory.closed_timemap (View.rlx rel') memory_add) as RELMCLOS.
+  { unfold rel'. simpls.
+    apply Memory.join_closed_timemap.
+    all: admit. }
+    (* 2: { unfold TimeMap.singleton, LocFun.add, LocFun.find. *)
+
   do 2 eexists. splits; eauto.
   { by rewrite NEWS. }
   { eapply sim_helper_issue with (S':=S); eauto. apply ETCCOH. }
@@ -672,6 +685,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   3: by apply NEWS.
   all: eauto.
   apply same_trav_config_refl.
-Qed.
+Admitted.
 
 End Aux.

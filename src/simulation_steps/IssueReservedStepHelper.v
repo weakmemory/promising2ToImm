@@ -455,8 +455,7 @@ Proof using All.
     eexists. splits; eauto.
     { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
     { apply HELPER. }
-    { (* TODO: extend exists_time_interval_for_issue_reserved_no_next  *)
-      admit. }
+    { apply RELWFEQ. }
     { (* TODO: extend exists_time_interval_for_issue_reserved_no_next  *)
       admit. }
     intros _ NT.
