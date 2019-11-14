@@ -388,6 +388,7 @@ Lemma exists_time_interval_for_issue_reserved_no_next
             Memory.add memory_cancel locw (f_from w) (f_to w)
                        (Message.full valw (Some rel')) memory_add ⟫ /\
 
+        << INHAB : Memory.inhabited memory_add >> /\
         << RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add >> /\
 
         ⟪ FCOH : f_to_coherent G S' f_to f_from ⟫ /\
@@ -403,7 +404,7 @@ Lemma exists_time_interval_for_issue_reserved_no_next
 
         ⟪ RESERVED_TIME :
             reserved_time G T' S' f_to f_from smode memory_add ⟫.
-Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN_RLX_EQ.
+Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN_RLX_EQ MEM_CLOSE.
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
   assert (complete G) as COMPL by apply IMMCON.
@@ -642,6 +643,15 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
                                        (m:=PC.(Configuration.memory)); eauto.
     desf. }
 
+  assert (Memory.inhabited memory_add) as INHABADD.
+  { red. ins.
+    erewrite Memory.add_o; eauto.
+    erewrite Memory.remove_o; eauto.
+    destruct (loc_ts_eq_dec (loc, Time.bot) (locw, f_to w)) as [AA|LL]; simpls; desc; subst.
+    { exfalso. eapply time_lt_bot. rewrite AA0. by apply FCOH. }
+    rewrite !(loc_ts_eq_dec_neq LL).
+    apply INHAB. }
+
   assert (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ S) as NEWS.
   { arewrite (dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ ∅).
     generalize SW. basic_solver. }
@@ -672,12 +682,24 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     simpls. destruct LTNEQ as [AA|AA]; apply AA; auto.
     rewrite LOC0 in LOC. inv LOC. }
 
+  assert (forall tmap (MCLOS : Memory.closed_timemap tmap PC.(Configuration.memory)),
+             Memory.closed_timemap tmap memory_add) as MADDCLOS.
+  { ins. eapply Memory.add_closed_timemap; eauto.
+    eapply Memory.cancel_closed_timemap; eauto. }
+
   assert (Memory.closed_timemap (View.rlx rel') memory_add) as RELMCLOS.
   { unfold rel'. simpls.
     apply Memory.join_closed_timemap.
-    all: admit. }
-    (* 2: { unfold TimeMap.singleton, LocFun.add, LocFun.find. *)
-
+    2: { unfold TimeMap.singleton, LocFun.add, LocFun.find.
+         red. ins. destruct (Loc.eq_dec loc locw) as [|LNEQ]; subst.
+         { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq. eauto. }
+         unfold LocFun.init.
+         exists Time.bot, 0, None. apply INHABADD. }
+    apply MADDCLOS.
+    desc. apply Memory.join_closed_timemap; auto.
+    unfold rel''.
+    destruct (Rel w); simpls.
+    all: apply MEM_CLOSE. }
   do 2 eexists. splits; eauto.
   { by rewrite NEWS. }
   { eapply sim_helper_issue with (S':=S); eauto. apply ETCCOH. }
@@ -685,6 +707,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   3: by apply NEWS.
   all: eauto.
   apply same_trav_config_refl.
-Admitted.
+Qed.
 
 End Aux.

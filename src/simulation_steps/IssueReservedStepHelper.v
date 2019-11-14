@@ -354,7 +354,8 @@ Proof using All.
     { rewrite EQ. rewrite IdentMap.gss.
       eexists. eauto. }
     rewrite IdentMap.gso; auto. }
-  { apply Memory.promise_add; eauto; ins. }
+  { apply Memory.promise_add; auto; ins.
+    admit. }
   { ins.
     destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
     { subst. rewrite IdentMap.gss in TID0.
@@ -456,8 +457,7 @@ Proof using All.
     { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
     { apply HELPER. }
     { apply RELWFEQ. }
-    { (* TODO: extend exists_time_interval_for_issue_reserved_no_next  *)
-      admit. }
+    { apply RELMCLOS. }
     intros _ NT.
     destruct (Rel b); desf.
     { exfalso. apply NT. by right. }
