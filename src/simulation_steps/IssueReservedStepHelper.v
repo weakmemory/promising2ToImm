@@ -242,41 +242,13 @@ Proof using All.
   simpls; desc.
   
   assert (~ issued T w) as NISSB.
-  { admit. }
-  assert (~ covered T w) as NCOVB.
-  { admit. }
+  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
   assert (S ⊆₁ E ∩₁ W) as SEW.
-  { admit. }
-
-  (* assert (forall e, issued T e -> f_to' e = f_to e) as ISSEQ_TO. *)
-  (* { ins. apply REQ_TO. by apply ETCCOH.(etc_I_in_S). } *)
-  (* assert (forall e, issued T e -> f_from' e = f_from e) as ISSEQ_FROM. *)
-  (* { ins. apply REQ_FROM. by apply ETCCOH.(etc_I_in_S). } *)
-
-  assert (W w) as WW by (by apply (reservedW WF ETCCOH)).
-  assert (E w) as EW by (by apply ETCCOH.(etc_S_in_E)).
-
-  (* assert (forall l b (SB : S b) (BLOC : loc lab b = Some l), *)
-  (*            l <> locw \/ f_to b <> f_to' w) as SNEQ. *)
-  (* { ins. *)
-  (*   arewrite (f_to b = f_to' b). *)
-  (*   { symmetry. by apply REQ_TO. } *)
-  (*   (* TODO: generalize to a lemma *) *)
-  (*   destruct (classic (l = locw)); [right|by left]; subst. *)
-  (*   intros HH. *)
-  (*   assert (b = w); desf. *)
-  (*   eapply f_to_eq with (I:=S ∪₁ eq w) (f_to:=f_to'); eauto. *)
-  (*   4: by right. *)
-  (*   3: by left. *)
-  (*   2: by red; rewrite BLOC; desf. *)
-  (*   unionL. *)
-  (*   { apply set_subset_inter_r; split; [by apply ETCCOH|]. *)
-  (*     apply (reservedW WF ETCCOH). } *)
-  (*   basic_solver. } *)
-
-  (* assert (forall l b (ISSB : issued T b) (BLOC : loc lab b = Some l), *)
-  (*            l <> locw \/ f_to b <> f_to' w) as INEQ. *)
-  (* { ins. apply SNEQ; auto. by apply ETCCOH.(etc_I_in_S). } *)
+  { apply set_subset_inter_r. split; [by apply ETCCOH|].
+    apply (reservedW WF ETCCOH). }
+  assert (E w /\ W w) as [EW WW] by (by apply SEW).
+  assert (~ covered T w) as NCOVB.
+  { intros AA. apply NISSB. eapply w_covered_issued; eauto. by split. }
 
   assert (Memory.le promises_add memory_add) as PP.
   { red; ins.
@@ -482,7 +454,7 @@ Proof using All.
     { exfalso. apply NT. by right. }
     splits.
     { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
-    exists p_rel. splits; eauto.
+    exists p_rel. splits; eauto. right.
     admit. }
   red. ins.
   assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
@@ -491,16 +463,15 @@ Proof using All.
   2: by desf.
   unnw.
   erewrite Memory.add_o with (mem2:=memory_add); eauto.
-  erewrite Memory.add_o with (mem2:=promises_add); eauto.
   erewrite Memory.remove_o with (mem2:=memory_cancel); eauto.
-  erewrite Memory.remove_o with (mem2:=promises_cancel); eauto.
   destruct (loc_ts_eq_dec (l, f_to b) (locw, (f_to w))) as [PEQ|PNEQ];
     simpls; desc; subst.
   { exfalso. apply BNEQ.
     eapply f_to_eq with (I:=S); eauto. red. by rewrite LOC. }
   edestruct SIM_RES_MEM with (b:=b); eauto; unnw.
-  splits; ins; rewrite (loc_ts_eq_dec_neq PNEQ).
-  all: rewrite (loc_ts_eq_dec_neq PNEQ); auto.
-Qed.
+  rewrite !(loc_ts_eq_dec_neq PNEQ); auto.
+  splits; ins.
+  apply NOTNEWP; auto.
+Admitted.
 
 End IssueReservedStepHelper.
