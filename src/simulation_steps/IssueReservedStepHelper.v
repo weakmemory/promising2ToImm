@@ -455,7 +455,20 @@ Proof using All.
     splits.
     { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
     exists p_rel. splits; eauto. right.
-    admit. }
+    cdes PREL. destruct PREL1; desc.
+    { exfalso. admit. }
+    assert (S p) as SP.
+    { by apply ETCCOH.(etc_I_in_S). }
+    exists p. splits; eauto.
+    { by left. }
+    eexists. splits; eauto.
+    eapply memory_add_le; eauto.
+    erewrite Memory.remove_o; eauto.
+    destruct (classic (f_to p = f_to b)) as [EQ|NEQ].
+    2: { rewrite loc_ts_eq_dec_neq; auto. }
+    exfalso. eapply f_to_eq with (I:=S) in EQ; eauto; subst.
+    2: by apply WF.(wf_rfrmwl).
+    eapply wf_rfrmw_irr; eauto. }
   red. ins.
   assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
   { generalize NISSB0. clear. basic_solver. }
