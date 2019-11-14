@@ -140,9 +140,8 @@ Lemma issue_reserved_step_helper w valw locw langst
   let promises := local.(Local.promises) in
   let memory   := PC.(Configuration.memory) in
   let sc_view  := PC.(Configuration.sc) in
-  let T'       :=
-      mkTC (covered T)
-           (issued T ∪₁ eq w) in
+  let covered' := if Rel w then covered T ∪₁ eq w else covered T in
+  let T'       := mkTC covered' (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC w locw p_rel /\
     let rel'' :=
@@ -175,6 +174,13 @@ Lemma issue_reserved_step_helper w valw locw langst
 
         ⟪ FCOH : f_to_coherent G S' f_to f_from ⟫ /\
 
+      exists promises',
+        ⟪ PEQ :
+            if Rel w
+            then Memory.remove promises_add locw (f_from w) (f_to w)
+                               (Message.full valw (Some rel')) promises'
+            else promises' = promises_add ⟫ /\
+
         ⟪ HELPER :
             sim_mem_helper
               G sc f_to w (f_from w) valw
@@ -187,7 +193,7 @@ Lemma issue_reserved_step_helper w valw locw langst
         ⟪ RESERVED_TIME :
             reserved_time G T' S' f_to f_from smode memory_add ⟫ /\
 
-        let local' := Local.mk local.(Local.tview) promises_add in
+        let local' := Local.mk local.(Local.tview) promises' in
         let threads' :=
             IdentMap.add (tid w)
                          (langst, local')
@@ -215,8 +221,8 @@ Lemma issue_reserved_step_helper w valw locw langst
                    (TID : IdentMap.find thread' threads' = Some (langst, local)),
               Memory.le local.(Local.Local.promises) memory_add ⟫ /\
 
-        ⟪ SIM_PROM     : sim_prom     G sc T'             f_to f_from (tid w) promises_add  ⟫ /\
-        ⟪ SIM_RES_PROM : sim_res_prom G    T' (S ∪₁ eq w) f_to f_from (tid w) promises_add  ⟫ /\
+        ⟪ SIM_PROM     : sim_prom G sc T' f_to f_from (tid w) promises'  ⟫ /\
+        ⟪ SIM_RES_PROM : sim_res_prom G T' (S ∪₁ eq w) f_to f_from (tid w) promises'  ⟫ /\
 
         ⟪ PROM_DISJOINT :
             forall thread' langst' local'
@@ -224,7 +230,7 @@ Lemma issue_reserved_step_helper w valw locw langst
                    (TID' : IdentMap.find thread' threads' =
                            Some (langst', local')),
             forall loc to,
-              Memory.get loc to promises_add = None \/
+              Memory.get loc to promises' = None \/
               Memory.get loc to local'.(Local.Local.promises) = None ⟫ /\
 
         ⟪ SIM_MEM     : sim_mem G sc T' f_to f_from (tid w) local' memory_add ⟫ /\
@@ -335,7 +341,9 @@ Proof using All.
     destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [[A' B']|LL].
     { simpls; rewrite A' in *; rewrite B' in *.
       rewrite (loc_ts_eq_dec_eq locw (f_to w)) in PROM.
-      inv PROM. exists w. splits; eauto. by right. }
+      inv PROM. exists w. splits; eauto.
+      { by right. }
+      admit. }
     rewrite (loc_ts_eq_dec_neq LL) in PROM.
     erewrite Memory.remove_o in PROM; eauto.
     rewrite (loc_ts_eq_dec_neq LL) in PROM.
@@ -417,7 +425,8 @@ Proof using All.
     ins. splits.
     { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
     exists p_rel. splits; eauto.
-    { (* destruct (Rel b) eqn:RELB; [|done]. *)
+    {
+      (* destruct (Rel b) eqn:RELB; [|done]. *)
       (* exfalso. *)
       (* assert (covered T b); desf. *)
       (* apply RELCOV. split; [split|]; auto. *)
