@@ -12,6 +12,7 @@ From imm Require Import imm_common.
 From imm Require Import CombRelations.
 From imm Require Import AuxDef.
 
+Require Import ImmProperties.
 Require Import TraversalConfig.
 Require Import ViewRelHelpers.
 Require Import SimulationRel.
@@ -250,6 +251,15 @@ Proof using All.
   assert (~ covered T w) as NCOVB.
   { intros AA. apply NISSB. eapply w_covered_issued; eauto. by split. }
 
+  assert (W_ex w) as WEW.
+  { apply ETCCOH. by split. }
+  assert (codom_rel (⦗issued T⦘ ⨾ rf ⨾ rmw) w) as CDRFRMW.
+  { eapply W_ex_in_codom_rfrmw in WEW; eauto.
+    destruct WEW as [u WEW].
+    exists u. apply seq_eqv_l. split; auto.
+    eapply ExtTraversalProperties.dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
+    exists w. apply seqA. apply seq_eqv_r. split; auto. }
+
   assert (Memory.le promises_add memory_add) as PP.
   { red; ins.
     erewrite Memory.add_o; eauto.
@@ -456,7 +466,7 @@ Proof using All.
     { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
     exists p_rel. splits; eauto. right.
     cdes PREL. destruct PREL1; desc.
-    { exfalso. admit. }
+    { exfalso. eauto. }
     assert (S p) as SP.
     { by apply ETCCOH.(etc_I_in_S). }
     exists p. splits; eauto.
