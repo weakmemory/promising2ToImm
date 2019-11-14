@@ -335,23 +335,33 @@ Proof using All.
     eapply memory_add_le; eauto. }
 
   assert (forall l to from msg 
-                 (INP' : Memory.get l to promises' =
-                         Some (from, msg))
                  (NEQ : l <> locw \/ to <> f_to w),
+             Memory.get l to promises_cancel = Some (from, msg) <->
+             Memory.get l to local.(Local.promises) = Some (from, msg))
+    as NOTNEWC.
+  { ins. erewrite Memory.remove_o; eauto.
+    rewrite loc_ts_eq_dec_neq; auto. }
+
+  assert (forall l to from msg 
+                 (NEQ : l <> locw \/ to <> f_to w),
+             Memory.get l to promises_add = Some (from, msg) <->
+             Memory.get l to local.(Local.promises) = Some (from, msg))
+    as NOTNEWA.
+  { ins. erewrite Memory.add_o; eauto.
+    rewrite loc_ts_eq_dec_neq; auto. }
+
+  assert (forall l to from msg 
+                 (NEQ : l <> locw \/ to <> f_to w),
+             Memory.get l to promises' = Some (from, msg) <->
              Memory.get l to local.(Local.promises) = Some (from, msg))
     as NOTNEWP.
-  { ins.
-    assert (Memory.get l to promises_add = Some (from, msg)) as TT0.
-    { by apply LEPADD. }
-    assert (Memory.get l to promises_cancel = Some (from, msg)) as TT1.
-    { erewrite Memory.add_o in TT0; eauto.
-      rewrite loc_ts_eq_dec_neq in TT0; auto. }
-    assert (Memory.get l to local.(Local.promises) = Some (from, msg)) as TT.
-    { erewrite Memory.remove_o in TT1; eauto.
-      rewrite loc_ts_eq_dec_neq in TT1; auto. }
-    destruct msg.
-    { edestruct SIM_PROM as [b H]; eauto; desc. }
-    edestruct SIM_RES_PROM as [b H]; eauto; desc. }
+  { ins. destruct (Rel w); subst; auto. }
+
+  assert (~ Rel w -> Memory.get locw (f_to w) promises' =
+          Some (f_from w, Message.full valw (Some rel')))
+    as INP''.
+  { ins. destruct (Rel w); subst; [by desf|].
+    erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_eq. }
 
   exists p_rel. splits; eauto.
   do 2 eexists. splits; eauto.
@@ -386,7 +396,7 @@ Proof using All.
       erewrite Memory.add_o in PROM; eauto.
       rewrite (loc_ts_eq_dec_eq locw (f_to w)) in PROM.
       inv PROM. exists w. splits; eauto. by right. }
-    eapply NOTNEWP in LL; eauto.
+    eapply NOTNEWP in PROM; eauto.
     edestruct SIM_PROM as [b H]; eauto; desc.
     exists b; splits; auto.
     { by left. }
@@ -430,9 +440,13 @@ Proof using All.
       erewrite Memory.remove_o with (mem2:=memory_cancel); eauto.
       rewrite !loc_ts_eq_dec_neq; auto.
       splits; eauto.
-      (* TODO: continue from here. *)
-      intros AA BB. specialize (HH1 AA BB).
-      desc. splits; auto. eexists. splits; eauto.
+      intros AA BB.
+      assert (~ covered T b) as NCOVBB.
+      { generalize BB. basic_solver. }
+      specialize (HH1 AA NCOVBB).
+      desc. splits; auto.
+      { apply NOTNEWP; auto. }
+      eexists. splits; eauto.
       destruct HH2 as [[CC DD]|CC]; eauto.
       { left. split; auto.
         intros [u QQ]. destruct_seq_l QQ as UISS. destruct UISS as [UISS|]; subst.
@@ -463,15 +477,12 @@ Proof using All.
       admit. }
     { (* TODO: extend exists_time_interval_for_issue_reserved_no_next  *)
       admit. }
-    ins. splits.
+    intros _ NT.
+    destruct (Rel b); desf.
+    { exfalso. apply NT. by right. }
+    splits.
     { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
     exists p_rel. splits; eauto.
-    {
-      (* destruct (Rel b) eqn:RELB; [|done]. *)
-      (* exfalso. *)
-      (* assert (covered T b); desf. *)
-      (* apply RELCOV. split; [split|]; auto. *)
-      admit. }
     admit. }
   red. ins.
   assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
