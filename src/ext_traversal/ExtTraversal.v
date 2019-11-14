@@ -649,10 +649,10 @@ Proof using WF IMMCON.
   red. eapply (ext_itrav_step_nC ETCCOH). eauto.
 Qed.
 
-Lemma ext_itrav_step_iss_issuable T e
+Lemma ext_itrav_step_iss_issuable T S' e
       (ETCCOH : etc_coherent T)
       (TSTEP : ext_itrav_step
-                 e T (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e)) (reserved T ∪₁ eq e))) :
+                 e T (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e)) S')) :
   issuable G sc (etc_TC T) e.
 Proof using WF IMMCON.
   apply issuable_add_eq_iff; auto.

@@ -359,24 +359,7 @@ Lemma exists_time_interval_for_issue_reserved_no_next
   let memory   := PC.(Configuration.memory) in
   let T'       := mkTC (covered T) (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
-  exists p_rel,
-    (* TODO: introduce a definition *)
-    (⟪ REL_PLN_RLX : View.pln p_rel.(View.unwrap) = View.rlx p_rel.(View.unwrap) ⟫ /\
-     ⟪ P_MEM_CLOS : Memory.closed_timemap (View.rlx p_rel.(View.unwrap)) memory ⟫ /\
-     ⟪ P_REL_CH :
-         (⟪ NINRMW : ~ codom_rel (⦗ issued T ⦘ ⨾ rf ⨾ rmw) w ⟫ /\
-          ⟪ PREL : p_rel = None ⟫) \/
-         (exists p,
-             ⟪ EP  : E p ⟫ /\
-             ⟪ ISSP  : issued T p ⟫ /\
-             ⟪ INRMW : (rf ⨾ rmw) p w ⟫ /\
-             ⟪ P_LOC : loc lab p = Some locw ⟫ /\
-             ⟪ P_MSG : sim_msg G sc f_to p p_rel.(View.unwrap) ⟫  /\
-             exists p_v,
-               ⟪ P_VAL : val lab p = Some p_v ⟫ /\
-               ⟪ P_INMEM : Memory.get locw (f_to p) memory =
-                           Some (f_from p, Message.full p_v p_rel) ⟫)⟫) /\
-
+  exists p_rel, rfrmw_prev_rel w locw p_rel /\
     let rel'' :=
         if is_rel lab w
         then (TView.cur (Local.Local.tview local))
@@ -418,7 +401,7 @@ Lemma exists_time_interval_for_issue_reserved_no_next
 
         ⟪ RESERVED_TIME :
             reserved_time G T' S' f_to f_from smode memory_add ⟫.
-Proof using WF IMMCON ETCCOH FCOH.
+Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB.
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
   assert (complete G) as COMPL by apply IMMCON.
@@ -441,7 +424,7 @@ Proof using WF IMMCON ETCCOH FCOH.
   { intros HH. apply WNCOV. eapply init_covered; [by apply ETCCOH| by split]. }
 
   assert (issuable G sc T w) as ISSUABLE.
-  { admit. }
+  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
 
   assert (W_ex w) as WEXW.
   { apply ETCCOH. by split. }
@@ -483,11 +466,11 @@ Proof using WF IMMCON ETCCOH FCOH.
   assert (exists vprev, val lab wprev = Some vprev) as [vprev PREVVAL] by (by apply is_w_val).
 
   edestruct exists_wprev_rel with (w:=w) as [p_rel PRELSPEC]; eauto.
-  red in PRELSPEC.
   
   exists p_rel. split.
-  { clear -PRELSPEC. desc. splits; eauto. }
+  { apply PRELSPEC. }
 
+  red in PRELSPEC.
   set (rel'' :=
          if Rel w
          then TView.cur (Local.tview local)
@@ -685,6 +668,6 @@ Proof using WF IMMCON ETCCOH FCOH.
   3: by apply NEWS.
   all: eauto.
   apply same_trav_config_refl.
-Admitted.
+Qed.
 
 End Aux.
