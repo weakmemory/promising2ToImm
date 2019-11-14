@@ -364,8 +364,16 @@ Proof using All.
     rewrite loc_ts_eq_dec_neq; auto.
     erewrite Memory.remove_o; eauto.
     rewrite loc_ts_eq_dec_neq; auto. }
-Admitted.
   { red. ins.
+    destruct ISSB as [ISSB|]; subst.
+    2: { assert (Some l = Some locw) as QQ.
+         { by rewrite <- LOC0. }
+         inv QQ.
+         (* TODO: continue from here *)
+         rewrite 
+         eexists. splits; eauto.
+         { rewrite 
+
     edestruct SIM_MEM as [rel_opt HH]; eauto. simpls. desc.
     exists rel_opt. unnw.
     destruct (loc_ts_eq_dec (l, f_to b) (locw, (f_to w))) as [EQ|NEQ]; simpls; desc; subst.
