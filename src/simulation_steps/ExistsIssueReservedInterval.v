@@ -383,10 +383,10 @@ Lemma exists_time_interval_for_issue_reserved_no_next
       exists promises_add memory_add,
         ⟪ PADD :
             Memory.add promises_cancel locw (f_from w) (f_to w)
-                       (Message.full valw p_rel) promises_add ⟫ /\
+                       (Message.full valw (Some rel')) promises_add ⟫ /\
         ⟪ MADD :
             Memory.add memory_cancel locw (f_from w) (f_to w)
-                       (Message.full valw p_rel) memory_add ⟫ /\
+                       (Message.full valw (Some rel')) memory_add ⟫ /\
 
         ⟪ FCOH : f_to_coherent G S' f_to f_from ⟫ /\
 
@@ -401,7 +401,7 @@ Lemma exists_time_interval_for_issue_reserved_no_next
 
         ⟪ RESERVED_TIME :
             reserved_time G T' S' f_to f_from smode memory_add ⟫.
-Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB.
+Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN_RLX_EQ.
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
   assert (complete G) as COMPL by apply IMMCON.
@@ -593,14 +593,18 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB.
   do 2 eexists. splits; eauto.
 
   assert (Time.lt (f_from w) (f_to w)) as WFLT by (by apply FCOH).
-  assert (View.opt_wf p_rel) as RELWF.
-  { apply opt_wf_unwrap. constructor.
-    desc. rewrite REL_PLN_RLX. reflexivity. }
-  assert (Message.wf (Message.full valw p_rel)) as MWF by (by constructor).
+  assert (View.opt_wf (Some rel')) as RELWF.
+  { apply opt_wf_unwrap. simpls.
+    constructor. desc.
+    unfold rel'. simpls. rewrite REL_PLN_RLX.
+    arewrite (View.pln rel'' = View.rlx rel'').
+    2: reflexivity.
+    unfold rel''. destruct (Rel w); apply PLN_RLX_EQ. }
+  assert (Message.wf (Message.full valw (Some rel'))) as MWF by (by constructor).
 
   assert (exists promises_add,
              Memory.add promises_cancel locw
-                        (f_from w) (f_to w) (Message.full valw p_rel)
+                        (f_from w) (f_to w) (Message.full valw (Some rel'))
                         promises_add)
     as [promises_add PADD].
   { apply Memory.add_exists; auto.
@@ -616,7 +620,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB.
     desf. }
   assert (exists memory_add,
              Memory.add memory_cancel locw
-                        (f_from w) (f_to w) (Message.full valw p_rel)
+                        (f_from w) (f_to w) (Message.full valw (Some rel'))
                         memory_add)
     as [memory_add MADD].
   { apply Memory.add_exists; auto.
