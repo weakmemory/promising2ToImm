@@ -137,7 +137,7 @@ Proof using WF CON.
            Memory.op_kind_add).
   
   assert (Memory.closed_message (Message.full valw (Some rel')) memory_add) as CLOS_MSG.
-  { admit. }
+  { by do 2 constructor. }
   
   eexists.
   apply and_assoc. apply pair_app; unnw.
@@ -199,6 +199,6 @@ Proof using WF CON.
   { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
   1-4: basic_solver.
   admit.
-Qed.
+Admitted.
 
 End IssueReservedPlainStep.

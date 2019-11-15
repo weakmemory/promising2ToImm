@@ -390,6 +390,7 @@ Lemma exists_time_interval_for_issue_reserved_no_next
 
         << INHAB : Memory.inhabited memory_add >> /\
         << RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add >> /\
+        << RELVCLOS : Memory.closed_view rel' memory_add >> /\
 
         ⟪ FCOH : f_to_coherent G S' f_to f_from ⟫ /\
 
@@ -701,6 +702,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     destruct (Rel w); simpls.
     all: apply MEM_CLOSE. }
   do 2 eexists. splits; eauto.
+  { constructor; auto. simpls. by rewrite RELWFEQ. }
   { by rewrite NEWS. }
   { eapply sim_helper_issue with (S':=S); eauto. apply ETCCOH. }
   eapply reserved_time_more.

@@ -175,6 +175,7 @@ Lemma issue_reserved_step_helper w valw locw langst
 
         << INHAB : Memory.inhabited memory_add >> /\
         << RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add >> /\
+        << RELVCLOS : Memory.closed_view rel' memory_add >> /\
 
         ⟪ FCOH : f_to_coherent G S' f_to f_from ⟫ /\
 
