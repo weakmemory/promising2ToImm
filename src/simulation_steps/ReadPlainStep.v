@@ -263,13 +263,14 @@ Proof using WF CON.
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
   eapply full_simrel_step.
-  15: by apply SIMREL.
-  13: { ins. rewrite IdentMap.Facts.add_in_iff.
+  16: by apply SIMREL.
+  14: { ins. rewrite IdentMap.Facts.add_in_iff.
         split; auto. intros [|]; auto; subst.
         apply IdentMap.Facts.in_find_iff.
           by rewrite LLH. }
+  13: by eapply msg_preserved_refl; eauto.
+  10: by eapply same_other_threads_step; eauto.
   all: simpls; eauto.
-  7: by apply msg_preserved_refl.
   rewrite coveredE; eauto.
   2: by eapply issuedE; eauto.
   all: basic_solver.

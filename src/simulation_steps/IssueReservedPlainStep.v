@@ -182,23 +182,23 @@ Proof using WF CON.
   eapply simrel_fS in SIMREL; eauto.
   subst.
   eapply full_simrel_step with (thread:=tid w).
-  15: by apply SIMREL.
-  14: done.
-  13: { ins. rewrite !IdentMap.Facts.add_in_iff.
+  16: by apply SIMREL.
+  14: { ins. rewrite !IdentMap.Facts.add_in_iff.
         split; auto.
         intros [| [ | ]]; auto; subst.
         all: apply IdentMap.Facts.in_find_iff; by rewrite LLH. }
-  all: simpls; eauto.
-  10: { eapply msg_preserved_trans.
+  13: { eapply msg_preserved_trans.
         { eapply msg_preserved_cancel; eauto. }
         eapply msg_preserved_add; eauto. }
-  9: { eapply closedness_preserved_trans.
-       { eapply closedness_preserved_cancel; eauto. }
-       eapply closedness_preserved_add; eauto. }
+  12: { eapply closedness_preserved_trans.
+        { eapply closedness_preserved_cancel; eauto. }
+        eapply closedness_preserved_add; eauto. }
+  10: by eapply same_other_threads_steps; eauto.
+  all: simpls; eauto.
   { eapply coveredE; eauto. }
   { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
   1-4: basic_solver.
-  { admit. }
+  admit.
 Qed.
 
 End IssueReservedPlainStep.

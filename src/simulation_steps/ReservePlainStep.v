@@ -147,14 +147,15 @@ Proof using WF CON.
   intros SMODE SIMREL.
   eapply simrel_fS in SIMREL; eauto.
   eapply full_simrel_step.
-  15: by apply SIMREL.
-  13: { ins. rewrite IdentMap.Facts.add_in_iff.
+  16: by apply SIMREL.
+  14: { ins. rewrite IdentMap.Facts.add_in_iff.
         split; auto. intros [|]; auto; subst.
         apply IdentMap.Facts.in_find_iff.
           by rewrite LLH. }
+  13: by eapply msg_preserved_add; eauto.
+  12: by eapply closedness_preserved_add; eauto.
+  10: by eapply same_other_threads_step; eauto.
   all: simpls; eauto.
-  8: by eapply msg_preserved_add; eauto.
-  7: by eapply closedness_preserved_add; eauto.
   { eapply coveredE; eauto. }
   rewrite issuedE; eauto.
   all: basic_solver.
