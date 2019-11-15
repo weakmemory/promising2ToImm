@@ -86,7 +86,7 @@ Lemma cert_sim_step G sc thread PC T T' f_to f_from smode
       (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
       (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : (plain_step MachineEvent.silent thread)^? PC PC' ⟫ /\
+      ⟪ PSTEP : (plain_step MachineEvent.silent thread)^* PC PC' ⟫ /\
       ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread smode ⟫.
 Proof using.
   destruct T as [T S].
@@ -109,8 +109,7 @@ Proof using.
   generalize dependent f_to.
   generalize dependent PC.
   induction STEPS.
-  { ins. eapply cert_sim_step in H; eauto. desf.
-    do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
+  { ins. eapply cert_sim_step in H; eauto. }
   ins.
   apply IHSTEPS1 in SIMREL; auto.
   desf.
@@ -772,6 +771,56 @@ Proof using All.
   eapply TimeFacts.lt_le_lt; eauto.
 Qed.
 
+(* TODO: move to a more appopriate place *)
+Lemma same_thread_modify_for_step thread x y
+      (STEP : plain_step MachineEvent.silent thread x y) :
+  forall tt, IdentMap.add thread tt y.(Configuration.threads) =
+             IdentMap.add thread tt x.(Configuration.threads).
+Proof. ins. inv STEP; simpls. by rewrite IdentMap.add_add_eq. Qed.
+
+Lemma same_thread_modify_for_steps thread x y
+      (STEP : (plain_step MachineEvent.silent thread)^* x y) :
+  forall tt, IdentMap.add thread tt y.(Configuration.threads) =
+             IdentMap.add thread tt x.(Configuration.threads).
+Proof using.
+  induction STEP; eauto.
+  { by apply same_thread_modify_for_step. }
+  ins. by rewrite IHSTEP2.
+Qed.
+
+(* TODO: move to a more appopriate place *)
+Lemma plain_step_seq_plain_step_in_plain_step thread :
+  plain_step MachineEvent.silent thread ;; plain_step MachineEvent.silent thread ⊆
+             plain_step MachineEvent.silent thread.
+Proof using.
+  intros x z [y [AA BB]].
+  assert (forall tt, IdentMap.add thread tt y.(Configuration.threads) =
+                     IdentMap.add thread tt x.(Configuration.threads)) as HH.
+  { by apply same_thread_modify_for_step. }
+  set (pe := MachineEvent.silent).
+  assert (pe = MachineEvent.silent) as EQ by done.
+  inv AA. inv BB. simpls. rewrite HH.
+  rewrite IdentMap.gss in TID0. inv TID0.
+  rewrite EQ. rewrite <- H1.
+  econstructor.
+  3: edone.
+  all: eauto.
+  apply clos_rt_rt1n.
+  eapply rt_rt. eexists. split; eauto.
+  apply rt_begin. right. eexists. split.
+  { red. econstructor.
+    { econstructor; eauto. }
+    done. }
+    by apply clos_rt1n_rt.
+Qed.
+
+(* TODO: move to a more appopriate place *)
+Lemma plain_step_ct_in_plain_step thread :
+  (plain_step MachineEvent.silent thread)⁺ ⊆ plain_step MachineEvent.silent thread.
+Proof using.
+  apply ct_of_trans. apply transitiveI. apply plain_step_seq_plain_step_in_plain_step.
+Qed.
+
 Lemma sim_step PC T S T' S' f_to f_from
       (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
       (SIMREL : simrel G sc PC T S f_to f_from) :
@@ -797,9 +846,10 @@ Proof using All.
   desf. exists PC'. exists f_to'. exists f_from'. splits.
   2: { apply SIMREL0; eauto. }
 
-  destruct PSTEP as [|PSTEP]; subst.
+  apply rtE in PSTEP.
+  destruct PSTEP as [[HH]|PSTEP]; subst.
   { by constructor. }
-
+  apply plain_step_ct_in_plain_step in PSTEP.
   right.
   red. exists MachineEvent.silent. exists thread.
   destruct PSTEP. econstructor; eauto.
