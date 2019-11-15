@@ -673,4 +673,18 @@ Proof using.
   apply NISS. by apply ETCCOH.(etc_I_in_S).
 Qed.
 
+Lemma dom_sb_S_rfrmw_same_tid T w (NINIT : ~ is_init w) :
+  dom_sb_S_rfrmw T rfi (eq w) ⊆₁ (fun x => tid x = (tid w)).
+Proof using WF.
+  unfold dom_sb_S_rfrmw.
+  arewrite (rfi ⊆ sb).
+  rewrite WF.(rmw_in_sb).
+  arewrite (sb ;; sb ⊆ sb).
+  { generalize (@sb_trans G). basic_solver. }
+  arewrite (<|eq w|> ⊆ <|eq w|> ;; <| set_compl is_init |>).
+  { basic_solver. }
+  rewrite ninit_sb_same_tid.
+  basic_solver.
+Qed.
+
 End ExtTraversalConfig.

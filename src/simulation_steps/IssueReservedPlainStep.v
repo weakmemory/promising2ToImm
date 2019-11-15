@@ -80,7 +80,7 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := G.(W_ex).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma issue_reserved_step_no_next PC T S f_to f_from thread w smode
+Lemma issue_rlx_reserved_step_no_next PC T S f_to f_from thread w smode
       (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S)
@@ -111,8 +111,8 @@ Proof using WF CON.
   { apply set_subset_inter_r. split; [by apply TCCOH|].
     apply (reservedW WF TCCOH). }
   assert (E w /\ W w) as [EW WW] by (by apply SEW).
-  (* assert (~ covered T w) as NCOVB. *)
-  (* { intros AA. apply NISSB. eapply w_covered_issued; eauto. by split. } *)
+  assert (~ is_init w) as NINIT.
+  { intros AA. apply NISSB. eapply init_issued; eauto. by split. }
 
   assert (exists locw, loc lab w = Some locw) as [locw WLOC] by (by apply is_w_loc).
   assert (exists valw, val lab w = Some valw) as [valw WVAL] by (by apply is_w_val).
@@ -160,33 +160,19 @@ Proof using WF CON.
       constructor.
       2: by simpls.
       econstructor; eauto. }
+    destruct (is_rel lab w) eqn:RELB.
+    { desf. }
     subst.
     red; splits; red; splits; eauto; simpls.
+    all: try (rewrite IdentMap.add_add_eq; eauto).
     { apply TSTEP. }
-    { generalize NREL RELCOV. clear. basic_solver. }
-    { ins. destruct (classic (tid e = tid w)) as [EQ|NEQ].
-      { rewrite EQ. rewrite IdentMap.gss; eauto. }
-      repeat (rewrite IdentMap.gso; auto). }
-    { admit. }
+    { generalize RELB RELCOV. clear. basic_solver. }
     { eapply Memory.add_closed; eauto.
       eapply Memory.cancel_closed; eauto. }
     simpls.
     exists state; eexists.
     rewrite IdentMap.gss.
-    destruct (is_rel lab w).
-    { desf. }
     splits; eauto.
-    { ins. repeat (rewrite IdentMap.gso in TID'; auto).
-      eapply PROM_DISJOINT in TID'; eauto.
-      destruct TID' as [AA|AA]; [left|by right; apply AA].
-      erewrite Memory.add_o; eauto.
-      erewrite Memory.remove_o; eauto.
-      destruct (loc_ts_eq_dec (loc, to) (locw, f_to w)) as [|LL]; desc; simpls; subst.
-      2: by rewrite !(loc_ts_eq_dec_neq LL).
-      exfalso.
-      edestruct SIM_RES_MEM as [_ BB]; eauto.
-      rewrite BB in AA; desf. }
-    simpls.
     eapply tview_closedness_preserved_add; eauto.
     eapply tview_closedness_preserved_cancel; eauto. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
@@ -210,7 +196,7 @@ Proof using WF CON.
   { eapply coveredE; eauto. }
   { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
   1-4: basic_solver.
-  admit.
-Admitted.
+  rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver.
+Qed.
 
 End IssueReservedPlainStep.

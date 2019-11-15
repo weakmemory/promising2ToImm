@@ -37,6 +37,7 @@ Require Import ReadPlainStep.
 Require Import WriteRlxCovPlainStep.
 Require Import RMWRlxCovPlainStep.
 Require Import ReservePlainStep.
+Require Import IssueReservedPlainStep.
 (* TODO: Require Import WritePlainStep. *)
 (* TODO: Require Import RMWPlainStep. *)
 
@@ -93,7 +94,7 @@ Lemma plain_sim_step thread PC T S f_to f_from T' S' smode
       (TCSTEP : ext_isim_trav_step G sc thread (mkETC T S) (mkETC T' S'))
       (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : (plain_step MachineEvent.silent thread)^? PC PC' ⟫ /\
+      ⟪ PSTEP : (plain_step MachineEvent.silent thread)^* PC PC' ⟫ /\
       ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
       ⟪ SIMREL :
           smode = sim_normal -> simrel G sc PC T S f_to f_from ->
@@ -105,14 +106,15 @@ Proof using WF CON.
   { (* Fence covering *)
     cdes TS. desf.
     { edestruct fence_step; eauto.
-      desc. do 3 eexists. splits; eauto. }
+      desc. do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
     all: exfalso; assert (W f) as WFF; [|type_solver].
     all: eapply WF.(reservedW); [by apply TS|].
     all: apply RESEQ; basic_solver. }
+
   { (* Read covering *)
     cdes TS. desf.
     { edestruct read_step; eauto.
-      desc. do 3 eexists. splits; eauto. }
+      desc. do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
     all: exfalso; assert (W r) as WFF; [|type_solver].
     all: eapply WF.(reservedW); [by apply TS|].
     all: apply RESEQ; basic_solver. }
@@ -122,21 +124,24 @@ Proof using WF CON.
     { exfalso. apply NCOV. apply COVEQ. basic_solver. }
     { exfalso. apply NISS. apply ISSEQ. basic_solver. }
     edestruct reserve_step; eauto.
-    desc. do 3 eexists. splits; eauto. }
+    desc. do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
 
   { (* Relaxed write issuing *)
+    cdes TS. desf; unfold eissued, ecovered in *; simpls.
+    3: { exfalso. apply NISS. apply ISSEQ. basic_solver. }
+    { exfalso. apply NCOV. apply COVEQ. basic_solver. }
+    destruct (classic (S w)) as [SW|NSW].
+    { destruct (classic (dom_sb_S_rfrmw G {| etc_TC := T; reserved := S |} rfi (eq w) ⊆₁ ∅))
+      as [EMP|NEMP].
+      { edestruct issue_rlx_reserved_step_no_next; eauto.
+        desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
+      admit. }
     admit. }
-    (* cdes TS. desf. *)
-    (* { exfalso. apply NISS. red in COV. *)
-    (*   destruct COV as [_ [[COV|COV]|COV]]. *)
-    (*   { apply COV. } *)
-    (*   all: type_solver. } *)
-    (* edestruct rlx_write_promise_step; eauto. } *)
 
   { (* Relaxed write covering *)
     cdes TS. desf; unfold eissued, ecovered in *; simpls.
     { edestruct rlx_write_cover_step; eauto.
-      desc. do 3 eexists. splits; eauto. }
+      desc. do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
     exfalso.
     eapply ext_itrav_step_nC.
     3: by eauto.
@@ -168,11 +173,10 @@ Proof using WF CON.
     { apply (dom_l WF.(wf_rmwD)) in RMW. hahn_rewrite (R_ex_in_R) in RMW. apply seq_eqv_l in RMW. desf. }
     cdes TS1. desf; unfold eissued, ecovered in *; simpls.
     { edestruct rlx_rmw_cover_step; eauto.
-      desc. do 3 eexists. splits; eauto. }
+      desc. do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
     all: exfalso; assert (W r) as WFF; [|type_solver].
     all: eapply WF.(reservedW); [by apply TS1|].
     all: apply RESEQ; basic_solver. }
-Admitted.
 
 (*   (* Release RMW covering *) *)
 (*   assert (R r) as RR. *)
@@ -182,6 +186,6 @@ Admitted.
 (*   edestruct rel_rmw_cover_step; eauto. *)
 (*   red. split; [split|]; auto. *)
 (*   all: apply COV. *)
-(* Qed. *)
+Admitted.
 
 End PlainStep.
