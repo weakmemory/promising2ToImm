@@ -226,7 +226,7 @@ Lemma issue_reserved_step_helper w valw locw langst
               Memory.le local.(Local.promises) memory_add ⟫ /\
 
         ⟪ SIM_PROM     : sim_prom G sc T' f_to f_from (tid w) promises'  ⟫ /\
-        ⟪ SIM_RES_PROM : sim_res_prom G T' (S ∪₁ eq w) f_to f_from (tid w) promises'  ⟫ /\
+        ⟪ SIM_RES_PROM : sim_res_prom G T' S' f_to f_from (tid w) promises'  ⟫ /\
 
         ⟪ PROM_DISJOINT :
             forall thread' langst' local'
@@ -238,7 +238,7 @@ Lemma issue_reserved_step_helper w valw locw langst
               Memory.get loc to local'.(Local.promises) = None ⟫ /\
 
         ⟪ SIM_MEM     : sim_mem G sc T' f_to f_from (tid w) local' memory_add ⟫ /\
-        ⟪ SIM_RES_MEM : sim_res_mem G T' (S ∪₁ eq w) f_to f_from (tid w) local' memory_add ⟫.
+        ⟪ SIM_RES_MEM : sim_res_mem G T' S' f_to f_from (tid w) local' memory_add ⟫.
 Proof using All.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
 
@@ -400,7 +400,7 @@ Proof using All.
     apply NOTNEWP in RES; auto.
     edestruct SIM_RES_PROM as [b H]; eauto; desc.
     exists b. splits; auto.
-    { by left. }
+    { generalize RES0. basic_solver. }
     intros [A|A]; desf. }
   { ins.
     rewrite IdentMap.gso in TID'; auto.
@@ -485,7 +485,8 @@ Proof using All.
   red. ins.
   assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
   { generalize NISSB0. clear. basic_solver. }
-  destruct RESB as [SB|]; subst.
+  destruct RESB as [[SB|]|HH]; subst.
+  3: { exfalso. eapply NONEXT; eauto. }
   2: by desf.
   unnw.
   erewrite Memory.add_o with (mem2:=memory_add); eauto.

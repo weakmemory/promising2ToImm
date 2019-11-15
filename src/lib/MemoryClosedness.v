@@ -86,3 +86,15 @@ Proof using.
   all: eapply closedness_preserved_split; eauto.
   all: by apply MEM_CLOSE.
 Qed.
+
+Lemma tview_closedness_preserved_cancel tview memory memory'
+      loc from to 
+      (ADD : Memory.remove memory loc from to Message.reserve memory')
+      (MEM_CLOSE : memory_close tview memory) :
+  memory_close tview memory'.
+Proof using.
+  red; splits; ins.
+  all: eapply closedness_preserved_cancel; eauto.
+  all: by apply MEM_CLOSE.
+Qed.
+

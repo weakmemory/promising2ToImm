@@ -173,10 +173,22 @@ Proof using WF CON.
     simpls.
     exists state; eexists.
     rewrite IdentMap.gss.
+    destruct (is_rel lab w).
+    { desf. }
     splits; eauto.
-    all: admit. }
-    (* { eapply sim_tview_f_issued with (f_to:=f_to); eauto. } *)
-    (* eapply tview_closedness_preserved_add; eauto. } *)
+    { ins. repeat (rewrite IdentMap.gso in TID'; auto).
+      eapply PROM_DISJOINT in TID'; eauto.
+      destruct TID' as [AA|AA]; [left|by right; apply AA].
+      erewrite Memory.add_o; eauto.
+      erewrite Memory.remove_o; eauto.
+      destruct (loc_ts_eq_dec (loc, to) (locw, f_to w)) as [|LL]; desc; simpls; subst.
+      2: by rewrite !(loc_ts_eq_dec_neq LL).
+      exfalso.
+      edestruct SIM_RES_MEM as [_ BB]; eauto.
+      rewrite BB in AA; desf. }
+    simpls.
+    eapply tview_closedness_preserved_add; eauto.
+    eapply tview_closedness_preserved_cancel; eauto. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
   eapply simrel_fS in SIMREL; eauto.
