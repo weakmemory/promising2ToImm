@@ -173,6 +173,9 @@ Lemma issue_reserved_step_helper w valw locw langst
             Memory.add memory_cancel locw (f_from w) (f_to w)
                        (Message.full valw (Some rel')) memory_add ⟫ /\
 
+        << INHAB : Memory.inhabited memory_add >> /\
+        << RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add >> /\
+
         ⟪ FCOH : f_to_coherent G S' f_to f_from ⟫ /\
 
       exists promises',

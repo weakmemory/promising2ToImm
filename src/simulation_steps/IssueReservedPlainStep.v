@@ -80,7 +80,7 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := G.(W_ex).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma reserve_step PC T S f_to f_from thread w smode
+Lemma issue_reserved_step_no_next PC T S f_to f_from thread w smode
       (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S)
@@ -88,12 +88,13 @@ Lemma reserve_step PC T S f_to f_from thread w smode
                     (mkTC (covered T) (issued T ∪₁ eq w))
                     (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
       (SW : S w)
+      (NREL : ~ Rel w)
       (NONEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ ∅)
       (WTID : thread = tid w) :
   let T' := mkTC (covered T) (issued T ∪₁ eq w) in
   let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists PC',
-    ⟪ PCSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
+    ⟪ PCSTEP : (plain_step MachineEvent.silent thread)^+ PC PC' ⟫ /\
     ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread smode ⟫ /\
     ⟪ SIMREL :
         smode = sim_normal -> simrel G sc PC T S f_to f_from ->
@@ -118,51 +119,86 @@ Proof using WF CON.
   
   edestruct issue_reserved_step_helper as [p_rel]; eauto. simpls; desc.
 
-  (* set (pe := *)
-  (*        ThreadEvent.promise *)
-  (*          locw (f_from' w) (f_to' w) Message.reserve *)
-  (*          Memory.op_kind_add). *)
+  set (rel'' :=
+        if is_rel lab w
+        then (TView.cur (Local.tview local))
+        else (TView.rel (Local.tview local) locw)).
+  set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
+                          (View.singleton_ur locw (f_to w)))).
+
+  set (pe_cancel :=
+         ThreadEvent.promise
+           locw (f_from w) (f_to w) Message.reserve
+           Memory.op_kind_cancel).
+
+  set (pe :=
+         ThreadEvent.promise
+           locw (f_from w) (f_to w) (Message.full valw (Some rel'))
+           Memory.op_kind_add).
   
-  (* TODO: continue from here *)
+  assert (Memory.closed_message (Message.full valw (Some rel')) memory_add) as CLOS_MSG.
+  { admit. }
+  
   eexists.
   apply and_assoc. apply pair_app; unnw.
   { split.
-    { set (pe' := MachineEvent.silent).
-      assert (pe' = ThreadEvent.get_machine_event pe) as H.
-      { unfold pe. simpls. }
-      rewrite H. clear H.
-      econstructor; eauto.
+    { eapply t_trans; apply t_step.
+      { set (pe'' := MachineEvent.silent).
+        arewrite (pe'' = ThreadEvent.get_machine_event pe_cancel) by simpls.
+        econstructor; eauto.
+        2: by unfold pe_cancel; desf.
+        apply Thread.step_promise.
+        constructor.
+        2: by simpls.
+        econstructor; eauto. }
+      set (pe' := MachineEvent.silent).
+      arewrite (pe' = ThreadEvent.get_machine_event pe) by simpls.
+      eapply plain_step_intro with (lang:=thread_lts (tid w)); eauto.
+      { simpls. rewrite IdentMap.gss; eauto. }
       2: by unfold pe; desf.
       apply Thread.step_promise.
       constructor.
       2: by simpls.
       econstructor; eauto. }
     subst.
-    red; splits; red; splits; eauto.
+    red; splits; red; splits; eauto; simpls.
     { apply TSTEP. }
-    { eapply Memory.add_inhabited; eauto. }
-    { eapply Memory.add_closed; eauto. }
+    { generalize NREL RELCOV. clear. basic_solver. }
+    { ins. destruct (classic (tid e = tid w)) as [EQ|NEQ].
+      { rewrite EQ. rewrite IdentMap.gss; eauto. }
+      repeat (rewrite IdentMap.gso; auto). }
+    { admit. }
+    { eapply Memory.add_closed; eauto.
+      eapply Memory.cancel_closed; eauto. }
     simpls.
     exists state; eexists.
     rewrite IdentMap.gss.
     splits; eauto.
-    { eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
-    eapply tview_closedness_preserved_add; eauto. }
+    all: admit. }
+    (* { eapply sim_tview_f_issued with (f_to:=f_to); eauto. } *)
+    (* eapply tview_closedness_preserved_add; eauto. } *)
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
   eapply simrel_fS in SIMREL; eauto.
-  eapply full_simrel_step.
+  subst.
+  eapply full_simrel_step with (thread:=tid w).
   15: by apply SIMREL.
-  13: { ins. rewrite IdentMap.Facts.add_in_iff.
-        split; auto. intros [|]; auto; subst.
-        apply IdentMap.Facts.in_find_iff.
-          by rewrite LLH. }
+  14: done.
+  13: { ins. rewrite !IdentMap.Facts.add_in_iff.
+        split; auto.
+        intros [| [ | ]]; auto; subst.
+        all: apply IdentMap.Facts.in_find_iff; by rewrite LLH. }
   all: simpls; eauto.
-  8: by eapply msg_preserved_add; eauto.
-  7: by eapply closedness_preserved_add; eauto.
+  10: { eapply msg_preserved_trans.
+        { eapply msg_preserved_cancel; eauto. }
+        eapply msg_preserved_add; eauto. }
+  9: { eapply closedness_preserved_trans.
+       { eapply closedness_preserved_cancel; eauto. }
+       eapply closedness_preserved_add; eauto. }
   { eapply coveredE; eauto. }
-  rewrite issuedE; eauto.
-  all: basic_solver.
+  { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
+  1-4: basic_solver.
+  { admit. }
 Qed.
 
 End IssueReservedPlainStep.

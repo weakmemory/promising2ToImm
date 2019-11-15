@@ -92,8 +92,9 @@ Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
 
 Definition msg_preserved memory memory' :=
-  forall loc ts from msg (INMEM : Memory.get loc ts memory = Some (from, msg)),
-    exists from', Memory.get loc ts memory' = Some (from', msg).
+  forall loc ts from v rel
+         (INMEM : Memory.get loc ts memory = Some (from, Message.full v rel)),
+    exists from', Memory.get loc ts memory' = Some (from', Message.full v rel).
 
 Definition msg_preserved_refl memory : msg_preserved memory memory.
 Proof using. red. ins. eauto. Qed.
@@ -119,6 +120,47 @@ Proof using.
   eauto.
 Qed.
 
+Definition msg_preserved_cancel memory memory' loc from to
+           (CANCEL : Memory.remove memory loc from to Message.reserve memory') :
+  msg_preserved memory memory'.
+Proof using.
+  red. ins. exists from0.
+  erewrite Memory.remove_o; eauto.
+  destruct (loc_ts_eq_dec (loc0, ts) (loc, to)) as [EQ|NEQ].
+  2: simpls.
+  simpls. desf. 
+  edestruct Memory.remove_get0 as [HH]; eauto.
+  rewrite HH in INMEM. inv INMEM.
+Qed.
+
+Definition msg_preserved_trans memory memory' memory''
+           (PRES  : msg_preserved memory  memory')
+           (PRES' : msg_preserved memory' memory'') :
+  msg_preserved memory memory''.
+Proof.
+  red. ins.
+  apply PRES  in INMEM. desf.
+  apply PRES' in INMEM. desf.
+Qed.
+
+Lemma same_other_threads_step thread label PC PC' 
+      (PCSTEP : plain_step label thread PC PC')
+      thread' (TNEQ : thread' <> thread) langst local :
+  IdentMap.find thread' PC .(Configuration.threads) = Some (langst, local) <->
+  IdentMap.find thread' PC'.(Configuration.threads) = Some (langst, local).
+Proof using. destruct PCSTEP. simpls. rewrite IdentMap.gso; auto. Qed.
+
+Lemma same_other_threads_steps thread label PC PC' 
+      (PCSTEPS : (plain_step label thread)^+ PC PC')
+      thread' (TNEQ : thread' <> thread) langst local :
+  IdentMap.find thread' PC .(Configuration.threads) = Some (langst , local) <->
+  IdentMap.find thread' PC'.(Configuration.threads) = Some (langst, local).
+Proof using.
+  induction PCSTEPS.
+  { eapply same_other_threads_step; eauto. }
+  etransitivity; eauto.
+Qed.
+
 Lemma full_simrel_step thread PC PC' T S T' S' label f_to f_from
       (COVE   : covered T' ⊆₁ E)
       (ISSE   : issued  T' ⊆₁ E)
@@ -128,7 +170,10 @@ Lemma full_simrel_step thread PC PC' T S T' S' label f_to f_from
       (NINCOV : covered T' \₁ covered T ⊆₁ Tid_ thread)
       (NINISS : issued  T' \₁ issued  T ⊆₁ Tid_ thread)
       (NINS   :         S' \₁         S ⊆₁ Tid_ thread)
-      (PCSTEP : plain_step label thread PC PC')
+      (SOT    : forall thread' (TNEQ : thread' <> thread) langst local,
+          IdentMap.find thread' PC .(Configuration.threads) = Some (langst, local) <->
+          IdentMap.find thread' PC'.(Configuration.threads) = Some (langst, local))
+      (PCSTEP : (plain_step label thread)^+ PC PC')
       (CLOSED_PRES :
          closedness_preserved PC.(Configuration.memory) PC'.(Configuration.memory))
       (MSG_PRES :
@@ -152,8 +197,7 @@ Proof using WF.
   cdes THREADS.
   assert (IdentMap.find thread' (Configuration.threads PC') =
           Some (existT _ (PromiseLTS.thread_lts thread') state,
-                local)) as TID.
-  { destruct PCSTEP. simpls. rewrite IdentMap.gso; auto. }
+                local)) as TID by (apply SOT; auto).
   assert
   (forall a : actid, tid a = thread' -> covered T' a -> covered T a) as PP.
   { intros a TT YY.
@@ -181,8 +225,7 @@ Proof using WF.
       rewrite LLH0 in TID'. inv TID'. clear TID'.
       eapply PROM_DISJOINT0; eauto. }
     assert (IdentMap.find thread'0 (Configuration.threads PC) = Some (langst', local'))
-      as TT.
-    { destruct PCSTEP. simpls. rewrite IdentMap.gso in TID'; auto. }
+      as TT by (by apply SOT in TID').
     eapply PROM_DISJOINT; eauto. }
   { red. ins. unnw. (* sim_res_prom *)
     edestruct SIM_RPROM as [b AA]; eauto.

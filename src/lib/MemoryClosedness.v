@@ -45,6 +45,26 @@ Proof using.
   eauto.
 Qed.
 
+Lemma closedness_preserved_cancel memory memory' loc from to
+      (CANCEL : Memory.remove memory loc from to Message.reserve memory'):
+  closedness_preserved memory memory'.
+Proof using.
+  intros view CP. red.
+  intros loc'.
+  erewrite Memory.remove_o; eauto.
+  destruct (loc_ts_eq_dec (loc', view loc') (loc, to)) as [[A B]|NEQ]; simpls.
+  subst.
+  exfalso.
+  apply Memory.remove_get0 in CANCEL. desf.
+  specialize (CP loc). desf. rewrite CANCEL in CP. inv CP.
+Qed.
+
+Lemma closedness_preserved_trans memory memory' memory''
+      (CP  : closedness_preserved memory  memory')
+      (CP' : closedness_preserved memory' memory'') :
+  closedness_preserved memory memory''.
+Proof using. red. ins. apply CP'. by apply CP. Qed.
+
 Lemma tview_closedness_preserved_add tview memory memory'
       loc from to msg 
       (ADD : Memory.add memory loc from to msg memory')
