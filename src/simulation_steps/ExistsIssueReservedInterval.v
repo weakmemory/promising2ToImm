@@ -863,10 +863,10 @@ Lemma exists_time_interval_for_issue_reserved_with_next
 
     exists promises_split memory_split,
       ⟪ PSPLIT :
-          Memory.split local.(Local.promises) locw (f_from w) n_to (f_to w)
+          Memory.split local.(Local.promises) locw (f_from' w) (f_to' w) (f_to' wnext)
                        (Message.full valw (Some rel')) Message.reserve promises_split ⟫ /\
       ⟪ MSPLIT :
-          Memory.split memory locw (f_from w) n_to (f_to w)
+          Memory.split memory locw (f_from' w) (f_to' w) (f_to' wnext)
                        (Message.full valw (Some rel')) Message.reserve memory_split ⟫ /\
 
       << INHAB : Memory.inhabited memory_split >> /\
@@ -963,8 +963,27 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   
   assert (co wprev w) as COWPREV.
   { eapply rf_rmw_in_co; eauto. }
-  assert (Time.lt (f_to wprev) (f_to w)) as PREVNLT.
+  assert (Time.lt (f_to wprev) (f_to w)) as PREVNLT_OLD.
   { eapply f_to_co_mon; eauto. }
+
+  assert (w <> wnext) as NEQ.
+  { admit. }
+
+  set (n_to := Time.middle (f_from w) (f_to w)).
+  set (f_to'   := upd (upd f_to w n_to) wnext (f_to w)).
+  set (f_from' := upd f_from wnext n_to).
+
+  assert (Time.lt (f_from w) (f_to w)) as WFLT by (by apply FCOH).
+  assert (Time.lt (f_from w) (Time.middle (f_from w) (f_to w))) as FROMNTOLT.
+  { by apply Time.middle_spec. }
+  assert (Time.lt (Time.middle (f_from w) (f_to w)) (f_to w)) as NTOTOLT.
+  { by apply Time.middle_spec. }
+
+  assert (f_to wprev = f_from w) as PREVFEQ by (by apply FCOH).
+  assert (Time.lt (f_to wprev) (f_to' w)) as PREVNLT.
+  { unfold f_to'. rewrite updo; auto. rewrite upds.
+    unfold n_to. eapply TimeFacts.le_lt_lt with (b:=f_from w); auto.
+    rewrite PREVFEQ. apply DenseOrder_le_PreOrder. }
 
   assert (Time.le (View.rlx rel'' locw)
                   (View.rlx (TView.cur (Local.tview local)) locw)) as GG.
@@ -972,16 +991,16 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     { reflexivity. }
     subst. eapply rel_le_cur; eauto. }
 
-  assert (Time.lt (View.rlx rel'' locw) (f_to w)) as REL_VIEW_LT.
+  assert (Time.lt (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LT.
   { eapply TimeFacts.le_lt_lt; [by apply GG|].
     eapply TimeFacts.le_lt_lt; [|by apply PREVNLT].
     eapply le_cur_f_to_wprev; eauto. }
 
   set (rel' := View.join (View.join rel'' (View.unwrap p_rel))
-                         (View.singleton_ur locw (f_to w))).
+                         (View.singleton_ur locw (f_to' w))).
   assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to wprev)) as PREL_LE'.
   { eapply le_p_rel_f_to_wprev; eauto. }
-  assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to w)) as PREL_LE.
+  assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to' w)) as PREL_LE.
   { desc.
     destruct PRELSPEC0; desc.
     { rewrite PREL. apply Time.bot_spec. }
@@ -992,7 +1011,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     2: by apply PREVNLT.
     done. }
 
-  assert (Time.le (View.rlx rel' locw) (f_to w)) as REL_VIEW_LE.
+  assert (Time.le (View.rlx rel' locw) (f_to' w)) as REL_VIEW_LE.
   { unfold rel'.
     unfold View.join, TimeMap.join. simpls.
     unfold TimeMap.singleton, LocFun.add.
@@ -1000,13 +1019,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     apply Time.join_spec; [|reflexivity].
     apply Time.join_spec; auto.
     apply Time.le_lteq; auto. }
-
-  assert (Time.lt (f_from w) (f_to w)) as WFLT by (by apply FCOH).
-
-  assert (Time.lt (f_from w) (Time.middle (f_from w) (f_to w))) as FROMNTOLT.
-  { by apply Time.middle_spec. }
-  assert (Time.lt (Time.middle (f_from w) (f_to w)) (f_to w)) as NTOTOLT.
-  { by apply Time.middle_spec. }
 
   assert (View.pln rel' = View.rlx rel') as RELWFEQ.
   { unfold rel'. simpls. desc. rewrite REL_PLN_RLX.
@@ -1026,22 +1038,26 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   { eapply SIM_RES_MEM; eauto. }
   assert (exists promises_split,
              Memory.split (Local.promises local) locw
-                          (f_from w) (Time.middle (f_from w) (f_to w)) (f_to w)
+                          (f_from' w) (f_to' w) (f_to' wnext)
                           (Message.full valw (Some rel'))
                           Message.reserve promises_split)
     as [promises_split PSPLIT].
-  { by apply Memory.split_exists. }
+  { unfold f_from'. rewrite updo; auto.
+    unfold f_to'. rewrite upds. rewrite updo; auto. rewrite upds.
+      by apply Memory.split_exists. }
   
   assert (Memory.get locw (f_to w) (Configuration.memory PC) =
           Some (f_from w, Message.reserve)) as MMSG.
   { eapply SIM_RES_MEM; eauto. }
   assert (exists memory_split,
              Memory.split PC.(Configuration.memory) locw
-                          (f_from w) (Time.middle (f_from w) (f_to w)) (f_to w)
+                          (f_from' w) (f_to' w) (f_to' wnext)
                           (Message.full valw (Some rel'))
                           Message.reserve memory_split)
     as [memory_split MSPLIT].
-  { by apply Memory.split_exists. }
+  { unfold f_from'. rewrite updo; auto.
+    unfold f_to'. rewrite upds. rewrite updo; auto. rewrite upds.
+      by apply Memory.split_exists. }
 
   assert (forall tmap (MCLOS : Memory.closed_timemap tmap PC.(Configuration.memory)),
              Memory.closed_timemap tmap memory_split) as MSPLITCLOS.
@@ -1054,6 +1070,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
       as [AA|LL]; simpls; desc; subst.
     { exfalso. eapply time_lt_bot. rewrite AA0.
         by do 2 (apply Time.middle_spec with (lhs:=f_from w)). }
+    unfold f_to'. rewrite upds. rewrite updo; auto. rewrite upds.
     rewrite !(loc_ts_eq_dec_neq LL).
     destruct (loc_ts_eq_dec (loc, Time.bot) (locw, f_to w))
       as [AA|LL']; simpls; desc; subst.
@@ -1061,10 +1078,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     rewrite !(loc_ts_eq_dec_neq LL').
     apply INHAB. }
 
-  (* TODO: continue from here. *)
   simpls. splits; eauto.
   do 2 eexists. splits; eauto.
 
+  (* TODO: continue from here. *)
   assert (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ S) as NEWS.
   { arewrite (dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ ∅).
     generalize SW. basic_solver. }
