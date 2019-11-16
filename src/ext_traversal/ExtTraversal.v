@@ -687,4 +687,31 @@ Proof using WF.
   basic_solver.
 Qed.
 
+(* TODO: move to a more appropriate place. *)
+Lemma wf_rfirmwsf : functional (rfi ⨾ rmw).
+Proof using WF IMMCON. arewrite (rfi ⊆ rf). eapply wf_rfrmwsf; eauto. Qed.
+
+(* TODO: move to a more appropriate place. *)
+Lemma wf_rfirmwf : functional (rfi ⨾ rmw)⁻¹.
+Proof using WF. arewrite (rfi ⊆ rf). eapply wf_rfrmwf; eauto. Qed.
+
+Lemma dom_sb_S_rfrmwf T w wn1 wn2
+      (DD1 : dom_sb_S_rfrmw T rfi (eq w) wn1)
+      (DD2 : dom_sb_S_rfrmw T rfi (eq w) wn2) :
+  wn1 = wn2.
+Proof using WF IMMCON.
+  destruct DD1 as [_ [y1 AA1]]. destruct_seq_l AA1 as BB1; subst.
+  destruct DD2 as [_ [y2 AA2]]. destruct_seq_l AA2 as BB2; subst.
+  eapply wf_rfirmwsf; eauto.
+Qed.
+  
+Lemma dom_sb_S_rfrmw_single T w wn
+      (DD : dom_sb_S_rfrmw T rfi (eq w) wn) :
+  dom_sb_S_rfrmw T rfi (eq w) ≡₁ eq wn.
+Proof using WF IMMCON.
+  split.
+  2: generalize DD; basic_solver.
+  intros x HH. eapply dom_sb_S_rfrmwf; eauto.
+Qed.
+
 End ExtTraversalConfig.

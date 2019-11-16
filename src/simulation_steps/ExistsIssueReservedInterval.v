@@ -1078,18 +1078,93 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     rewrite !(loc_ts_eq_dec_neq LL').
     apply INHAB. }
 
-  simpls. splits; eauto.
-  do 2 eexists. splits; eauto.
+  assert (dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ eq wnext) as NEWS'.
+  { eapply dom_sb_S_rfrmw_single; eauto. }
 
-  (* TODO: continue from here. *)
-  assert (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ S) as NEWS.
-  { arewrite (dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ ∅).
-    generalize SW. basic_solver. }
+  assert (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ S ∪₁ eq wnext) as NEWS.
+  { rewrite NEWS'. generalize SW. clear. basic_solver. }
+
+  splits; eauto. do 2 eexists. splits; eauto.
+  
+  assert (~ is_init wnext) as NINITNEXT.
+  { admit. }
+  assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
+  { admit. }
+  assert (~ S wnext) as NSNEXT.
+  { admit. }
+  assert (co w wnext) as COWNEXT.
+  { admit. }
+
+  (* TODO: generalize to a lemma. *)
+  assert (f_to_coherent
+            G (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G {| etc_TC := T; reserved := S |} rfi (eq w))
+            f_to' f_from') as FCOH'.
+  { eapply f_to_coherent_more.
+    2: by apply NEWS.
+    all: eauto.
+    red. splits; unfold f_to', f_from', n_to.
+    1,2: intros x [IE EX].
+    1,2: repeat (rewrite updo; [|by intros HH; desf]).
+    1,2: by apply FCOH; split.
+    { intros x [SX|] IE; subst.
+      2: by rewrite !upds.
+      do 2 (rewrite updo; [|by intros HH; desf]).
+      destruct (classic (x = w)); subst.
+      { by rewrite upds. }
+      rewrite updo; auto. by apply FCOH. }
+    { intros x y SX SY CO; subst.
+      assert (x <> y) as NEQXY.
+      { intros HH; subst. eapply co_irr; eauto. }
+      destruct SX as [SX|]; destruct SY as [SY|]; subst.
+      4: by exfalso; eapply co_irr; eauto.
+      3: { rewrite upds. rewrite updo; auto.
+           apply FCOH; eauto. eapply co_trans; eauto. }
+      { rewrite updo; [|by intros HH; desf].
+        rewrite updo with (a:=wnext); [|by intros HH; desf].
+        destruct (classic (x = w)); subst.
+        { rewrite upds.
+          etransitivity.
+          { apply Time.le_lteq.
+            left. by apply Time.middle_spec with (lhs:=f_from w) (rhs:=f_to w). }
+            by apply FCOH. }
+        rewrite updo; auto. by apply FCOH. }
+      rewrite upds. rewrite updo; auto.
+      destruct (classic (x = w)); subst.
+      { rewrite upds. apply DenseOrder_le_PreOrder. }
+      rewrite updo; auto.
+      etransitivity.
+      2: { apply Time.le_lteq.
+           left. by apply Time.middle_spec with (lhs:=f_from w) (rhs:=f_to w). }
+      apply FCOH; auto.
+      admit. }
+    intros x y SX SY CO; subst.
+    assert (x <> y) as NEQXY.
+    { intros HH; subst. eapply wf_rfrmw_irr; eauto. }
+    cdes FCOH.
+    destruct SX as [SX|]; destruct SY as [SY|]; subst; try done.
+    3: { rewrite upds. rewrite updo; auto.
+         exfalso. apply NSNEXT. eapply dom_rf_rmw_S with (T:=mkETC T S); eauto.
+         exists y. apply seqA. apply seq_eqv_r. by split. }
+    { rewrite updo; [|by intros HH; desf].
+      rewrite updo with (a:=wnext); [|by intros HH; desf].
+      destruct (classic (x = w)); subst.
+      2: by rewrite updo; auto.
+      exfalso.
+      assert (y = wnext); [|by desf].
+      eapply wf_rfrmwsf; eauto. }
+    rewrite upds. rewrite updo; auto.
+    assert (x = w); [|by subst; rewrite upds].
+    eapply wf_rfrmwf; eauto. }
 
   assert (reserved_time G (mkTC (covered T) (issued T ∪₁ eq w))
-                        S f_to f_from smode memory_add) as REST.
-  { destruct smode; [|by apply RESERVED_TIME].
-    red. splits.
+                        (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))
+                        f_to' f_from' smode memory_split) as REST.
+  { destruct smode; simpls; desc.
+    2: { splits.
+         { generalize FOR_SPLIT. clear. basic_solver 10. }
+         rewrite RMW_BEF_S. clear. basic_solver 10. }
+    splits.
+    (* TODO: continue from here. *)
     3: by apply RESERVED_TIME.
     all: red; ins; erewrite Memory.add_o in MSG; eauto.
     all: destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [LTEQ|LTNEQ].
