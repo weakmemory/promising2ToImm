@@ -966,8 +966,24 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   assert (Time.lt (f_to wprev) (f_to w)) as PREVNLT_OLD.
   { eapply f_to_co_mon; eauto. }
 
+  assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
+  { destruct WNEXT as [_ BB]. generalize BB. unfold Execution.rfi.
+    clear. basic_solver. }
   assert (w <> wnext) as NEQ.
-  { admit. }
+  { intros HH; subst. eapply wf_rfrmw_irr; eauto. }
+  assert (co w wnext) as COWNEXT.
+  { by apply rf_rmw_in_co. }
+  assert (~ is_init wnext) as NINITNEXT.
+  { apply no_co_to_init in COWNEXT; auto. by destruct_seq_r COWNEXT as AA. }
+  assert (E wnext) as EWNEXT.
+  { apply WF.(wf_coE) in COWNEXT. by destruct_seq COWNEXT as [AA BB]. }
+  assert (~ S wnext) as NSNEXT.
+  { intros HH. apply WNISS. eapply dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
+    exists wnext. apply seqA. apply seq_eqv_r. by split. }
+  assert (~ issued T wnext) as NINEXT.
+  { intros HH. apply NSNEXT. by apply ETCCOH.(etc_I_in_S). }
+  assert (loc lab wnext = Some locw) as NLOC.
+  { rewrite <- LOC. symmetry. by apply wf_rfrmwl. }
 
   set (n_to := Time.middle (f_from w) (f_to w)).
   set (f_to'   := upd (upd f_to w n_to) wnext (f_to w)).
@@ -1086,21 +1102,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
 
   splits; eauto. eexists promises_split, memory_split.
   
-  assert (~ is_init wnext) as NINITNEXT.
-  { admit. }
-  assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
-  { admit. }
-  assert (~ S wnext) as NSNEXT.
-  { admit. }
-  assert (~ issued T wnext) as NINEXT.
-  { admit. }
-  assert (co w wnext) as COWNEXT.
-  { admit. }
-  assert (E wnext) as EWNEXT.
-  { admit. }
-  assert (loc lab wnext = Some locw) as NLOC.
-  { admit. }
-
   (* TODO: generalize to a lemma. *)
   assert (f_to_coherent
             G (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G {| etc_TC := T; reserved := S |} rfi (eq w))
