@@ -363,6 +363,42 @@ Proof using.
   all: apply LE in RLX; eauto.
 Qed.
 
+Lemma memory_le_add2 mem1 mem1' mem2 mem2' loc from to msg
+      (LE : Memory.le mem1 mem2)
+      (ADD1 : Memory.add mem1 loc from to msg mem1')
+      (ADD2 : Memory.add mem2 loc from to msg mem2') :
+  Memory.le mem1' mem2'.
+Proof using.
+  red. ins.
+  erewrite Memory.add_o in LHS; eauto.
+  erewrite Memory.add_o; [|by apply ADD2].
+  desf. by apply LE.
+Qed.
+
+Lemma memory_le_split2 mem1 mem1' mem2 mem2' loc from to to' msg msg'
+      (LE : Memory.le mem1 mem2)
+      (SPLIT1 : Memory.split mem1 loc from to to' msg msg' mem1')
+      (SPLIT2 : Memory.split mem2 loc from to to' msg msg' mem2') :
+  Memory.le mem1' mem2'.
+Proof using.
+  red. ins.
+  erewrite Memory.split_o in LHS; eauto.
+  erewrite Memory.split_o; [|by apply SPLIT2].
+  desf. by apply LE.
+Qed.
+
+Lemma memory_le_remove2 mem1 mem1' mem2 mem2' loc from to msg
+      (LE : Memory.le mem1 mem2)
+      (REMOVE1 : Memory.remove mem1 loc from to msg mem1')
+      (REMOVE2 : Memory.remove mem2 loc from to msg mem2') :
+  Memory.le mem1' mem2'.
+Proof using.
+  red. ins.
+  erewrite Memory.remove_o in LHS; eauto.
+  erewrite Memory.remove_o; [|by apply REMOVE2].
+  desf. by apply LE.
+Qed.
+
 (*********************************************)
 (* TODO: explanation. Maybe a separate file. *)
 (*********************************************)

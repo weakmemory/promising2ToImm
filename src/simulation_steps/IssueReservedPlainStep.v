@@ -117,7 +117,7 @@ Proof using WF CON.
   assert (exists locw, loc lab w = Some locw) as [locw WLOC] by (by apply is_w_loc).
   assert (exists valw, val lab w = Some valw) as [valw WVAL] by (by apply is_w_val).
   
-  edestruct issue_reserved_step_helper as [p_rel]; eauto. simpls; desc.
+  edestruct issue_reserved_step_helper_no_next as [p_rel]; eauto. simpls; desc.
 
   set (rel'' :=
         if is_rel lab w

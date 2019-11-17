@@ -827,40 +827,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   apply same_trav_config_refl.
 Qed.
 
-(* TODO: move to a more appropriate place. *)
-Lemma time_middle_le_lhs t t' (LT : Time.lt t t') :
-  ~ Time.le (Time.middle t t') t.
-Proof using.
-  intros HH. eapply Time.lt_strorder. eapply TimeFacts.le_lt_lt; eauto.
-    by apply Time.middle_spec.
-Qed.
-
-(* TODO: move to a more appropriate place. *)
-Lemma time_middle_lt_lhs t t' (LT : Time.lt t t') :
-  ~ Time.lt (Time.middle t t') t.
-Proof using.
-  intros HH. eapply time_middle_le_lhs.
-  2: { apply Time.le_lteq. eby left. }
-  done.
-Qed.
-
-(* TODO: move to a more appropriate place. *)
-Lemma time_middle_le_rhs t t' (LT : Time.lt t t') :
-  ~ Time.le t' (Time.middle t t').
-Proof using.
-  intros HH. eapply Time.lt_strorder. eapply TimeFacts.le_lt_lt; eauto.
-    by apply Time.middle_spec.
-Qed.
-
-(* TODO: move to a more appropriate place. *)
-Lemma time_middle_lt_rhs t t' (LT : Time.lt t t') :
-  ~ Time.lt t' (Time.middle t t').
-Proof using.
-  intros HH. eapply time_middle_le_rhs.
-  2: { apply Time.le_lteq. eby left. }
-  done.
-Qed.
-
 Lemma exists_time_interval_for_issue_reserved_with_next
       w locw valw langst wnext smode
       (TSTEP : ext_itrav_step

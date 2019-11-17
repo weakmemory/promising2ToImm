@@ -3,6 +3,7 @@ Require Import Omega.
 From hahn Require Import Hahn.
 Require Import Setoid.
 Require Import AuxRel.
+From Promising2 Require Import Time.
 
 Set Implicit Arguments.
 
@@ -85,4 +86,34 @@ Proof using.
   split; [|basic_solver].
   unfolder. ins. desf.
   eapply AA. eexists. eauto.
+Qed.
+
+Lemma time_middle_le_lhs t t' (LT : Time.lt t t') :
+  ~ Time.le (Time.middle t t') t.
+Proof using.
+  intros HH. eapply Time.lt_strorder. eapply TimeFacts.le_lt_lt; eauto.
+    by apply Time.middle_spec.
+Qed.
+
+Lemma time_middle_lt_lhs t t' (LT : Time.lt t t') :
+  ~ Time.lt (Time.middle t t') t.
+Proof using.
+  intros HH. eapply time_middle_le_lhs.
+  2: { apply Time.le_lteq. eby left. }
+  done.
+Qed.
+
+Lemma time_middle_le_rhs t t' (LT : Time.lt t t') :
+  ~ Time.le t' (Time.middle t t').
+Proof using.
+  intros HH. eapply Time.lt_strorder. eapply TimeFacts.le_lt_lt; eauto.
+    by apply Time.middle_spec.
+Qed.
+
+Lemma time_middle_lt_rhs t t' (LT : Time.lt t t') :
+  ~ Time.lt t' (Time.middle t t').
+Proof using.
+  intros HH. eapply time_middle_le_rhs.
+  2: { apply Time.le_lteq. eby left. }
+  done.
 Qed.
