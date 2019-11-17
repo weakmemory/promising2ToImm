@@ -265,20 +265,8 @@ Proof using All.
     exists w. apply seqA. apply seq_eqv_r. split; auto. }
 
   assert (Memory.le promises_add memory_add) as PP.
-  { red; ins.
-    erewrite Memory.add_o; eauto.
-    erewrite Memory.add_o in LHS; [|by apply PADD].
-    destruct (loc_ts_eq_dec (loc, to) (locw, f_to w)) as [[A B]|LL].
-    { simpls; rewrite A in *; rewrite B in *.
-      rewrite (loc_ts_eq_dec_eq locw (f_to w)).
-        by rewrite (loc_ts_eq_dec_eq locw (f_to w)) in LHS. }
-    rewrite (loc_ts_eq_dec_neq LL).
-    rewrite (loc_ts_eq_dec_neq LL) in LHS.
-    erewrite Memory.remove_o; eauto.
-    erewrite Memory.remove_o in LHS; [|by apply PCANCEL].
-    rewrite (loc_ts_eq_dec_neq LL).
-    rewrite (loc_ts_eq_dec_neq LL) in LHS.
-    eapply PROM_IN_MEM; eauto. }
+  { eapply memory_le_add2 with (mem1:=promises_cancel) (mem2:=memory_cancel); eauto.
+    eapply memory_le_remove2; eauto. }
 
   assert (Memory.le promises_cancel memory_add) as PPC.
   { etransitivity; [|by apply PP].
@@ -565,7 +553,7 @@ Lemma issue_reserved_step_helper_with_next w valw locw langst wnext
         ⟪ PEQ :
             if Rel w
             then Memory.remove promises_split locw (f_from' w) (f_to' w)
-                               Message.reserve promises'
+                               (Message.full valw (Some rel')) promises'
             else promises' = promises_split ⟫ /\
 
         let local' := Local.mk local.(Local.tview) promises' in
@@ -632,28 +620,39 @@ Proof using All.
     eapply ExtTraversalProperties.dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
     exists w. apply seqA. apply seq_eqv_r. split; auto. }
 
-  (* TODO: continue from here. *)
   assert (Memory.le promises_split memory_split) as PP.
-  { red; ins.
-    erewrite Memory.split_o; eauto.
-    erewrite Memory.split_o in LHS; [|by apply PSPLIT].
-    destruct (loc_ts_eq_dec (loc, to) (locw, (Time.middle (f_from w) (f_to w))))
-      as [[A B]|LL].
-    { simpls; rewrite A in *; rewrite B in *.
-      rewrite (loc_ts_eq_dec_eq locw (f_to w)).
-        by rewrite (loc_ts_eq_dec_eq locw (f_to w)) in LHS. }
-    rewrite (loc_ts_eq_dec_neq LL).
-    rewrite (loc_ts_eq_dec_neq LL) in LHS.
-    erewrite Memory.remove_o; eauto.
-    erewrite Memory.remove_o in LHS; [|by apply PCANCEL].
-    rewrite (loc_ts_eq_dec_neq LL).
-    rewrite (loc_ts_eq_dec_neq LL) in LHS.
-    eapply PROM_IN_MEM; eauto. }
+  { eapply memory_le_split2; eauto. }
 
-  assert (Memory.le promises_cancel memory_add) as PPC.
+  set (n_to     := Time.middle (f_from w) (f_to w)).
+  set (f_to'    := upd (upd f_to w n_to) wnext (f_to w)).
+  set (f_from'  := upd f_from wnext n_to).
+  set (rel'' :=
+        if is_rel lab w
+        then (TView.cur (Local.tview local))
+        else (TView.rel (Local.tview local) locw)).
+  set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
+                          (View.singleton_ur locw (f_to' w)))).
+
+  assert (exists promises',
+             ⟪ PEQ : if Rel w
+                     then
+                       Memory.remove promises_split locw
+                                     (f_from' w) (f_to' w)
+                                     (Message.full valw (Some rel'))
+                                     promises'
+                     else promises' = promises_split ⟫).
+  { destruct (is_rel lab w) eqn:REL; eauto.
+    unnw. apply Memory.remove_exists. erewrite Memory.split_o; eauto.
+      by rewrite loc_ts_eq_dec_eq. }
+  desc.
+
+  assert (Memory.le promises' memory_split) as PPC.
   { etransitivity; [|by apply PP].
-    eapply memory_add_le; eauto. }
+    destruct (Rel w); subst.
+    2: by apply Memory.le_PreOrder.
+    eapply memory_remove_le; eauto. }
 
+  (* TODO: continue from here. *)
   assert (Memory.get locw (f_to w) (Local.promises local) =
           Some (f_from w, Message.reserve)) as INPROM.
   { eapply SIM_RES_MEM; eauto. }
@@ -672,18 +671,7 @@ Proof using All.
   { ins. eapply Memory.add_closed_timemap; eauto.
     eapply Memory.cancel_closed_timemap; eauto. }
 
-  set (rel'' :=
-        if is_rel lab w
-        then (TView.cur (Local.tview local))
-        else (TView.rel (Local.tview local) locw)).
-  set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
-                          (View.singleton_ur locw (f_to w)))).
 
-  assert (exists promises',
-             ⟪ PEQ : promises' = if Rel w
-                                 then promises_cancel
-                                 else promises_add ⟫).
-  { destruct (is_rel lab w) eqn:REL; eauto. }
   desc.
   
   assert (Memory.le promises' promises_add) as LEPADD.
