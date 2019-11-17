@@ -1084,7 +1084,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   assert (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ S ∪₁ eq wnext) as NEWS.
   { rewrite NEWS'. generalize SW. clear. basic_solver. }
 
-  splits; eauto. do 2 eexists. splits; eauto.
+  splits; eauto. eexists promises_split, memory_split.
   
   assert (~ is_init wnext) as NINITNEXT.
   { admit. }
@@ -1092,7 +1092,13 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   { admit. }
   assert (~ S wnext) as NSNEXT.
   { admit. }
+  assert (~ issued T wnext) as NINEXT.
+  { admit. }
   assert (co w wnext) as COWNEXT.
+  { admit. }
+  assert (E wnext) as EWNEXT.
+  { admit. }
+  assert (loc lab wnext = Some locw) as NLOC.
   { admit. }
 
   (* TODO: generalize to a lemma. *)
@@ -1216,39 +1222,40 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
       rewrite (loc_ts_eq_dec_eq locw n_to) in MSG. inv MSG. }
     rewrite loc_ts_eq_dec_neq in MSG; eauto.
     rewrite upds in MSG.
-    (* TODO: continue from here *)
     destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [LTEQ|LTNEQ'].
     { simpls. desc; subst.
-      rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG. }
-    rewrite loc_ts_eq_dec_neq in MSG; auto.
-    apply MEM in MSG. destruct MSG as [|MSG]; [left|right]; auto.
-    desc. exists b.
-    assert (S b) as SB by (by apply ETCCOH.(etc_I_in_S)).
-    splits; eauto.
+      rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG.
+      exists wnext. rewrite !upds. splits; auto.
+      { by right. }
+      intros [A|A]; desf. }
+    rewrite loc_ts_eq_dec_neq in MSG; auto. simpls.
+    apply HMEM in MSG.
+    desc.
+    assert (b <> wnext) as BNEQ by (intros HH; desf).
+    exists b. rewrite !updo with (a:=wnext); auto. splits; auto.
     { by left. }
-    { by rewrite updo; [|by intros HH; desf]. }
-      by repeat (rewrite updo; [|by intros HH; desf]). }
-    erewrite Memory.remove_o in MSG; eauto.
-    rewrite loc_ts_eq_dec_neq in MSG; eauto.
-    eapply RESERVED_TIME in MSG.
-    desc. exists b. splits; eauto.
-    intros [|AA]; [by desf|subst].
-    simpls. destruct LTNEQ as [AA|AA]; apply AA; auto.
-    rewrite LOC0 in LOC. inv LOC. }
+    { intros [A|A]; desf. }
+    destruct (classic (w = b)); subst.
+    2: by rewrite updo; auto.
+    exfalso. rewrite LOC in LOC0. inv LOC0. inv LTNEQ'. }
 
-  assert (Memory.closed_timemap (View.rlx rel') memory_add) as RELMCLOS.
+  assert (Memory.closed_timemap (View.rlx rel') memory_split) as RELMCLOS.
   { unfold rel'. simpls.
     apply Memory.join_closed_timemap.
     2: { unfold TimeMap.singleton, LocFun.add, LocFun.find.
          red. ins. destruct (Loc.eq_dec loc locw) as [|LNEQ]; subst.
-         { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq. eauto. }
+         { erewrite Memory.split_o; eauto. rewrite loc_ts_eq_dec_eq. eauto. }
          unfold LocFun.init.
-         exists Time.bot, 0, None. apply INHABADD. }
-    apply MADDCLOS.
+         exists Time.bot, 0, None. apply INHABSPLIT. }
+    apply MSPLITCLOS.
     desc. apply Memory.join_closed_timemap; auto.
     unfold rel''.
     destruct (Rel w); simpls.
     all: apply MEM_CLOSE. }
+  
+  splits; eauto.
+  (* TODO: continue from here *)
+
   do 2 eexists. splits; eauto.
   { constructor; auto. simpls. by rewrite RELWFEQ. }
   { by rewrite NEWS. }
