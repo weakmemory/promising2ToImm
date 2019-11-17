@@ -827,6 +827,40 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   apply same_trav_config_refl.
 Qed.
 
+(* TODO: move to a more appropriate place. *)
+Lemma time_middle_le_lhs t t' (LT : Time.lt t t') :
+  ~ Time.le (Time.middle t t') t.
+Proof using.
+  intros HH. eapply Time.lt_strorder. eapply TimeFacts.le_lt_lt; eauto.
+    by apply Time.middle_spec.
+Qed.
+
+(* TODO: move to a more appropriate place. *)
+Lemma time_middle_lt_lhs t t' (LT : Time.lt t t') :
+  ~ Time.lt (Time.middle t t') t.
+Proof using.
+  intros HH. eapply time_middle_le_lhs.
+  2: { apply Time.le_lteq. eby left. }
+  done.
+Qed.
+
+(* TODO: move to a more appropriate place. *)
+Lemma time_middle_le_rhs t t' (LT : Time.lt t t') :
+  ~ Time.le t' (Time.middle t t').
+Proof using.
+  intros HH. eapply Time.lt_strorder. eapply TimeFacts.le_lt_lt; eauto.
+    by apply Time.middle_spec.
+Qed.
+
+(* TODO: move to a more appropriate place. *)
+Lemma time_middle_lt_rhs t t' (LT : Time.lt t t') :
+  ~ Time.lt t' (Time.middle t t').
+Proof using.
+  intros HH. eapply time_middle_le_rhs.
+  2: { apply Time.le_lteq. eby left. }
+  done.
+Qed.
+
 Lemma exists_time_interval_for_issue_reserved_with_next
       w locw valw langst wnext smode
       (TSTEP : ext_itrav_step
@@ -1143,7 +1177,13 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
       2: { apply Time.le_lteq.
            left. by apply Time.middle_spec with (lhs:=f_from w) (rhs:=f_to w). }
       apply FCOH; auto.
-      admit. }
+      edestruct WF.(wf_co_total) with (a:=x) (b:=w); eauto.
+      2: by exfalso; eapply rfrmw_in_im_co; eauto.
+      split; [split|].
+      { by apply ETCCOH.(etc_S_in_E). }
+      { by apply (reservedW WF ETCCOH). }
+      apply WF.(wf_col) in CO. rewrite CO.
+      rewrite <- LOC. symmetry. by apply wf_rfrmwl. }
     intros x y SX SY CO; subst.
     assert (x <> y) as NEQXY.
     { intros HH; subst. eapply wf_rfrmw_irr; eauto. }
@@ -1163,6 +1203,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     assert (x = w); [|by subst; rewrite upds].
     eapply wf_rfrmwf; eauto. }
 
+  assert (S ⊆₁ E ∩₁ W) as SEW.
+  { apply set_subset_inter_r. split; [by apply ETCCOH|].
+    apply (reservedW WF ETCCOH). }
+  
   (* TODO: generalize to a lemma. *)
   assert (reserved_time G (mkTC (covered T) (issued T ∪₁ eq w))
                         (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))
@@ -1186,12 +1230,20 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
              [rewrite upds|by rewrite updo; auto].
            unfold n_to. intros HH.
            exfalso.
-           admit. }
+           apply no_co_to_init in CO; auto. destruct_seq_r CO as BB.
+           edestruct to_from_disjoint_from with (w:=w) (w':=y) (I:=S) as [AA|AA]; eauto.
+           { by apply wf_col. }
+           { rewrite <- HH in AA. by eapply time_middle_lt_lhs; [|apply AA]. }
+           rewrite <- HH in AA. by eapply time_middle_le_rhs; [|apply AA]. }
          { rewrite upds. rewrite updo; auto.
            destruct (classic (x = w)) as [|NEQXW]; subst; auto.
-           rewrite updo; auto. intros HH.
+           rewrite updo; auto.
+           unfold n_to. intros HH.
            exfalso.
-           admit. }
+           edestruct to_from_disjoint_to with (w:=w) (w':=x) (I:=S) as [AA|AA]; eauto.
+           { red. rewrite LOC. symmetry. rewrite <- NLOC. by apply WF.(wf_col). }
+           { rewrite HH in AA. by eapply time_middle_le_lhs; [|apply AA]. }
+           rewrite HH in AA. by eapply time_middle_lt_rhs; [|apply AA]. }
          rewrite upds. rewrite updo; auto.
          intros HH.
          exfalso.
@@ -1261,6 +1313,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   3: { etransitivity; [by apply ETCCOH.(etc_I_in_S)|]. basic_solver. }
   2: basic_solver.
   unfold f_to'. ins. by repeat (rewrite updo; [|by intros HH; desf]).
-Admitted.
+Qed.
 
 End Aux.

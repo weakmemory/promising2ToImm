@@ -221,6 +221,40 @@ Proof using WF FCOH.
   eapply f_from_co_mon; eauto.
 Qed.
 
+Lemma to_from_disjoint_to w w'
+      (NEQ : w <> w')
+      (NINIT : ~ is_init w)
+      (SW  : I w)
+      (SW' : I w')
+      (SL  : same_loc lab w w') :
+  Time.le (f_to w') (f_from w) \/ Time.lt (f_to w) (f_to w').
+Proof using WF IMMCON IE FCOH.
+  edestruct is_w_loc as [l LL].
+  { apply IE. apply SW. }
+  edestruct WF.(wf_co_total) with (a:=w) (b:=w'); eauto.
+  1,2: split; [by apply IE|]; eauto.
+  { by rewrite <- SL. }
+  { right. by apply f_to_co_mon. }
+  left. by apply FCOH.
+Qed.
+
+Lemma to_from_disjoint_from w w'
+      (NEQ : w <> w')
+      (NINIT : ~ is_init w')
+      (SW  : I w)
+      (SW' : I w')
+      (SL  : same_loc lab w w') :
+  Time.lt (f_from w') (f_from w) \/ Time.le (f_to w) (f_from w').
+Proof using WF IMMCON IE FCOH.
+  edestruct is_w_loc as [l LL].
+  { apply IE. apply SW. }
+  edestruct WF.(wf_co_total) with (a:=w) (b:=w'); eauto.
+  1,2: split; [by apply IE|]; eauto.
+  { by rewrite <- SL. }
+  { right. by apply FCOH. }
+  left. apply f_from_co_mon; auto.
+Qed.
+
 End Props.
 
 End FtoCoherent.
