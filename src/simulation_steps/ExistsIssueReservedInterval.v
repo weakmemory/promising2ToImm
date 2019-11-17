@@ -1254,16 +1254,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     all: apply MEM_CLOSE. }
   
   splits; eauto.
-  (* TODO: continue from here *)
-
-  do 2 eexists. splits; eauto.
-  { constructor; auto. simpls. by rewrite RELWFEQ. }
-  { by rewrite NEWS. }
-  { eapply sim_helper_issue with (S':=S); eauto. apply ETCCOH. }
-  eapply reserved_time_more.
-  3: by apply NEWS.
-  all: eauto.
-  apply same_trav_config_refl.
-Qed.
+  { constructor; auto. simpls. unfold rel''0. by rewrite RELWFEQ. }
+  eapply sim_helper_issue with
+      (S':=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G {| etc_TC := T; reserved := S |} rfi (eq w)); eauto.
+  3: { etransitivity; [by apply ETCCOH.(etc_I_in_S)|]. basic_solver. }
+  2: basic_solver.
+  unfold f_to'. ins. by repeat (rewrite updo; [|by intros HH; desf]).
+Admitted.
 
 End Aux.
