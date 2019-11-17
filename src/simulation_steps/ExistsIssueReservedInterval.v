@@ -1010,12 +1010,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   assert (Time.lt (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LT.
   { eapply TimeFacts.le_lt_lt; [by apply GG|].
     eapply TimeFacts.le_lt_lt; [|by apply PREVNLT].
-    eapply le_cur_f_to_wprev; eauto. }
+    eapply le_cur_f_to_wprev with (w:=w) (wprev:=wprev); eauto. }
 
   set (rel' := View.join (View.join rel'' (View.unwrap p_rel))
                          (View.singleton_ur locw (f_to' w))).
   assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to wprev)) as PREL_LE'.
-  { eapply le_p_rel_f_to_wprev; eauto. }
+  { eapply le_p_rel_f_to_wprev with (w:=w) (wprev:=wprev); eauto. }
   assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to' w)) as PREL_LE.
   { desc.
     destruct PRELSPEC0; desc.
