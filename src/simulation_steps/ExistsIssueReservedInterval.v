@@ -1156,29 +1156,78 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     assert (x = w); [|by subst; rewrite upds].
     eapply wf_rfrmwf; eauto. }
 
+  (* TODO: generalize to a lemma. *)
   assert (reserved_time G (mkTC (covered T) (issued T ∪₁ eq w))
                         (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))
                         f_to' f_from' smode memory_split) as REST.
-  { destruct smode; simpls; desc.
+  { eapply reserved_time_more.
+    3: by apply NEWS.
+    all: eauto.
+    { apply same_tc. }
+    destruct smode; simpls; desc.
     2: { splits.
          { generalize FOR_SPLIT. clear. basic_solver 10. }
          rewrite RMW_BEF_S. clear. basic_solver 10. }
     splits.
-    (* TODO: continue from here. *)
-    3: by apply RESERVED_TIME.
-    all: red; ins; erewrite Memory.add_o in MSG; eauto.
-    all: destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [LTEQ|LTNEQ].
-    { simpls. desc; subst. right. exists w. splits; eauto.
-      { clear. basic_solver. }
-      rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG. }
+    3: { intros x y SX SY CO; subst.
+         assert (x <> y) as NEQXY.
+         { intros HH; subst. eapply co_irr; eauto. }
+         unfold f_to', f_from'.
+         destruct SX as [SX|]; destruct SY as [SY|]; subst; try done.
+         { repeat (rewrite updo with (a:=wnext); [|by intros HH; desf]).
+           destruct (classic (x = w)) as [|NEQXW]; subst;
+             [rewrite upds|by rewrite updo; auto].
+           unfold n_to. intros HH.
+           exfalso.
+           admit. }
+         { rewrite upds. rewrite updo; auto.
+           destruct (classic (x = w)) as [|NEQXW]; subst; auto.
+           rewrite updo; auto. intros HH.
+           exfalso.
+           admit. }
+         rewrite upds. rewrite updo; auto.
+         intros HH.
+         exfalso.
+         apply TFRMW in HH; auto.
+         2: { eapply co_trans; eauto. }
+         apply NEQXY. eapply wf_rfrmwsf; eauto. }
+    all: red; ins; erewrite Memory.split_o in MSG; eauto; unfold f_to', f_from' in *.
+    all: rewrite updo in MSG; auto; rewrite upds in MSG.
+    all: destruct (loc_ts_eq_dec (l, to) (locw, n_to)) as [LTEQ|LTNEQ].
+    { simpls. desc; subst. right.
+      rewrite (loc_ts_eq_dec_eq locw n_to) in MSG. inv MSG.
+      exists w. splits; eauto.
+      { by right. }
+      rewrite updo; auto. by rewrite upds. }
     { rewrite loc_ts_eq_dec_neq in MSG; eauto.
-      erewrite Memory.remove_o in MSG; eauto.
-      rewrite loc_ts_eq_dec_neq in MSG; eauto.
-      eapply RESERVED_TIME in MSG.
-      generalize MSG. clear. basic_solver 10. }
+      rewrite upds in MSG.
+      destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [LTEQ|LTNEQ'].
+      { simpls. desc; subst.
+        rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG. }
+      rewrite loc_ts_eq_dec_neq in MSG; auto.
+      apply MEM in MSG. destruct MSG as [|MSG]; [left|right]; auto.
+      desc. exists b.
+      assert (S b) as SB by (by apply ETCCOH.(etc_I_in_S)).
+      splits; eauto.
+      { by left. }
+      { by rewrite updo; [|by intros HH; desf]. }
+        by repeat (rewrite updo; [|by intros HH; desf]). }
     { simpls. desc; subst. 
-      rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG. }
+      rewrite (loc_ts_eq_dec_eq locw n_to) in MSG. inv MSG. }
     rewrite loc_ts_eq_dec_neq in MSG; eauto.
+    rewrite upds in MSG.
+    (* TODO: continue from here *)
+    destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [LTEQ|LTNEQ'].
+    { simpls. desc; subst.
+      rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG. }
+    rewrite loc_ts_eq_dec_neq in MSG; auto.
+    apply MEM in MSG. destruct MSG as [|MSG]; [left|right]; auto.
+    desc. exists b.
+    assert (S b) as SB by (by apply ETCCOH.(etc_I_in_S)).
+    splits; eauto.
+    { by left. }
+    { by rewrite updo; [|by intros HH; desf]. }
+      by repeat (rewrite updo; [|by intros HH; desf]). }
     erewrite Memory.remove_o in MSG; eauto.
     rewrite loc_ts_eq_dec_neq in MSG; eauto.
     eapply RESERVED_TIME in MSG.
