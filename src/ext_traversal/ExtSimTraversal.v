@@ -488,9 +488,22 @@ Proof using WF IMMCON.
         apply ETCCOH. }
 
       assert (dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T ∪₁ eq w⦘)
-                      ∩₁ codom_rel (⦗issued (etc_TC T) ∪₁ eq w⦘ ⨾ rf ⨾ rmw) ⊆₁ reserved T)
+                      ∩₁ codom_rel (⦗issued (etc_TC T) ∪₁ eq w⦘ ⨾ rf ⨾ rmw) ⊆₁
+              reserved T ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))
         as RESRES.
-      { admit. }
+      { rewrite id_union, !seq_union_r, dom_union.
+        rewrite set_inter_union_l.
+        unionL.
+        2: { rewrite WF.(W_ex_in_W), WSBW. rewrite ETCCOH.(etc_I_in_S). basic_solver. }
+        rewrite id_union, !seq_union_l, codom_union.
+        rewrite set_inter_union_r.
+        unionL; [by unionR left -> left; apply ETCCOH|].
+        unionR right.
+        unfold dom_sb_S_rfrmw.
+        rewrite rfi_union_rfe.
+        rewrite !seq_union_l, !seq_union_r, codom_union.
+        rewrite set_inter_union_r. unionL; [done|].
+        admit. }
 
       assert (forall C' (CC : (C' = covered (etc_TC T) /\ issuable G sc (etc_TC T) w) \/
                               C' = covered (etc_TC T) ∪₁ eq e),
@@ -537,7 +550,7 @@ Proof using WF IMMCON.
         { rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR.
           rewrite dom_rel_eqv_dom_rel, seqA. by unionR left. }
         { unfold dom_sb_S_rfrmw. simpls.
-          rewrite dom_eqv1; rewrite RR. rewrite <- dom_eqv1. unionR left -> left.
+          rewrite dom_eqv1; rewrite RR. rewrite <- dom_eqv1.
           apply RESRES. }
         { rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR1.
           rewrite dom_rel_eqv_dom_rel, seqA. by unionR left. }
@@ -606,7 +619,7 @@ Proof using WF IMMCON.
       { rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR.
         rewrite dom_rel_eqv_dom_rel, seqA. by unionR left. }
       { unfold dom_sb_S_rfrmw. simpls.
-        rewrite dom_eqv1; rewrite RR. rewrite <- dom_eqv1. unionR left -> left.
+        rewrite dom_eqv1; rewrite RR. rewrite <- dom_eqv1.
         apply RESRES. }
       { rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR1.
         rewrite dom_rel_eqv_dom_rel, seqA. by unionR left. }
@@ -746,7 +759,9 @@ Proof using WF IMMCON.
     rewrite dom_eqv1; rewrite RR. rewrite <- dom_eqv1. unionR left.
     rewrite id_union, !seq_union_r, dom_union; unionL; [by apply ETCCOH|].
     arewrite (W_ex_acq ⊆₁ W); auto. rewrite WF.(W_ex_in_W); basic_solver. }
-  { admit. }
+  { unfold dom_sb_S_rfrmw. simpls.
+    rewrite dom_eqv1; rewrite RR. rewrite <- dom_eqv1. unionR left.
+    admit. }
   { rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR1.
     rewrite dom_rel_eqv_dom_rel, seqA.
     unionR left.
