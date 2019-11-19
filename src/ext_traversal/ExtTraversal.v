@@ -714,4 +714,13 @@ Proof using WF IMMCON.
   intros x HH. eapply dom_sb_S_rfrmwf; eauto.
 Qed.
 
+Lemma dom_sb_S_rfrmwE T rrf P : dom_sb_S_rfrmw T rrf P ⊆₁ E.
+Proof using WF.
+  unfold dom_sb_S_rfrmw.
+  rewrite WF.(W_ex_in_E). basic_solver.
+Qed.
+
+Lemma dom_sb_S_rfrmw_in_W_ex T rrf P : dom_sb_S_rfrmw T rrf P ⊆₁ W_ex.
+Proof using. unfold dom_sb_S_rfrmw. basic_solver. Qed.
+
 End ExtTraversalConfig.
