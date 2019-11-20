@@ -490,22 +490,45 @@ Qed.
 (**  new co relation  *)
 (******************************************************************************)
 
-Definition cert_co_base :=
-  I ∪₁ S ∩₁ Tid_ thread ∪₁
-    codom_rel (<|S ∩₁ Tid_ thread|> ;; (Grfi ;; Grmw)⁺).
+(* TODO: move to ImmProperties.v *)
+Lemma W_ex_eq_EW_W_ex : GW_ex ≡₁ E ∩₁ W ∩₁ GW_ex.
+Proof using WF.
+  generalize WF.(ImmProperties.W_ex_in_E).
+  generalize WF.(W_ex_in_W). clear. basic_solver 10.
+Qed.
+
+(* TODO: move up. *)
+Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
+
+Definition cert_co_base := I ∪₁ W_ex G.
+Lemma cert_co_base_alt : cert_co_base ≡₁ I ∪₁ W_ex G ∩₁ Tid_ thread.
+Proof using WF IT_new_co.
+  clear -WF IT_new_co.
+  unfold cert_co_base.
+  split; [|basic_solver].
+  unionL; [basic_solver|].
+  rewrite W_ex_eq_EW_W_ex at 1.
+  rewrite <- IT_new_co. basic_solver.
+Qed.
+
+Lemma I_in_cert_co_base : I ⊆₁ cert_co_base.
+Proof using. unfold cert_co_base. basic_solver. Qed.
+Lemma IST_in_cert_co_base : I ∪₁ S ∩₁ Tid_ thread ⊆₁ cert_co_base.
+Proof using S_I_in_W_ex.
+  rewrite AuxRel.set_subset_union_minus with (s:=S ∩₁ Tid_ thread) (s':=I).
+  rewrite S_I_in_W_ex.
+  unfold cert_co_base. clear. basic_solver.
+Qed.
+
 Definition cert_co := new_co G cert_co_base (E ∩₁ W ∩₁ Tid_ thread).
 
 Lemma IST_new_co : cert_co_base ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
-Proof using S_in_W ST_in_E IT_new_co.
-  unfold cert_co_base.
-Admitted.
-  (* assert (S ∩₁ Tid_ thread ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W ∩₁ Tid_ thread) as AA. *)
-  (* 2: { rewrite set_unionA. rewrite AA. apply IT_new_co. } *)
-  (* split; [|clear; basic_solver]. *)
-  (* unionL; [|clear; basic_solver]. *)
-  (* generalize ST_in_E. generalize S_in_W. *)
-  (* clear. basic_solver. *)
-(* Qed. *)
+Proof using WF S_in_W ST_in_E IT_new_co.
+  rewrite <- IT_new_co at 2.
+  rewrite cert_co_base_alt.
+  rewrite W_ex_eq_EW_W_ex at 1.
+  clear. basic_solver.
+Qed.
 
 Lemma wf_cert_coE : cert_co ≡ ⦗E⦘ ⨾ cert_co ⨾ ⦗E⦘.
 Proof using WF S_in_W ST_in_E IT_new_co.
@@ -559,44 +582,51 @@ Qed.
 Lemma cert_co_for_split: ⦗set_compl cert_co_base⦘ ⨾ (immediate cert_co) ⊆ Gsb.
 Proof using All.
 (* Proof using WF S_in_W ST_in_E IT_new_co. *)
-Admitted.
-(*   unfold cert_co. *)
-(*   red; intros x y H. *)
-(*   assert (A: (E ∩₁ W ∩₁ Tid_ thread) y). *)
-(*   { apply (co_for_split IST_new_co (wf_coE WF) (wf_coD WF)). *)
-(*     red. eauto. } *)
-(*   unfolder in H; desf. *)
-(*   assert (B: (E ∩₁ W) x). *)
-(*   { hahn_rewrite (wf_new_coE IST_new_co (wf_coE WF)) in H0. *)
-(*     hahn_rewrite (wf_new_coD IST_new_co (wf_coD WF)) in H0. *)
-(*     unfolder in H0. clear -H0. basic_solver. } *)
-(*   apply IST_new_co in B; unfolder in B. *)
-(*   destruct B as [[B|B]|[[B1 B2] B3]]. *)
-(*   { exfalso. apply H. eauto. } *)
-(*   { exfalso. apply H. eauto. } *)
-(*   unfolder in A. *)
-(*   assert (D: (⦗ E ∩₁ W ∩₁ Tid_ (tid x) ⦘ ⨾ Gco) x y). *)
-(*   { rewrite B3. *)
-(*     eapply T_new_co. *)
-(*     { apply IST_new_co. } *)
-(*     all: try edone; try apply WF. *)
-(*     clear -H0 A B1 B2 B3. *)
-(*     basic_solver. } *)
-(*   desf. *)
-(*   eapply same_thread in A0; try edone. *)
-(*   { desf. *)
-(*     exfalso. *)
-(*     unfolder in D; desf. *)
-(*     destruct A0; try subst. *)
-(*     eapply (co_irr WF); edone. *)
-(*     eapply COH. *)
-(*     hahn_rewrite <- (@sb_in_hb G). *)
-(*     hahn_rewrite <- (@co_in_eco G). *)
-(*     clear -H2 D0. *)
-(*     basic_solver. } *)
-(*   hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in D. *)
-(*   unfolder in D. apply D. *)
-(* Qed. *)
+  unfold cert_co.
+  red; intros x y H.
+  assert (A: (E ∩₁ W ∩₁ Tid_ thread) y).
+  { apply (co_for_split IST_new_co (wf_coE WF) (wf_coD WF)).
+    red. eauto. }
+  unfolder in H; desf.
+  assert (B: (E ∩₁ W) x).
+  { hahn_rewrite (wf_new_coE IST_new_co (wf_coE WF)) in H0.
+    hahn_rewrite (wf_new_coD IST_new_co (wf_coD WF)) in H0.
+    unfolder in H0. clear -H0. basic_solver. }
+  apply IST_new_co in B; unfolder in B.
+  destruct B as [B|[[B1 B2] B3]].
+  { intuition. }
+  unfolder in A.
+  assert (D: (⦗ E ∩₁ W ∩₁ Tid_ (tid x) ⦘ ⨾ Gco) x y).
+  { rewrite B3.
+    eapply T_new_co.
+    { apply IST_new_co. }
+    all: try edone; try apply WF.
+    clear -H0 A B1 B2 B3.
+    basic_solver. }
+  desf.
+  eapply same_thread in A0; try edone.
+  { desf.
+    exfalso.
+    unfolder in D; desf.
+    destruct A0.
+    { rewrite H2 in D0. eapply (co_irr WF); edone. }
+    eapply COH.
+    hahn_rewrite <- (@sb_in_hb G).
+    hahn_rewrite <- (@co_in_eco G).
+    clear -H2 D0.
+    basic_solver. }
+  hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in D.
+  unfolder in D. apply D.
+Qed.
+
+(* TODO: move to ImmProperties.v *)
+Lemma I_eq_EW_I : I ≡₁ E ∩₁ W ∩₁ I.
+Proof using TCCOH.
+  clear -TCCOH.
+  split; [|clear; basic_solver].
+  generalize (issuedW TCCOH), (issuedE TCCOH).
+  basic_solver.
+Qed.
 
 Lemma cert_co_alt :
   cert_co  ⊆ Gco ∩ cert_co ⨾ ⦗ cert_co_base ⦘ ∪ ⦗ Tid_ thread ⦘ ⨾ Gco ∩ cert_co ∪ 
@@ -604,31 +634,33 @@ Lemma cert_co_alt :
                                               cert_co_base ⦘.
 Proof using All.
   arewrite (I ∩₁ NTid_ thread ≡₁ cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread).
-  { admit. }
-  (* { revert IT_new_co; unfolder. *)
-  (*   ins; desf; splits; ins; eauto; [tauto|]. *)
-  (*   desf; splits; eauto. *)
-  (*   { intros HH. apply H0. splits; eauto. *)
-  (*       by apply TCCOH.(issuedE). } *)
-  (*   all: exfalso. *)
-  (*   all: apply H0; splits; eauto. *)
-  (*   all: by apply ST_in_E; split. } *)
+  { rewrite cert_co_base_alt.
+    split.
+    2: { rewrite W_ex_eq_EW_W_ex, I_eq_EW_I at 1.
+         rewrite set_minus_union_l. unionL.
+         2: { clear. intros x [HH BB]. exfalso. apply BB.
+              generalize HH. basic_solver. }
+         clear. intros x [HH BB]. split; [by apply HH|].
+         generalize HH, BB. basic_solver 10. }
+    clear. intros x [HH BB]. split; [basic_solver|].
+    unfolder. intros AA. desf. }
   arewrite (cert_co ⊆ cert_co ∩ cert_co) at 1.
   unfold cert_co at 1.
   rewrite new_co_in at 1.
   all: try by apply WF.
   { clear. basic_solver 40. }
   apply IST_new_co.
-Admitted.
+Qed.
 
 Lemma cert_co_alt' : cert_co  ⊆ Gco ∩ cert_co ∪ 
   ⦗ I ∩₁ NTid_ thread ⦘ ⨾ cert_co ⨾ ⦗ (E ∩₁ W ∩₁ Tid_ thread) \₁ I ⦘.
 Proof using All.
-Admitted.
-(*   rewrite cert_co_alt at 1. *)
-(*   clear. *)
-(*   basic_solver 12. *)
-(* Qed. *)
+  rewrite cert_co_alt at 1.
+  clear.
+  unionL.
+  3: rewrite <- I_in_cert_co_base at 1.
+  all: basic_solver 12.
+Qed.
 
 (******************************************************************************)
 (** Definition of the new rf edges   *)
@@ -1085,7 +1117,7 @@ Proof using All.
       apply (wf_urrE WF WF_SC) in H1.
       basic_solver 12. }
     intro; subst; eauto. }
-  unfold cert_co_base.
+  apply IST_in_cert_co_base.
   assert ((E ∩₁ W) z) as AA. 
   { split; auto. }
   apply IT_new_co in AA. unfolder in AA.
@@ -1527,8 +1559,7 @@ Proof using All.
   { rewrite cert_rfe; relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E).
       unfold certG; ins; rewrite !seqA.
-      arewrite (I ⊆₁ cert_co_base) at 1.
-      { unfold cert_co_base. basic_solver. }
+      rewrite I_in_cert_co_base at 1.
       sin_rewrite cert_co_I.
       revert COH CSC. unfold coherence, coh_sc, eco.
       ie_unfolder. basic_solver 21. }
@@ -1560,8 +1591,7 @@ Proof using All.
   { unfold fr; unfold certG; ins.
     rewrite transp_union, transp_seq; relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E), !seqA.
-      arewrite (I ⊆₁ cert_co_base) at 1.
-      { unfold cert_co_base. basic_solver. }
+      rewrite I_in_cert_co_base at 1.
       sin_rewrite cert_co_I.
       revert COH CSC. unfold coherence, coh_sc, eco, fr. ie_unfolder.
       basic_solver 21. }
@@ -1607,9 +1637,13 @@ red; case_refl _.
 - generalize coh_helper; basic_solver 21.
 Qed.
 
+(* TODO: move up *)
+Lemma W_ex_in_cert_co_base : GW_ex ⊆₁ cert_co_base.
+Proof using. unfold cert_co_base. clear. basic_solver. Qed.
+
 Lemma cert_rmw_atomicity : rmw_atomicity certG.
 Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E S_in_W 
-      TCCOH_rst_new_T W_hb_sc_hb_to_I_NTid detour_E.
+      TCCOH_rst_new_T W_hb_sc_hb_to_I_NTid detour_E S_I_in_W_ex.
   clear OLD_VAL NEW_VAL SAME ACYC_EXT CSC COMP_ACQ.
   generalize (atomicity_alt WF (coherence_sc_per_loc COH) AT).
   intro AT'; clear AT.
@@ -1630,71 +1664,62 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
                     (E ∩₁ W ∩₁ Tid_ thread) \ Gsb) ⨾ ⦗GW_ex⦘ ⊆
             (new_co G cert_co_base
                     (E ∩₁ W ∩₁ Tid_ thread) ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘).
-  { (* cut (new_co G (I ∪₁ S ∩₁ Tid_ thread) (E ∩₁ W ∩₁ Tid_ thread) ⨾ ⦗GW_ex⦘ ⊆ Gco). *)
-    (* { basic_solver 21. } *)
-    admit. }
-    (* rewrite W_ex_IST. *)
-    (* rewrite (new_co_I IST_new_co); try apply WF. *)
-    (* basic_solver. } *)
+  { cut (new_co G cert_co_base (E ∩₁ W ∩₁ Tid_ thread) ⨾ ⦗GW_ex⦘ ⊆ Gco).
+    { basic_solver 21. }
+    rewrite W_ex_in_cert_co_base.
+    rewrite (new_co_I IST_new_co); try apply WF.
+    clear. basic_solver. }
 
   rewrite (new_co_in IST_new_co) at 1; try apply WF.
   relsf; unionL.
   1,2: generalize (co_trans WF); revert AT'; unfold fr; basic_solver 12.
-Admitted.
 
-(*   unfold cert_co_base. *)
-(*   rewrite <- !set_minus_union_l. *)
-(*   rewrite <- !set_minus_union_r. *)
-(*   rewrite !seqA. *)
-  
-(*   assert ((I ∪₁ S ∩₁ Tid_ thread) \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN. *)
-(*   { intros x [AA BB]. *)
-(*     assert (E x /\ W x) as [EX WX]. *)
-(*     { split; apply IST_new_co; by left. } *)
-(*     destruct AA as [AA|AA]. *)
-(*     2: { exfalso. *)
-(*          apply BB. unfolder. splits; auto. apply AA. } *)
-(*     split; auto. *)
-(*     intros HH.  *)
-(*     apply BB. unfolder. splits; auto. } *)
+  assert (cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN.
+  { rewrite cert_co_base_alt.
+    rewrite I_eq_EW_I at 1.
+    rewrite W_ex_eq_EW_W_ex at 1.
+    intros x [[AA|AA] BB].
+    { split; [by apply AA|].
+      intros HH. apply BB. split; auto. by apply AA. }
+    exfalso. apply BB. generalize AA. clear. basic_solver. }
 
-(*   remember (new_co G (I ∪₁ S ∩₁ Tid_ thread) *)
-(*                    (E ∩₁ W ∩₁ Tid_ thread)) as new. *)
-(*   arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘ *)
-(*               ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘ ⊆ *)
-(*             ⦗E ∩₁ W ∩₁ Tid_ thread \₁ (I ∪₁ S ∩₁ Tid_ thread)⦘ *)
-(*               ⨾ new ⨾ ⦗GW_ex \₁ E ∩₁ W ∩₁ Tid_ thread⦘). *)
-(*   { unfolder; ins; desf; splits; eauto. *)
-(*     intros [[EY WY] TT]. *)
-(*     eapply same_thread in TT; desf; eauto. *)
-(*     2: { hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H3. *)
-(*          unfolder in H3; desf. } *)
-(*     destruct TT; desf; try subst z2; eauto.  *)
-(*     { apply co_irr in H3; auto. } *)
-(*     eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone. } *)
-(* Admitted. *)
-(*   rewrite W_ex_IST. *)
-(*   subst new. *)
+  remember (new_co G cert_co_base (E ∩₁ W ∩₁ Tid_ thread)) as new.
+  rewrite !seqA.
+  arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘
+              ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘ ⊆
+            ⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘
+              ⨾ new ⨾ ⦗GW_ex \₁ E ∩₁ W ∩₁ Tid_ thread⦘).
+  { unfolder; ins; desf; splits; eauto.
+    intros [[EY WY] TT].
+    eapply same_thread in TT; desf; eauto.
+    2: { hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H3.
+         unfolder in H3; desf. }
+    destruct TT; desf; try subst z2; eauto.
+    { apply co_irr in H3; auto. }
+    eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone. }
 
-(*   rewrite (inter_inclusion *)
-(*              (@T_I_new_co_I_T G (I ∪₁ S ∩₁ Tid_ thread)  *)
-(*                               (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))). *)
+  rewrite W_ex_in_cert_co_base.
+  subst new.
 
-(*   rewrite (inter_eq (wf_rfD WF)), (inter_eq (wf_rfE WF)),  *)
-(*   (inter_inclusion (wf_rfl WF)), (inter_inclusion (wf_rmwl WF)), *)
-(*   (inter_inclusion (wf_col WF)). *)
-(*   unfolder; ins; desc. subst z0 z3.  *)
-(*   assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence). *)
-(*   assert (K: Gco z4 z1 \/ Gco z1 z4). *)
-(*   { eapply WF; try basic_solver 2. *)
-(*     intro; subst z1; eauto. } *)
-(*   destruct K. *)
-(*   2: revert AT'; unfold fr; basic_solver 12. *)
-(*   eapply (new_co_irr IST_new_co); try apply WF.  *)
-(*   eapply (new_co_trans IST_new_co); try apply WF.  *)
-(*   apply H3. *)
-(*   apply new_co_helper; [apply WF| apply WF| basic_solver 12]. *)
-(* Qed. *)
+  rewrite (inter_inclusion
+             (@T_I_new_co_I_T G cert_co_base 
+                              (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
+
+  rewrite (inter_eq (wf_rfD WF)), (inter_eq (wf_rfE WF)),
+  (inter_inclusion (wf_rfl WF)), (inter_inclusion (wf_rmwl WF)),
+  (inter_inclusion (wf_col WF)).
+  unfolder; ins; desc. subst z0 z3.
+  assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence).
+  assert (K: Gco z4 z1 \/ Gco z1 z4).
+  { eapply WF; try basic_solver 2.
+    intro; subst z1; eauto. }
+  destruct K.
+  2: revert AT'; unfold fr; basic_solver 12.
+  eapply (new_co_irr IST_new_co); try apply WF.
+  eapply (new_co_trans IST_new_co); try apply WF.
+  apply H3.
+  apply new_co_helper; [apply WF| apply WF| basic_solver 12].
+Qed.
 
 (******************************************************************************)
 (** **   *)
@@ -1781,8 +1806,7 @@ Proof using ACYC_EXT COH CSC Grfe_E IT_new_co RPPO_S ST_in_E S_in_W TCCOH WF WF_
   rewrite cert_sb.
   rewrite <- seq_eqv_inter_lr, !seqA.
   rewrite cert_rfe_D.
-  arewrite (I ⊆₁ cert_co_base).
-  { unfold cert_co_base. basic_solver. }
+  rewrite I_in_cert_co_base.
   seq_rewrite <- seq_eqv_minus_lr.
   rewrite cert_co_I.
   clear. basic_solver 21.
@@ -2258,7 +2282,7 @@ Proof using All.
   { arewrite (I ∪₁ S ∩₁ Tid_ thread ⊆₁ E ∩₁ W).
     2: { unfold certG. unfold acts_set. basic_solver. }
     rewrite <- IST_new_co.
-    unfold cert_co_base.
+    rewrite IST_in_cert_co_base.
     basic_solver 10. }
   { eauto with hahn. }
   { rewrite cert_W_ex. generalize ST_in_W_ex.
