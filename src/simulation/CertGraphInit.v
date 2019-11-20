@@ -722,6 +722,32 @@ assert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ issued T ⊆₁ W_ex G).
   all: exists x; apply seq_eqv_r; split; [|split]; auto.
   eapply inclusion_step_cr; [reflexivity|]. by apply WF.(rmw_in_sb). }
 
+assert (ISTex_rf_I :
+          (issued T ∪₁ S ∩₁ Tid_ thread) ∩₁ W_ex G ⊆₁ codom_rel (⦗issued T⦘ ⨾ rf G ⨾ rmw G)).
+{ assert ((issued T ∪₁ S ∩₁ Tid_ thread) ∩₁ W_ex G ⊆₁ S ∩₁ W_ex Gf) as AA.
+  { rewrite I_in_S. subst. unfold rstG, restrict, W_ex. simpls.
+    clear. basic_solver. }
+  intros x HH.
+  subst. unfold rstG, restrict, W_ex. simpls.
+  set (BB:=HH). apply AA in BB.
+  apply ETCCOH in BB. destruct BB as [y BB]. apply seq_eqv_l in BB.
+  destruct BB as [IY [z [BB CC]]].
+  exists y. apply seq_eqv_l. split; auto.
+  exists z.
+  assert (E0 Gf T S thread y) as E0Y.
+  { red. do 2 left. by right. }
+  assert (E0 Gf T S thread x) as E0X.
+  { destruct HH as [_ HH]. unfold rstG, restrict, W_ex in HH. simpls.
+    generalize HH. clear. basic_solver. }
+  assert (E0 Gf T S thread z) as E0Z.
+  2: by split; apply seq_eqv_lr; splits.
+  admit. }
+assert (DOM_SB_S_rf_I :
+          dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘)
+                  ∩₁ codom_rel (⦗issued T⦘ ⨾ rf G ⨾ rmw G) ⊆₁
+                  issued T ∪₁ S ∩₁ Tid_ thread).
+{ admit. }
+
 exists (certG G Gsc T S thread lab').
 exists Gsc.
 exists (mkTC (T.(covered) ∪₁ (G.(acts_set) ∩₁ NTid_ thread)) T.(issued)).
@@ -1012,6 +1038,6 @@ eexists. red. splits.
 { apply STEPS'. }
 { intros HH. inv HH. }
 done.
-Qed.
+Admitted.
 
 End Cert.

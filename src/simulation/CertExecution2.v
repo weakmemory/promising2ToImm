@@ -2222,12 +2222,19 @@ Proof using Grfe_E TCCOH WF WF_SC.
   apply cert_rfi_D in AA. unfolder in AA. desf.
 Qed.
 
-Lemma ETCCOH_cert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ I ⊆₁ GW_ex) :
+Lemma ETCCOH_cert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ I ⊆₁ GW_ex)
+      (ISTex_rf_I : (I ∪₁ S ∩₁ Tid_ thread) ∩₁ GW_ex ⊆₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ Grmw))
+      (DOM_SB_S_rf_I :
+         dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ∩₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ Grmw)
+                 ⊆₁ I ∪₁ S ∩₁ Tid_ thread) :
   etc_coherent certG sc (mkETC (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I)
                                (I ∪₁ S ∩₁ Tid_ thread)).
 Proof using All.
   assert (I ∪₁ S ∩₁ Tid_ thread ⊆₁ S) as IST_in_S.
   { rewrite I_in_S. basic_solver. }
+  assert ((Grf ⨾ ⦗D⦘ ∪ new_rf) ⨾ Grmw ≡ Grf ⨾ Grmw) as QQ.
+  { rewrite (dom_rel_helper dom_rmw_in_D).
+    rewrite wf_new_rfE. clear. basic_solver 10. }
   constructor.
   all: unfold eissued, ecovered; simpls.
   { apply TCCOH_cert. }
@@ -2255,22 +2262,20 @@ Proof using All.
     apply seq_eqv_lr in RFE. destruct RFE as [IW [RFE DZ]].
     eapply dom_cert_detour_rfe_D. basic_solver 10. }
   { by rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S. }
-  { unfold dom_sb_S_rfrmw. simpls.
-    (* TODO: should be easy. *)
-    admit. }
-  { rewrite Crppo_in_rppo.
-    arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆
-                    ⦗D⦘ ⨾ Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘).
-    { apply dom_rel_helper.
-      rewrite IST_in_S.
-      apply dom_rppo_S_in_D. }
-    arewrite ((Gdata ∪ Crfi)＊ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (Gdata ∪ Crfi)＊ ⨾ ⦗D⦘).
-    { apply dom_rel_helper.
-      apply dom_data_Crfi_D_in_D. }
-    rewrite <- !seqA.
-    do 4 rewrite AuxRel.dom_seq.
-    apply dom_cert_detour_rfe_D. }
-  admit.
-Admitted.
+  { unfold dom_sb_S_rfrmw. simpls. by rewrite QQ, cert_sb, cert_W_ex. }
+  2: by rewrite QQ, cert_W_ex.
+  rewrite Crppo_in_rppo.
+  arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆
+                  ⦗D⦘ ⨾ Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘).
+  { apply dom_rel_helper.
+    rewrite IST_in_S.
+    apply dom_rppo_S_in_D. }
+  arewrite ((Gdata ∪ Crfi)＊ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (Gdata ∪ Crfi)＊ ⨾ ⦗D⦘).
+  { apply dom_rel_helper.
+    apply dom_data_Crfi_D_in_D. }
+  rewrite <- !seqA.
+  do 4 rewrite AuxRel.dom_seq.
+  apply dom_cert_detour_rfe_D.
+Qed.
 
 End CertExec.
