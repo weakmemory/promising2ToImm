@@ -796,8 +796,9 @@ red. splits.
     { intros x HH AA. apply FCOH; auto. }
     { ins. apply FCOH.
       1,2: by apply IST_in_S.
-      assert ((cert_co G T S thread ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) x y) as HH.
-      { apply seq_eqv_r. by split. }
+      assert ((cert_co G T thread ⨾ ⦗cert_co_base G T⦘) x y) as HH.
+      { apply seq_eqv_r. split; auto.
+        eapply IST_in_cert_co_base; eauto. }
       eapply cert_co_I in HH; eauto.
       apply seq_eqv_r in HH. destruct HH as [HH _].
       eapply (sub_co SUB) in HH.

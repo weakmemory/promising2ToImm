@@ -166,7 +166,7 @@ Definition reserved_time smode memory :=
                            f_to x = f_from y -> (rf ⨾ rmw) x y ⟫)
   | sim_certification => 
     (* During certification *)
-    (⟪ FOR_SPLIT : ⦗ set_compl S ⦘ ⨾ (immediate co) ⊆ sb ⟫ /\
+    (⟪ FOR_SPLIT : ⦗ set_compl (W_ex ∪₁ S) ⦘ ⨾ (immediate co) ⊆ sb ⟫ /\
      ⟪ RMW_BEF_S : W_ex ⊆₁ dom_rel (sb^? ;; <| S |>) ⟫)
   end.
 

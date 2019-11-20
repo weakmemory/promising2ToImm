@@ -579,7 +579,7 @@ Proof using WF S_in_W ST_in_E IT_new_co.
   all: apply WF.
 Qed.
 
-Lemma cert_co_for_split: ⦗set_compl cert_co_base⦘ ⨾ (immediate cert_co) ⊆ Gsb.
+Lemma cert_co_for_split_helper : ⦗set_compl cert_co_base⦘ ⨾ (immediate cert_co) ⊆ Gsb.
 Proof using All.
 (* Proof using WF S_in_W ST_in_E IT_new_co. *)
   unfold cert_co.
@@ -617,6 +617,21 @@ Proof using All.
     basic_solver. }
   hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in D.
   unfolder in D. apply D.
+Qed.
+
+Lemma cert_co_for_split :
+  ⦗set_compl (GW_ex ∪₁ (I ∪₁ S ∩₁ Tid_ thread))⦘ ⨾ (immediate cert_co) ⊆ Gsb.
+Proof using All.
+  arewrite (immediate cert_co ⊆
+            <|cert_co_base ∪₁ set_compl cert_co_base|> ;; immediate cert_co).
+  { rewrite AuxRel.set_compl_union_id. unfold set_full. by rewrite seq_id_l. }
+  rewrite id_union, seq_union_l, seq_union_r. unionL.
+  2: { rewrite cert_co_for_split_helper. clear. basic_solver. }
+  rewrite <- seqA. rewrite <- id_inter.
+  rewrite set_interC. rewrite <- set_minusE.
+  arewrite (cert_co_base \₁ (GW_ex ∪₁ (I ∪₁ S ∩₁ Tid_ thread)) ⊆₁ ∅).
+  2: clear; basic_solver.
+  unfold cert_co_base. clear. basic_solver.
 Qed.
 
 (* TODO: move to ImmProperties.v *)
