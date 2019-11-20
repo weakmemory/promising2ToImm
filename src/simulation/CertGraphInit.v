@@ -741,7 +741,17 @@ assert (ISTex_rf_I :
     generalize HH. clear. basic_solver. }
   assert (E0 Gf T S thread z) as E0Z.
   2: by split; apply seq_eqv_lr; splits.
-  admit. }
+  destruct HH as [DD HH].
+  assert (S x) as SX.
+  { destruct DD as [|DD]; [|by apply DD].
+      by apply ETCCOH.(etc_I_in_S). }
+  destruct (classic (Tid_ thread x)) as [TID|NTID].
+  { red. left. right. exists x. apply seq_eqv_r. split.
+    2: by split.
+    right. by apply rmw_in_sb. }
+  destruct DD as [|DD]; eauto.
+  { right. exists x. apply seq_eqv_r. split; [|split]; auto. }
+  exfalso. apply NTID. apply DD. }
 assert (DOM_SB_S_rf_I :
           dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘)
                   ∩₁ codom_rel (⦗issued T⦘ ⨾ rf G ⨾ rmw G) ⊆₁

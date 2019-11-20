@@ -104,7 +104,7 @@ Local Lemma TCCOH : tc_coherent Gf sc T.
 Proof using ETCCOH. apply ETCCOH. Qed.
 
 Definition E0 :=  C ∪₁ I ∪₁ dom_rel (Fsb^? ⨾ ⦗Tid_ thread ∩₁ S⦘)
-  ∪₁ (dom_rel (Frmw ⨾ ⦗ NTid_ thread ∩₁ I ⦘) \₁ codom_rel (⦗ set_compl FW_ex⦘ ⨾ Frfi)).
+  ∪₁ dom_rel (Frmw ⨾ ⦗ NTid_ thread ∩₁ I ⦘).
 
 Definition rstG := restrict Gf E0.
 Definition rst_sc := ⦗ E0 ⦘ ⨾ sc ⨾ ⦗ E0 ⦘.
@@ -301,10 +301,6 @@ Proof using WF ETCCOH.
     { rewrite (rmw_in_sb WF) at 1. rewrite ETCCOH.(etc_I_in_S) at 1. basic_solver 20. }
     unionR right.
     unfolder; ins; desf; splits; eauto.
-    intro; ie_unfolder; unfolder in *; desf.
-    assert (x0 = x1).
-    eapply WF; basic_solver 12.
-    subst; eauto.
   - rewrite dom_rel_eqv_dom_rel.
     rewrite (rmw_in_sb WF) at 1.
     generalize (@sb_trans Gf); ins; relsf.
@@ -326,10 +322,6 @@ rewrite !id_union; relsf; unionL; splits.
   { rewrite (rmw_in_sb WF) at 1. rewrite ETCCOH.(etc_I_in_S) at 1. basic_solver 20. }
   unionR right.
   unfolder; ins; desf; splits; eauto.
-  intro; ie_unfolder; unfolder in *; desf.
-  assert (x0 = x1).
-  eapply WF; basic_solver 12.
-  subst; eauto.
 - rewrite dom_rel_eqv_dom_rel.
   rewrite (rmw_in_sb WF) at 1.
   generalize (@sb_trans Gf); ins; relsf.
@@ -352,10 +344,6 @@ Proof using WF ETCCOH.
     rewrite WF.(rmw_in_sb). basic_solver 10. }
   unionR right.
   unfolder. ins. desf. splits; eauto.
-  intros HH. desf.
-  assert (z = z0); desf.
-  eapply WF.(wf_rff); red; eauto.
-  apply HH0.
 Qed.
 
 Lemma rt_rf_rmw_I :
@@ -533,15 +521,15 @@ Proof using WF ETCCOH.
   { rewrite (dom_r (wf_rfiD WF)) at 1; rewrite (issuedW TCCOH) at 1. type_solver. }
   { generalize (@sb_trans Gf); ie_unfolder. basic_solver 21. }
   rewrite (dom_l (wf_rfiD WF)) at 1.
-  arewrite (⦗W⦘ ⊆ ⦗FW_ex⦘ ∪ ⦗set_compl FW_ex⦘).
-  { unfolder; ins; desf. tauto. }
-  relsf; unionL; splits.
-  2: { unfolder; ins; desf; exfalso; eauto 10. }
   unionR left -> left -> right.
-  arewrite (Frfi ⊆ Frf).
-  unfolder. ins. desf. eapply rfrmw_I_in_I; eauto.
+  unfolder. ins. desf.
+  eapply rfrmw_I_in_I; eauto.
   { apply ETCCOH. }
-  basic_solver 10.
+  eexists. apply seqA. apply seq_eqv_r. split; eauto.
+  eexists. splits; eauto.
+  match goal with
+  | H: Frfi _ _ |- _ => apply H
+  end.
 Qed.
 
 Lemma rfe_Acq_E : dom_rel (Frfe ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
@@ -603,91 +591,6 @@ Proof using WF ETCCOH.
   unfolder; ins; desf; eexists; eexists; splits; eauto; mode_solver 21. 
 Qed.
 
-(*
-Lemma sw_E : Fsw ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾ Gsw.
-Proof using.
-rewrite (dom_r (wf_swE WF)).
-rewrite (dom_r (wf_swD WF)).
-arewrite (⦗FE⦘ ⊆ ⦗FE \₁ E⦘ ∪ ⦗E⦘) by (unfolder; ins; desf; tauto).
-relsf; unionL; [basic_solver 12|].
-arewrite (⦗F ∩₁ Acq ∪₁ R ∩₁ Acq⦘ ⨾ ⦗E⦘ ⊆ ⦗E⦘) by basic_solver.
-unfold imm_s_hb.sw.
-rewrite (sub_F SUB), (sub_Acq SUB).
-rewrite !seqA.
-arewrite ((Fsb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾ (Fsb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⨾ ⦗E⦘).
-by generalize sb_F_E; basic_solver 21.
-arewrite (Frf ⨾ ⦗E⦘ ⨾ (Fsb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾  Frf ⨾ ⦗E⦘ ⨾ (Fsb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⨾ ⦗E⦘).
-{ rewrite rfi_union_rfe; relsf; unionL.
-  by generalize rfi_E; basic_solver 21.
-  generalize rfe_Acq_E rfe_sb_F_Acq_E; basic_solver 21. }
-arewrite (⦗E⦘ ⊆ ⦗E⦘ ⨾ ⦗E⦘) at 1.
-basic_solver.
-sin_rewrite release_E.
-rewrite (sub_rf SUB), (sub_sb SUB).
-basic_solver 80.
-Qed.
-
-Lemma dom_sw_E : dom_rel (Fsw ⨾ ⦗E⦘) ⊆₁ E.
-Proof using. rewrite sw_E, (dom_l (wf_swE rstWF)); basic_solver. Qed.
-
-Lemma sb_W_Rel_E : dom_rel (Fsb ⨾ ⦗FW ∩₁ FRel ∩₁ E⦘) ⊆₁ E.
-Proof using.
-rewrite E_E0; unfold E0.
-rewrite !set_inter_union_r.
-rewrite !id_union; relsf; unionL; splits.
-- generalize dom_rf_covered dom_sb_covered; ie_unfolder; basic_solver 21.
-- rewrite RELCOV; generalize dom_sb_covered; basic_solver 21.
-- generalize (@sb_trans Gf); basic_solver 21.
-- rewrite (dom_l (wf_rmwD WF)) at 1; type_solver.
-Qed.
-
-Lemma dom_sb_sw_E : dom_rel ((Fsb^? ⨾ Fsw) ⨾ ⦗E⦘) ⊆₁ E.
-Proof using.
-rewrite (dom_l (wf_swD WF)).
-rewrite !seqA, sw_E.
-rewrite (dom_l (wf_swE rstWF)).
-generalize sb_F_E sb_W_Rel_E; basic_solver 21.
-Qed.
-
-
-
-Lemma hb_Rel_E : Fhb ⨾ ⦗E ∩₁ (FF ∪₁ FW) ∩₁ Rel⦘ ⊆ Ghb.
-Proof using.
-cut (Fhb ⨾ ⦗E ∩₁ (FF ∪₁ FW) ∩₁ Rel⦘ ⊆ Ghb ⨾ ⦗E ∩₁ (FF ∪₁ FW) ∩₁ Rel⦘).
-by intro H; rewrite H; basic_solver 12.
-unfold imm_s_hb.hb.
-apply ct_ind_left with (P:= fun r => r ⨾ ⦗E ∩₁ (FF ∪₁ FW) ∩₁ Rel⦘).
-* by eauto with hahn.
-* relsf; unionL.
-rewrite <- ct_step; generalize (sub_sb SUB), sb_F_E, sb_W_Rel_E; basic_solver 40.
-rewrite <- ct_step; generalize dom_sw_E, sw_E; basic_solver 40.
-* intros k H; rewrite !seqA, H.
-rewrite (dom_l (wf_hbE rstWF)).
-unfold imm_s_hb.hb.
-relsf; unionL.
-2: { rewrite !seqA.
-sin_rewrite sw_E.
-rewrite (dom_l (wf_swE rstWF)) at 1.
-arewrite (Gsw ⊆ (Gsb ∪ Gsw)＊) at 1; relsf. }
-
-rewrite !seqA.
-arewrite_id ⦗E⦘ at 1; rels.
-sin_rewrite hb_helper.
-rewrite (sub_sb_in SUB) at 1 2.
-generalize (@sb_trans Gf); ins; relsf.
-rewrite !seqA; relsf.
-unionL.
-- rewrite <- ct_step.
-rewrite (sub_sb SUB); generalize sb_F_E sb_W_Rel_E; basic_solver 40.
-- 
-arewrite (Fsb ⨾ ⦗E ∩₁ F ∩₁ Rel ∪₁ E ∩₁ W ∩₁ Rel⦘ ⊆ ⦗E⦘ ⨾ Gsb).
-rewrite (sub_sb SUB); generalize sb_F_E sb_W_Rel_E; basic_solver 40.
-
-unfold imm_s_hb.hb.
-arewrite (Gsb ⊆ (Gsb ∪ Gsw)＊).
-relsf.
-Qed.
-*)
 Lemma rf_C : Frf ⨾ ⦗C⦘ ⊆ ⦗I⦘ ⨾ Grf.
 Proof using WF ETCCOH.
 rewrite (sub_rf SUB).
@@ -743,35 +646,6 @@ Proof using WF WF_SC ETCCOH.
   rewrite (dom_r (wf_scD WF_SC)) at 1.
   unfold coverable, dom_cond; type_solver 21.
 Qed.
-(*
-Lemma sc_E : dom_rel (sc ⨾ ⦗E⦘) ⊆₁ E.
-Proof using.
-rewrite E_E0; unfold E0.
-rewrite !id_union; relsf; unionL; splits.
-- rewrite (covered_in_coverable TCCOH) at 1.
-  rewrite (dom_r (wf_scD WF_SC)) at 1.
-  unfold coverable, dom_cond; type_solver 21.
-- rewrite (dom_r (wf_scD WF_SC)) at 1.
-  rewrite (issuedW TCCOH) at 1.
-  type_solver.
-- rewrite (dom_r (wf_scD WF_SC)) at 1.
-  rewrite !seqA.
-  arewrite (FSc ⊆₁ FAcq/Rel) by mode_solver. 
-  arewrite (⦗FF ∩₁ FAcq/Rel⦘ ⨾ ⦗dom_rel (Fsb ⨾ ⦗Tid_ thread ∩₁ I⦘)⦘ ⊆ ⦗C⦘).
-  { arewrite (⦗Tid_ thread ∩₁ I⦘ ⊆ ⦗I⦘ ⨾ ⦗Tid_ thread ∩₁ I⦘) at 1.
-    basic_solver.
-    rewrite (issued_in_issuable TCCOH) at 1.
-    unfold issuable.
-    unfold fwbob.
-    unfold dom_cond; 
-    basic_solver 40. }
-  rewrite (covered_in_coverable TCCOH) at 1.
-  rewrite (dom_r (wf_scD WF_SC)) at 1.
-  unfold coverable, dom_cond; type_solver 21.
-- rewrite (dom_r (wf_scD WF_SC)) at 1; rewrite (dom_l (wf_rmwD WF)) at 1; type_solver.
-Qed.
-*)
-
 
 Lemma urr_C l : Furr l  ⨾ ⦗C⦘ ⊆ ⦗I⦘ ⨾ Gurr l.
 Proof using WF WF_SC ETCCOH RELCOV.
@@ -963,9 +837,9 @@ Proof using WF ETCCOH.
 Qed.
 
 Lemma dom_rmw_ntid_I_in_E :
-  dom_rel (Frmw ⨾ ⦗NTid_ thread ∩₁ I⦘) \₁ codom_rel (⦗set_compl FW_ex⦘ ⨾ Frfi) ⊆₁ E.
+  dom_rel (Frmw ⨾ ⦗NTid_ thread ∩₁ I⦘) ⊆₁ E.
 Proof using WF ETCCOH.
-  rewrite E_E0. unfold E0. by unionR right.
+  rewrite E_E0. unfold E0. basic_solver 10.
 Qed.
 
 Lemma E_to_S: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘).
@@ -982,8 +856,7 @@ Proof using WF ETCCOH.
   rewrite <- ETCCOH.(etc_I_in_S). unfold eissued; simpls.
   rewrite <- dom_rmw_ntid_I_in_E.
   unfolder. ins. desf. eexists. splits; eauto 10.
-  2: by apply (rmw_in_sb WF).
-  intros HH. desf. apply H0. eauto.
+    by apply (rmw_in_sb WF).
 Qed.
 
 Lemma E_F_AcqRel_in_C: E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
@@ -1003,39 +876,6 @@ Proof using WF ETCCOH.
   arewrite (Sc ⊆₁ Acq/Rel) by mode_solver.
   apply E_F_AcqRel_in_C.
 Qed.
-
-(* Lemma W_ex_IST : GW_ex ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread. *)
-(* Proof using WF ETCCOH. *)
-(*   clear RELCOV. *)
-(*   arewrite (GW_ex ⊆₁ GW_ex ∩₁ E). *)
-(*   { unfold W_ex. rewrite rstWF.(wf_rmwE). basic_solver. } *)
-(*   rewrite E_E0. unfold E0. *)
-(*   rewrite !set_inter_union_r. unionL. *)
-(*   { rewrite rstWF.(W_ex_in_W). *)
-(*     rewrite (w_covered_issued TCCOH). eauto with hahn. } *)
-(*   { basic_solver. } *)
-(*   2: { rewrite rstWF.(W_ex_in_W). rewrite WF.(wf_rmwD). *)
-(*        type_solver. } *)
-(*   unionR right. *)
-(*   rewrite crE. rewrite !seq_union_l, seq_id_l, dom_union. *)
-(*   rewrite set_inter_union_r. unionL. *)
-(*   { basic_solver. } *)
-(*   rewrite (sub_W_ex_in SUB). *)
-(*   unfolder. *)
-(*   ins. desf. *)
-(*   split. *)
-(*   { eapply ETCCOH.(etc_po_S). basic_solver 10. } *)
-(*   match goal with *)
-(*   | H : Fsb _ _ |- _ => rename H into SB *)
-(*   end. *)
-(*   apply sb_tid_init' in SB. unfolder in SB. desf. *)
-(*   exfalso. eapply W_ex_not_init; eauto. *)
-(* Qed. *)
-
-(* Lemma W_ex_E: GW_ex ⊆₁ S. *)
-(* Proof using WF ETCCOH. *)
-(*   rewrite W_ex_IST. rewrite ETCCOH.(etc_I_in_S). basic_solver. *)
-(* Qed. *)
 
 Lemma COMP_ACQ: forall r (IN: (E ∩₁ R ∩₁ Acq) r), exists w, Grf w r.
 Proof using WF ETCCOH IMMCON.
@@ -1404,7 +1244,7 @@ Proof using WF ETCCOH.
     apply sb_tid_init in H1; desf. }
   rewrite (rmw_in_ppo WF).
   arewrite
-    ((dom_rel (Fppo ⨾ ⦗NTid_ thread ∩₁ I⦘) \₁ codom_rel (⦗set_compl FW_ex⦘ ⨾ Frfi))
+    (dom_rel (Fppo ⨾ ⦗NTid_ thread ∩₁ I⦘)
         ∩₁ NTid_ thread ⊆₁ dom_rel (Fppo ⨾ ⦗I⦘)).
   { basic_solver. }
   rewrite dom_rel_eqv_dom_rel.
@@ -1434,7 +1274,7 @@ Proof using WF ETCCOH.
     basic_solver 10. }
   rewrite (rmw_in_ppo WF).
   arewrite
-    ((dom_rel (Fppo ⨾ ⦗NTid_ thread ∩₁ I⦘) \₁ codom_rel (⦗set_compl FW_ex⦘ ⨾ Frfi))
+    (dom_rel (Fppo ⨾ ⦗NTid_ thread ∩₁ I⦘)
        ∩₁ R ∩₁ Acq ⊆₁ dom_rel (Fppo ⨾ ⦗I⦘)).
   { basic_solver. }
   rewrite dom_rel_eqv_dom_rel.
@@ -1463,7 +1303,7 @@ Qed.
 
 Lemma C_E_NTid : C ∪₁ (E ∩₁ NTid_ thread) ≡₁
 C ∪₁ (I ∩₁ NTid_ thread) ∪₁ 
-(dom_rel (Frmw ⨾ ⦗ NTid_ thread ∩₁ I ⦘) \₁ codom_rel (⦗ set_compl FW_ex⦘ ⨾ Frfi))
+dom_rel (Frmw ⨾ ⦗ NTid_ thread ∩₁ I ⦘)
 .
 Proof using WF WF_SC ETCCOH.
   assert (TCCOH1:= TCCOH).
@@ -1500,9 +1340,6 @@ Proof using All.
       rewrite (dom_l (@wf_sbE rstG)); basic_solver.
       rewrite (dom_l (@wf_sbE rstG)); rewrite (sub_E_in SUB) at 1. 
       revert tc_init. basic_solver. }
-    arewrite (dom_rel (Frmw ⨾ ⦗NTid_ thread ∩₁ I⦘) \₁
-                      codom_rel (⦗set_compl FW_ex⦘ ⨾ Frfi) ⊆₁dom_rel (Frmw ⨾ ⦗NTid_ thread ∩₁ I⦘)).
-    basic_solver.
     rewrite dom_rel_eqv_dom_rel.
 
     rewrite (rmw_in_sb WF).
@@ -1530,9 +1367,7 @@ Proof using All.
       { rewrite (dom_r (wf_rfiD WF_rst)); rewrite tc_I_in_W at 1.
         type_solver. }
       rewrite (sub_rfi_in SUB).
-      unfolder; ins; desc.
-      destruct (classic (FW_ex x)) as [X|X]; cycle 1.
-      { exfalso. eapply H1. exists x,x. eauto 10. }
+      unfolder; ins; desc; subst.
       eapply rfrmw_I_in_I; eauto.
       { apply TCCOH. }
       unfolder. do 2 eexists. split.
