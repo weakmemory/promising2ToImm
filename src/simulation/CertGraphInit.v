@@ -817,7 +817,7 @@ red. splits.
     basic_solver. }
   splits.
   { subst G.
-    rewrite cert_sb.
+    rewrite cert_sb, cert_W_ex.
     eapply cert_co_for_split; eauto. }
   subst G. unfold W_ex. rewrite cert_sb. unfold certG. simpls.
   rewrite <- seqA, codom_eqv1.

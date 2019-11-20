@@ -458,8 +458,9 @@ Proof using WF IMMCON ETCCOH FCOH.
   cdes RESERVED_TIME. red.
   destruct smode; desc; unnw.
   2: { split.
-       { rewrite <- FOR_SPLIT. basic_solver. }
-       rewrite RMW_BEF_S. basic_solver 10. }
+       2: rewrite RMW_BEF_S; basic_solver 10.
+       arewrite (set_compl (W_ex ∪₁ (S ∪₁ eq w)) ⊆₁ set_compl (W_ex ∪₁ S)); [|done].
+       apply AuxRel.set_compl_mori. red. basic_solver. }
 
   (* TODO: Extract to a separate lemma. *)
   assert (half_message_to_event G T (S ∪₁ eq w) f_to' f_from' memory') as HMTE.
@@ -596,8 +597,9 @@ Proof using WF IMMCON ETCCOH FCOH.
   cdes RESERVED_TIME. red.
   destruct smode; desc; unnw.
   2: { split.
-       { rewrite <- FOR_SPLIT. basic_solver. }
-       rewrite RMW_BEF_S. basic_solver 10. }
+       2: rewrite RMW_BEF_S; basic_solver 10.
+       arewrite (set_compl (W_ex ∪₁ (S ∪₁ eq w)) ⊆₁ set_compl (W_ex ∪₁ S)); [|done].
+       apply AuxRel.set_compl_mori. red. basic_solver. }
 
   (* TODO: Extract to a separate lemma. *)
   assert (half_message_to_event G T (S ∪₁ eq w) f_to' f_from' memory') as HMTE.
