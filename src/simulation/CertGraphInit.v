@@ -756,7 +756,30 @@ assert (DOM_SB_S_rf_I :
           dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘)
                   ∩₁ codom_rel (⦗issued T⦘ ⨾ rf G ⨾ rmw G) ⊆₁
                   issued T ∪₁ S ∩₁ Tid_ thread).
-{ admit. }
+{ arewrite (⦗W_ex G⦘ ⊆ ⦗acts_set G⦘ ⨾ ⦗W_ex G⦘).
+  { generalize WF_G.(W_ex_in_E). clear. basic_solver. }
+  rewrite dom_eqv1. rewrite set_interA.
+  arewrite (W_ex G ⊆₁ W_ex Gf).
+  { subst G. unfold rstG, restrict, W_ex. simpls.
+    clear. basic_solver. }
+  arewrite (rf G ⊆ rf Gf).
+  { subst G. unfold rstG, restrict. simpls.
+    clear. basic_solver. }
+  arewrite (rmw G ⊆ rmw Gf).
+  { subst G. unfold rstG, restrict. simpls.
+    clear. basic_solver. }
+  arewrite (sb G ⊆ sb Gf).
+  { admit. }
+  arewrite (dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁
+            dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ∩₁
+            dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗S⦘)).
+  { admit. }
+  rewrite set_interA. rewrite ETCCOH.(etc_sb_S). simpls.
+  intros x [HH [AA SX]].
+  destruct (classic (issued T x)) as [|NISS]; [by left|].
+  destruct (classic (Tid_ thread x)) as [|NTID]; [by right; split|].
+  exfalso.
+  admit. }
 
 exists (certG G Gsc T S thread lab').
 exists Gsc.
