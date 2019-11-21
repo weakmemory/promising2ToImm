@@ -758,7 +758,9 @@ assert (DOM_SB_S_rf_I :
                   issued T ∪₁ S ∩₁ Tid_ thread).
 { arewrite (⦗W_ex G⦘ ⊆ ⦗acts_set G⦘ ⨾ ⦗W_ex G⦘).
   { generalize WF_G.(W_ex_in_E). clear. basic_solver. }
-  rewrite dom_eqv1. rewrite set_interA.
+  arewrite (⦗W_ex G⦘ ⊆ ⦗is_w G.(lab)⦘ ⨾ ⦗W_ex G⦘).
+  { generalize WF_G.(W_ex_in_W). clear. basic_solver. }
+  do 2 rewrite dom_eqv1. do 2 rewrite set_interA.
   arewrite (W_ex G ⊆₁ W_ex Gf).
   { subst G. unfold rstG, restrict, W_ex. simpls.
     clear. basic_solver. }
@@ -769,17 +771,22 @@ assert (DOM_SB_S_rf_I :
   { subst G. unfold rstG, restrict. simpls.
     clear. basic_solver. }
   arewrite (sb G ⊆ sb Gf).
-  { admit. }
+  { (* TODO: make a lemma *)
+    subst G. unfold rstG, restrict, sb. unfold acts_set; simpls.
+    clear. intros x y HH. apply seq_eqv_lr in HH. desc.
+    apply in_filterP_iff in HH. apply in_filterP_iff in HH1. desc.
+    apply seq_eqv_lr. splits; auto. }
   arewrite (dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁
             dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ∩₁
             dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗S⦘)).
-  { admit. }
+  { generalize IST_in_S. clear. basic_solver 10. }
   rewrite set_interA. rewrite ETCCOH.(etc_sb_S). simpls.
+  rewrite <- set_interA.
   intros x [HH [AA SX]].
   destruct (classic (issued T x)) as [|NISS]; [by left|].
   destruct (classic (Tid_ thread x)) as [|NTID]; [by right; split|].
   exfalso.
-  admit. }
+  apply IT_new_co in HH. destruct HH as [HH|[_ HH]]; desf. }
 
 exists (certG G Gsc T S thread lab').
 exists Gsc.
@@ -1072,6 +1079,6 @@ eexists. red. splits.
 { apply STEPS'. }
 { intros HH. inv HH. }
 done.
-Admitted.
+Qed.
 
 End Cert.
