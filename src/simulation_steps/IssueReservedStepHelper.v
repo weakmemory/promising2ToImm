@@ -822,12 +822,25 @@ Proof using All.
         rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in RES. inv RES. }
       erewrite Memory.split_o in RES; eauto.
       rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in RES. inv RES. }
-
+    destruct (loc_ts_eq_dec (l, to) (locw, f_to' wnext)) as [[A' B']|LL'].
+    { simpls; rewrite A' in *; rewrite B' in *.
+      exists wnext. splits; eauto.
+      { admit. }
+      { by right. }
+      { intros [A|A]; desf. }
+      destruct (Rel w) eqn:RELB; subst.
+      erewrite Memory.remove_o in RES; eauto.
+      rewrite (loc_ts_eq_dec_neq LL) in RES.
+      all: erewrite Memory.split_o in RES; eauto.
+      all: rewrite (loc_ts_eq_dec_eq locw (f_to' wnext)) in RES.
+      all: rewrite (loc_ts_eq_dec_neq LL) in RES.
+      all: inv RES; rewrite updo; auto; rewrite upds.
+      all: unfold f_from'; rewrite upds; auto. }
     apply NOTNEWP in RES; auto.
     edestruct SIM_RES_PROM as [b H]; eauto; desc.
     exists b. splits; auto.
-    { generalize RES0. basic_solver. }
-    intros [A|A]; desf. }
+    { generalize RES0. clear. basic_solver. }
+    all: admit. }
   (* TODO: continue from here *)
   { ins.
     rewrite IdentMap.gso in TID'; auto.
