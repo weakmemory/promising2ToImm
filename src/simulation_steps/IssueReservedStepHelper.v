@@ -745,6 +745,24 @@ Proof using All.
   assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
   { ins. unfold f_from'. by rewrite updo; [|by intros HH; desf]. }
 
+  assert (forall l to from msg 
+                 (NEQ  : l <> locw \/ to <> f_to' w)
+                 (NEQ' : l <> locw \/ to <> f_to' wnext),
+             Memory.get l to promises_split = Some (from, msg) <->
+             Memory.get l to local.(Local.promises) = Some (from, msg))
+    as NOTNEWA.
+  { ins. erewrite Memory.split_o; eauto.
+    repeat (rewrite loc_ts_eq_dec_neq; auto). }
+
+  assert (forall l to from msg 
+                 (NEQ : l <> locw \/ to <> f_to' w)
+                 (NEQ' : l <> locw \/ to <> f_to' wnext),
+             Memory.get l to promises' = Some (from, msg) <->
+             Memory.get l to local.(Local.promises) = Some (from, msg))
+    as NOTNEWP.
+  { ins. destruct (Rel w); subst; auto.
+    erewrite Memory.remove_o; eauto. rewrite (loc_ts_eq_dec_neq NEQ); auto. }
+
   exists p_rel. splits; eauto.
   do 2 eexists. splits; eauto.
   eexists. splits; eauto.
@@ -779,35 +797,38 @@ Proof using All.
       erewrite Memory.split_o in PROM; eauto.
       rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in PROM.
       inv PROM. exists w. splits; eauto. by right. }
-    destruct (Rel w) eqn:RELB; subst.
-    erewrite Memory.remove_o in PROM; eauto.
-    rewrite (loc_ts_eq_dec_neq LL) in PROM.
-    all: erewrite Memory.split_o in PROM; eauto.
-    all: rewrite (loc_ts_eq_dec_neq LL) in PROM.
-    all: destruct (loc_ts_eq_dec (l, to) (locw, f_to' wnext)) as [[A' B']|LL'];
-      [by simpls; rewrite A' in *; rewrite B' in *; subst;
-       rewrite (loc_ts_eq_dec_eq locw (f_to' wnext)) in PROM; inv PROM|].
-    all: rewrite (loc_ts_eq_dec_neq LL') in PROM.
-    all: edestruct SIM_PROM as [b H]; eauto; desc.
-    all: exists b; splits; auto.
-    all: try by left.
-    all: try by rewrite ISSEQ_FROM; auto.
-    all: try by rewrite ISSEQ_TO; auto.
-    all: eapply sim_mem_helper_f_issued; eauto. }
+    destruct (loc_ts_eq_dec (l, to) (locw, f_to' wnext)) as [[A' B']|LL'].
+    { simpls; rewrite A' in *; rewrite B' in *; subst.
+      destruct (Rel w) eqn:RELB; subst.
+      erewrite Memory.remove_o in PROM; eauto.
+      rewrite (loc_ts_eq_dec_neq LL) in PROM.
+      all: erewrite Memory.split_o in PROM; eauto.
+      all: rewrite (loc_ts_eq_dec_neq LL) in PROM.
+      all: rewrite (loc_ts_eq_dec_eq locw (f_to' wnext)) in PROM.
+      all: inv PROM. }
+    apply NOTNEWP in PROM; auto.
+    edestruct SIM_PROM as [b H]; eauto; desc.
+    exists b; splits; auto.
+    { by left. }
+    { by rewrite ISSEQ_FROM; auto. }
+    { by rewrite ISSEQ_TO; auto. }
+    eapply sim_mem_helper_f_issued; eauto. }
   (* TODO: continue from here *)
   { simpls. red. ins.
-    destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [[A' B']|LL].
+    destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[A' B']|LL].
     { simpls; rewrite A' in *; rewrite B' in *.
       destruct (Rel w) eqn:RELB; subst.
       { erewrite Memory.remove_o in RES; eauto.
-        rewrite (loc_ts_eq_dec_eq locw (f_to w)) in RES. inv RES. }
-      erewrite Memory.add_o in RES; eauto.
-      rewrite (loc_ts_eq_dec_eq locw (f_to w)) in RES. inv RES. }
+        rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in RES. inv RES. }
+      erewrite Memory.split_o in RES; eauto.
+      rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in RES. inv RES. }
+
     apply NOTNEWP in RES; auto.
     edestruct SIM_RES_PROM as [b H]; eauto; desc.
     exists b. splits; auto.
     { generalize RES0. basic_solver. }
     intros [A|A]; desf. }
+  (* TODO: continue from here *)
   { ins.
     rewrite IdentMap.gso in TID'; auto.
     destruct (loc_ts_eq_dec (loc, to) (locw, (f_to w))) as [EQ|NEQ]; simpls.
