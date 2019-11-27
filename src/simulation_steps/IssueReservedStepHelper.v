@@ -762,6 +762,9 @@ Proof using All.
     as NOTNEWP.
   { ins. destruct (Rel w); subst; auto.
     erewrite Memory.remove_o; eauto. rewrite (loc_ts_eq_dec_neq NEQ); auto. }
+  
+  assert (f_to' wnext = f_to w) as FTOWNEXT.
+  { unfold f_to'. by rewrite upds. }
 
   exists p_rel. splits; eauto.
   do 2 eexists. splits; eauto.
@@ -813,7 +816,6 @@ Proof using All.
     { by rewrite ISSEQ_FROM; auto. }
     { by rewrite ISSEQ_TO; auto. }
     eapply sim_mem_helper_f_issued; eauto. }
-  (* TODO: continue from here *)
   { simpls. red. ins.
     destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[A' B']|LL].
     { simpls; rewrite A' in *; rewrite B' in *.
@@ -838,9 +840,17 @@ Proof using All.
       all: unfold f_from'; rewrite upds; auto. }
     apply NOTNEWP in RES; auto.
     edestruct SIM_RES_PROM as [b H]; eauto; desc.
+    simpls.
+    assert (b <> w) as NEQ.
+    { intros A; subst. rewrite LOC in LOC0. inv LOC0.
+      rewrite FTOWNEXT in LL'. clear -LL'. desf. }
+    assert (b <> wnext) as NEQ'.
+    { intros A; desf. }
     exists b. splits; auto.
     { generalize RES0. clear. basic_solver. }
-    all: admit. }
+    { intros [A|A]; desf. }
+    { unfold f_from'. rewrite updo; auto. }
+    unfold f_to'. repeat (rewrite updo; auto). }
   (* TODO: continue from here *)
   { ins.
     rewrite IdentMap.gso in TID'; auto.
