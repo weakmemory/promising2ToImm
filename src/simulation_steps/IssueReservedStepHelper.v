@@ -747,6 +747,11 @@ Proof using All.
   assert (dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ≡₁ eq wnext) as DOMSBEQ.
   { eapply dom_sb_S_rfrmw_single; eauto. }
 
+  assert (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ E ∩₁ W) as SDEW.
+  { unionL; auto.
+    { generalize EW WW. clear. basic_solver. }
+    rewrite DOMSBEQ. generalize EWNEXT WWNEXT. clear. basic_solver. }
+
   exists p_rel. splits; eauto.
   do 2 eexists. splits; eauto.
   eexists. splits; eauto.
@@ -857,9 +862,6 @@ Proof using All.
       eapply f_to_eq
         with (f_to:=f_to')
              (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)); eauto.
-      { unionL; auto.
-        { generalize EW WW. clear. basic_solver. }
-        rewrite DOMSBEQ. generalize EWNEXT WWNEXT. clear. basic_solver. }
       { red. by rewrite NLOC. }
       { do 2 left. destruct ISSB; subst; auto. by apply ETCCOH.(etc_I_in_S). }
         by right. }
@@ -872,12 +874,12 @@ Proof using All.
          { apply HELPER. }
          { apply RELWFEQ. }
          { apply RELMCLOS. }
-         intros _ HH.
+         intros _ NT.
          (* TODO: continue from here *)
          destruct (Rel b); desf.
          { exfalso. apply NT. by right. }
          splits.
-         { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
+         { erewrite Memory.split_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
          exists p_rel. splits; eauto. right.
          cdes PREL. destruct PREL1; desc.
          { exfalso. eauto. }
@@ -886,87 +888,84 @@ Proof using All.
          exists p. splits; eauto.
          { by left. }
          eexists. splits; eauto.
-         eapply memory_add_le; eauto.
-         erewrite Memory.remove_o; eauto.
-         destruct (classic (f_to p = f_to b)) as [EQ|NEQ].
-         2: { rewrite loc_ts_eq_dec_neq; auto. }
-         exfalso. eapply f_to_eq with (I:=S) in EQ; eauto; subst.
-         2: by apply WF.(wf_rfrmwl).
-         eapply wf_rfrmw_irr; eauto. }
-
-    { edestruct SIM_MEM as [rel_opt HH]; eauto. simpls. desc.
-      exists rel_opt. unnw.
-      destruct (loc_ts_eq_dec (l, f_to' b) (locw, (f_to' w))) as [EQ|NEQ']; simpls; desc; subst.
-      { exfalso.
-        assert (b = w); [|by desf].
-        eapply f_to_eq
-          with (f_to:=f_to')
-               (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)); eauto.
-        { unionL; auto.
-          { generalize EW WW. clear. basic_solver. }
-          rewrite DOMSBEQ. generalize EWNEXT WWNEXT. clear. basic_solver. }
-        { red. by rewrite LOC. }
-        { do 2 left. by apply ETCCOH.(etc_I_in_S). }
-        clear. basic_solver. }
-      (* TODO: continue from here *)
-      erewrite Memory.split_o with (mem2:=memory_split); eauto.
-      rewrite !loc_ts_eq_dec_neq; auto.
-      splits; eauto.
-      intros AA BB.
-      assert (~ covered T b) as NCOVBB.
-      { generalize BB. basic_solver. }
-      specialize (HH1 AA NCOVBB).
-      desc. splits; auto.
-      { apply NOTNEWP; auto. }
-      eexists. splits; eauto.
-      destruct HH2 as [[CC DD]|CC]; eauto.
-      { left. split; auto.
-        intros [u QQ]. destruct_seq_l QQ as UISS. destruct UISS as [UISS|]; subst.
-        { apply CC. clear -QQ UISS. basic_solver 10. }
-        apply NISSB. eapply rfrmw_I_in_I; eauto.
-        clear -QQ ISSB. exists b. apply seqA. basic_solver 10. }
-      right. desc.
-      eexists. splits; eauto.
-      { by left. }
-      eexists; splits; eauto.
-      erewrite Memory.add_o with (mem2:=memory_add); eauto.
-      erewrite Memory.remove_o with (mem2:=memory_cancel); eauto.
-      assert (loc lab p = loc lab b) as LOCPB by (by apply wf_rfrmwl). 
-      destruct (loc_ts_eq_dec (l, f_to p) (locw, (f_to w))) as [PEQ|PNEQ];
-        simpls; desc; subst.
-      2: by rewrite !(loc_ts_eq_dec_neq PNEQ); auto.
-      exfalso. assert (p = w); [|by desf].
-      eapply f_to_eq with (I:=S); eauto.
-      { red. rewrite LOC. by rewrite <- LOC0. }
-        by apply ETCCOH.(etc_I_in_S). }
-    assert (Some l = Some locw) as QQ.
-    { by rewrite <- LOC0. }
-    inv QQ.
+         apply NOTNEWM; auto.
+         3: { rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
+         all: right; intros HH.
+         all: eapply f_to_eq with 
+             (I:=S ∪₁ eq b ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq b)) in HH; eauto.
+         all: try by subst.
+         all: try (generalize SP WNEXT; clear; basic_solver).
+         { red. by rewrite LOC0. }
+         red. by rewrite NLOC. }
+    edestruct SIM_MEM as [rel_opt HH]; eauto. simpls. desc.
+    exists rel_opt. unnw.
+    destruct (loc_ts_eq_dec (l, f_to' b) (locw, (f_to' w))) as [EQ|NEQ']; simpls; desc; subst.
+    { exfalso.
+      assert (b = w); [|by desf].
+      eapply f_to_eq with 
+          (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)); eauto.
+      { red. by rewrite LOC. }
+      { do 2 left. by apply ETCCOH.(etc_I_in_S). }
+      clear. basic_solver. }
+    (* TODO: continue from here *)
+    erewrite Memory.split_o with (mem2:=memory_split); eauto.
+    rewrite !loc_ts_eq_dec_neq; auto.
+    splits; eauto.
+    intros AA BB.
+    assert (~ covered T b) as NCOVBB.
+    { generalize BB. basic_solver. }
+    specialize (HH1 AA NCOVBB).
+    desc. splits; auto.
+    { apply NOTNEWP; auto. }
     eexists. splits; eauto.
-    { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
-    { apply HELPER. }
-    { apply RELWFEQ. }
-    { apply RELMCLOS. }
-    intros _ NT.
-    destruct (Rel b); desf.
-    { exfalso. apply NT. by right. }
-    splits.
-    { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
-    exists p_rel. splits; eauto. right.
-    cdes PREL. destruct PREL1; desc.
-    { exfalso. eauto. }
-    assert (S p) as SP.
-    { by apply ETCCOH.(etc_I_in_S). }
-    exists p. splits; eauto.
+    destruct HH2 as [[CC DD]|CC]; eauto.
+    { left. split; auto.
+      intros [u QQ]. destruct_seq_l QQ as UISS. destruct UISS as [UISS|]; subst.
+      { apply CC. clear -QQ UISS. basic_solver 10. }
+      apply NISSB. eapply rfrmw_I_in_I; eauto.
+      clear -QQ ISSB. exists b. apply seqA. basic_solver 10. }
+    right. desc.
+    eexists. splits; eauto.
     { by left. }
-    eexists. splits; eauto.
-    eapply memory_add_le; eauto.
-    erewrite Memory.remove_o; eauto.
-    destruct (classic (f_to p = f_to b)) as [EQ|NEQ].
-    2: { rewrite loc_ts_eq_dec_neq; auto. }
-    exfalso. eapply f_to_eq with (I:=S) in EQ; eauto; subst.
-    2: by apply WF.(wf_rfrmwl).
-    eapply wf_rfrmw_irr; eauto. }
+    eexists; splits; eauto.
+    erewrite Memory.add_o with (mem2:=memory_add); eauto.
+    erewrite Memory.remove_o with (mem2:=memory_cancel); eauto.
+    assert (loc lab p = loc lab b) as LOCPB by (by apply wf_rfrmwl). 
+    destruct (loc_ts_eq_dec (l, f_to p) (locw, (f_to w))) as [PEQ|PNEQ];
+      simpls; desc; subst.
+    2: by rewrite !(loc_ts_eq_dec_neq PNEQ); auto.
+    exfalso. assert (p = w); [|by desf].
+    eapply f_to_eq with (I:=S); eauto.
+    { red. rewrite LOC. by rewrite <- LOC0. }
+      by apply ETCCOH.(etc_I_in_S). }
+  assert (Some l = Some locw) as QQ.
+  { by rewrite <- LOC0. }
+  inv QQ.
+  eexists. splits; eauto.
+  { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
+  { apply HELPER. }
+  { apply RELWFEQ. }
+  { apply RELMCLOS. }
+  intros _ NT.
+  destruct (Rel b); desf.
+  { exfalso. apply NT. by right. }
+  splits.
+  { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
+  exists p_rel. splits; eauto. right.
+  cdes PREL. destruct PREL1; desc.
+  { exfalso. eauto. }
+  assert (S p) as SP.
+  { by apply ETCCOH.(etc_I_in_S). }
+  exists p. splits; eauto.
+  { by left. }
+  eexists. splits; eauto.
+  eapply memory_add_le; eauto.
+  erewrite Memory.remove_o; eauto.
+  destruct (classic (f_to p = f_to b)) as [EQ|NEQ].
+  2: { rewrite loc_ts_eq_dec_neq; auto. }
+  exfalso. eapply f_to_eq with (I:=S) in EQ; eauto; subst.
+  2: by apply WF.(wf_rfrmwl).
+  eapply wf_rfrmw_irr; eauto. }
   red. ins.
   assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
   { generalize NISSB0. clear. basic_solver. }
