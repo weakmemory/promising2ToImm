@@ -745,20 +745,20 @@ Proof using All.
   assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
   { ins. unfold f_from'. by rewrite updo; [|by intros HH; desf]. }
 
-  assert (forall l to from msg 
+  assert (forall l to omsg 
                  (NEQ  : l <> locw \/ to <> f_to' w)
                  (NEQ' : l <> locw \/ to <> f_to' wnext),
-             Memory.get l to promises_split = Some (from, msg) <->
-             Memory.get l to local.(Local.promises) = Some (from, msg))
+             Memory.get l to promises_split = omsg <->
+             Memory.get l to local.(Local.promises) = omsg)
     as NOTNEWA.
   { ins. erewrite Memory.split_o; eauto.
     repeat (rewrite loc_ts_eq_dec_neq; auto). }
 
-  assert (forall l to from msg 
+  assert (forall l to omsg 
                  (NEQ : l <> locw \/ to <> f_to' w)
                  (NEQ' : l <> locw \/ to <> f_to' wnext),
-             Memory.get l to promises' = Some (from, msg) <->
-             Memory.get l to local.(Local.promises) = Some (from, msg))
+             Memory.get l to promises' = omsg <->
+             Memory.get l to local.(Local.promises) = omsg)
     as NOTNEWP.
   { ins. destruct (Rel w); subst; auto.
     erewrite Memory.remove_o; eauto. rewrite (loc_ts_eq_dec_neq NEQ); auto. }
@@ -851,18 +851,23 @@ Proof using All.
     { intros [A|A]; desf. }
     { unfold f_from'. rewrite updo; auto. }
     unfold f_to'. repeat (rewrite updo; auto). }
-  (* TODO: continue from here *)
   { ins.
     rewrite IdentMap.gso in TID'; auto.
-    destruct (loc_ts_eq_dec (loc, to) (locw, (f_to w))) as [EQ|NEQ]; simpls.
+    destruct (loc_ts_eq_dec (loc, to) (locw, (f_to' w))) as [EQ|NEQ]; simpls.
     { desc. subst. right.
-      destruct (Memory.get locw (f_to w) (Local.promises local')) eqn: HH; auto.
+      destruct (Memory.get locw (f_to' w) (Local.Local.promises local')) eqn: HH; auto.
       exfalso.
-      erewrite NINTER in HH; eauto. inv HH. }
-    edestruct (PROM_DISJOINT TNEQ TID') as [HH|HH]; eauto.
-    left.
-    destruct (Memory.get loc to promises') eqn:BB; auto.
-    destruct p. eapply NOTNEWP in BB; eauto. desf. }
+      destruct p as [from msg].
+      eapply PROM_IN_MEM in HH; eauto.
+      edestruct Memory.split_get0 as [Y1 Y2].
+      { apply MSPLIT. }
+      red in Y1. unfold f_to', n_to in HH. rewrite Y1 in HH.
+      inv HH. }
+    destruct (loc_ts_eq_dec (loc, to) (locw, (f_to' wnext))) as [EQ|NEQ2]; simpls.
+    { desc. subst. right. rewrite FTOWNEXT.
+      edestruct (PROM_DISJOINT TNEQ TID') as [HH|HH]; eauto. }
+    rewrite NOTNEWP; auto. eapply PROM_DISJOINT; eauto. }
+  (* TODO: continue from here *)
   { red. ins.
     destruct ISSB as [ISSB|]; subst.
     { edestruct SIM_MEM as [rel_opt HH]; eauto. simpls. desc.
