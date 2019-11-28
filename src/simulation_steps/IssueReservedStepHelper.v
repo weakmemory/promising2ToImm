@@ -875,7 +875,6 @@ Proof using All.
          { apply RELWFEQ. }
          { apply RELMCLOS. }
          intros _ NT.
-         (* TODO: continue from here *)
          destruct (Rel b); desf.
          { exfalso. apply NT. by right. }
          splits.
@@ -907,18 +906,22 @@ Proof using All.
       { red. by rewrite LOC. }
       { do 2 left. by apply ETCCOH.(etc_I_in_S). }
       clear. basic_solver. }
-    (* TODO: continue from here *)
-    erewrite Memory.split_o with (mem2:=memory_split); eauto.
-    rewrite !loc_ts_eq_dec_neq; auto.
-    splits; eauto.
-    intros AA BB.
-    assert (~ covered T b) as NCOVBB.
-    { generalize BB. basic_solver. }
-    specialize (HH1 AA NCOVBB).
-    desc. splits; auto.
-    { apply NOTNEWP; auto. }
+    split.
+    { apply NOTNEWM; auto.
+      rewrite ISSEQ_FROM; auto. rewrite ISSEQ_TO; auto. }
+    rewrite ISSEQ_TO with (e:=b); auto. 
+    rewrite ISSEQ_FROM with (e:=b); auto. 
+    splits; auto.
+    { eapply sim_mem_helper_f_issued; eauto. }
+    intros TIDEQ NCOV.
+    destruct HH1 as [AA BB]; auto.
+    { generalize NCOV. clear. basic_solver. }
+    splits.
+    { apply NOTNEWP; auto.
+      all: rewrite <- ISSEQ_TO with (e:=b); auto. }
+    desc.
     eexists. splits; eauto.
-    destruct HH2 as [[CC DD]|CC]; eauto.
+    destruct BB0 as [[CC DD]|CC]; eauto.
     { left. split; auto.
       intros [u QQ]. destruct_seq_l QQ as UISS. destruct UISS as [UISS|]; subst.
       { apply CC. clear -QQ UISS. basic_solver 10. }
@@ -928,16 +931,21 @@ Proof using All.
     eexists. splits; eauto.
     { by left. }
     eexists; splits; eauto.
-    erewrite Memory.add_o with (mem2:=memory_add); eauto.
-    erewrite Memory.remove_o with (mem2:=memory_cancel); eauto.
     assert (loc lab p = loc lab b) as LOCPB by (by apply wf_rfrmwl). 
-    destruct (loc_ts_eq_dec (l, f_to p) (locw, (f_to w))) as [PEQ|PNEQ];
-      simpls; desc; subst.
-    2: by rewrite !(loc_ts_eq_dec_neq PNEQ); auto.
-    exfalso. assert (p = w); [|by desf].
-    eapply f_to_eq with (I:=S); eauto.
-    { red. rewrite LOC. by rewrite <- LOC0. }
-      by apply ETCCOH.(etc_I_in_S). }
+    destruct (classic (l = locw)) as [|LNEQ]; subst.
+    2: { apply NOTNEWM; auto. rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
+    assert (S p) as SP by (by apply ETCCOH.(etc_I_in_S)).
+    assert (loc lab p = Some locw) as PLOC by (by rewrite <- LOC0).
+    apply NOTNEWM; auto.
+    3: { rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
+    all: right; intros HH.
+    all: eapply f_to_eq with 
+        (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)) in HH; eauto.
+    all: try by subst.
+    all: try (generalize SP WNEXT; clear; basic_solver).
+    { red. by rewrite LOC. }
+    red. by rewrite NLOC. }
+  (* TODO: continue from here *)
   assert (Some l = Some locw) as QQ.
   { by rewrite <- LOC0. }
   inv QQ.
