@@ -945,41 +945,35 @@ Proof using All.
     all: try (generalize SP WNEXT; clear; basic_solver).
     { red. by rewrite LOC. }
     red. by rewrite NLOC. }
-  (* TODO: continue from here *)
-  assert (Some l = Some locw) as QQ.
-  { by rewrite <- LOC0. }
-  inv QQ.
-  eexists. splits; eauto.
-  { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
-  { apply HELPER. }
-  { apply RELWFEQ. }
-  { apply RELMCLOS. }
-  intros _ NT.
-  destruct (Rel b); desf.
-  { exfalso. apply NT. by right. }
-  splits.
-  { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
-  exists p_rel. splits; eauto. right.
-  cdes PREL. destruct PREL1; desc.
-  { exfalso. eauto. }
-  assert (S p) as SP.
-  { by apply ETCCOH.(etc_I_in_S). }
-  exists p. splits; eauto.
-  { by left. }
-  eexists. splits; eauto.
-  eapply memory_add_le; eauto.
-  erewrite Memory.remove_o; eauto.
-  destruct (classic (f_to p = f_to b)) as [EQ|NEQ].
-  2: { rewrite loc_ts_eq_dec_neq; auto. }
-  exfalso. eapply f_to_eq with (I:=S) in EQ; eauto; subst.
-  2: by apply WF.(wf_rfrmwl).
-  eapply wf_rfrmw_irr; eauto. }
   red. ins.
   assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
   { generalize NISSB0. clear. basic_solver. }
+  assert (f_to' wnext <> f_to' w) as FTOWNEXTNEQ.
+  { intros HH. 
+    eapply f_to_eq with 
+        (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)) in HH; eauto.
+    { red. by rewrite LOC. }
+    all: generalize WNEXT; clear; basic_solver. }
   destruct RESB as [[SB|]|HH]; subst.
-  3: { exfalso. eapply NONEXT; eauto. }
+  3: { assert (b = wnext); subst.
+       { eapply dom_sb_S_rfrmwf; eauto. }
+       rewrite NLOC in LOC0. inv LOC0.
+       splits.
+       { erewrite Memory.split_o; eauto.
+         rewrite loc_ts_eq_dec_neq.
+         2: by right.
+         rewrite loc_ts_eq_dec_eq.
+         rewrite updo; auto. by unfold f_from', n_to; rewrite !upds. }
+       intros _.
+       destruct (Rel w); simpls; subst.
+       erewrite Memory.remove_o; eauto.
+       rewrite loc_ts_eq_dec_neq; [|by right].
+       all: erewrite Memory.split_o; eauto.
+       all: rewrite loc_ts_eq_dec_neq; [|by right].
+       all: rewrite loc_ts_eq_dec_eq.
+       all: by rewrite updo; auto; unfold f_from', n_to; rewrite !upds. }
   2: by desf.
+  (* TODO: continue from here *)
   unnw.
   erewrite Memory.add_o with (mem2:=memory_add); eauto.
   erewrite Memory.remove_o with (mem2:=memory_cancel); eauto.
