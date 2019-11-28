@@ -199,7 +199,8 @@ Definition simrel_common
                     
   ⟪ CLOSED_SC  : Memory.closed_timemap sc_view memory ⟫ /\
   ⟪ INHAB      : Memory.inhabited memory ⟫ /\
-  ⟪ CLOSED_MEM : Memory.closed memory ⟫.
+  ⟪ CLOSED_MEM : Memory.closed memory ⟫ /\
+  ⟪ DISJOINT   : message_disjoint memory ⟫.
 
 Definition pln_rlx_eq tview :=
   ⟪ EQ_CUR : TimeMap.eq (View.pln (TView.cur tview)) (View.rlx (TView.cur tview)) ⟫ /\

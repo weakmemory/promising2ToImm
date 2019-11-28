@@ -169,6 +169,8 @@ Proof using WF CON.
     { generalize RELB RELCOV. clear. basic_solver. }
     { eapply Memory.add_closed; eauto.
       eapply Memory.cancel_closed; eauto. }
+    { eapply message_disjoint_add; [|by eauto].
+      eapply message_disjoint_remove; eauto. }
     simpls.
     exists state; eexists.
     rewrite IdentMap.gss.
