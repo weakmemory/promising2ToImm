@@ -7,6 +7,15 @@ From Promising2 Require Import Time.
 
 Set Implicit Arguments.
 
+Lemma time_lt_bot a : ~ Time.lt a Time.bot.
+Proof using.
+  intros H.
+  destruct (classic (a = Time.bot)) as [|NEQ]; subst.
+  all: eapply Time.lt_strorder; etransitivity; eauto.
+  assert (Time.le Time.bot a) as HH by apply Time.bot_spec.
+  apply Time.le_lteq in HH; destruct HH as [HH|HH]; desf.
+Qed.
+
 Lemma dom_eqv_seq {A} a (r r' : relation A) (NE : exists b, r' a b) :
   dom_rel (r ⨾ ⦗eq a⦘ ) ≡₁ dom_rel (r ⨾ ⦗eq a⦘ ⨾ r').
 Proof using.

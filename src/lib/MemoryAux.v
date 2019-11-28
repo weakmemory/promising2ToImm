@@ -1,6 +1,7 @@
 From hahn Require Import Hahn.
 Require Import PromisingLib.
 From Promising2 Require Import Memory View Time Cell TView.
+Require Import AuxRel2.
 
 Definition memory_close tview memory :=
   ⟪ CLOSED_CUR :
@@ -398,6 +399,103 @@ Proof using.
   erewrite Memory.remove_o; [|by apply REMOVE2].
   desf. by apply LE.
 Qed.
+
+Lemma interval_disjoint_imm_le a b c d (LE : Time.le b c):
+  Interval.disjoint (a, b) (c, d).
+Proof using.
+  red; ins.
+  destruct LHS as [LFROM LTO].
+  destruct RHS as [RFROM RTO]; simpls.
+  eapply Time.lt_strorder.
+  eapply TimeFacts.le_lt_lt.
+  2: by apply RFROM.
+  etransitivity; [by apply LTO|].
+  done.
+Qed.
+
+Lemma message_max_ts_disjoint loc to from msg memory
+      (GET : Memory.get loc to memory = Some (from, msg)) :
+  Interval.disjoint (Memory.max_ts loc memory, Time.incr (Memory.max_ts loc memory))
+                    (from, to).
+Proof using.
+  symmetry.
+  apply interval_disjoint_imm_le.
+  eapply Memory.max_ts_spec; eauto.
+Qed.
+
+Lemma message_disjoint_cap lprom memory memory' 
+      (CLOSED : Memory.closed memory)
+      (DISJOINT : message_disjoint memory)
+      (CAP : Memory.cap lprom memory memory') :
+  message_disjoint memory'.
+Proof using.
+  assert (Memory.le memory memory') as SOUND by inv CAP.
+  red. ins.
+  destruct (classic (to1 = to2)) as [|TNEQ]; subst; eauto.
+  right.
+  set (G1A:=GET1). eapply Memory.cap_inv in G1A; eauto. desf.
+  3: { set (G2A:=GET2). eapply Memory.cap_inv in G2A; eauto. desf.
+       { eapply message_max_ts_disjoint; eauto. }
+       inv G2A0.
+       symmetry.
+       eapply interval_disjoint_imm_le.
+       set (EE:=GET3).
+       apply Memory.get_ts in EE. desf.
+       apply Time.le_lteq. left. eapply TimeFacts.lt_le_lt; eauto.
+       eapply Memory.max_ts_spec; eauto. }
+  { set (G2A:=GET2). eapply Memory.cap_inv in G2A; eauto. desf.
+    { edestruct DISJOINT with (to1:=to1) (to2:=to2); eauto. desf. }
+    2: { symmetry. eapply message_max_ts_disjoint; eauto. }
+    inv G2A0.
+    destruct (TimeFacts.le_lt_dec to1 from2) as [|AA].
+    { by apply interval_disjoint_imm_le. }
+    destruct (TimeFacts.le_lt_dec to2 from1) as [|BB].
+    { symmetry. by apply interval_disjoint_imm_le. }
+    destruct (TimeFacts.le_lt_dec to1 to2) as [|CC].
+    { exfalso. rewrite EMPTY in G1A; auto. inv G1A. }
+    destruct (TimeFacts.le_lt_dec to1 to0) as [|DD].
+    { edestruct DISJOINT with (to1:=to1) (to2:=to0) as [|EE]; eauto; subst.
+      { exfalso. apply SOUND in GET3. rewrite GET3 in GET1. inv GET1.
+        eapply Time.lt_strorder; eauto. }
+      exfalso. eapply EE with (x:=to1); constructor; simpls.
+      2: by apply DenseOrder_le_PreOrder.
+      apply Memory.get_ts in GET1. desf.
+      exfalso. eby eapply time_lt_bot. }
+    edestruct DISJOINT with (to1:=to1) (to2:=to0) as [|EE]; eauto; subst.
+    { exfalso. eapply Time.lt_strorder; eauto. }
+    assert (Time.lt to2 to0) as FF.
+    { apply Memory.get_ts in GET3. desf.
+      exfalso. eby eapply time_lt_bot. }
+    exfalso. eapply EE with (x:=to0); constructor; simpls.
+    { etransitivity; eauto. }
+    { by apply Time.le_lteq; auto. }
+      by apply DenseOrder_le_PreOrder. }
+  set (G2A:=GET2). eapply Memory.cap_inv in G2A; eauto. desf.
+  { inv G1A0.
+    destruct (TimeFacts.le_lt_dec to1 from2) as [|AA].
+    { by apply interval_disjoint_imm_le. }
+    destruct (TimeFacts.le_lt_dec to2 from1) as [|BB].
+    { symmetry. by apply interval_disjoint_imm_le. }
+    destruct (TimeFacts.le_lt_dec to2 to1) as [|CC].
+    { exfalso. rewrite EMPTY in G2A; auto. inv G2A. }
+    destruct (TimeFacts.le_lt_dec to2 to0) as [|DD].
+    { edestruct DISJOINT with (to1:=to2) (to2:=to0) as [|EE]; eauto; subst.
+      { exfalso. apply SOUND in GET3. rewrite GET3 in GET2. inv GET2.
+        eapply Time.lt_strorder; eauto. }
+      exfalso. eapply EE with (x:=to2); constructor; simpls.
+      2: by apply DenseOrder_le_PreOrder.
+      apply Memory.get_ts in GET2. desf.
+      exfalso. eby eapply time_lt_bot. }
+    edestruct DISJOINT with (to1:=to2) (to2:=to0) as [|EE]; eauto; subst.
+    { exfalso. eapply Time.lt_strorder; eauto. }
+    assert (Time.lt to1 to0) as FF.
+    { apply Memory.get_ts in GET3. desf.
+      exfalso. eby eapply time_lt_bot. }
+    exfalso. eapply EE with (x:=to0); constructor; simpls.
+    { etransitivity; eauto. }
+    { by apply Time.le_lteq; auto. }
+      by apply DenseOrder_le_PreOrder. }
+Admitted.
 
 (*********************************************)
 (* TODO: explanation. Maybe a separate file. *)

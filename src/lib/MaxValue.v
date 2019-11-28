@@ -1,6 +1,7 @@
 From hahn Require Import Hahn.
 From PromisingLib Require Import Loc.
 From Promising2 Require Import View Time Event.
+Require Import AuxRel2.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -115,15 +116,6 @@ Section MaxValue.
     eapply Time.lt_strorder; eauto using TimeFacts.le_lt_lt.
   Qed.
   
-Lemma time_lt_bot a : ~ Time.lt a Time.bot.
-Proof using.
-  intros H.
-  destruct (classic (a = Time.bot)) as [|NEQ]; subst.
-  all: eapply Time.lt_strorder; etransitivity; eauto.
-  assert (Time.le Time.bot a) as HH by apply Time.bot_spec.
-  apply Time.le_lteq in HH; destruct HH as [HH|HH]; desf.
-Qed.
-
 Lemma max_value_le_join f (P P' : A -> Prop) t
       (LT: forall x, P' x -> Time.lt (f x) t) :
   max_value f (P ∪₁ P') t -> max_value f P t.

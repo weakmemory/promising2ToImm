@@ -86,19 +86,6 @@ Variable ETCCOH : etc_coherent G sc (mkETC T S).
 
 Variable RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T.
 
-Lemma interval_disjoint_imm_le a b c d (LE : Time.le b c):
-  Interval.disjoint (a, b) (c, d).
-Proof using.
-  red; ins.
-  destruct LHS as [LFROM LTO].
-  destruct RHS as [RFROM RTO]; simpls.
-  eapply Time.lt_strorder.
-  eapply TimeFacts.le_lt_lt.
-  2: by apply RFROM.
-  etransitivity; [by apply LTO|].
-  done.
-Qed.
-
 Lemma sim_msg_f_issued rel b 
       (ISS : issued T b)
       (SIMMEM : sim_msg G sc f_to b rel) :
