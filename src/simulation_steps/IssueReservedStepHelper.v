@@ -717,11 +717,15 @@ Proof using All.
   { ins. erewrite Memory.split_o; eauto.
     repeat (rewrite loc_ts_eq_dec_neq; auto). }
 
-  assert (ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e).
+  assert (REQ_TO : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e).
   { ins. unfold f_to'. by repeat (rewrite updo; [|by intros HH; desf]). }
-
-  assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
+  assert (REQ_FROM : forall e  (SE : S e) (NEQ : e <> w), f_from' e = f_from e).
   { ins. unfold f_from'. by rewrite updo; [|by intros HH; desf]. }
+
+  assert (ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e).
+  { ins. apply REQ_TO; [|intros HH; desf]. by apply ETCCOH.(etc_I_in_S). }
+  assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
+  { ins. apply REQ_FROM; [|intros HH; desf]. by apply ETCCOH.(etc_I_in_S). }
 
   assert (forall l to omsg 
                  (NEQ  : l <> locw \/ to <> f_to' w)
@@ -973,18 +977,29 @@ Proof using All.
        all: rewrite loc_ts_eq_dec_eq.
        all: by rewrite updo; auto; unfold f_from', n_to; rewrite !upds. }
   2: by desf.
-  (* TODO: continue from here *)
   unnw.
-  erewrite Memory.add_o with (mem2:=memory_add); eauto.
-  erewrite Memory.remove_o with (mem2:=memory_cancel); eauto.
-  destruct (loc_ts_eq_dec (l, f_to b) (locw, (f_to w))) as [PEQ|PNEQ];
-    simpls; desc; subst.
-  { exfalso. apply BNEQ.
-    eapply f_to_eq with (I:=S); eauto. red. by rewrite LOC. }
   edestruct SIM_RES_MEM with (b:=b); eauto; unnw.
-  rewrite !(loc_ts_eq_dec_neq PNEQ); auto.
-  splits; ins.
-  apply NOTNEWP; auto.
+  destruct (classic (l = locw)) as [|LNEQ]; subst.
+  2: { rewrite REQ_TO; eauto. rewrite REQ_FROM; eauto.
+       split; ins; [apply NOTNEWM|apply NOTNEWP]; auto. }
+  assert (f_to' b <> f_to' w) as FTONEQ.
+  { intros HH.
+    eapply f_to_eq with 
+        (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)) in HH; eauto.
+    { red. by rewrite LOC. }
+    all: generalize SB; clear; basic_solver. }
+  assert (f_to' b <> f_to' wnext) as FTONEQ'.
+  { intros HH.
+    eapply f_to_eq with 
+        (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)) in HH; eauto.
+    { by subst. }
+    { red. by rewrite NLOC. }
+    all: generalize SB WNEXT; clear; basic_solver. }
+  splits.
+  { apply NOTNEWM; auto.
+    rewrite REQ_TO; eauto. rewrite REQ_FROM; eauto. }
+  ins. apply NOTNEWP; auto.
+  rewrite REQ_TO; eauto. rewrite REQ_FROM; eauto.
 Admitted.
 
 End IssueReservedStepHelper.
