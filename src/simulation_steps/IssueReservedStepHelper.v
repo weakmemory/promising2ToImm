@@ -756,6 +756,9 @@ Proof using All.
     { generalize EW WW. clear. basic_solver. }
     rewrite DOMSBEQ. generalize EWNEXT WWNEXT. clear. basic_solver. }
 
+  assert (tid wnext = tid w) as TIDEQNEXT.
+  { eapply dom_sb_S_rfrmw_same_tid; eauto. }
+
   exists p_rel. splits; eauto.
   do 2 eexists. splits; eauto.
   eexists. splits; eauto.
@@ -771,16 +774,20 @@ Proof using All.
     { subst. rewrite IdentMap.gss in TID0.
       inv TID0; simpls; clear TID0. }
     red; ins; rewrite IdentMap.gso in TID0; auto.
-    erewrite Memory.split_o; eauto.
-    destruct (loc_ts_eq_dec (loc, to) (locw, f_to' w)) as [[A B]|LL].
-    { simpls; rewrite A in *; rewrite B in *; subst.
-      exfalso. admit. }
-    rewrite (loc_ts_eq_dec_neq LL).
-    destruct (loc_ts_eq_dec (loc, to) (locw, f_to' wnext)) as [[A B]|LL'].
-    { simpls; rewrite A in *; rewrite B in *; subst.
-      exfalso. admit. }
-    rewrite (loc_ts_eq_dec_neq LL').
-    eapply PROM_IN_MEM in LHS; eauto. }
+    assert (Memory.get loc to PC.(Configuration.memory) = Some (from, msg)) as INMEMM.
+    { eapply PROM_IN_MEM; eauto. }
+    destruct (classic (loc = locw)) as [|LNEQ]; subst.
+    2: by apply NOTNEWM; auto.
+    apply NOTNEWM; auto; right; unfold f_to', n_to;
+      [rewrite updo; auto|]; rewrite upds.
+    all: intros HH; subst.
+    2: { edestruct PROM_DISJOINT as [HH|HH].
+         { intros HH. apply NEQ. by rewrite HH. }
+         { eauto. }
+         { rewrite INPROM in HH. inv HH. }
+         rewrite HH in LHS. inv LHS. }
+    (* TODO: continue. Introduce message_disjoint to simrel_common. *)
+    admit. }
   { simpls. red. ins.
     destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[A' B']|LL].
     { simpls; rewrite A' in *; rewrite B' in *.
@@ -819,7 +826,6 @@ Proof using All.
     destruct (loc_ts_eq_dec (l, to) (locw, f_to' wnext)) as [[A' B']|LL'].
     { simpls; rewrite A' in *; rewrite B' in *.
       exists wnext. splits; eauto.
-      { admit. }
       { by right. }
       { intros [A|A]; desf. }
       destruct (Rel w) eqn:RELB; subst.
