@@ -795,7 +795,9 @@ Proof using All.
     eapply AA with (x:=Time.middle (f_from w) (f_to w)).
     2: { apply Interval.mem_ub.
          eapply Memory.get_ts in LHS. destruct LHS as [BB|BB]; desc; subst; auto.
-         admit. } 
+         eapply TimeFacts.le_lt_lt with (b:=f_from w).
+         { apply DenseOrder.bot_spec. }
+           by apply Time.middle_spec. }
     constructor; simpls; [|apply Time.le_lteq; left].
     all: by apply Time.middle_spec. }
   { simpls. red. ins.
@@ -1016,6 +1018,6 @@ Proof using All.
     rewrite REQ_TO; eauto. rewrite REQ_FROM; eauto. }
   ins. apply NOTNEWP; auto.
   rewrite REQ_TO; eauto. rewrite REQ_FROM; eauto.
-Admitted.
+Qed.
 
 End IssueReservedStepHelper.
