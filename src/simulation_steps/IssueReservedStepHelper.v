@@ -793,8 +793,11 @@ Proof using All.
     { eapply Time.lt_strorder with (x:=f_to w).
       rewrite AA at 1. by apply DenseOrder.middle_spec. }
     eapply AA with (x:=Time.middle (f_from w) (f_to w)).
-    2: { apply Interval.mem_ub. admit. }
-    admit. }
+    2: { apply Interval.mem_ub.
+         eapply Memory.get_ts in LHS. destruct LHS as [BB|BB]; desc; subst; auto.
+         admit. } 
+    constructor; simpls; [|apply Time.le_lteq; left].
+    all: by apply Time.middle_spec. }
   { simpls. red. ins.
     destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[A' B']|LL].
     { simpls; rewrite A' in *; rewrite B' in *.
