@@ -137,7 +137,6 @@ Proof using WF CON.
     { apply TSTEP. }
     { eapply Memory.add_inhabited; eauto. }
     { eapply Memory.add_closed; eauto. }
-    { eapply message_disjoint_add; eauto. }
     simpls.
     exists state; eexists.
     rewrite IdentMap.gss.

@@ -107,20 +107,6 @@ Definition ts_lt_or_bot memory :=
 Lemma ts_lt_or_bot_init : ts_lt_or_bot Memory.init.
 Proof using. red. ins. apply memory_init_o in GET. left. desf. Qed.
 
-Definition message_disjoint memory :=
-  forall loc to1 from1 msg1 to2 from2 msg2
-         (GET1 : Memory.get loc to1 memory = Some (from1, msg1))
-         (GET2 : Memory.get loc to2 memory = Some (from2, msg2)),
-    to1 = to2 \/ Interval.disjoint (from1, to1) (from2, to2).
-
-Lemma message_disjoint_init : message_disjoint Memory.init.
-Proof using.
-  red. ins.
-  apply memory_init_o in GET1.
-  apply memory_init_o in GET2.
-  desf. by left.
-Qed.
-
 Lemma ts_lt_or_bot_add loc from to msg memory memory_add
       (TLOB : ts_lt_or_bot memory)
       (ADD : Memory.add memory loc from to msg memory_add) :
@@ -133,24 +119,6 @@ Proof using.
   all: by eapply TLOB; eauto.
 Qed.
 
-Lemma message_disjoint_add loc from to msg memory memory_add
-      (MD : message_disjoint memory)
-      (ADD : Memory.add memory loc from to msg memory_add) :
-  message_disjoint memory_add.
-Proof using.
-  red. ins.
-  erewrite Memory.add_o in GET1; eauto.
-  erewrite Memory.add_o in GET2; eauto.
-  desf; simpls; desf.
-  { by left. }
-  { right. inv ADD. inv ADD0.
-    symmetry.
-    eapply DISJOINT; eauto. }
-  { right. inv ADD. inv ADD0.
-    eapply DISJOINT; eauto. }
-  all: by eapply MD; eauto.
-Qed.
-
 Lemma ts_lt_or_bot_lower loc from to msg released' memory memory_lower
       (TLOB : ts_lt_or_bot memory)
       (LOWER : Memory.lower memory loc from to msg released' memory_lower) :
@@ -161,19 +129,6 @@ Proof using.
   desf; simpls; desf.
   { right. inv LOWER. inv LOWER0. }
   all: by eapply TLOB; eauto.
-Qed.
-
-Lemma message_disjoint_lower loc from to msg released' memory memory_lower
-      (MD : message_disjoint memory)
-      (LOWER : Memory.lower memory loc from to msg released' memory_lower) :
-  message_disjoint memory_lower.
-Proof using.
-  red. ins.
-  erewrite Memory.lower_o in GET1; eauto.
-  erewrite Memory.lower_o in GET2; eauto.
-  desf; simpls; desf.
-  { by left. }
-  all: inv LOWER; inv LOWER0; eapply MD; eauto.
 Qed.
 
 Lemma ts_lt_or_bot_split loc from to to' msg msg' memory memory_split
@@ -227,86 +182,6 @@ Lemma ts_lt_or_bot_future_init memory
       (FUTURE : Memory.future Memory.init memory) :
   ts_lt_or_bot memory.
 Proof using. eapply ts_lt_or_bot_future; eauto. apply ts_lt_or_bot_init. Qed.
-
-Lemma message_disjoint_split loc from to to' msg msg' memory memory_split
-      (MD : message_disjoint memory)
-      (SPLIT : Memory.split memory loc from to to' msg msg' memory_split) :
-  message_disjoint memory_split.
-Proof using.
-  assert (exists msg, Memory.get loc to' memory = Some (from, msg))
-    as [msg'' GETI].
-  { inv SPLIT. inv SPLIT0. eexists. apply GET2. }
-  assert (Time.lt from to /\ Time.lt to to') as [LTF LTT].
-  { inv SPLIT. inv SPLIT0. }
-  assert (Interval.le (from, to) (from, to')) as ILE1.
-  { constructor; simpls. reflexivity. apply Time.le_lteq. by left. }
-  assert (Interval.le (to, to') (from, to')) as ILE2.
-  { constructor; simpls. 2: reflexivity. apply Time.le_lteq. by left. }
-  red. ins.
-  erewrite Memory.split_o in GET1; eauto.
-  erewrite Memory.split_o in GET2; eauto.
-  desf; simpls; desf.
-  all: try by left.
-  all: try by (eapply MD in GET1; eapply GET1 in GET2; desf).
-  all: right.
-  { symmetry. apply Interval.disjoint_imm. }
-  { symmetry.
-    eapply Interval.le_disjoint; eauto.
-    eapply MD in GET1. eapply GET1 in GETI.
-    symmetry.
-    desf. }
-  { apply Interval.disjoint_imm. }
-  { symmetry.
-    eapply Interval.le_disjoint; eauto.
-    eapply MD in GET1. eapply GET1 in GETI.
-    symmetry.
-    desf. }
-  all: eapply Interval.le_disjoint; eauto.
-  all: eapply MD in GET2; eapply GET2 in GETI.
-  all: symmetry.
-  all: desf.
-Qed.
-
-Lemma message_disjoint_remove loc from to msg memory memory'
-      (MD : message_disjoint memory)
-      (SPLIT : Memory.remove memory loc from to msg memory') :
-  message_disjoint memory'.
-Proof using.
-  red. ins.
-  erewrite Memory.remove_o in GET1; eauto.
-  erewrite Memory.remove_o in GET2; eauto.
-  desf; simpls; desf.
-  all: by eapply MD; eauto.
-Qed.
-
-Lemma message_disjoint_op loc from to msg memory memory' kind
-      (MD : message_disjoint memory)
-      (OP : Memory.op memory loc from to msg memory' kind) :
-  message_disjoint memory'.
-Proof using.
-  destruct OP.
-  { eapply message_disjoint_add; eauto. }
-  { eapply message_disjoint_split; eauto. }
-  { eapply message_disjoint_lower; eauto. }
-  eapply message_disjoint_remove; eauto.
-Qed.
-
-Lemma message_disjoint_future memory memory'
-      (TLOB : message_disjoint memory)
-      (FUTURE : Memory.future memory memory') :
-  message_disjoint memory'.
-Proof using.
-  apply clos_rt1n_rt in FUTURE.
-  apply clos_rt_rtn1 in FUTURE.
-  induction FUTURE; auto.
-  destruct H.
-  eapply message_disjoint_op; eauto.
-Qed.
-
-Lemma message_disjoint_future_init memory
-      (FUTURE : Memory.future Memory.init memory) :
-  message_disjoint memory.
-Proof using. eapply message_disjoint_future; eauto. apply message_disjoint_init. Qed.
 
 Lemma time_le_rect a b c d (AB : Time.le a b) (CD : Time.le c d) :
   Time.le (Time.join a c) (Time.join b d).
@@ -422,80 +297,6 @@ Proof using.
   apply interval_disjoint_imm_le.
   eapply Memory.max_ts_spec; eauto.
 Qed.
-
-Lemma message_disjoint_cap lprom memory memory' 
-      (CLOSED : Memory.closed memory)
-      (DISJOINT : message_disjoint memory)
-      (CAP : Memory.cap lprom memory memory') :
-  message_disjoint memory'.
-Proof using.
-  assert (Memory.le memory memory') as SOUND by inv CAP.
-  red. ins.
-  destruct (classic (to1 = to2)) as [|TNEQ]; subst; eauto.
-  right.
-  set (G1A:=GET1). eapply Memory.cap_inv in G1A; eauto. desf.
-  3: { set (G2A:=GET2). eapply Memory.cap_inv in G2A; eauto. desf.
-       { eapply message_max_ts_disjoint; eauto. }
-       inv G2A0.
-       symmetry.
-       eapply interval_disjoint_imm_le.
-       set (EE:=GET3).
-       apply Memory.get_ts in EE. desf.
-       apply Time.le_lteq. left. eapply TimeFacts.lt_le_lt; eauto.
-       eapply Memory.max_ts_spec; eauto. }
-  { set (G2A:=GET2). eapply Memory.cap_inv in G2A; eauto. desf.
-    { edestruct DISJOINT with (to1:=to1) (to2:=to2); eauto. desf. }
-    2: { symmetry. eapply message_max_ts_disjoint; eauto. }
-    inv G2A0.
-    destruct (TimeFacts.le_lt_dec to1 from2) as [|AA].
-    { by apply interval_disjoint_imm_le. }
-    destruct (TimeFacts.le_lt_dec to2 from1) as [|BB].
-    { symmetry. by apply interval_disjoint_imm_le. }
-    destruct (TimeFacts.le_lt_dec to1 to2) as [|CC].
-    { exfalso. rewrite EMPTY in G1A; auto. inv G1A. }
-    destruct (TimeFacts.le_lt_dec to1 to0) as [|DD].
-    { edestruct DISJOINT with (to1:=to1) (to2:=to0) as [|EE]; eauto; subst.
-      { exfalso. apply SOUND in GET3. rewrite GET3 in GET1. inv GET1.
-        eapply Time.lt_strorder; eauto. }
-      exfalso. eapply EE with (x:=to1); constructor; simpls.
-      2: by apply DenseOrder_le_PreOrder.
-      apply Memory.get_ts in GET1. desf.
-      exfalso. eby eapply time_lt_bot. }
-    edestruct DISJOINT with (to1:=to1) (to2:=to0) as [|EE]; eauto; subst.
-    { exfalso. eapply Time.lt_strorder; eauto. }
-    assert (Time.lt to2 to0) as FF.
-    { apply Memory.get_ts in GET3. desf.
-      exfalso. eby eapply time_lt_bot. }
-    exfalso. eapply EE with (x:=to0); constructor; simpls.
-    { etransitivity; eauto. }
-    { by apply Time.le_lteq; auto. }
-      by apply DenseOrder_le_PreOrder. }
-  set (G2A:=GET2). eapply Memory.cap_inv in G2A; eauto. desf.
-  { inv G1A0.
-    destruct (TimeFacts.le_lt_dec to1 from2) as [|AA].
-    { by apply interval_disjoint_imm_le. }
-    destruct (TimeFacts.le_lt_dec to2 from1) as [|BB].
-    { symmetry. by apply interval_disjoint_imm_le. }
-    destruct (TimeFacts.le_lt_dec to2 to1) as [|CC].
-    { exfalso. rewrite EMPTY in G2A; auto. inv G2A. }
-    destruct (TimeFacts.le_lt_dec to2 to0) as [|DD].
-    { edestruct DISJOINT with (to1:=to2) (to2:=to0) as [|EE]; eauto; subst.
-      { exfalso. apply SOUND in GET3. rewrite GET3 in GET2. inv GET2.
-        eapply Time.lt_strorder; eauto. }
-      exfalso. eapply EE with (x:=to2); constructor; simpls.
-      2: by apply DenseOrder_le_PreOrder.
-      apply Memory.get_ts in GET2. desf.
-      exfalso. eby eapply time_lt_bot. }
-    edestruct DISJOINT with (to1:=to2) (to2:=to0) as [|EE]; eauto; subst.
-    { exfalso. eapply Time.lt_strorder; eauto. }
-    assert (Time.lt to1 to0) as FF.
-    { apply Memory.get_ts in GET3. desf.
-      exfalso. eby eapply time_lt_bot. }
-    exfalso. eapply EE with (x:=to0); constructor; simpls.
-    { etransitivity; eauto. }
-    { by apply Time.le_lteq; auto. }
-      by apply DenseOrder_le_PreOrder. }
-Admitted.
 
 (*********************************************)
 (* TODO: explanation. Maybe a separate file. *)

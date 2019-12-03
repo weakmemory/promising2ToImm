@@ -32,6 +32,7 @@ Require Import ExtTraversal.
 Require Import ExtTraversalCounting.
 Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
+Require Import AuxRel2.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -162,7 +163,6 @@ Lemma simrel_thread_bigger_sc_memory G sc T S thread f_to f_from threads memory
       (INHAB      : Memory.inhabited memory' )
       (CLOSED_MEM : Memory.closed memory')
       (MEM_LE : Memory.le memory memory')
-      (DISJOINT : message_disjoint memory')
       (SС_CLOSED  : Memory.closed_timemap sc_view' memory')
       (SIMREL : simrel_thread G sc (Configuration.mk threads sc_view memory )
                               T S f_to f_from thread  sim_certification) :
@@ -376,7 +376,6 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF.
     destruct CUR. simpls. }
   { apply inhabited_init. }
   { simpls. apply Memory.init_closed. }
-  { simpls. apply message_disjoint_init. }
   simpls.
   apply IdentMap.Facts.in_find_iff in TP.
   destruct (IdentMap.find thread (Threads.init (init_threads prog))) eqn: HH; simpls.
@@ -874,7 +873,6 @@ Proof using All.
       apply SIMREL_THREAD. }
     { eapply Memory.cap_closed; eauto. apply SIMREL_THREAD. }
     { apply CAP. }
-    { admit. }
       by apply Memory.max_full_timemap_closed. }
   desc.
 

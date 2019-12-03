@@ -759,6 +759,8 @@ Proof using All.
   assert (tid wnext = tid w) as TIDEQNEXT.
   { eapply dom_sb_S_rfrmw_same_tid; eauto. }
 
+  assert (Time.lt (f_from w) (f_to w)) as FTFW by (by apply FCOH).
+
   exists p_rel. splits; eauto.
   do 2 eexists. splits; eauto.
   eexists. splits; eauto.
@@ -786,7 +788,12 @@ Proof using All.
          { eauto. }
          { rewrite INPROM in HH. inv HH. }
          rewrite HH in LHS. inv LHS. }
-    (* TODO: continue. Introduce message_disjoint to simrel_common. *)
+    eapply Memory.get_disjoint in INMEMM; [|by apply INMEM].
+    destruct INMEMM as [AA|AA]; desc.
+    { eapply Time.lt_strorder with (x:=f_to w).
+      rewrite AA at 1. by apply DenseOrder.middle_spec. }
+    eapply AA with (x:=Time.middle (f_from w) (f_to w)).
+    2: { apply Interval.mem_ub. admit. }
     admit. }
   { simpls. red. ins.
     destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[A' B']|LL].
