@@ -199,4 +199,111 @@ Proof using WF CON.
   rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver.
 Qed.
 
+Lemma issue_rlx_reserved_step_with_next PC T S f_to f_from thread w wnext smode
+      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
+      (TSTEP : ext_itrav_step
+                 G sc w (mkETC T S)
+                 (mkETC
+                    (mkTC (covered T) (issued T ∪₁ eq w))
+                    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
+      (SW : S w)
+      (NREL : ~ Rel w)
+      (WNEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) wnext)
+      (WTID : thread = tid w) :
+  let T' := mkTC (covered T) (issued T ∪₁ eq w) in
+  let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
+  exists f_to' f_from' PC',
+    ⟪ PCSTEP : (plain_step MachineEvent.silent thread)^+ PC PC' ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
+    ⟪ SIMREL :
+        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
+        simrel G sc PC' T' S' f_to' f_from' ⟫.
+Proof using WF CON.
+  cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
+  subst.
+  
+  assert (tc_coherent G sc T) as TCCOHs by apply TCCOH.
+
+  assert (~ issued T w) as NISSB.
+  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
+  assert (S ⊆₁ E ∩₁ W) as SEW.
+  { apply set_subset_inter_r. split; [by apply TCCOH|].
+    apply (reservedW WF TCCOH). }
+  assert (E w /\ W w) as [EW WW] by (by apply SEW).
+  assert (~ is_init w) as NINIT.
+  { intros AA. apply NISSB. eapply init_issued; eauto. by split. }
+
+  assert (exists locw, loc lab w = Some locw) as [locw WLOC] by (by apply is_w_loc).
+  assert (exists valw, val lab w = Some valw) as [valw WVAL] by (by apply is_w_val).
+  
+  edestruct issue_reserved_step_helper_with_next as [p_rel]; eauto. simpls; desc.
+
+  set (n_to     := Time.middle (f_from w) (f_to w)).
+  set (f_to'    := upd (upd f_to w n_to) wnext (f_to w)).
+  set (f_from'  := upd f_from wnext n_to).
+
+  set (rel'' :=
+        if is_rel lab w
+        then (TView.cur (Local.tview local))
+        else (TView.rel (Local.tview local) locw)).
+  set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
+                          (View.singleton_ur locw (f_to' w)))).
+
+  set (pe :=
+         ThreadEvent.promise
+           locw (f_from' w) (f_to' w) (Message.full valw (Some rel'))
+           (Memory.op_kind_split (f_to' wnext) Message.reserve)).
+  
+  assert (Memory.closed_message (Message.full valw (Some rel')) memory_split) as CLOS_MSG.
+  { by do 2 constructor. }
+  
+  exists f_to', f_from'. eexists.
+  apply and_assoc. apply pair_app; unnw.
+  { split.
+    { apply t_step.
+      set (pe'' := MachineEvent.silent).
+      arewrite (pe'' = ThreadEvent.get_machine_event pe) by simpls.
+      econstructor; eauto.
+      2: by unfold pe; desf.
+      apply Thread.step_promise.
+      constructor.
+      2: by simpls.
+      econstructor; eauto. }
+    destruct (is_rel lab w) eqn:RELB.
+    { desf. }
+    subst.
+    red; splits; red; splits; eauto; simpls.
+    all: try (rewrite IdentMap.add_add_eq; eauto).
+    { apply TSTEP. }
+    { generalize RELB RELCOV. clear. basic_solver. }
+    { eapply Memory.split_closed; eauto. }
+    simpls.
+    exists state; eexists.
+    rewrite IdentMap.gss.
+    splits; eauto.
+    eapply tview_closedness_preserved_split; eauto. }
+  intros [PCSTEP SIMREL_THREAD']; split; auto.
+  intros SMODE SIMREL.
+  eapply simrel_fS in SIMREL; eauto.
+  subst.
+  eapply full_simrel_step with (thread:=tid w).
+  16: by apply SIMREL.
+  14: { ins. rewrite !IdentMap.Facts.add_in_iff.
+        split; auto.
+        intros [| [ | ]]; auto; subst.
+        all: apply IdentMap.Facts.in_find_iff; by rewrite LLH. }
+  13: { eapply msg_preserved_trans.
+        { eapply msg_preserved_cancel; eauto. }
+        eapply msg_preserved_add; eauto. }
+  12: { eapply closedness_preserved_trans.
+        { eapply closedness_preserved_cancel; eauto. }
+        eapply closedness_preserved_add; eauto. }
+  10: by eapply same_other_threads_steps; eauto.
+  all: simpls; eauto.
+  { eapply coveredE; eauto. }
+  { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
+  1-4: basic_solver.
+  rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver.
+Qed.
+
 End IssueReservedPlainStep.

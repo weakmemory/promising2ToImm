@@ -597,7 +597,8 @@ Lemma issue_reserved_step_helper_with_next w valw locw langst wnext
               Memory.get loc to local'.(Local.promises) = None ⟫ /\
 
         ⟪ SIM_MEM     : sim_mem G sc T' f_to' f_from' (tid w) local' memory_split ⟫ /\
-        ⟪ SIM_RES_MEM : sim_res_mem G T' S' f_to' f_from' (tid w) local' memory_split ⟫.
+        ⟪ SIM_RES_MEM : sim_res_mem G T' S' f_to' f_from' (tid w) local' memory_split ⟫ /\
+        ⟪ SIM_TVIEW   : sim_tview G sc covered' f_to' local'.(Local.tview) (tid w) ⟫.
 Proof using All.
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
@@ -976,6 +977,9 @@ Proof using All.
         (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)) in HH; eauto.
     { red. by rewrite LOC. }
     all: generalize WNEXT; clear; basic_solver. }
+  2: { desf.
+       { admit. }
+       eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
   destruct RESB as [[SB|]|HH]; subst.
   3: { assert (b = wnext); subst.
        { eapply dom_sb_S_rfrmwf; eauto. }
@@ -1018,6 +1022,6 @@ Proof using All.
     rewrite REQ_TO; eauto. rewrite REQ_FROM; eauto. }
   ins. apply NOTNEWP; auto.
   rewrite REQ_TO; eauto. rewrite REQ_FROM; eauto.
-Qed.
+Admitted.
 
 End IssueReservedStepHelper.
