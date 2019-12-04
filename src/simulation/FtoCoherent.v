@@ -261,7 +261,16 @@ End FtoCoherent.
 
 Add Parametric Morphism : f_to_coherent with signature
   eq ==> set_equiv ==> eq ==> eq ==> iff as f_to_coherent_more.
-Proof.
+Proof using.
   ins. split; intros HH.
   all: red; splits; ins; try apply HH; auto; by apply H.
+Qed.
+
+Lemma f_to_coherent_mori G S S' f_to f_from
+      (IN : S' ⊆₁ S)
+      (FCOH : f_to_coherent G S f_to f_from) :
+  f_to_coherent G S' f_to f_from.
+Proof using.
+  cdes FCOH.
+  red. splits; auto.
 Qed.

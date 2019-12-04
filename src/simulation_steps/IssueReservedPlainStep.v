@@ -284,12 +284,25 @@ Proof using WF CON.
     eapply tview_closedness_preserved_split; eauto. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
+  subst. desc.
+  red.
+  assert (~ Rel w) as NRELW by auto.
+  splits.
+  { desf. unfold f_to', f_from', n_to. red; simpls. splits; auto.
+    { apply TSTEP. }
+    { generalize RELCOV, NRELW. clear. basic_solver 10. }
+    all: try by apply RESERVED_TIME0.
+    eapply Memory.split_closed; eauto. }
+  simpls.
+  ins.
+  (* TODO: continue from here. *)
+
   (* eapply simrel_fS with (f_to':=f_to') (f_from':=f_from') in SIMREL; eauto. *)
   subst.
   eapply full_simrel_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S).
   16: { red. splits.
         { red. splits; auto.
-          { admit. }
+          { eapply f_to_coherent_mori; [|by eauto]. clear. basic_solver. }
           red. splits; auto.
           all: admit. }
         admit. }
