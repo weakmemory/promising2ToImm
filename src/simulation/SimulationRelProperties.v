@@ -158,9 +158,9 @@ Proof using WF IMMCON RELCOV TCCOH ISSEQ_TO ISSEQ_FROM.
   rewrite (ISSEQ_FROM p); eauto.
 Qed.
 
-Lemma sim_res_mem_f_issued threads thread memory
-      (SIMMEM : sim_res_mem G T S f_to f_from threads thread memory) :
-  sim_res_mem G T S f_to' f_from' threads thread memory.
+Lemma sim_res_mem_f_issued thread threads memory
+      (SIMMEM : sim_res_mem G T S f_to f_from thread threads memory) :
+  sim_res_mem G T S f_to' f_from' thread threads memory.
 Proof using WF REQ_TO REQ_FROM.
   red in SIMMEM.
   red. unnw. ins.
