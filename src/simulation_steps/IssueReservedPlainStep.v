@@ -284,40 +284,33 @@ Proof using WF CON.
     eapply tview_closedness_preserved_split; eauto. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
-  subst. desc.
-  red.
-  assert (~ Rel w) as NRELW by auto.
-  splits.
-  { desf. unfold f_to', f_from', n_to. red; simpls. splits; auto.
-    { apply TSTEP. }
-    { generalize RELCOV, NRELW. clear. basic_solver 10. }
-    all: try by apply RESERVED_TIME0.
-    eapply Memory.split_closed; eauto. }
-  simpls.
-  ins.
-  (* TODO: continue from here. *)
-
-  (* eapply simrel_fS with (f_to':=f_to') (f_from':=f_from') in SIMREL; eauto. *)
-  subst.
-  eapply full_simrel_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S).
-  16: { red. splits.
-        { red. splits; auto.
-          { eapply f_to_coherent_mori; [|by eauto]. clear. basic_solver. }
-          red. splits; auto.
-          all: admit. }
-        admit. }
-  14: { ins. rewrite !IdentMap.Facts.add_in_iff.
-        split; auto.
-        intros [|]; auto; subst.
-        all: apply IdentMap.Facts.in_find_iff; by rewrite LLH. }
-  13: { eapply msg_preserved_split; eauto. }
-  12: { eapply closedness_preserved_split; eauto. }
-  10: by eapply same_other_threads_steps; eauto.
+  subst. desc. red.
+  splits; [by apply SIMREL_THREAD'|].
+  simpls. ins.
+  destruct (classic (thread = tid w)) as [|TNEQ]; subst.
+  { apply SIMREL_THREAD'. }
+  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
+  10: { eapply msg_preserved_split; eauto. }
+  9: { eapply closedness_preserved_split; eauto. }
+  8: by eapply same_other_threads_steps; eauto.
   all: simpls; eauto.
   { eapply coveredE; eauto. }
   { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
   1-4: basic_solver.
-  rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver.
+  { rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver. }
+  { ins. etransitivity.
+    2: { symmetry. apply IdentMap.Facts.add_in_iff. }
+    split; [by ins; eauto|].
+    intros [|HH]; subst; auto.
+    apply SIMREL_THREAD; auto. }
+  apply IdentMap.Facts.add_in_iff in TP. desf.
+  apply SIMREL in TP. cdes TP.
+  red. exists state0, local0. splits; eauto.
+  { eapply sim_prom_f_issued; eauto. }
+  { admit. }
+  { eapply sim_mem_f_issued; eauto. }
+  { admit. }
+  eapply sim_tview_f_issued; eauto.
 Admitted.
 
 End IssueReservedPlainStep.

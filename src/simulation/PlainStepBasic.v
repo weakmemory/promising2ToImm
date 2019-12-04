@@ -161,7 +161,8 @@ Proof using.
   etransitivity; eauto.
 Qed.
 
-Lemma full_simrel_step thread PC PC' T S T' S' label f_to f_from
+Lemma simrel_thread_local_step thread PC PC' T S T' S' label f_to f_from
+      (TCCOH  : tc_coherent G sc T)
       (COVE   : covered T' ⊆₁ E)
       (ISSE   : issued  T' ⊆₁ E)
       (COVIN  : covered T  ⊆₁ covered T')
@@ -182,18 +183,13 @@ Lemma full_simrel_step thread PC PC' T S T' S' label f_to f_from
           IdentMap.In thread PC.(Configuration.threads) <->
           IdentMap.In thread PC'.(Configuration.threads))
       (SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread sim_normal)
-      (SIMREL : simrel G sc PC T S f_to f_from) :
-  simrel G sc PC' T' S' f_to f_from.
+      thread' (NEQ : thread <> thread')
+      (TP' : IdentMap.In thread' (Configuration.threads PC'))
+      (THREADS : simrel_thread_local G sc PC T S f_to f_from thread' sim_normal) :
+  simrel_thread_local G sc PC' T' S' f_to f_from thread' sim_normal.
 Proof using WF.
-  red. splits; auto.
-  { apply SIMREL_THREAD. }
-  cdes SIMREL.
-  intros thread' TP'.
-  destruct (Ident.eq_dec thread thread') as [|NEQ]; subst.
-  { apply SIMREL_THREAD. }
   assert (IdentMap.In thread' PC.(Configuration.threads)) as TP.
   { by apply TPEQ. }
-  specialize (THREADS thread' TP).
   cdes THREADS.
   assert (IdentMap.find thread' (Configuration.threads PC') =
           Some (existT _ (PromiseLTS.thread_lts thread') state,
@@ -212,7 +208,7 @@ Proof using WF.
   2: { red. ins.
        edestruct SIM_PROM as [w H]; eauto.
        des. exists w; splits; auto. }
-  7: { eapply sim_state_other_thread_step; eauto; desf. }
+  7: { eapply sim_state_other_thread_step with (C:=covered T); eauto. }
   6: { by red; splits; ins; apply CLOSED_PRES; apply MEM_CLOSE. }
   5: { destruct T as [C I]. destruct T' as [C' I'].
        eapply sim_tview_other_thread_step.
@@ -264,7 +260,7 @@ Proof using WF.
   intros CC.
   destruct H2; auto.
   assert (rel' = rel); [|subst; split; vauto].
-  { cdes COMMON0. eapply PROM_IN_MEM0 in H; eauto.
+  { cdes COMMON. eapply PROM_IN_MEM0 in H; eauto.
     rewrite INMEM in H. inv H. }
   destruct H0 as [p_rel H0]; desc.
   eexists; split; eauto.
@@ -275,7 +271,7 @@ Proof using WF.
     apply seq_eqv_l; split; auto.
     destruct (classic (issued T y)) as [|NISS]; [done|exfalso].
     assert (W y) as WY.
-    { eapply issuedW; eauto. apply COMMON0. }
+    { eapply issuedW; [|by apply ISSY]. apply TCCOH0. }
     destruct (classic (tid y = thread)) as [|TNEQ]; subst.
     2: by apply TNEQ; apply NINISS; split.
     assert ((rfe ⨾ rmw) y b) as RFERMW.
@@ -289,11 +285,7 @@ Proof using WF.
     hahn_rewrite rfi_union_rfe in HH. hahn_rewrite seq_union_l in HH.
     destruct HH as [HH|]; [exfalso|done].
     assert (~ is_init y) as NIN.
-    { intros DD. apply NISS. eapply w_covered_issued; eauto.
-      { apply TCCOH. }
-      split; auto. eapply init_covered.
-      { apply TCCOH. }
-      split; auto. }
+    { intros DD. apply NISS. eapply init_issued; eauto. split; auto. }
     assert (sb y b) as SBYB.
     { edestruct HH as [z [RFI RMW]].
       eapply (@sb_trans G); [by apply WF.(rfi_in_sbloc'); eauto|].
@@ -313,6 +305,41 @@ Proof using WF.
   simpls. desc.
   rewrite P_INMEM in INMEM1. inv INMEM1.
   eexists; eexists; splits; eauto.
+Qed.
+
+Lemma full_simrel_step thread PC PC' T S T' S' label f_to f_from
+      (COVE   : covered T' ⊆₁ E)
+      (ISSE   : issued  T' ⊆₁ E)
+      (COVIN  : covered T  ⊆₁ covered T')
+      (ISSIN  : issued  T  ⊆₁ issued  T')
+      (SIN    :         S  ⊆₁         S')
+      (NINCOV : covered T' \₁ covered T ⊆₁ Tid_ thread)
+      (NINISS : issued  T' \₁ issued  T ⊆₁ Tid_ thread)
+      (NINS   :         S' \₁         S ⊆₁ Tid_ thread)
+      (SOT    : forall thread' (TNEQ : thread' <> thread) langst local,
+          IdentMap.find thread' PC .(Configuration.threads) = Some (langst, local) <->
+          IdentMap.find thread' PC'.(Configuration.threads) = Some (langst, local))
+      (PCSTEP : (plain_step label thread)^+ PC PC')
+      (CLOSED_PRES :
+         closedness_preserved PC.(Configuration.memory) PC'.(Configuration.memory))
+      (MSG_PRES :
+         msg_preserved PC.(Configuration.memory) PC'.(Configuration.memory))
+      (TPEQ : forall thread,
+          IdentMap.In thread PC.(Configuration.threads) <->
+          IdentMap.In thread PC'.(Configuration.threads))
+      (SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread sim_normal)
+      (SIMREL : simrel G sc PC T S f_to f_from) :
+  simrel G sc PC' T' S' f_to f_from.
+Proof using WF.
+  red. splits; auto.
+  { apply SIMREL_THREAD. }
+  cdes SIMREL.
+  intros thread' TP'.
+  destruct (Ident.eq_dec thread thread') as [|NEQ]; subst.
+  { apply SIMREL_THREAD. }
+  eapply simrel_thread_local_step; eauto.
+  { cdes COMMON. apply TCCOH. }
+  apply SIMREL. by apply TPEQ.
 Qed.
 
 Lemma max_event_cur PC T S f_to f_from l e thread foo local smode
