@@ -289,6 +289,9 @@ Proof using WF CON.
   simpls. ins.
   destruct (classic (thread = tid w)) as [|TNEQ]; subst.
   { apply SIMREL_THREAD'. }
+  set (AA:=TP).
+  apply IdentMap.Facts.add_in_iff in AA. desf.
+  apply SIMREL in AA. cdes AA.
   eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
   10: { eapply msg_preserved_split; eauto. }
   9: { eapply closedness_preserved_split; eauto. }
@@ -303,14 +306,23 @@ Proof using WF CON.
     split; [by ins; eauto|].
     intros [|HH]; subst; auto.
     apply SIMREL_THREAD; auto. }
-  apply IdentMap.Facts.add_in_iff in TP. desf.
-  apply SIMREL in TP. cdes TP.
-  red. exists state0, local0. splits; eauto.
+
+  { apply IdentMap.Facts.add_in_iff in TP. desf. }
   { eapply sim_prom_f_issued; eauto. }
-  { admit. }
+  { (* TODO: generalize to a lemma? *)
+    red. ins. apply SIM_RPROM0 in RES. desc.
+    assert (b <> w) as BNW.
+    { intros HH; desf. }
+    exists b. splits; auto.
+    { rewrite REQ_FROM; auto. }
+    rewrite REQ_TO; auto. }
   { eapply sim_mem_f_issued; eauto. }
-  { admit. }
+  { ins.
+    assert (b <> w) as BNW.
+    { intros HH; desf. }
+    rewrite REQ_FROM; auto. rewrite REQ_TO; auto.
+    apply SIM_RES_MEM1; auto. }
   eapply sim_tview_f_issued; eauto.
-Admitted.
+Qed.
 
 End IssueReservedPlainStep.

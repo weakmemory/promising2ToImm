@@ -131,11 +131,13 @@ Proof using WF CON.
     3: { exfalso. apply NISS. apply ISSEQ. basic_solver. }
     { exfalso. apply NCOV. apply COVEQ. basic_solver. }
     destruct (classic (S w)) as [SW|NSW].
-    { destruct (classic (dom_sb_S_rfrmw G {| etc_TC := T; reserved := S |} rfi (eq w) ⊆₁ ∅))
-      as [EMP|NEMP].
-      { edestruct issue_rlx_reserved_step_no_next; eauto.
-        desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
-      admit. }
+    { destruct (classic (exists wnext, dom_sb_S_rfrmw G {| etc_TC := T; reserved := S |} rfi (eq w) wnext))
+      as [NEMP|EMP].
+      2: { edestruct issue_rlx_reserved_step_no_next; eauto.
+           { generalize EMP. clear. basic_solver. }
+           desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
+      desc. edestruct issue_rlx_reserved_step_with_next; eauto.
+      desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
     admit. }
 
   { (* Relaxed write covering *)

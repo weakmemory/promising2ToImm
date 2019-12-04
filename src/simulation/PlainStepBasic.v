@@ -185,12 +185,37 @@ Lemma simrel_thread_local_step thread PC PC' T S T' S' label f_to f_from
       (SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread sim_normal)
       thread' (NEQ : thread <> thread')
       (TP' : IdentMap.In thread' (Configuration.threads PC'))
-      (THREADS : simrel_thread_local G sc PC T S f_to f_from thread' sim_normal) :
+      (TP0 : IdentMap.In thread' (Configuration.threads PC))
+      (state : Language.state (PromiseLTS.thread_lts thread')) local
+      (TNNULL : thread' <> tid_init)
+      (GPC : ProgToExecutionProperties.wf_thread_state thread' state)
+      (LLH : IdentMap.find thread' (Configuration.threads PC) =
+             Some
+               (existT (fun lang : language => Language.state lang)
+                       (PromiseLTS.thread_lts thread') state, local))
+      (PROM_DISJOINT : forall (thread'0 : thread_id)
+                              (langst' : {lang : language & Language.state lang}) 
+                              (local' : Local.t),
+          thread' <> thread'0 ->
+          IdentMap.find thread'0 (Configuration.threads PC) = Some (langst', local') ->
+          forall (loc : Loc.t) (to : Time.t),
+            Memory.get loc to (Local.promises local) = None \/
+            Memory.get loc to (Local.promises local') = None)
+      (SIM_PROM : sim_prom G sc T f_to f_from thread' (Local.promises local))
+      (SIM_RPROM : sim_res_prom G T S f_to f_from thread' (Local.promises local))
+      (SIM_MEM : sim_mem G sc T f_to f_from thread' local (Configuration.memory PC))
+      (SIM_RES_MEM_LCL : forall l b (RESB: S b) (NISSB: ~ issued T b) (LOC: Loc_ l b)
+                                (TID : tid b = thread'),
+          Memory.get l (f_to b) local.(Local.promises) =
+          Some (f_from b, Message.reserve))
+      (SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) thread')
+      (PLN_RLX_EQ : pln_rlx_eq (Local.tview local))
+      (MEM_CLOSE : memory_close (Local.tview local) (Configuration.memory PC))
+      (STATE : sim_state G sim_normal (covered T) state) :
   simrel_thread_local G sc PC' T' S' f_to f_from thread' sim_normal.
 Proof using WF.
   assert (IdentMap.In thread' PC.(Configuration.threads)) as TP.
   { by apply TPEQ. }
-  cdes THREADS.
   assert (IdentMap.find thread' (Configuration.threads PC') =
           Some (existT _ (PromiseLTS.thread_lts thread') state,
                 local)) as TID by (apply SOT; auto).
@@ -231,8 +256,8 @@ Proof using WF.
     apply NEQ. symmetry. apply NINISS. by split. }
   2: { red. ins. unnw.
        split.
-       { by apply SIM_RES_MEM0. }
-       intros HH. apply SIM_RES_MEM; eauto.
+       { by apply SIM_RES_MEM. }
+       intros HH. apply SIM_RES_MEM_LCL; eauto.
        apply NNPP. intros AA. apply NEQ. rewrite <- HH. symmetry.
        apply NINS. by split. }
   red. ins. unnw.
@@ -337,9 +362,15 @@ Proof using WF.
   intros thread' TP'.
   destruct (Ident.eq_dec thread thread') as [|NEQ]; subst.
   { apply SIMREL_THREAD. }
+  assert (simrel_thread_local G sc PC T S f_to f_from thread' sim_normal) as AA.
+  { apply SIMREL. by apply TPEQ. }
+  cdes AA.
   eapply simrel_thread_local_step; eauto.
   { cdes COMMON. apply TCCOH. }
-  apply SIMREL. by apply TPEQ.
+  { by apply TPEQ. }
+  ins.
+  edestruct SIM_RES_MEM with (b:=b) as [_ HH]; eauto.
+    by apply HH.
 Qed.
 
 Lemma max_event_cur PC T S f_to f_from l e thread foo local smode
