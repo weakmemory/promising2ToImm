@@ -514,6 +514,11 @@ Lemma issue_reserved_step_helper_with_next w valw locw langst wnext
   let f_to'    := upd (upd f_to w n_to) wnext (f_to w) in
   let f_from'  := upd f_from wnext n_to in
 
+  << REQ_TO : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e >> /\
+  << REQ_FROM : forall e  (SE : S e) (NEQ : e <> w), f_from' e = f_from e >> /\
+  << ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e >> /\
+  << ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e >> /\
+
   exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC w locw p_rel /\
     let rel'' :=
         if is_rel lab w
@@ -761,6 +766,7 @@ Proof using All.
   { eapply dom_sb_S_rfrmw_same_tid; eauto. }
 
   assert (Time.lt (f_from w) (f_to w)) as FTFW by (by apply FCOH).
+  splits; eauto.
 
   exists p_rel. splits; eauto.
   do 2 eexists. splits; eauto.

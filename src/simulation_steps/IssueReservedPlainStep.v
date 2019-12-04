@@ -236,7 +236,7 @@ Proof using WF CON.
   assert (exists locw, loc lab w = Some locw) as [locw WLOC] by (by apply is_w_loc).
   assert (exists valw, val lab w = Some valw) as [valw WVAL] by (by apply is_w_val).
   
-  edestruct issue_reserved_step_helper_with_next as [p_rel]; eauto. simpls; desc.
+  edestruct issue_reserved_step_helper_with_next as [REQ_TO]; eauto. simpls; desc.
 
   set (n_to     := Time.middle (f_from w) (f_to w)).
   set (f_to'    := upd (upd f_to w n_to) wnext (f_to w)).
@@ -284,26 +284,27 @@ Proof using WF CON.
     eapply tview_closedness_preserved_split; eauto. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
-  eapply simrel_fS in SIMREL; eauto.
+  (* eapply simrel_fS with (f_to':=f_to') (f_from':=f_from') in SIMREL; eauto. *)
   subst.
-  eapply full_simrel_step with (thread:=tid w).
-  16: by apply SIMREL.
+  eapply full_simrel_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S).
+  16: { red. splits.
+        { red. splits; auto.
+          { admit. }
+          red. splits; auto.
+          all: admit. }
+        admit. }
   14: { ins. rewrite !IdentMap.Facts.add_in_iff.
         split; auto.
-        intros [| [ | ]]; auto; subst.
+        intros [|]; auto; subst.
         all: apply IdentMap.Facts.in_find_iff; by rewrite LLH. }
-  13: { eapply msg_preserved_trans.
-        { eapply msg_preserved_cancel; eauto. }
-        eapply msg_preserved_add; eauto. }
-  12: { eapply closedness_preserved_trans.
-        { eapply closedness_preserved_cancel; eauto. }
-        eapply closedness_preserved_add; eauto. }
+  13: { eapply msg_preserved_split; eauto. }
+  12: { eapply closedness_preserved_split; eauto. }
   10: by eapply same_other_threads_steps; eauto.
   all: simpls; eauto.
   { eapply coveredE; eauto. }
   { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
   1-4: basic_solver.
   rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver.
-Qed.
+Admitted.
 
 End IssueReservedPlainStep.
