@@ -148,10 +148,12 @@ Qed.
 
 (* TODO: move to a more appropriate place. *)
 Lemma sim_helper_issue w locw valw f_to' f_from' (S' : actid -> Prop) p_rel
+      (EW : E w) (WW : W w)
       (WLOC : loc lab w = Some locw)
       (WVAL : val lab w = Some valw)
       (WTID : thread = tid w)
       (ISSUABLE : issuable G sc T w)
+      (RFRMWISS : dom_rel (rf ⨾ rmw ⨾ ⦗eq w⦘) ⊆₁ issued T)
       (WNCOV : ~ covered T w)
       (ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e)
       (SW : S' w)
@@ -167,8 +169,6 @@ Lemma sim_helper_issue w locw valw f_to' f_from' (S' : actid -> Prop) p_rel
                (View.singleton_ur locw (f_to' w))).
 Proof using WF IMMCON RELCOV ETCCOH SIM_MEM SIM_RES_MEM SIM_TVIEW.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
-  assert (E w /\ W w) as [EW WW].
-  { split; apply ISSUABLE. }
   assert (~ is_init w) as NINIT.
   { intros HH. apply WNCOV. eapply init_covered; eauto. by split. }
   ins. red; splits; auto.
@@ -271,11 +271,10 @@ Proof using WF IMMCON RELCOV ETCCOH SIM_MEM SIM_RES_MEM SIM_TVIEW.
   { eapply max_value_join; [ | by apply KK | reflexivity].
     assert (rf ⨾ rmw ⨾ ⦗eq w⦘ ≡ ∅₂) as TT.
     { split; [|done].
-      arewrite (⦗eq w⦘ ⊆ ⦗issuable G sc T⦘ ;; ⦗eq w⦘).
-      { generalize ISSUABLE. clear. basic_solver. }
-      arewrite (rf ⨾ rmw ⨾ ⦗issuable G sc T⦘ ⊆ ⦗issued T⦘ ;; rf ⨾ rmw ⨾ ⦗issuable G sc T⦘).
-      { eapply dom_rel_helper_in. by apply dom_rfrmw_issuable_in_I. }
-      generalize NINRMW. clear. basic_solver 10. }
+      rewrite <- seqA. clear -RFRMWISS NINRMW.
+      rewrite <- seqA in RFRMWISS.
+      unfolder in *. ins. desf. eapply NINRMW. do 2 eexists. splits; eauto.
+      apply RFRMWISS. eauto. }
     assert ((if Rel w
              then t_cur G sc (tid w) l (covered T)
              else t_rel G sc (tid w) l locw (covered T)) ∪₁
@@ -341,7 +340,6 @@ Qed.
 (* TODO: move to more appropriate place. *)
 Lemma le_cur_f_to_wprev w locw wprev
       (WNISS : ~ issued T w)
-      (ISSUABLE : issuable G sc T w)
       (SW : S w)
       (PRMWE : (rf ;; rmw) wprev w)
       (LOC : loc lab w = Some locw)
@@ -433,7 +431,6 @@ Qed.
 (* TODO: move to more appropriate place. *)
 Lemma le_p_rel_f_to_wprev w locw wprev p_rel
       (WNISS : ~ issued T w)
-      (ISSUABLE : issuable G sc T w)
       (SW : S w)
       (PRMWE : (rf ;; rmw) wprev w)
       (LOC : loc lab w = Some locw)
@@ -619,11 +616,14 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     exists w. apply seqA. apply seq_eqv_r. split; auto. }
   assert (S wprev) as SPREV.
   { by apply ETCCOH.(etc_I_in_S). }
+
+  assert (dom_rel (rf ⨾ rmw ⨾ ⦗eq w⦘) ⊆₁ issued T) as RFRMWISS.
+  { rewrite <- seqA. intros a [b HH]. apply seq_eqv_r in HH. desc; subst.
+    assert (a = wprev); subst; auto.
+    eapply wf_rfrmwf; eauto. }
   
   assert (dom_rel (rf ⨾ rmw ⨾ ⦗eq w⦘) ⊆₁ S) as DRFRMWS.
-  { intros x [y HH]. apply seqA in HH. destruct_seq_r HH as AA; subst.
-    assert (x = wprev); desf.
-    eapply wf_rfrmwf; eauto. }
+  { rewrite RFRMWISS. apply ETCCOH. }
   assert (immediate (⦗S⦘ ⨾ co) wprev w) as IMMSPREV.
   { eapply (rfrmwP_in_immPco WF IMMCON) with (P':=eq w); auto.
     apply seqA. basic_solver. }
@@ -918,11 +918,14 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     exists w. apply seqA. apply seq_eqv_r. split; auto. }
   assert (S wprev) as SPREV.
   { by apply ETCCOH.(etc_I_in_S). }
+
+  assert (dom_rel (rf ⨾ rmw ⨾ ⦗eq w⦘) ⊆₁ issued T) as RFRMWISS.
+  { rewrite <- seqA. intros a [b HH]. apply seq_eqv_r in HH. desc; subst.
+    assert (a = wprev); subst; auto.
+    eapply wf_rfrmwf; eauto. }
   
   assert (dom_rel (rf ⨾ rmw ⨾ ⦗eq w⦘) ⊆₁ S) as DRFRMWS.
-  { intros x [y HH]. apply seqA in HH. destruct_seq_r HH as AA; subst.
-    assert (x = wprev); desf.
-    eapply wf_rfrmwf; eauto. }
+  { rewrite RFRMWISS. apply ETCCOH. }
   assert (immediate (⦗S⦘ ⨾ co) wprev w) as IMMSPREV.
   { eapply (rfrmwP_in_immPco WF IMMCON) with (P':=eq w); auto.
     apply seqA. basic_solver. }
