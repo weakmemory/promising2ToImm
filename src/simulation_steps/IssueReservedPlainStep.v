@@ -107,6 +107,8 @@ Proof using WF CON.
 
   assert (~ issued T w) as NISSB.
   { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
+  assert (issuable G sc T w) as ISSUABLE.
+  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
   assert (S ⊆₁ E ∩₁ W) as SEW.
   { apply set_subset_inter_r. split; [by apply TCCOH|].
     apply (reservedW WF TCCOH). }
@@ -226,6 +228,8 @@ Proof using WF CON.
 
   assert (~ issued T w) as NISSB.
   { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
+  assert (issuable G sc T w) as ISSUABLE.
+  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
   assert (S ⊆₁ E ∩₁ W) as SEW.
   { apply set_subset_inter_r. split; [by apply TCCOH|].
     apply (reservedW WF TCCOH). }

@@ -129,12 +129,9 @@ Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) threa
 
 Lemma issue_reserved_step_helper_no_next w valw locw langst
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
-      (TSTEP : ext_itrav_step
-                 G sc w (mkETC T S)
-                 (mkETC
-                    (mkTC (covered T) (issued T ∪₁ eq w))
-                    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
       (SW : S w)
+      (NISSB : ~ issued T w)
+      (ISSUABLE : issuable G sc T w)
       (NONEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ ∅)
       (LOC : loc lab w = Some locw)
       (VAL : val lab w = Some valw)
@@ -248,8 +245,6 @@ Proof using All.
   edestruct exists_time_interval_for_issue_reserved_no_next as [p_rel [PREL HH]]; eauto.
   simpls; desc.
   
-  assert (~ issued T w) as NISSB.
-  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
   assert (S ⊆₁ E ∩₁ W) as SEW.
   { apply set_subset_inter_r. split; [by apply ETCCOH|].
     apply (reservedW WF ETCCOH). }
@@ -493,12 +488,9 @@ Admitted.
 
 Lemma issue_reserved_step_helper_with_next w valw locw langst wnext
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
-      (TSTEP : ext_itrav_step
-                 G sc w (mkETC T S)
-                 (mkETC
-                    (mkTC (covered T) (issued T ∪₁ eq w))
-                    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
       (SW : S w)
+      (NISSB : ~ issued T w)
+      (ISSUABLE : issuable G sc T w)
       (WNEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) wnext)
       (LOC : loc lab w = Some locw)
       (VAL : val lab w = Some valw)
@@ -614,8 +606,6 @@ Proof using All.
   edestruct exists_time_interval_for_issue_reserved_with_next as [p_rel [PREL HH]]; eauto.
   simpls; desc.
   
-  assert (~ issued T w) as NISSB.
-  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
   assert (S ⊆₁ E ∩₁ W) as SEW.
   { apply set_subset_inter_r. split; [by apply ETCCOH|].
     apply (reservedW WF ETCCOH). }
@@ -682,16 +672,11 @@ Proof using All.
   { ins. eapply Memory.split_closed_timemap; eauto. }
   desc.
 
-  assert (~ issued T w) as WNISS.
-  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
   assert (~ covered T w) as WNCOV.
-  { intros HH. apply WNISS.
+  { intros HH. apply NISSB.
     eapply w_covered_issued; [by apply ETCCOH|by split]. }
   assert (~ is_init w) as WNINIT.
   { intros HH. apply WNCOV. eapply init_covered; [by apply ETCCOH| by split]. }
-
-  assert (issuable G sc T w) as ISSUABLE.
-  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
 
   assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
   { destruct WNEXT as [_ BB]. generalize BB. unfold Execution.rfi.
@@ -707,7 +692,7 @@ Proof using All.
   assert (W wnext) as WWNEXT.
   { apply WF.(wf_coD) in COWNEXT. by destruct_seq COWNEXT as [AA BB]. }
   assert (~ S wnext) as NSNEXT.
-  { intros HH. apply WNISS. eapply dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
+  { intros HH. apply NISSB. eapply dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
     exists wnext. apply seqA. apply seq_eqv_r. by split. }
   assert (~ issued T wnext) as NINEXT.
   { intros HH. apply NSNEXT. by apply ETCCOH.(etc_I_in_S). }

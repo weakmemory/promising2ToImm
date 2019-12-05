@@ -513,11 +513,8 @@ Qed.
    i.e. f_to' = f_to /\ f_from' = f_from *)
 Lemma exists_time_interval_for_issue_reserved_no_next
       w locw valw langst smode
-      (TSTEP : ext_itrav_step
-                 G sc w (mkETC T S)
-                 (mkETC
-                    (mkTC (covered T) (issued T ∪₁ eq w))
-                    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
+      (WNISS : ~ issued T w)
+      (ISSUABLE : issuable G sc T w)
       (SW : S w)
       (NONEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ ∅)
       (LOC : loc lab w = Some locw)
@@ -581,24 +578,19 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   assert (complete G) as COMPL by apply IMMCON.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
 
-  set (AA:=TSTEP).
-  destruct AA as [_ ETCCOH'].
+  (* set (AA:=TSTEP). *)
+  (* destruct AA as [_ ETCCOH']. *)
 
   assert (E w) as EW.
   { by apply ETCCOH.(etc_S_in_E). }
   assert (W w) as WW.
   { by apply (reservedW WF ETCCOH). }
   
-  assert (~ issued T w) as WNISS.
-  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
   assert (~ covered T w) as WNCOV.
   { intros HH. apply WNISS.
     eapply w_covered_issued; [by apply ETCCOH|by split]. }
   assert (~ is_init w) as WNINIT.
   { intros HH. apply WNCOV. eapply init_covered; [by apply ETCCOH| by split]. }
-
-  assert (issuable G sc T w) as ISSUABLE.
-  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
 
   assert (W_ex w) as WEXW.
   { apply ETCCOH. by split. }
@@ -623,9 +615,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   assert (issued T wprev) as ISSPREV.
   { assert ((issued T ∪₁ eq w) wprev) as AA.
     2: by destruct AA; desf.
-    eapply (dom_rf_rmw_S_in_I WF ETCCOH').
-    exists w. apply seqA. apply seq_eqv_r. split; auto.
-    basic_solver. }
+    left. eapply (dom_rf_rmw_S_in_I WF ETCCOH).
+    exists w. apply seqA. apply seq_eqv_r. split; auto. }
   assert (S wprev) as SPREV.
   { by apply ETCCOH.(etc_I_in_S). }
   
@@ -829,12 +820,9 @@ Qed.
 
 Lemma exists_time_interval_for_issue_reserved_with_next
       w locw valw langst wnext smode
-      (TSTEP : ext_itrav_step
-                 G sc w (mkETC T S)
-                 (mkETC
-                    (mkTC (covered T) (issued T ∪₁ eq w))
-                    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
       (SW : S w)
+      (WNISS : ~ issued T w)
+      (ISSUABLE : issuable G sc T w)
       (WNEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) wnext)
       (LOC : loc lab w = Some locw)
       (VAL : val lab w = Some valw)
@@ -892,24 +880,16 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   assert (complete G) as COMPL by apply IMMCON.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
 
-  set (AA:=TSTEP).
-  destruct AA as [_ ETCCOH'].
-
   assert (E w) as EW.
   { by apply ETCCOH.(etc_S_in_E). }
   assert (W w) as WW.
   { by apply (reservedW WF ETCCOH). }
   
-  assert (~ issued T w) as WNISS.
-  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
   assert (~ covered T w) as WNCOV.
   { intros HH. apply WNISS.
     eapply w_covered_issued; [by apply ETCCOH|by split]. }
   assert (~ is_init w) as WNINIT.
   { intros HH. apply WNCOV. eapply init_covered; [by apply ETCCOH| by split]. }
-
-  assert (issuable G sc T w) as ISSUABLE.
-  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
 
   assert (W_ex w) as WEXW.
   { apply ETCCOH. by split. }
@@ -934,9 +914,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   assert (issued T wprev) as ISSPREV.
   { assert ((issued T ∪₁ eq w) wprev) as AA.
     2: by destruct AA; desf.
-    eapply (dom_rf_rmw_S_in_I WF ETCCOH').
-    exists w. apply seqA. apply seq_eqv_r. split; auto.
-    basic_solver. }
+    left. eapply (dom_rf_rmw_S_in_I WF ETCCOH).
+    exists w. apply seqA. apply seq_eqv_r. split; auto. }
   assert (S wprev) as SPREV.
   { by apply ETCCOH.(etc_I_in_S). }
   
