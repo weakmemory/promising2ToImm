@@ -140,7 +140,7 @@ Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
   let promises := local.(Local.promises) in
   let memory   := PC.(Configuration.memory) in
   let sc_view  := PC.(Configuration.sc) in
-  let covered' := if Rel w then covered T ∪₁ eq r ∪₁ eq w else covered T in
+  let covered' := if Rel w then covered T ∪₁ eq w else covered T in
   let T'       := mkTC covered' (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC w locw p_rel /\
@@ -394,8 +394,7 @@ Proof using All.
     { by left. }
     assert (W b) as WB by (eapply issuedW; eauto).
     destruct (Rel w) eqn:RELB; auto.
-    intros [[HH|HH]|HH]; desf.
-    all: type_solver. }
+    intros [HH|HH]; desf. }
   { simpls. red. ins.
     destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [[A' B']|LL].
     { simpls; rewrite A' in *; rewrite B' in *.
@@ -535,7 +534,7 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
   let promises := local.(Local.promises) in
   let memory   := PC.(Configuration.memory) in
   let sc_view  := PC.(Configuration.sc) in
-  let covered' := if Rel w then covered T ∪₁ eq r ∪₁ eq w else covered T in
+  let covered' := if Rel w then covered T ∪₁ eq w else covered T in
   let T'       := mkTC covered' (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   let n_to     := Time.middle (f_from w) (f_to w) in
@@ -858,9 +857,7 @@ Proof using All.
     exists b; splits; auto.
     { by left. }
     { intros HH. destruct (Rel w); auto.
-      destruct HH as [[HH|HH]|HH]; subst; auto.
-      eapply issuedW in ISS; eauto. apply WF.(wf_rmwD) in RMW.
-      clear -ISS RMW. unfolder in *. desf. type_solver. }
+      destruct HH as [HH|HH]; subst; auto. }
     { by rewrite ISSEQ_FROM; auto. }
     { by rewrite ISSEQ_TO; auto. }
     eapply sim_mem_helper_f_issued; eauto. }
@@ -1017,20 +1014,17 @@ Proof using All.
       apply NCOVB. apply IB. exists b. apply seq_eqv_r. split; auto.
       apply sb_from_w_rel_in_fwbob; auto. apply seq_eqv_lr. splits; auto.
       all: split; auto. red. by rewrite LOC. }
-    apply NCOV. do 2 left. apply ISSUABLE. exists w. apply seq_eqv_r. split; auto.
+    apply NCOV. left. apply ISSUABLE. exists w. apply seq_eqv_r. split; auto.
     apply sb_to_w_rel_in_fwbob. apply seq_eqv_r. split; auto. by split. }
   2: { desf.
        2: by eapply sim_tview_f_issued with (f_to:=f_to); eauto.
        cdes IMMCON.
        eapply sim_tview_write_step
-         with (C:=covered T ∪₁ eq r) (w:=w) (f_from:=f_from')
+         with (C:=covered T) (w:=w) (f_from:=f_from')
               (valw:=valw) (rel:=Some rel') (mem:=memory_split); eauto.
-       8: by erewrite Memory.split_o; eauto; rewrite loc_ts_eq_dec_eq. 
+       7: by erewrite Memory.split_o; eauto; rewrite loc_ts_eq_dec_eq. 
+       3: { eapply sim_tview_f_issued; eauto. }
        all: admit. }
-       (* { admit. } *)
-       (* { admit. } *)
-       (* { rewrite <- TIDRW. eapply sim_tview_read_step. *)
-       (* } *)
   red. ins.
   assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
   { generalize NISSB0. clear. basic_solver. }
