@@ -119,6 +119,9 @@ Proof using WF CON.
   assert (exists locw, loc lab w = Some locw) as [locw WLOC] by (by apply is_w_loc).
   assert (exists valw, val lab w = Some valw) as [valw WVAL] by (by apply is_w_val).
   
+  assert (W_ex w) as [r RMW].
+  { apply TCCOH. by split. }
+  
   edestruct issue_reserved_step_helper_no_next as [p_rel]; eauto. simpls; desc.
 
   set (rel'' :=
@@ -239,6 +242,9 @@ Proof using WF CON.
 
   assert (exists locw, loc lab w = Some locw) as [locw WLOC] by (by apply is_w_loc).
   assert (exists valw, val lab w = Some valw) as [valw WVAL] by (by apply is_w_val).
+  
+  assert (W_ex w) as [r RMW].
+  { apply TCCOH. by split. }
   
   edestruct issue_reserved_step_helper_with_next as [REQ_TO]; eauto. simpls; desc.
 

@@ -127,9 +127,9 @@ Hypothesis SIM_RES_MEM :
 Hypothesis SIM_MEM : sim_mem G sc T f_to f_from thread local PC.(Configuration.memory).
 Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread.
 
-Lemma issue_reserved_step_helper_no_next w valw locw langst
+Lemma issue_reserved_step_helper_no_next r w valw locw langst
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
-      (SW : S w)
+      (RMW : rmw r w) (SW : S w)
       (NISSB : ~ issued T w)
       (ISSUABLE : issuable G sc T w)
       (NONEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ ∅)
@@ -139,8 +139,7 @@ Lemma issue_reserved_step_helper_no_next w valw locw langst
   let promises := local.(Local.promises) in
   let memory   := PC.(Configuration.memory) in
   let sc_view  := PC.(Configuration.sc) in
-  (* TODO: fix. covered' should include dom(rmw ; [w]). *)
-  let covered' := if Rel w then covered T ∪₁ eq w else covered T in
+  let covered' := if Rel w then covered T ∪₁ eq r ∪₁ eq w else covered T in
   let T'       := mkTC covered' (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC w locw p_rel /\
@@ -260,6 +259,9 @@ Proof using All.
     exists u. apply seq_eqv_l. split; auto.
     eapply ExtTraversalProperties.dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
     exists w. apply seqA. apply seq_eqv_r. split; auto. }
+  
+  assert (R r) as RR.
+  { apply WF.(wf_rmwD) in RMW. destruct_seq RMW as [AA BB]. by apply R_ex_in_R. }
 
   assert (Memory.le promises_add memory_add) as PP.
   { eapply memory_le_add2 with (mem1:=promises_cancel) (mem2:=memory_cancel); eauto.
@@ -372,8 +374,10 @@ Proof using All.
     edestruct SIM_PROM as [b H]; eauto; desc.
     exists b; splits; auto.
     { by left. }
+    assert (W b) as WB by (eapply issuedW; eauto).
     destruct (Rel w) eqn:RELB; auto.
-    intros [HH|HH]; desf. }
+    intros [[HH|HH]|HH]; desf.
+    all: type_solver. }
   { simpls. red. ins.
     destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [[A' B']|LL].
     { simpls; rewrite A' in *; rewrite B' in *.
@@ -414,7 +418,7 @@ Proof using All.
       splits; eauto.
       intros AA BB.
       assert (~ covered T b) as NCOVBB.
-      { generalize BB. basic_solver. }
+      { intros HH. apply BB. generalize HH. clear. basic_solver. }
       specialize (HH1 AA NCOVBB).
       desc. splits; auto.
       { apply NOTNEWP; auto. }
@@ -486,9 +490,9 @@ Proof using All.
   apply NOTNEWP; auto.
 Admitted.
 
-Lemma issue_reserved_step_helper_with_next w valw locw langst wnext
+Lemma issue_reserved_step_helper_with_next r w valw locw langst wnext
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
-      (SW : S w)
+      (RMW : rmw r w) (SW : S w)
       (NISSB : ~ issued T w)
       (ISSUABLE : issuable G sc T w)
       (WNEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) wnext)
@@ -498,8 +502,7 @@ Lemma issue_reserved_step_helper_with_next w valw locw langst wnext
   let promises := local.(Local.promises) in
   let memory   := PC.(Configuration.memory) in
   let sc_view  := PC.(Configuration.sc) in
-  (* TODO: fix. covered' should include dom(rmw ; [w]). *)
-  let covered' := if Rel w then covered T ∪₁ eq w else covered T in
+  let covered' := if Rel w then covered T ∪₁ eq r ∪₁ eq w else covered T in
   let T'       := mkTC covered' (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   let n_to     := Time.middle (f_from w) (f_to w) in
@@ -815,7 +818,9 @@ Proof using All.
     exists b; splits; auto.
     { by left. }
     { intros HH. destruct (Rel w); auto.
-      destruct HH as [|HH]; subst; auto. }
+      destruct HH as [[HH|HH]|HH]; subst; auto.
+      eapply issuedW in ISS; eauto. apply WF.(wf_rmwD) in RMW.
+      clear -ISS RMW. unfolder in *. desf. type_solver. }
     { by rewrite ISSEQ_FROM; auto. }
     { by rewrite ISSEQ_TO; auto. }
     eapply sim_mem_helper_f_issued; eauto. }
@@ -929,7 +934,7 @@ Proof using All.
     { eapply sim_mem_helper_f_issued; eauto. }
     intros TIDEQ NCOV.
     destruct HH1 as [AA BB]; auto.
-    { generalize NCOV. clear. basic_solver. }
+    { generalize NCOV. clear. basic_solver 10. }
     splits.
     { apply NOTNEWP; auto.
       all: rewrite <- ISSEQ_TO with (e:=b); auto. }
