@@ -522,7 +522,7 @@ Proof using All.
   apply NOTNEWP; auto.
 Admitted.
 
-Lemma issue_reserved_step_helper_with_next r w valw locw langst wnext
+Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
       (RMW : rmw r w) (SW : S w)
       (NISSB : ~ issued T w)
@@ -530,6 +530,7 @@ Lemma issue_reserved_step_helper_with_next r w valw locw langst wnext
       (WNEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) wnext)
       (LOC : loc lab w = Some locw)
       (VAL : val lab w = Some valw)
+      (ORD : mod lab w = ordw)
       (WTID : thread = tid w) :
   let promises := local.(Local.promises) in
   let memory   := PC.(Configuration.memory) in
@@ -591,7 +592,12 @@ Lemma issue_reserved_step_helper_with_next r w valw locw langst wnext
                                (Message.full valw (Some rel')) promises'
             else promises' = promises_split ⟫ /\
 
-        let local' := Local.mk local.(Local.tview) promises' in
+        let tview' := if is_rel lab w
+                      then TView.write_tview
+                             local.(Local.tview) sc_view locw
+                             (f_to' w) (Event_imm_promise.wmod ordw)
+                      else local.(Local.tview) in
+        let local' := Local.Local.mk tview' promises' in
         let threads' :=
             IdentMap.add (tid w)
                          (langst, local')
@@ -656,6 +662,8 @@ Proof using All.
     exists u. apply seq_eqv_l. split; auto.
     eapply ExtTraversalProperties.dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
     exists w. apply seqA. apply seq_eqv_r. split; auto. }
+  
+  assert (tid r = tid w) as TIDRW by (by apply WF.(wf_rmwt)).
 
   assert (Memory.le promises_split memory_split) as PP.
   { eapply memory_le_split2; eauto. }
@@ -972,30 +980,57 @@ Proof using All.
       all: rewrite <- ISSEQ_TO with (e:=b); auto. }
     desc.
     eexists. splits; eauto.
-    destruct BB0 as [[CC DD]|CC]; eauto.
-    { left. split; auto.
-      intros [u QQ]. destruct_seq_l QQ as UISS. destruct UISS as [UISS|]; subst.
-      { apply CC. clear -QQ UISS. basic_solver 10. }
-      apply NISSB. eapply rfrmw_I_in_I; eauto.
-      clear -QQ ISSB. exists b. apply seqA. basic_solver 10. }
-    right. desc.
-    eexists. splits; eauto.
-    { by left. }
-    eexists; splits; eauto.
-    assert (loc lab p = loc lab b) as LOCPB by (by apply wf_rfrmwl). 
+    2: { destruct BB0 as [[CC DD]|CC]; [left|right].
+         { split; eauto. intros [y HH]. destruct_seq_l HH as OO.
+           destruct OO as [OO|]; subst.
+           { apply CC. exists y. apply seq_eqv_l. by split. }
+           apply NISSB. eapply rfrmw_I_in_I; eauto. exists b.
+           apply seqA. apply seq_eqv_r. by split. }
+         desc. exists p. splits; auto.
+         { by left. }
+         eexists. splits; eauto.
+         destruct (classic (l = locw)) as [|LNEQ]; subst; auto.
+         2: { apply NOTNEWM; auto. rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
+         assert (loc lab p = Some locw) as PLOC.
+         { rewrite <- LOC0. by apply WF.(wf_rfrmwl). }
+         assert (S p) as SP by (by apply ETCCOH.(etc_I_in_S)).
+         apply NOTNEWM.
+         3: { rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
+         all: right; intros HH; eapply f_to_eq in HH; eauto; subst; auto.
+         all: try by red; rewrite PLOC.
+         all: generalize SP, WNEXT; clear; basic_solver. }
+    destruct (Rel w) eqn:RELW; auto.
+    assert (wmod (mod lab w) = Ordering.acqrel) as MM.
+    { clear -RELW. mode_solver. }
+    rewrite MM.
+    unfold TView.rel, TView.write_tview. 
+    arewrite (Ordering.le Ordering.acqrel Ordering.acqrel = true) by reflexivity.
     destruct (classic (l = locw)) as [|LNEQ]; subst.
-    2: { apply NOTNEWM; auto. rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
-    assert (S p) as SP by (by apply ETCCOH.(etc_I_in_S)).
-    assert (loc lab p = Some locw) as PLOC by (by rewrite <- LOC0).
-    apply NOTNEWM; auto.
-    3: { rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
-    all: right; intros HH.
-    all: eapply f_to_eq with 
-        (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)) in HH; eauto.
-    all: try by subst.
-    all: try (generalize SP WNEXT; clear; basic_solver).
-    { red. by rewrite LOC. }
-    red. by rewrite NLOC. }
+    2: { unfold LocFun.add. rewrite Loc.eq_dec_neq; auto. }
+    exfalso.
+    assert (E b) as EB by (eapply issuedE; eauto).
+    assert (W b) as WB by (eapply issuedW; eauto).
+    assert ((<|E|> ;; same_tid ;; <|E|>) w b) as ST.
+    { apply seq_eqv_lr. by splits. }
+    apply tid_sb in ST. destruct ST as [[[|ST]|ST]|[AI BI]]; subst; auto.
+    { assert (issuable G sc T b) as IB by (eapply issued_in_issuable; eauto).
+      apply NCOVB. apply IB. exists b. apply seq_eqv_r. split; auto.
+      apply sb_from_w_rel_in_fwbob; auto. apply seq_eqv_lr. splits; auto.
+      all: split; auto. red. by rewrite LOC. }
+    apply NCOV. do 2 left. apply ISSUABLE. exists w. apply seq_eqv_r. split; auto.
+    apply sb_to_w_rel_in_fwbob. apply seq_eqv_r. split; auto. by split. }
+  2: { desf.
+       2: by eapply sim_tview_f_issued with (f_to:=f_to); eauto.
+       cdes IMMCON.
+       eapply sim_tview_write_step
+         with (C:=covered T ∪₁ eq r) (w:=w) (f_from:=f_from')
+              (valw:=valw) (rel:=Some rel') (mem:=memory_split); eauto.
+       8: by erewrite Memory.split_o; eauto; rewrite loc_ts_eq_dec_eq. 
+       all: admit. }
+       (* { admit. } *)
+       (* { admit. } *)
+       (* { rewrite <- TIDRW. eapply sim_tview_read_step. *)
+       (* } *)
   red. ins.
   assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
   { generalize NISSB0. clear. basic_solver. }
@@ -1005,9 +1040,6 @@ Proof using All.
         (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)) in HH; eauto.
     { red. by rewrite LOC. }
     all: generalize WNEXT; clear; basic_solver. }
-  2: { desf.
-       { admit. }
-       eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
   destruct RESB as [[SB|]|HH]; subst.
   3: { assert (b = wnext); subst.
        { eapply dom_sb_S_rfrmwf; eauto. }
