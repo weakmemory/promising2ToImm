@@ -432,7 +432,6 @@ Proof using WF CON.
       { unfold TView.write_released, TView.read_tview. simpls.
         constructor. unfold View.join. simpls.
         rewrite <- RORD. by rewrite <- FF. }
-      { admit. }
       (* 3: by econstructor; eauto.  *)
       admit. }
     unnw.
