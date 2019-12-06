@@ -652,6 +652,8 @@ Proof using WF CON.
   assert (b <> w) as BNW.
   { intros HH. subst. clear -TNEQ. desf. }
   apply SIM_RES_MEM1; auto.
+Unshelve.
+apply state.
 Qed.
 
 End IssueReservedRelPlainStep.
