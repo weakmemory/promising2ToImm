@@ -298,6 +298,11 @@ Proof using.
   eapply Memory.max_ts_spec; eauto.
 Qed.
 
+Lemma nonsynch_loc_le loc mem1 mem2 (LE : Memory.le mem1 mem2)
+      (NSL : Memory.nonsynch_loc loc mem2) :
+  Memory.nonsynch_loc loc mem1.
+Proof using. red. ins. apply LE in GET. by apply NSL in GET. Qed.
+
 (*********************************************)
 (* TODO: explanation. Maybe a separate file. *)
 (*********************************************)
@@ -333,3 +338,4 @@ Proof using. unfold Time.join. desf. eapply TimeFacts.lt_le_lt; eauto. Qed.
 Lemma time_lt_join_r lhs rlhs rrhs (LT : Time.lt lhs rrhs) :
   Time.lt lhs (Time.join rlhs rrhs).
 Proof using. unfold Time.join. desf. etransitivity; eauto. Qed.
+

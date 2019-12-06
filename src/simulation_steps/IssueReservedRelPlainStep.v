@@ -367,15 +367,32 @@ Proof using WF CON.
     erewrite Memory.remove_o; eauto.
     rewrite loc_ts_eq_dec_neq; auto. }
 
+  set (pe_cancel :=
+         ThreadEvent.promise
+           locr (f_from w) (f_to w) Message.reserve
+           Memory.op_kind_cancel).
+
+  assert (f_to w' <> f_to w) as FWNEQ.
+  { intros HH.
+    eapply f_to_eq with (I:=S) in HH; subst; eauto.
+    red. by rewrite WLOC. }
+
   eexists (Configuration.mk _ _ memory_add).
   apply and_assoc. apply pair_app.
   { split.
-    { set (pe' := MachineEvent.silent).
-      assert (pe' = ThreadEvent.get_machine_event pe) as H.
-      { unfold pe. simpls. }
-      rewrite H. clear H.
-      econstructor; eauto.
-      econstructor; eauto.
+    { eapply t_trans; apply t_step.
+      { set (pe'' := MachineEvent.silent).
+        arewrite (pe'' = ThreadEvent.get_machine_event pe_cancel) by simpls.
+        econstructor; eauto.
+        2: by unfold pe_cancel; desf.
+        apply Thread.step_promise.
+        constructor.
+        2: by simpls.
+        econstructor; eauto. }
+      set (pe' := MachineEvent.silent).
+      arewrite (pe' = ThreadEvent.get_machine_event pe) by simpls.
+      eapply plain_step_intro with (lang:=thread_lts (tid w)); eauto.
+      { simpls. rewrite IdentMap.gss; eauto. }
       2: by unfold pe; clear; desf.
       apply Thread.step_program.
       constructor.
@@ -383,13 +400,15 @@ Proof using WF CON.
         rewrite EV' in STEP; eauto. }
       unfold pe; eapply Local.step_update.
       { econstructor; eauto.
-        { rewrite <- FF; eauto. }
+        { simpls. rewrite <- FF.
+          erewrite Memory.remove_o; eauto.
+          rewrite loc_ts_eq_dec_neq; eauto. }
         (* TODO: generalize! *)
         assert
           (Time.le (View.rlx (TView.cur (Local.tview local)) locr) (f_from w))
           as PP.
         2: constructor; auto.
-        2: by cdes PLN_RLX_EQ; rewrite EQ_CUR.
+        2: by cdes PLN_RLX_EQ; simpls; rewrite EQ_CUR.
         edestruct (max_event_cur) as [a_max]; eauto; desc.
         assert (E a_max) as EA.
         { apply (wf_urrE WF) in CCUR.
@@ -432,8 +451,9 @@ Proof using WF CON.
       { unfold TView.write_released, TView.read_tview. simpls.
         constructor. unfold View.join. simpls.
         rewrite <- RORD. by rewrite <- FF. }
-      (* 3: by econstructor; eauto.  *)
-      admit. }
+      simpls. auto. intros HH.
+      eapply nonsynch_loc_le with (mem2:=local.(Local.promises)); auto.
+      eapply memory_remove_le; eauto. }
     unnw.
     red; splits; red; splits; simpls.
     { apply TSTEP3. }
@@ -555,10 +575,6 @@ Proof using WF CON.
       { unfold TimeMap.singleton, LocFun.add; red; ins.
         destruct (Loc.eq_dec loc locr); subst; eauto.
         rewrite <- FF.
-        assert (f_to w' <> f_to w) as DD.
-        { intros HH.
-          eapply f_to_eq with (I:=S) in HH; subst; eauto.
-          red. by rewrite WLOC. }
         erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_neq; auto.
         erewrite Memory.remove_o; eauto. rewrite loc_ts_eq_dec_neq; auto.
         eauto. }

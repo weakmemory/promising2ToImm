@@ -160,7 +160,7 @@ Proof using WF CON.
       arewrite (pe' = ThreadEvent.get_machine_event pe) by simpls.
       eapply plain_step_intro with (lang:=thread_lts (tid w)); eauto.
       { simpls. rewrite IdentMap.gss; eauto. }
-      2: by unfold pe; desf.
+      2: by unfold pe; clear; desf.
       apply Thread.step_promise.
       constructor.
       2: by simpls.
