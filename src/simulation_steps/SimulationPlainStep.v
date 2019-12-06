@@ -38,6 +38,7 @@ Require Import WriteRlxCovPlainStep.
 Require Import RMWRlxCovPlainStep.
 Require Import ReservePlainStep.
 Require Import IssueReservedPlainStep.
+Require Import IssueReservedRelPlainStep.
 (* TODO: Require Import WritePlainStep. *)
 (* TODO: Require Import RMWPlainStep. *)
 
@@ -180,14 +181,19 @@ Proof using WF CON.
     all: eapply WF.(reservedW); [by apply TS1|].
     all: apply RESEQ; basic_solver. }
 
-(*   (* Release RMW covering *) *)
-(*   assert (R r) as RR. *)
-(*   { apply (dom_l WF.(wf_rmwD)) in RMW. hahn_rewrite (R_ex_in_R) in RMW. apply seq_eqv_l in RMW. desf. } *)
-(*   cdes TS1. desf. *)
-(*   2: { red in ISS. type_solver. } *)
-(*   edestruct rel_rmw_cover_step; eauto. *)
-(*   red. split; [split|]; auto. *)
-(*   all: apply COV. *)
+  (* Release RMW covering *)
+  cdes TS2. desf; unfold eissued, ecovered in *; simpls.
+  1,3: exfalso; apply NISS; apply ISSEQ; clear; basic_solver.
+  assert (S w) as SW.
+  { apply RES. by exists r. }
+  destruct (classic (exists wnext, dom_sb_S_rfrmw G {| etc_TC := T; reserved := S |} rfi (eq w) wnext))
+      as [NEMP|EMP].
+  2: { edestruct issue_rel_reserved_step_no_next; eauto.
+       { generalize EMP. clear. basic_solver. }
+       desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
+  admit.
+  (* desc. edestruct issue_rlx_reserved_step_with_next; eauto. *)
+  (* desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. } *)
 Admitted.
 
 End PlainStep.
