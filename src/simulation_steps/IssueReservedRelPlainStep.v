@@ -476,14 +476,13 @@ Proof using WF CON.
       destruct (Ident.eq_dec (tid e') (tid w)) as [EQ|NEQ].
       { rewrite EQ. eexists.
         rewrite IdentMap.gss. eauto. }
-      rewrite IdentMap.gso; auto. }
-    { admit. }
-    (* { ins. destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ]. *)
-    (*   { subst. rewrite IdentMap.gss in TID. *)
-    (*     inversion TID. eapply PROM_IN_MEM0.  *)
-    (*     rewrite IdentMap.gss. rewrite FF. reflexivity. } *)
-    (*   eapply PROM_IN_MEM1; eauto. rewrite IdentMap.gso in TID; auto. *)
-    (*   rewrite IdentMap.gso; eauto. rewrite IdentMap.gso; eauto. } *)
+      do 2 (rewrite IdentMap.gso; auto). }
+    { ins. destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
+      { subst. rewrite IdentMap.gss in TID.
+        inversion TID. simpls. }
+      eapply PROM_IN_MEM1; eauto.
+      do 2 (rewrite IdentMap.gso in TID; auto).
+      do 2 (rewrite IdentMap.gso; eauto). }
     { intros NFSC. etransitivity; [by apply SC_COV|].
       clear. basic_solver. }
     { intros QQ l.
@@ -500,9 +499,8 @@ Proof using WF CON.
       eapply Memory.cancel_closed; eauto. }
     rewrite IdentMap.gss.
     eexists; eexists; eexists; splits; eauto; simpls.
-    { ins. eapply PROM_DISJOINT0; eauto.
-      rewrite IdentMap.gso in *; eauto.
-      rewrite IdentMap.gso in *; eauto. }
+    { ins. edestruct PROM_DISJOINT0 as [HH|]; eauto.
+      do 2 (rewrite IdentMap.gso in *; eauto). }
     { clear WREPR REPR. rewrite <- FF, <- RORD, <- WORD.
       apply SIM_MEM1. }
     { eapply sim_tview_write_step; eauto.
@@ -616,6 +614,9 @@ Proof using WF CON.
   apply IdentMap.Facts.add_in_iff in AA.
   destruct AA as [AA|AA]; subst; auto.
   { apply SIMREL_THREAD'. }
+  apply IdentMap.Facts.add_in_iff in AA.
+  destruct AA as [AA|AA]; subst; auto.
+  { clear -TNEQ. desf. }
   apply SIMREL in AA. cdes AA.
   eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
   11: { simpls.
@@ -633,13 +634,16 @@ Proof using WF CON.
   { rewrite issuedE; eauto. generalize WACT. clear. basic_solver. }
   1-5: clear; basic_solver.
   { rewrite dom_sb_S_rfrmw_same_tid; auto. clear. basic_solver. }
-  { ins. etransitivity.
-    2: { symmetry. apply IdentMap.Facts.add_in_iff. }
-    split; [by ins; eauto|].
+  { ins.
+    etransitivity; [|by symmetry; apply IdentMap.Facts.add_in_iff].
+    split.
+    { ins; eauto. right. apply IdentMap.Facts.add_in_iff. eauto. }
     intros [|HH]; subst; auto.
-    apply SIMREL_THREAD; auto. }
-  {apply IdentMap.Facts.add_in_iff in TP.
-   destruct TP as [TP|]; auto; subst. clear -TNEQ. desf. }
+    { apply SIMREL_THREAD; auto. }
+    apply IdentMap.Facts.add_in_iff in HH.
+    destruct HH as [|HH]; subst; auto.
+    apply IdentMap.Facts.in_find_iff. rewrite LLH. clear. desf. }
+  { apply IdentMap.Facts.in_find_iff. rewrite LLH0. clear. desf. }
   ins.
   assert (b <> w) as BNW.
   { intros HH. subst. clear -TNEQ. desf. }
