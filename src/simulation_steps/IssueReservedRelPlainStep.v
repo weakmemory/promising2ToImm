@@ -476,7 +476,8 @@ Proof using WF CON.
       { apply HH. by left. }
       { subst. clear -RREAD AA. type_solver. }
       subst. clear -WWRITE AA. type_solver. }
-    { admit. }
+    { eapply Memory.add_closed with (mem1:=memory_cancel); eauto.
+      eapply Memory.cancel_closed; eauto. }
     rewrite IdentMap.gss.
     eexists; eexists; eexists; splits; eauto; simpls.
     { ins. eapply PROM_DISJOINT0; eauto.
