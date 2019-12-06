@@ -88,7 +88,7 @@ Lemma issue_rel_reserved_step_no_next PC T (S : actid -> Prop) f_to f_from threa
       (NONEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ ∅)
 
       (TSTEP1 : ext_itrav_step
-                 G sc w (mkETC T S)
+                 G sc r (mkETC T S)
                  (mkETC (mkTC (covered T ∪₁ eq r) (issued T)) S))
       (TSTEP2 : ext_itrav_step
                   G sc w (mkETC (mkTC (covered T ∪₁ eq r) (issued T)) S)
@@ -119,17 +119,17 @@ Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
 
   assert (NEXT : next G (covered T) r).
-  { admit. }
+  { eapply ext_itrav_step_cov_next with (T:=mkETC T S); eauto. }
   assert (COV : coverable G sc T r).
   { admit. }
  
   assert (WTID : thread = tid w).
-  { admit. }
+  { rewrite <- TID. by apply WF.(wf_rmwt). }
   assert (ISS : ~ issued T w).
   { admit. }
 
   assert (S ⊆₁ E ∩₁ W) as SEW.
-  { admit. }
+  { generalize TCCOH.(etc_S_in_E). generalize (reservedW WF TCCOH). clear. basic_solver. }
   
   assert (sc_per_loc G) as SC_PER_LOC.
   { by apply coherence_sc_per_loc; cdes CON. }
@@ -420,9 +420,6 @@ Proof using WF CON.
         { right; red; apply RF. }
         exists a_max; split; eauto. }
       econstructor; eauto.
-      4: admit.
-      3: admit. 
-      (* 3: by econstructor; eauto.  *)
       { unfold TView.write_released, TView.write_tview. simpls. rewrite RLX_ORDW.
         rewrite REL_ORDW.
         unfold View.singleton_ur_if. rewrite RORD.
@@ -432,11 +429,12 @@ Proof using WF CON.
         rewrite !View.join_assoc.
         rewrite View.join_comm with (lhs:=View.unwrap rel').
           by rewrite FF. }
-      unfold TView.write_released, TView.read_tview. simpls.
-      constructor. unfold View.join. simpls.
-      rewrite <- RORD. rewrite <- FF.
+      { unfold TView.write_released, TView.read_tview. simpls.
+        constructor. unfold View.join. simpls.
+        rewrite <- RORD. by rewrite <- FF. }
+      { admit. }
+      (* 3: by econstructor; eauto.  *)
       admit. }
-      (* rewrite ISSEQ_TO; auto. } *)
     unnw.
     red; splits; red; splits; simpls.
     { apply TSTEP3. }
@@ -593,21 +591,43 @@ Proof using WF CON.
     apply sim_state_cover_rmw_events; auto. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
-  (* TODO: continue from here *)
-  eapply simrel_f_issued in SIMREL; eauto.
-  eapply full_simrel_step.
-  13: by apply SIMREL.
-  11: { ins. rewrite IdentMap.Facts.add_in_iff.
-        split; auto. intros [|]; auto; subst.
-        apply IdentMap.Facts.in_find_iff.
-          by rewrite LLH. }
+  subst. desc. red.
+  splits; [by apply SIMREL_THREAD'|].
+  simpls. ins.
+  destruct (classic (thread = tid w)) as [|TNEQ]; subst.
+  { apply SIMREL_THREAD'. }
+  set (AA:=TP).
+  apply IdentMap.Facts.add_in_iff in AA.
+  destruct AA as [AA|AA]; subst; auto.
+  { apply SIMREL_THREAD'. }
+  apply SIMREL in AA. cdes AA.
+  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
+  11: { simpls.
+        eapply msg_preserved_trans.
+        2: by eapply msg_preserved_add; eauto.
+        eapply msg_preserved_cancel; eauto. }
+  10: { simpls.
+        eapply closedness_preserved_trans.
+        2: by eapply closedness_preserved_add; eauto.
+        eapply closedness_preserved_cancel; eauto. }
+  9: by eapply same_other_threads_steps; eauto.
   all: simpls; eauto.
-  8: by eapply msg_preserved_add; eauto.
-  7: by eapply closedness_preserved_add; eauto.      
-  2: rewrite issuedE; eauto.
-  rewrite coveredE; eauto.
-  all: basic_solver.
-  Unshelve. apply state.
-Qed.
+  { erewrite coveredE; eauto.
+    clear -RACT WACT. basic_solver. }
+  { rewrite issuedE; eauto. generalize WACT. clear. basic_solver. }
+  1-5: clear; basic_solver.
+  { rewrite dom_sb_S_rfrmw_same_tid; auto. clear. basic_solver. }
+  { ins. etransitivity.
+    2: { symmetry. apply IdentMap.Facts.add_in_iff. }
+    split; [by ins; eauto|].
+    intros [|HH]; subst; auto.
+    apply SIMREL_THREAD; auto. }
+  {apply IdentMap.Facts.add_in_iff in TP.
+   destruct TP as [TP|]; auto; subst. clear -TNEQ. desf. }
+  ins.
+  assert (b <> w) as BNW.
+  { intros HH. subst. clear -TNEQ. desf. }
+  apply SIM_RES_MEM1; auto.
+Admitted.
 
 End IssueReservedRelPlainStep.
