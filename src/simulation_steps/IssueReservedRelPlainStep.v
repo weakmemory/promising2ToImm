@@ -120,13 +120,12 @@ Proof using WF CON.
 
   assert (NEXT : next G (covered T) r).
   { eapply ext_itrav_step_cov_next with (T:=mkETC T S); eauto. }
-  assert (COV : coverable G sc T r).
-  { admit. }
  
   assert (WTID : thread = tid w).
   { rewrite <- TID. by apply WF.(wf_rmwt). }
   assert (ISS : ~ issued T w).
-  { admit. }
+  { cdes TSTEP2. desf. unfold ecovered, eissued in *; simpls.
+    intros HH. apply NCOV. apply COVEQ. clear. basic_solver. }
 
   assert (S ⊆₁ E ∩₁ W) as SEW.
   { generalize TCCOH.(etc_S_in_E). generalize (reservedW WF TCCOH). clear. basic_solver. }
@@ -173,6 +172,11 @@ Proof using WF CON.
   assert (locw = locr) as SAME_PARAMS; subst.
   { apply (wf_rmwl WF) in RMW.
     unfold same_loc, loc in *; desf. }
+
+  assert (COV : coverable G sc T r).
+  { apply coverable_add_eq_iff; auto.
+    apply covered_in_coverable; [|clear; basic_solver].
+    apply TSTEP1. }
 
   assert (issued T w') as WISS.
   { red in COV. destruct COV as [_ [[COV|COV]|COV]].
@@ -648,6 +652,6 @@ Proof using WF CON.
   assert (b <> w) as BNW.
   { intros HH. subst. clear -TNEQ. desf. }
   apply SIM_RES_MEM1; auto.
-Admitted.
+Qed.
 
 End IssueReservedRelPlainStep.
