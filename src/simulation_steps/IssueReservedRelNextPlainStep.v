@@ -371,8 +371,16 @@ Proof using WF CON.
     rewrite WPARAMS in *.
     destruct ordw; simpls. }
 
+  assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
+  { (* TODO: generalize to a lemma. *)
+    destruct WNEXT as [_ [y AA]]. destruct_seq_l AA as BB; subst.
+    generalize AA. clear. unfold Execution.rfi. basic_solver 10. }
+  assert (~ issued T wnext) as NISSNEXT.
+  { intros HH. apply ISS. eapply rfrmw_I_in_I; eauto. exists wnext.
+    apply seqA. apply seq_eqv_r. split; auto. }
+
   assert (w <> wnext) as WNEQNEXT.
-  { intros HH; subst. admit. }
+  { intros HH; subst. eapply WF.(wf_rfrmw_irr); eauto. }
 
   assert (f_to' w' = f_from' w) as FF'.
   { apply FCOH0; auto.
@@ -405,14 +413,6 @@ Proof using WF CON.
     { red. by rewrite WLOC. }
     all: generalize SW'; clear; basic_solver. }
   
-  assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
-  { (* TODO: generalize to a lemma. *)
-    destruct WNEXT as [_ [y AA]]. destruct_seq_l AA as BB; subst.
-    generalize AA. clear. unfold Execution.rfi. basic_solver 10. }
-  assert (~ issued T wnext) as NISSNEXT.
-  { intros HH. apply ISS. eapply rfrmw_I_in_I; eauto. exists wnext.
-    apply seqA. apply seq_eqv_r. split; auto. }
-
   assert (loc lab wnext = Some locr) as LOCWNEXT.
   { rewrite <- WLOC. symmetry. by apply WF.(wf_rfrmwl). }
 
@@ -695,8 +695,11 @@ Proof using WF CON.
   { ins.
     assert (b <> w) as BNW.
     { intros HH. subst. clear -TNEQ. desf. }
-    admit. }
-    (* apply SIM_RES_MEM0; auto. *)
+    unfold f_to'. rewrite updo.
+    2: { admit. }
+    rewrite updo; auto.
+    rewrite REQ_FROM; auto.
+    apply SIM_RES_MEM1; auto. }
   eapply sim_tview_f_issued; eauto.
 Unshelve.
 apply state.
