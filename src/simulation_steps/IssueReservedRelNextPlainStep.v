@@ -11,6 +11,7 @@ From imm Require Import imm_common.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
+From imm Require Import AuxDef.
 
 Require Import TraversalConfig.
 Require Import ExtTraversal.
@@ -109,12 +110,12 @@ Lemma issue_rel_reserved_step_with_next PC T (S : actid -> Prop) f_to f_from thr
 
   let T' := mkTC (covered T ∪₁ eq r ∪₁ eq w) (issued T ∪₁ eq w) in
   let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
-  exists PC',
+  exists f_to' f_from' PC',
     ⟪ PCSTEP : (plain_step MachineEvent.silent thread)^+ PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread smode ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
     ⟪ SIMREL :
         smode = sim_normal -> simrel G sc PC T S f_to f_from ->
-        simrel G sc PC' T' S' f_to f_from ⟫.
+        simrel G sc PC' T' S' f_to' f_from' ⟫.
 Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
 
@@ -129,11 +130,16 @@ Proof using WF CON.
 
   assert (S ⊆₁ E ∩₁ W) as SEW.
   { generalize TCCOH.(etc_S_in_E). generalize (reservedW WF TCCOH). clear. basic_solver. }
-  
+
   assert (sc_per_loc G) as SC_PER_LOC.
   { by apply coherence_sc_per_loc; cdes CON. }
   assert (tc_coherent G sc T) as TCCOHs.
   { apply TCCOH. }
+  
+  assert (E wnext /\ W wnext) as [ENEXT WWNEXT].
+  { split.
+    { eapply dom_sb_S_rfrmwE; eauto. }
+    apply W_ex_in_W; auto. eapply dom_sb_S_rfrmw_in_W_ex; eauto. }
 
   assert (~ covered T r) as RNCOV.
   { apply NEXT. }
@@ -233,6 +239,14 @@ Proof using WF CON.
   assert (tid w = tid r) as TIDWR.
   { destruct (sb_tid_init WRSB); desf. }
 
+  assert (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G
+            (mkETC (mkTC (covered T ∪₁ eq r) (issued T)) S) rfi (eq w)
+            ⊆₁ E ∩₁ W) as SEW'.
+  { rewrite SEW at 1. unionL; auto.
+    { generalize WACT WWRITE. clear. basic_solver. }
+    erewrite dom_sb_S_rfrmw_single; eauto.
+    generalize ENEXT WWNEXT. clear. basic_solver. }
+
   edestruct SIM_MEM as [rel' DOM'].
   { apply WISS. }
   all: eauto.
@@ -309,9 +323,9 @@ Proof using WF CON.
   { eapply wf_rfrmwf; eauto. }
   rewrite PW in *; clear PW.
   simpls.
-  (* assert (p_rel = rel') as PW. *)
-  (* { rewrite INMEM in P_INMEM. clear -P_INMEM. inv P_INMEM. } *)
-  (* rewrite PW in *; clear PW. *)
+  assert (p_rel0 = rel') as PW.
+  { rewrite INMEM in P_INMEM. clear -P_INMEM. inv P_INMEM. }
+  rewrite PW in *; clear PW.
   destruct (is_rel lab w) eqn:RELVV; simpls.
 
   set (f_to' := upd (upd f_to w (Time.middle (f_from w) (f_to w))) wnext (f_to w)).
@@ -357,10 +371,15 @@ Proof using WF CON.
     rewrite WPARAMS in *.
     destruct ordw; simpls. }
 
-  (* assert (f_to w' = f_from w) as FF. *)
-  (* { apply FCOH0; auto. *)
-  (*   { by do 2 left. } *)
-  (*   clear. basic_solver. } *)
+  assert (w <> wnext) as WNEQNEXT.
+  { intros HH; subst. admit. }
+
+  assert (f_to' w' = f_from' w) as FF'.
+  { apply FCOH0; auto.
+    all: generalize SW'; clear; basic_solver. }
+
+  assert (f_to w' = f_from' w) as FF.
+  { rewrite <- ISSEQ_TO; auto. }
 
   (* assert (forall l to from msg  *)
   (*                (NEQ : l <> locr \/ to <> f_to w), *)
@@ -372,32 +391,52 @@ Proof using WF CON.
   (*   erewrite Memory.remove_o; eauto. *)
   (*   rewrite loc_ts_eq_dec_neq; auto. } *)
 
-  set (pe_cancel :=
-         ThreadEvent.promise
-           locr (f_from w) (f_to w) Message.reserve
-           Memory.op_kind_cancel).
+  (* set (pe_cancel := *)
+  (*        ThreadEvent.promise *)
+  (*          locr (f_from w) (f_to w) Message.reserve *)
+  (*          Memory.op_kind_cancel). *)
 
-  assert (f_to w' <> f_to w) as FWNEQ.
+  assert (f_to' w' <> f_to' w) as FWNEQ.
   { intros HH.
-    eapply f_to_eq with (I:=S) in HH; subst; eauto.
-    red. by rewrite WLOC. }
+    eapply f_to_eq in HH.
+    5: by eauto.
+    all: eauto.
+    { subst. generalize ISS WISS. clear. desf. }
+    { red. by rewrite WLOC. }
+    all: generalize SW'; clear; basic_solver. }
+  
+  assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
+  { (* TODO: generalize to a lemma. *)
+    destruct WNEXT as [_ [y AA]]. destruct_seq_l AA as BB; subst.
+    generalize AA. clear. unfold Execution.rfi. basic_solver 10. }
+  assert (~ issued T wnext) as NISSNEXT.
+  { intros HH. apply ISS. eapply rfrmw_I_in_I; eauto. exists wnext.
+    apply seqA. apply seq_eqv_r. split; auto. }
 
-  eexists (Configuration.mk _ _ memory_add).
+  assert (loc lab wnext = Some locr) as LOCWNEXT.
+  { rewrite <- WLOC. symmetry. by apply WF.(wf_rfrmwl). }
+
+  assert (f_to' w' <> f_to' wnext) as FWNEQ'.
+  { intros HH.
+    eapply f_to_eq in HH.
+    5: by eauto.
+    all: eauto.
+    { subst. generalize NISSNEXT WISS. clear. desf. }
+    { red. by rewrite WPLOC. }
+    all: generalize SW' WNEXT; clear; basic_solver. }
+
+  assert (Memory.get locr (f_to w) (Configuration.memory PC) =
+          Some (f_from w, Message.reserve)) as W_INMEM.
+  { edestruct SIM_RES_MEM with (b:=w) as [OO]; eauto. }
+
+  exists f_to', f_from'.
+  eexists (Configuration.mk _ _ memory_split).
   apply and_assoc. apply pair_app.
   { split.
-    { eapply t_trans; apply t_step.
-      { set (pe'' := MachineEvent.silent).
-        arewrite (pe'' = ThreadEvent.get_machine_event pe_cancel) by simpls.
-        econstructor; eauto.
-        2: by unfold pe_cancel; desf.
-        apply Thread.step_promise.
-        constructor.
-        2: by simpls.
-        econstructor; eauto. }
+    { eapply t_step.
       set (pe' := MachineEvent.silent).
       arewrite (pe' = ThreadEvent.get_machine_event pe) by simpls.
       eapply plain_step_intro with (lang:=thread_lts (tid w)); eauto.
-      { simpls. rewrite IdentMap.gss; eauto. }
       2: by unfold pe; clear; desf.
       apply Thread.step_program.
       constructor.
@@ -405,12 +444,10 @@ Proof using WF CON.
         rewrite EV' in STEP; eauto. }
       unfold pe; eapply Local.step_update.
       { econstructor; eauto.
-        { simpls. rewrite <- FF.
-          erewrite Memory.remove_o; eauto.
-          rewrite loc_ts_eq_dec_neq; eauto. }
+        { simpls. rewrite <- FF; eauto. }
         (* TODO: generalize! *)
         assert
-          (Time.le (View.rlx (TView.cur (Local.tview local)) locr) (f_from w))
+          (Time.le (View.rlx (TView.cur (Local.tview local)) locr) (f_from' w))
           as PP.
         2: constructor; auto.
         2: by cdes PLN_RLX_EQ; simpls; rewrite EQ_CUR.
@@ -452,13 +489,13 @@ Proof using WF CON.
         rewrite View.join_comm with (lhs:=View.unwrap rel').
         rewrite !View.join_assoc.
         rewrite View.join_comm with (lhs:=View.unwrap rel').
-          by rewrite FF. }
+        rewrite <- FF. rewrite ISSEQ_TO; auto. }
       { unfold TView.write_released, TView.read_tview. simpls.
         constructor. unfold View.join. simpls.
         rewrite <- RORD. by rewrite <- FF. }
-      simpls. auto. intros HH.
-      eapply nonsynch_loc_le with (mem2:=local.(Local.promises)); auto.
-      eapply memory_remove_le; eauto. }
+      simpls. econstructor.
+      eapply Memory.promise_split; eauto.
+      all: by unfold f_to'; rewrite ISSEQ_TO with (e:=w'); eauto. }
     unnw.
     red; splits; red; splits; simpls.
     { apply TSTEP3. }
@@ -486,7 +523,7 @@ Proof using WF CON.
       { subst. rewrite IdentMap.gss in TID.
         inversion TID. simpls. }
       eapply PROM_IN_MEM1; eauto.
-      do 2 (rewrite IdentMap.gso in TID; auto).
+      rewrite IdentMap.gso in TID; auto.
       do 2 (rewrite IdentMap.gso; eauto). }
     { intros NFSC. etransitivity; [by apply SC_COV|].
       clear. basic_solver. }
@@ -500,8 +537,7 @@ Proof using WF CON.
       { apply HH. by left. }
       { subst. clear -RREAD AA. type_solver. }
       subst. clear -WWRITE AA. type_solver. }
-    { eapply Memory.add_closed with (mem1:=memory_cancel); eauto.
-      eapply Memory.cancel_closed; eauto. }
+    { eapply Memory.split_closed; eauto. }
     rewrite IdentMap.gss.
     eexists; eexists; eexists; splits; eauto; simpls.
     { ins. edestruct PROM_DISJOINT0 as [HH|]; eauto.
@@ -510,24 +546,27 @@ Proof using WF CON.
       apply SIM_MEM1. }
     { eapply sim_tview_write_step; eauto.
       1,2: by apply CON.
-      3: rewrite <- FF; eapply sim_tview_read_step; eauto. 
+      3: rewrite <- FF'; eapply sim_tview_read_step; eauto. 
       { apply set_subset_union_l; split.
         all: intros x H.
         { apply TCCOH in H; apply H. }
           by desf. }
-      5: { red. ins. eapply NEXT. red. eauto. }
+      6: { red. ins. eapply NEXT. red. eauto. }
       2,3: by apply CON.
       { red. ins. left. apply seq_eqv_r in REL0.
         destruct REL0 as [SB [COVY|]]; subst.
         { apply TCCOH in COVY. apply COVY. eexists.
           apply seq_eqv_r. eauto. }
         apply NEXT. eexists. apply seq_eqv_r. eauto. }
+      { eapply sim_tview_f_issued; eauto. }
       { intros y [COVY TIDY].
         edestruct same_thread with (x:=r) (y:=y) as [[|SB]|SB]; eauto.
         { apply TCCOH in COVY. apply COVY. }
         { exfalso. apply RNCOV. by subst. }
         exfalso. apply RNCOV. apply TCCOH in COVY.
         apply COVY. eexists. apply seq_eqv_r. eauto. }
+      { rewrite ISSEQ_TO; eauto. }
+      { eapply sim_mem_helper_f_issued; eauto. }
       { intros [HH|HH]. 
         { by apply WNCOV. }
         clear -HH RREAD WWRITE.
@@ -549,8 +588,7 @@ Proof using WF CON.
         edestruct sb_semi_total_r with (x:=w) (y:=y) (z:=r) as [AA|AA]; eauto.
         { left. apply NEXT. eexists. apply seq_eqv_r. eauto. }
         exfalso. eapply WF.(wf_rmwi); eauto. }
-      { erewrite Memory.add_o; eauto.
-          by rewrite loc_ts_eq_dec_eq. }
+      { erewrite Memory.split_o; eauto. eby rewrite loc_ts_eq_dec_eq. }
       done. }
     { cdes PLN_RLX_EQ. 
       unfold TView.write_tview, TView.read_tview; simpls.
@@ -570,28 +608,41 @@ Proof using WF CON.
       all: rewrite EQ_CUR.
       2: done.
         by rewrite REL_PLN_RLX. }
-    { assert (Memory.closed_timemap (TimeMap.singleton locr (f_to w)) memory_add) as AA.
+    { assert (Memory.closed_timemap (TimeMap.singleton locr (f_to' w)) memory_split) as AA.
       { unfold TimeMap.singleton, LocFun.add; red; ins.
         destruct (Loc.eq_dec loc locr); subst; eauto.
-        erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq. eauto. }
-      assert (Memory.closed_timemap (TimeMap.singleton locr (f_from w)) memory_add) as BB.
+        erewrite Memory.split_o; eauto. rewrite loc_ts_eq_dec_eq. eauto. }
+      assert (Memory.closed_timemap (TimeMap.singleton locr (f_from' w)) memory_split) as BB.
       { unfold TimeMap.singleton, LocFun.add; red; ins.
         destruct (Loc.eq_dec loc locr); subst; eauto.
-        rewrite <- FF.
-        erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_neq; auto.
-        erewrite Memory.remove_o; eauto. rewrite loc_ts_eq_dec_neq; auto.
-        eauto. }
+        rewrite <- FF'.
+        erewrite Memory.split_o; eauto.
+        rewrite loc_ts_eq_dec_neq; auto.
+        rewrite loc_ts_eq_dec_neq; auto.
+        rewrite ISSEQ_TO; eauto. }
       assert (forall tmap,
                  Memory.closed_timemap tmap PC.(Configuration.memory) ->
-                 Memory.closed_timemap tmap memory_add) as HH.
+                 Memory.closed_timemap tmap memory_split) as HH.
       { intros tmap HH. red. ins.
         specialize (HH loc). desc.
-        exists from, val, released. apply NOTNEWM; auto.
+        exists from, val, released.
+        erewrite Memory.split_o; eauto.
         destruct (classic (loc = locr)) as [|]; subst; auto.
-        destruct (classic (tmap locr = f_to w)) as [EQ|]; subst; auto.
-        rewrite EQ in HH. exfalso.
-        edestruct SIM_RES_MEM with (b:=w) as [OO]; eauto.
-        rewrite OO in HH. inv HH. }
+        2: { do 2 (rewrite loc_ts_eq_dec_neq; auto). }
+        destruct (classic (tmap locr = f_to' w)) as [EQ|]; subst; auto.
+        2: { rewrite loc_ts_eq_dec_neq; auto.
+             destruct (classic (tmap locr = f_to' wnext)) as [EQ|]; subst; auto.
+             2: by rewrite loc_ts_eq_dec_neq; auto.
+             rewrite EQ in *. exfalso.
+             unfold f_to' in HH. rewrite upds in HH.
+             rewrite W_INMEM in HH. inv HH. }
+        rewrite EQ in *. rewrite loc_ts_eq_dec_eq. exfalso.
+        admit. }
+        (* edestruct (Memory.get_disjoint) with (t1:=f_to' w) (t2:=f_to w) as [TT|TT]; eauto. *)
+        (* { desc. admit. } *)
+        (* eapply TT with (x:=f_to' w). *)
+        (* { apply Interval.mem_ub. *)
+        (* admit. } *)
       unfold TView.write_tview, TView.read_tview; simpls.
       red; splits; simpls.
       all: desf; ins.
@@ -619,19 +670,10 @@ Proof using WF CON.
   apply IdentMap.Facts.add_in_iff in AA.
   destruct AA as [AA|AA]; subst; auto.
   { apply SIMREL_THREAD'. }
-  apply IdentMap.Facts.add_in_iff in AA.
-  destruct AA as [AA|AA]; subst; auto.
-  { clear -TNEQ. desf. }
   apply SIMREL in AA. cdes AA.
   eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
-  11: { simpls.
-        eapply msg_preserved_trans.
-        2: by eapply msg_preserved_add; eauto.
-        eapply msg_preserved_cancel; eauto. }
-  10: { simpls.
-        eapply closedness_preserved_trans.
-        2: by eapply closedness_preserved_add; eauto.
-        eapply closedness_preserved_cancel; eauto. }
+  11: { simpls. eapply msg_preserved_split; eauto. }
+  10: { simpls. eapply closedness_preserved_split; eauto. }
   9: by eapply same_other_threads_steps; eauto.
   all: simpls; eauto.
   { erewrite coveredE; eauto.
@@ -642,19 +684,22 @@ Proof using WF CON.
   { ins.
     etransitivity; [|by symmetry; apply IdentMap.Facts.add_in_iff].
     split.
-    { ins; eauto. right. apply IdentMap.Facts.add_in_iff. eauto. }
+    { ins; eauto. }
     intros [|HH]; subst; auto.
-    { apply SIMREL_THREAD; auto. }
-    apply IdentMap.Facts.add_in_iff in HH.
-    destruct HH as [|HH]; subst; auto.
-    apply IdentMap.Facts.in_find_iff. rewrite LLH. clear. desf. }
-  { apply IdentMap.Facts.in_find_iff. rewrite LLH0. clear. desf. }
-  ins.
-  assert (b <> w) as BNW.
-  { intros HH. subst. clear -TNEQ. desf. }
-  apply SIM_RES_MEM1; auto.
+    apply SIMREL_THREAD; auto. }
+  { apply IdentMap.Facts.add_in_iff in TP. destruct TP as [HH|]; auto; subst.
+    clear -TNEQ. desf. }
+  { eapply sim_prom_f_issued; eauto. }
+  { admit. }
+  { eapply sim_mem_f_issued; eauto. }
+  { ins.
+    assert (b <> w) as BNW.
+    { intros HH. subst. clear -TNEQ. desf. }
+    admit. }
+    (* apply SIM_RES_MEM0; auto. *)
+  eapply sim_tview_f_issued; eauto.
 Unshelve.
 apply state.
-Qed.
+Admitted.
 
 End IssueReservedRelNextPlainStep.
