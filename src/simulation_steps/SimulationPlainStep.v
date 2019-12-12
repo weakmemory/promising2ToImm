@@ -39,6 +39,7 @@ Require Import RMWRlxCovPlainStep.
 Require Import ReservePlainStep.
 Require Import IssueReservedPlainStep.
 Require Import IssueReservedRelPlainStep.
+Require Import IssueReservedRelNextPlainStep.
 (* TODO: Require Import WritePlainStep. *)
 (* TODO: Require Import RMWPlainStep. *)
 
@@ -191,9 +192,8 @@ Proof using WF CON.
   2: { edestruct issue_rel_reserved_step_no_next; eauto.
        { generalize EMP. clear. basic_solver. }
        desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
-  admit.
-  (* desc. edestruct issue_rlx_reserved_step_with_next; eauto. *)
-  (* desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. } *)
+  desc. edestruct issue_rel_reserved_step_with_next; eauto.
+  desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto.
 Admitted.
 
 End PlainStep.

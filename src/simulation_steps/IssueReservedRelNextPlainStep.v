@@ -643,12 +643,8 @@ Proof using WF CON.
              unfold f_to' in HH. rewrite upds in HH.
              rewrite W_INMEM in HH. inv HH. }
         rewrite EQ in *. rewrite loc_ts_eq_dec_eq. exfalso.
-        admit. }
-        (* edestruct (Memory.get_disjoint) with (t1:=f_to' w) (t2:=f_to w) as [TT|TT]; eauto. *)
-        (* { desc. admit. } *)
-        (* eapply TT with (x:=f_to' w). *)
-        (* { apply Interval.mem_ub. *)
-        (* admit. } *)
+        edestruct Memory.split_get0 with (mem2:=memory_split) as [QQ _]; eauto.
+        unfold f_to' in HH. rewrite QQ in HH. inv HH. }
       unfold TView.write_tview, TView.read_tview; simpls.
       red; splits; simpls.
       all: desf; ins.
@@ -716,6 +712,6 @@ Proof using WF CON.
   eapply sim_tview_f_issued; eauto.
 Unshelve.
 apply state.
-Admitted.
+Qed.
 
 End IssueReservedRelNextPlainStep.
