@@ -140,7 +140,7 @@ Proof using WF CON.
   { split.
     { eapply dom_sb_S_rfrmwE; eauto. }
     apply W_ex_in_W; auto. eapply dom_sb_S_rfrmw_in_W_ex; eauto. }
-
+  
   assert (~ covered T r) as RNCOV.
   { apply NEXT. }
 
@@ -255,6 +255,9 @@ Proof using WF CON.
 
   assert ((rf ⨾ rmw) w' w) as RFRMW.
   { exists r; split; auto. }
+
+  assert (tid wnext = tid w) as TWNEXTEQ.
+  { eapply dom_sb_S_rfrmw_same_tid; eauto. }
   
   (* destruct DOM1 as [WMEM [p_rel]]; eauto. desc. *)
   (* destruct H0; desc. *)
@@ -375,9 +378,12 @@ Proof using WF CON.
   { (* TODO: generalize to a lemma. *)
     destruct WNEXT as [_ [y AA]]. destruct_seq_l AA as BB; subst.
     generalize AA. clear. unfold Execution.rfi. basic_solver 10. }
+  assert (~ S wnext) as NRESNEXT.
+  { intros HH. apply ISS.
+    eapply ExtTraversalProperties.dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
+    exists wnext. apply seqA. apply seq_eqv_r. split; auto. }
   assert (~ issued T wnext) as NISSNEXT.
-  { intros HH. apply ISS. eapply rfrmw_I_in_I; eauto. exists wnext.
-    apply seqA. apply seq_eqv_r. split; auto. }
+  { intros HH. apply NRESNEXT. by apply TCCOH.(etc_I_in_S). }
 
   assert (w <> wnext) as WNEQNEXT.
   { intros HH; subst. eapply WF.(wf_rfrmw_irr); eauto. }
@@ -690,13 +696,20 @@ Proof using WF CON.
   { apply IdentMap.Facts.add_in_iff in TP. destruct TP as [HH|]; auto; subst.
     clear -TNEQ. desf. }
   { eapply sim_prom_f_issued; eauto. }
-  { admit. }
+  { red. ins. apply SIM_RPROM0 in RES. desc.
+    assert (b <> w) as NBW.
+    { intros HH; subst. clear -TNEQ. desf. }
+    exists b. splits; auto.
+    { rewrite REQ_FROM; auto. }
+    unfold f_to'. rewrite updo.
+    2: { intros HH; subst. clear -TNEQ TWNEXTEQ. desf. }
+    rewrite updo; auto. }
   { eapply sim_mem_f_issued; eauto. }
   { ins.
     assert (b <> w) as BNW.
     { intros HH. subst. clear -TNEQ. desf. }
     unfold f_to'. rewrite updo.
-    2: { admit. }
+    2: { intros HH; subst. clear -RESB NRESNEXT. desf. }
     rewrite updo; auto.
     rewrite REQ_FROM; auto.
     apply SIM_RES_MEM1; auto. }
