@@ -1058,6 +1058,9 @@ Proof using All.
               (valw:=valw) (rel:=Some rel') (mem:=memory_split); eauto.
        7: by erewrite Memory.split_o; eauto; rewrite loc_ts_eq_dec_eq. 
        3: { eapply sim_tview_f_issued; eauto. }
+       { eapply coveredE; eauto. }
+       { red. ins. eapply dom_sb_covered; eauto.
+         eexists; eauto. }
        all: admit. }
   { red. ins.
     assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
