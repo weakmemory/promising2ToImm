@@ -1053,6 +1053,8 @@ Proof using All.
   2: { desf.
        2: by eapply sim_tview_f_issued with (f_to:=f_to); eauto.
        cdes IMMCON.
+       destruct (lab w) eqn:LL.
+       1,3: clear -LL WW; type_solver. 
        eapply sim_tview_write_step
          with (C:=covered T) (w:=w) (f_from:=f_from')
               (valw:=valw) (rel:=Some rel') (mem:=memory_split); eauto.
@@ -1061,7 +1063,26 @@ Proof using All.
        { eapply coveredE; eauto. }
        { red. ins. eapply dom_sb_covered; eauto.
          eexists; eauto. }
-       all: admit. }
+       { intros y [COVY TIDY].
+         assert (E y) as EY.
+         { eapply coveredE; eauto. }
+         apply tid_ext_sb in TIDY. destruct TIDY as [[[AA|AA]|]|[_ AA]]; subst.
+         4: { clear -AA WNINIT. desf. }
+         { clear -NCOVB COVY; desf. }
+         { red. apply seq_eqv_lr. splits; auto. }
+         exfalso. apply NCOVB. eapply dom_sb_covered; eauto.
+         exists y. apply seq_eqv_r. split; eauto.
+         apply seq_eqv_lr. splits; auto. }
+       { red. ins. eapply ISSUABLE.
+         apply seq_eqv_r in REL. desc; subst.
+         eexists. apply seq_eqv_r. split; auto.
+         apply sb_to_w_rel_in_fwbob. apply seq_eqv_r. do 2 (split; auto). }
+       unfold mod. rewrite LL.
+       assert (locw = l); subst.
+       { clear -LOC LL. unfold loc in LOC. rewrite LL in LOC. inv LOC. }
+       assert (valw = v); subst.
+       { clear -VAL LL. unfold val in VAL. rewrite LL in VAL. inv VAL. }
+       eauto. }
   { red. ins.
     assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
     { generalize NISSB0. clear. basic_solver. }
@@ -1130,6 +1151,6 @@ Proof using All.
   apply NCOV. apply ISSUABLE. exists w. apply seq_eqv_r. split; auto.
   apply sb_to_w_rel_in_fwbob. apply seq_eqv_r. 
   do 2 (split; auto).
-Admitted.
+Qed.
 
 End IssueReservedStepHelper.
