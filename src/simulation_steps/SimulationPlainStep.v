@@ -41,7 +41,6 @@ Require Import IssueReservedPlainStep.
 Require Import IssueReservedRelPlainStep.
 Require Import IssueReservedRelNextPlainStep.
 (* TODO: Require Import WritePlainStep. *)
-(* TODO: Require Import RMWPlainStep. *)
 
 Set Implicit Arguments.
 

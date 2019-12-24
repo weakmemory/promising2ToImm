@@ -303,6 +303,59 @@ Lemma nonsynch_loc_le loc mem1 mem2 (LE : Memory.le mem1 mem2)
   Memory.nonsynch_loc loc mem1.
 Proof using. red. ins. apply LE in GET. by apply NSL in GET. Qed.
 
+Definition msg_preserved memory memory' :=
+  forall loc ts from v rel
+         (INMEM : Memory.get loc ts memory = Some (from, Message.full v rel)),
+    exists from', Memory.get loc ts memory' = Some (from', Message.full v rel).
+
+Definition msg_preserved_refl memory : msg_preserved memory memory.
+Proof using. red. ins. eauto. Qed.
+
+Definition msg_preserved_add memory memory' loc from to msg 
+           (ADD : Memory.add memory loc from to msg memory') :
+  msg_preserved memory memory'.
+Proof using. red. ins. exists from0. eapply memory_add_le; eauto. Qed.
+
+Definition msg_preserved_split memory memory'
+           loc ts1 ts2 ts3 msg1 msg2 
+           (SPLIT : Memory.split memory loc ts1 ts2 ts3 msg1 msg2 memory'):
+  msg_preserved memory memory'.
+Proof using.
+  red. ins.
+  erewrite Memory.split_o; eauto.
+  edestruct Memory.split_get0 as [HH BB]; eauto.
+  destruct (loc_ts_eq_dec (loc0, ts) (loc, ts2)) as [EQ|NEQ].
+  { simpls. desf. rewrite HH in INMEM. desf. }
+  simpls.
+  destruct (loc_ts_eq_dec (loc0, ts) (loc, ts3)) as [EQ|NNEQ].
+  { simpls. desf. rewrite BB in INMEM. inv INMEM. eauto. }
+  eauto.
+Qed.
+
+Definition msg_preserved_cancel memory memory' loc from to
+           (CANCEL : Memory.remove memory loc from to Message.reserve memory') :
+  msg_preserved memory memory'.
+Proof using.
+  red. ins. exists from0.
+  erewrite Memory.remove_o; eauto.
+  destruct (loc_ts_eq_dec (loc0, ts) (loc, to)) as [EQ|NEQ].
+  2: simpls.
+  simpls. desf. 
+  edestruct Memory.remove_get0 as [HH]; eauto.
+  rewrite HH in INMEM. inv INMEM.
+Qed.
+
+Definition msg_preserved_trans memory memory' memory''
+           (PRES  : msg_preserved memory  memory')
+           (PRES' : msg_preserved memory' memory'') :
+  msg_preserved memory memory''.
+Proof.
+  red. ins.
+  apply PRES  in INMEM. desf.
+  apply PRES' in INMEM. desf.
+Qed.
+
+
 (*********************************************)
 (* TODO: explanation. Maybe a separate file. *)
 (*********************************************)

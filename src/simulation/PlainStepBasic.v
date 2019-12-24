@@ -91,56 +91,51 @@ Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
 
-Definition msg_preserved memory memory' :=
-  forall loc ts from v rel
-         (INMEM : Memory.get loc ts memory = Some (from, Message.full v rel)),
-    exists from', Memory.get loc ts memory' = Some (from', Message.full v rel).
+Lemma same_thread_modify_for_step thread x y
+      (STEP : plain_step MachineEvent.silent thread x y) :
+  forall tt, IdentMap.add thread tt y.(Configuration.threads) =
+             IdentMap.add thread tt x.(Configuration.threads).
+Proof using. ins. inv STEP; simpls. by rewrite IdentMap.add_add_eq. Qed.
 
-Definition msg_preserved_refl memory : msg_preserved memory memory.
-Proof using. red. ins. eauto. Qed.
-
-Definition msg_preserved_add memory memory' loc from to msg 
-           (ADD : Memory.add memory loc from to msg memory') :
-  msg_preserved memory memory'.
-Proof using. red. ins. exists from0. eapply memory_add_le; eauto. Qed.
-
-Definition msg_preserved_split memory memory'
-           loc ts1 ts2 ts3 msg1 msg2 
-           (SPLIT : Memory.split memory loc ts1 ts2 ts3 msg1 msg2 memory'):
-  msg_preserved memory memory'.
+Lemma same_thread_modify_for_steps thread x y
+      (STEP : (plain_step MachineEvent.silent thread)^* x y) :
+  forall tt, IdentMap.add thread tt y.(Configuration.threads) =
+             IdentMap.add thread tt x.(Configuration.threads).
 Proof using.
-  red. ins.
-  erewrite Memory.split_o; eauto.
-  edestruct Memory.split_get0 as [HH BB]; eauto.
-  destruct (loc_ts_eq_dec (loc0, ts) (loc, ts2)) as [EQ|NEQ].
-  { simpls. desf. rewrite HH in INMEM. desf. }
-  simpls.
-  destruct (loc_ts_eq_dec (loc0, ts) (loc, ts3)) as [EQ|NNEQ].
-  { simpls. desf. rewrite BB in INMEM. inv INMEM. eauto. }
-  eauto.
+  induction STEP; eauto.
+  { by apply same_thread_modify_for_step. }
+  ins. by rewrite IHSTEP2.
 Qed.
 
-Definition msg_preserved_cancel memory memory' loc from to
-           (CANCEL : Memory.remove memory loc from to Message.reserve memory') :
-  msg_preserved memory memory'.
+Lemma plain_step_seq_plain_step_in_plain_step thread :
+  plain_step MachineEvent.silent thread ;; plain_step MachineEvent.silent thread ⊆
+             plain_step MachineEvent.silent thread.
 Proof using.
-  red. ins. exists from0.
-  erewrite Memory.remove_o; eauto.
-  destruct (loc_ts_eq_dec (loc0, ts) (loc, to)) as [EQ|NEQ].
-  2: simpls.
-  simpls. desf. 
-  edestruct Memory.remove_get0 as [HH]; eauto.
-  rewrite HH in INMEM. inv INMEM.
+  intros x z [y [AA BB]].
+  assert (forall tt, IdentMap.add thread tt y.(Configuration.threads) =
+                     IdentMap.add thread tt x.(Configuration.threads)) as HH.
+  { by apply same_thread_modify_for_step. }
+  set (pe := MachineEvent.silent).
+  assert (pe = MachineEvent.silent) as EQ by done.
+  inv AA. inv BB. simpls. rewrite HH.
+  rewrite IdentMap.gss in TID0. inv TID0.
+  rewrite EQ. rewrite <- H1.
+  econstructor.
+  3: edone.
+  all: eauto.
+  apply clos_rt_rt1n.
+  eapply rt_rt. eexists. split; eauto.
+  apply rt_begin. right. eexists. split.
+  { red. econstructor.
+    { econstructor; eauto. }
+    done. }
+    by apply clos_rt1n_rt.
 Qed.
 
-Definition msg_preserved_trans memory memory' memory''
-           (PRES  : msg_preserved memory  memory')
-           (PRES' : msg_preserved memory' memory'') :
-  msg_preserved memory memory''.
-Proof.
-  red. ins.
-  apply PRES  in INMEM. desf.
-  apply PRES' in INMEM. desf.
+Lemma plain_step_ct_in_plain_step thread :
+  (plain_step MachineEvent.silent thread)⁺ ⊆ plain_step MachineEvent.silent thread.
+Proof using.
+  apply ct_of_trans. apply transitiveI. apply plain_step_seq_plain_step_in_plain_step.
 Qed.
 
 Lemma same_other_threads_step thread label PC PC' 

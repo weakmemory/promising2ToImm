@@ -612,12 +612,6 @@ Proof using All.
   eapply PROM_DISJOINT0; eauto.
 Qed. 
 
-(* TODO: move to AuxRel2.v *)
-Lemma length_nzero_in A (l : list A) n : length l = S n -> exists x, In x l.
-Proof using.
-  destruct l; ins; desf; eauto.
-Qed.
-
 Lemma sim_covered_exists_terminal T S PC f_to f_from
       (FINALT : acts_set G ⊆₁ covered T)
       (SIMREL : simrel G sc PC T S f_to f_from) :
@@ -770,56 +764,6 @@ Proof using All.
   rewrite <- TO in CC.
   exfalso. eapply Time.lt_strorder.
   eapply TimeFacts.lt_le_lt; eauto.
-Qed.
-
-(* TODO: move to a more appopriate place *)
-Lemma same_thread_modify_for_step thread x y
-      (STEP : plain_step MachineEvent.silent thread x y) :
-  forall tt, IdentMap.add thread tt y.(Configuration.threads) =
-             IdentMap.add thread tt x.(Configuration.threads).
-Proof. ins. inv STEP; simpls. by rewrite IdentMap.add_add_eq. Qed.
-
-Lemma same_thread_modify_for_steps thread x y
-      (STEP : (plain_step MachineEvent.silent thread)^* x y) :
-  forall tt, IdentMap.add thread tt y.(Configuration.threads) =
-             IdentMap.add thread tt x.(Configuration.threads).
-Proof using.
-  induction STEP; eauto.
-  { by apply same_thread_modify_for_step. }
-  ins. by rewrite IHSTEP2.
-Qed.
-
-(* TODO: move to a more appopriate place *)
-Lemma plain_step_seq_plain_step_in_plain_step thread :
-  plain_step MachineEvent.silent thread ;; plain_step MachineEvent.silent thread ⊆
-             plain_step MachineEvent.silent thread.
-Proof using.
-  intros x z [y [AA BB]].
-  assert (forall tt, IdentMap.add thread tt y.(Configuration.threads) =
-                     IdentMap.add thread tt x.(Configuration.threads)) as HH.
-  { by apply same_thread_modify_for_step. }
-  set (pe := MachineEvent.silent).
-  assert (pe = MachineEvent.silent) as EQ by done.
-  inv AA. inv BB. simpls. rewrite HH.
-  rewrite IdentMap.gss in TID0. inv TID0.
-  rewrite EQ. rewrite <- H1.
-  econstructor.
-  3: edone.
-  all: eauto.
-  apply clos_rt_rt1n.
-  eapply rt_rt. eexists. split; eauto.
-  apply rt_begin. right. eexists. split.
-  { red. econstructor.
-    { econstructor; eauto. }
-    done. }
-    by apply clos_rt1n_rt.
-Qed.
-
-(* TODO: move to a more appopriate place *)
-Lemma plain_step_ct_in_plain_step thread :
-  (plain_step MachineEvent.silent thread)⁺ ⊆ plain_step MachineEvent.silent thread.
-Proof using.
-  apply ct_of_trans. apply transitiveI. apply plain_step_seq_plain_step_in_plain_step.
 Qed.
 
 Lemma sim_step PC T S T' S' f_to f_from

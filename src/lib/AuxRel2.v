@@ -126,3 +126,8 @@ Proof using.
   2: { apply Time.le_lteq. eby left. }
   done.
 Qed.
+
+Lemma length_nzero_in A (l : list A) n : length l = S n -> exists x, In x l.
+Proof using.
+  destruct l; ins; desf; eauto.
+Qed.
