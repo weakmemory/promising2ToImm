@@ -14,7 +14,7 @@ From imm Require Import ProgToExecution.
 From imm Require Import AuxDef.
 
 Require Import TraversalConfig.
-Require Import ExtTraversal.
+Require Import ExtTraversalConfig.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import ViewRelHelpers.

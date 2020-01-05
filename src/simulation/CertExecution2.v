@@ -14,7 +14,7 @@ Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import TraversalConfigAlt.
 Require Import TraversalConfigAltOld.
-Require Import ExtTraversal.
+Require Import ExtTraversalConfig.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.

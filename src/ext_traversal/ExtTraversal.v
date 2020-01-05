@@ -7,6 +7,7 @@ Require Import AuxRel AuxRel2.
 Require Export ExtTravRelations.
 Require Import TraversalProperties.
 Require Import ImmProperties.
+Require Import ExtTraversalConfig.
 
 Set Implicit Arguments.
 
@@ -89,37 +90,6 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 (** **   *)
 (******************************************************************************)
 
-Record ext_trav_config :=
-  mkETC { etc_TC : trav_config; reserved : actid -> Prop; }.
-
-Definition eissued  T := issued  (etc_TC T).
-Definition ecovered T := covered (etc_TC T).
-
-Definition dom_sb_S_rfrmw T rrf P :=
-  dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗P⦘ ⨾ rrf ⨾ rmw).
-
-Record etc_coherent (T : ext_trav_config) :=
-  mkETCC {
-      etc_tccoh  : tc_coherent G sc (etc_TC T);
-
-      etc_S_in_E : reserved T ⊆₁ E;
-      etc_I_in_S : eissued T ⊆₁ reserved T;
-      etc_S_I_in_W_ex : reserved T \₁ eissued T ⊆₁ W_ex;
-
-      etc_F_sb_S : dom_rel (⦗F∩₁Acq/Rel⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ ecovered T ;
-      etc_dr_R_acq_I :
-        dom_rel ((detour ∪ rfe) ⨾ ⦗R∩₁Acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
-      etc_W_ex_sb_I : dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
-      
-      etc_sb_S :
-        dom_sb_S_rfrmw T rf (eissued T) ⊆₁ reserved T;
-
-      etc_rppo_S :
-        dom_rel ((detour ∪ rfe) ⨾ (data ∪ rfi)＊ ⨾ rppo ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
-
-      etc_S_W_ex_rfrmw_I : reserved T ∩₁ W_ex ⊆₁ codom_rel (⦗eissued T⦘ ⨾ rf ⨾ rmw);
-    }.
-
 Definition ext_itrav_step (e : actid) T T' :=
   (⟪ COVER :
        ⟪ NCOV : ~ ecovered T e ⟫ /\
@@ -145,18 +115,6 @@ Definition ext_itrav_step (e : actid) T T' :=
   ⟪ ETCCOH' : etc_coherent T' ⟫.
 
 Definition ext_trav_step T T' := exists e, ext_itrav_step e T T'.
-
-Lemma eissuedW T (ETCCOH : etc_coherent T) : eissued T ⊆₁ W.
-Proof using. unfold eissued. eapply issuedW. apply ETCCOH. Qed.
-
-Lemma reservedW T (ETCCOH : etc_coherent T) : reserved T ⊆₁ W.
-Proof using WF.
-  arewrite (reserved T ⊆₁ reserved T \₁ eissued T ∪₁ reserved T ∩₁ eissued T).
-  2: { rewrite eissuedW at 2; auto. rewrite etc_S_I_in_W_ex; auto.
-       rewrite W_ex_in_W; auto. basic_solver. }
-  unfolder. ins.
-  destruct (classic (eissued T x)); eauto.
-Qed.
 
 Lemma exists_next_to_reserve w T
       (NRES : ~ reserved T w) :

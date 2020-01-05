@@ -21,7 +21,7 @@ Require Import MaxValue.
 Require Import ViewRel.
 Require Import ViewRelHelpers.
 Require Import Event_imm_promise.
-Require Import ExtTraversal.
+Require Import ExtTraversalConfig.
 Require Import ExtTraversalProperties.
 Require Import TraversalProperties.
 Require Import FtoCoherent.

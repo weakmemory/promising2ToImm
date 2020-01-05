@@ -21,7 +21,7 @@ Require Import MaxValue.
 Require Import ViewRel.
 Require Import SimulationRel.
 Require Import SimState.
-Require Import ExtTraversal.
+Require Import ExtTraversalConfig.
 Require Import CertExecution1.
 Require Import ImmProperties.
 Require Import ExtTraversalProperties.

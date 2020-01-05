@@ -9,7 +9,7 @@ From imm Require Import CombRelations.
 
 Require Import TraversalConfig.
 Require Import TraversalConfigAlt.
-Require Import ExtTraversal ExtTraversalProperties.
+Require Import ExtTraversalConfig ExtTraversalProperties.
 Require Import AuxRel.
 
 Set Implicit Arguments.

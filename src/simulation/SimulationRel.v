@@ -18,7 +18,7 @@ Require Import PromiseLTS.
 Require Import SimState.
 Require Import MemoryAux.
 Require Import FtoCoherent.
-Require Import ExtTraversal.
+Require Import ExtTraversalConfig.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
