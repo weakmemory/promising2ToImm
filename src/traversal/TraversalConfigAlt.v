@@ -104,8 +104,7 @@ Proof using.
   rewrite (dom_l WF.(wf_rfeD)).
   arewrite (detour ⊆ ar).
   arewrite (rfe ⊆ ar).
-  arewrite (ppo ⊆ ar).
-  arewrite (bob ⊆ ar).
+  rewrite ppo_in_ar, bob_in_ar.
   rewrite !unionK, !seqA.
   sin_rewrite ar_ar_in_ar_ct.
     by apply tc_I_ar_I.

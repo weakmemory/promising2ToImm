@@ -84,7 +84,8 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 (** **   *)
 (******************************************************************************)
 
-Definition rppo := (ctrl ∪ addr⨾sb^? ∪ rmw_dep^? ⨾ ⦗ R_ex ⦘ ⨾ sb) ⨾ ⦗ W ⦘.
+(* TODO: continue from here *)
+Definition rppo := (ctrl ∪ addr ⨾ sb^? ∪ rmw_dep^? ⨾ ⦗ R_ex ⦘ ⨾ sb) ⨾ ⦗ W ⦘.
 
 Lemma wf_rppoE : rppo ≡ ⦗E⦘ ⨾ rppo ⨾ ⦗E⦘.
 Proof using WF.
