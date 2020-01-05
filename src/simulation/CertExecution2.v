@@ -3,7 +3,7 @@ From hahn Require Import Hahn.
 From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import Execution_eco.
-From imm Require Import imm_common.
+From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 From imm Require Import imm_common_more.
@@ -1020,14 +1020,14 @@ Proof using. unfold Execution.W_ex; ins. Qed.
 
 Lemma cert_fwbob : certG.(fwbob) ≡ Gfwbob.
 Proof using SAME. 
-unfold imm_common.fwbob.
+unfold imm_bob.fwbob.
 rewrite cert_W, cert_F, cert_Rel, cert_AcqRel.
 by rewrite cert_sb, cert_same_loc.
 Qed.
 
 Lemma cert_bob : certG.(bob) ≡ Gbob.
 Proof using SAME. 
-unfold imm_common.bob.
+unfold imm_bob.bob.
 by rewrite cert_R, cert_Acq, cert_fwbob, cert_sb.
 Qed.
 

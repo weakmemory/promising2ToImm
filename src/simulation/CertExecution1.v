@@ -3,7 +3,7 @@ From hahn Require Import Hahn.
 From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import Execution_eco.
-From imm Require Import imm_common imm_s_hb imm_s.
+From imm Require Import imm_bob imm_s_ppo imm_s_hb imm_s.
 From imm Require Import SubExecution.
 From imm Require Import CombRelations.
 

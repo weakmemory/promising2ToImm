@@ -1,7 +1,7 @@
 Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution
-     Execution_eco imm_s_hb imm_s imm_common CombRelations imm_s_rfrmw.
+     Execution_eco imm_s_hb imm_s imm_bob imm_s_ppo CombRelations imm_s_rfrmw.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -927,7 +927,7 @@ Section Properties.
     { unfold issuable. basic_solver 10. }
     rewrite <- !seqA.
     rewrite dom_cond_elim1; [basic_solver 21|].
-    unfold imm_common.fwbob.
+    unfold imm_bob.fwbob.
     basic_solver 12.
   Qed.
 
@@ -952,7 +952,7 @@ Section Properties.
     { unfold issuable. basic_solver 10. }
     rewrite <- !seqA.
     rewrite dom_cond_elim1; [basic_solver 21|].
-    unfold imm_common.fwbob.
+    unfold imm_bob.fwbob.
     basic_solver 12.
   Qed.
 
@@ -1069,7 +1069,7 @@ Section Properties.
     { unfold issuable. basic_solver 10. }
     rewrite <- !seqA.
     rewrite dom_cond_elim1; [basic_solver 21|].
-    unfold imm_common.fwbob.
+    unfold imm_bob.fwbob.
     basic_solver 12.
   Qed.
 

@@ -6,7 +6,7 @@ From imm Require Import Execution_eco.
 From imm Require Import imm_s.
 From imm Require Import imm_s_rfrmw.
 From imm Require Import imm_s_hb.
-From imm Require Import imm_common.
+From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import AuxDef.
 Require Import TraversalConfig.
@@ -581,7 +581,7 @@ Proof using WF IMMCON.
              arewrite
                (fwbob ⨾ ⦗eq w⦘ ⊆
                       (⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ∪ ⦗F ∩₁ Acq/Rel⦘ ⨾ sb) ⨾ ⦗eq w⦘).
-             { unfold imm_common.fwbob. rewrite !seq_union_l, !seqA.
+             { unfold imm_bob.fwbob. rewrite !seq_union_l, !seqA.
                unionL; eauto 10 with hahn.
                all: type_solver. }
              arewrite ((⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ∪ ⦗F ∩₁ Acq/Rel⦘ ⨾ sb) ⊆ ⦗FW⦘ ⨾ sb).
@@ -710,7 +710,7 @@ Proof using WF IMMCON.
   assert (dom_rel (sb ⨾ ⦗eq e⦘) ⊆₁ covered (etc_TC T)) as SBE.
   { destruct ISS as [[_ ISS] _]. red in ISS.
     arewrite (sb ⨾ ⦗eq e⦘ ⊆ fwbob ⨾ ⦗eq e⦘); auto.
-    unfold imm_common.fwbob.
+    unfold imm_bob.fwbob.
     basic_solver 10. }
   
   assert (E e) as EE by apply ISS.

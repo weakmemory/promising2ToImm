@@ -5,7 +5,7 @@ Require Import PromisingLib.
 From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import Execution_eco.
-From imm Require Import imm_common.
+From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 From imm Require Import SubExecution.

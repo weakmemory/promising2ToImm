@@ -1,7 +1,7 @@
 Require Import Setoid.
 From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution Execution_eco
-     imm_common imm_s imm_s_hb CombRelations SubExecution.
+     imm_bob imm_s_ppo imm_s imm_s_hb CombRelations SubExecution.
 Require Import AuxRel AuxRel2.
 
 Set Implicit Arguments.
@@ -132,7 +132,7 @@ Qed.
 
 Lemma rppo_in_ppo : rppo ⊆ ppo.
 Proof using WF.
-  unfold rppo, imm_common.ppo. hahn_frame.
+  unfold rppo, imm_s_ppo.ppo. hahn_frame.
   rewrite WF.(wf_ctrlD) at 1.
   rewrite (dom_l WF.(wf_addrD)) at 1.
   arewrite (rmw_dep^? ⨾ ⦗R_ex⦘ ⊆ ⦗R⦘ ⨾ rmw_dep^? ⨾ ⦗R_ex⦘).
@@ -172,7 +172,7 @@ Qed.
 
 Lemma data_rfi_rppo_in_ppo : ⦗R⦘ ⨾ (data ∪ rfi)＊ ⨾ rppo ⊆ ppo.
 Proof using.
-  unfold rppo, imm_common.ppo.
+  unfold rppo, imm_s_ppo.ppo.
   hahn_frame.
   rewrite <- rt_ct.
   apply seq_mori.
