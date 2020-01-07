@@ -84,7 +84,8 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 (** **   *)
 (******************************************************************************)
 
-Definition rppo := (rmw_dep^? ;; ctrl ∪ addr ⨾ sb^? ∪ rmw) ⨾ ⦗ W ⦘.
+Definition rppo := (ctrl ∪ addr ⨾ sb^? ∪ rmw ∪ rmw_dep ;; sb
+                         ∪ ⦗R_ex \₁ dom_rel rmw⦘ ⨾ sb) ⨾ ⦗ W ⦘.
 
 Lemma wf_rppoE : rppo ≡ ⦗E⦘ ⨾ rppo ⨾ ⦗E⦘.
 Proof using WF.
@@ -92,7 +93,7 @@ Proof using WF.
   unfold rppo.
   rewrite WF.(wf_ctrlE) at 1.
   rewrite WF.(wf_addrE) at 1.
-  rewrite wf_sbE at 1 2.
+  rewrite wf_sbE at 1 2 3.
   rewrite WF.(wf_rmw_depE) at 1.
   rewrite WF.(wf_rmwE) at 1.
   basic_solver 10.
@@ -105,8 +106,8 @@ Proof using WF.
   rewrite WF.(wf_ctrlD) at 1.
   rewrite WF.(wf_addrD) at 1.
   rewrite WF.(wf_rmw_depD) at 1.
-  rewrite WF.(wf_rmwD) at 1. rewrite R_ex_in_R at 2.
-  basic_solver 10.
+  rewrite WF.(wf_rmwD) at 1. generalize R_ex_in_R.
+  basic_solver 20.
 Qed.
 
 Lemma addr_sb_W_in_rppo : addr ⨾ sb^? ⨾ ⦗ W ⦘ ⊆ rppo.
@@ -119,11 +120,11 @@ Proof using.
   unfold rppo. basic_solver 10.
 Qed.
 
-(* Lemma rmw_dep_sb_W_in_rppo : rmw_dep ⨾ sb ⨾ ⦗W⦘ ⊆ rppo. *)
-(* Proof using WF. *)
-(*   rewrite (dom_r WF.(wf_rmw_depD)). *)
-(*   unfold rppo. basic_solver 10. *)
-(* Qed. *)
+Lemma rmw_dep_sb_W_in_rppo : rmw_dep ⨾ sb ⨾ ⦗W⦘ ⊆ rppo.
+Proof using WF.
+  rewrite (dom_r WF.(wf_rmw_depD)).
+  unfold rppo. basic_solver 10.
+Qed.
 
 (* Lemma R_ex_sb_W_in_rppo : ⦗R_ex⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ rppo. *)
 (* Proof using. *)
@@ -135,18 +136,14 @@ Proof using WF.
   unfold rppo, imm_s_ppo.ppo. hahn_frame.
   rewrite WF.(wf_ctrlD) at 1.
   rewrite (dom_l WF.(wf_addrD)) at 1.
-  rewrite (dom_l WF.(wf_rmwD)) at 1. rewrite R_ex_in_R.
-  arewrite (rmw_dep^? ⨾ ⦗R⦘ ⊆ ⦗R⦘ ⨾ rmw_dep^? ⨾ ⦗R⦘).
-  { rewrite (dom_l WF.(wf_rmw_depD)) at 1.
-    basic_solver. }
+  rewrite (dom_l WF.(wf_rmwD)) at 1. rewrite R_ex_in_R at 1.
+  rewrite (dom_l WF.(wf_rmw_depD)) at 1.
+  arewrite (⦗R_ex \₁ dom_rel rmw⦘ ⊆ ⦗R⦘ ;; ⦗R_ex \₁ dom_rel rmw⦘).
+  { type_solver. }
   rewrite <- !seq_union_r.
   hahn_frame.
   unionL.
-  2,3: rewrite <- ct_step; eauto with hahn.
-  arewrite_id ⦗R⦘. rewrite seq_id_l.
-  rewrite <- cr_ct, <- ct_step.
-  apply seq_mori; eauto with hahn.
-  basic_solver 10.
+  all: rewrite <- ct_step; eauto 10 with hahn.
 Qed.
 
 Lemma rppo_in_sb : rppo ⊆ sb.
@@ -179,9 +176,7 @@ Proof using.
   apply seq_mori.
   { apply clos_refl_trans_mori; eauto 10 with hahn. }
   unionL.
-  2,3: by rewrite <- ct_step; eauto 10 with hahn.
-  rewrite <- cr_ct, <- ct_step.
-  basic_solver 20.
+  all: by rewrite <- ct_step; eauto 10 with hahn.
 Qed.
 
 Lemma detour_rfe_data_rfi_rppo_in_detour_rfe_ppo :
@@ -216,16 +211,29 @@ Qed.
 
 End RPPO.
 
-Lemma sub_rppo_in G G' sc sc' (SUB : sub_execution G G' sc sc') :
+Lemma sub_rppo_in G G' sc sc'
+      (SUB : sub_execution G G' sc sc')
+      (RMWCLOS : codom_rel (<|G'.(acts_set)|> ;; G.(rmw)) ⊆₁ G'.(acts_set)) :
   rppo G' ⊆ rppo G.
 Proof using.
   unfold rppo.
   rewrite (sub_ctrl SUB).
   rewrite (sub_addr SUB).
-  rewrite (sub_sb SUB).
+  rewrite (sub_sb SUB) at 1 2.
   rewrite (sub_frmw SUB).
-  rewrite (sub_rmw SUB).
+  rewrite (sub_rmw SUB) at 1.
   rewrite (sub_W SUB).
+  rewrite (sub_R_ex SUB).
   hahn_frame.
-  basic_solver 12.
+  unionL.
+  1-4: basic_solver 12.
+  unionR right.
+  rewrite (dom_l (@wf_sbE G')).
+  rewrite (sub_sb_in SUB).
+  unfolder. ins. desf.
+  splits; auto.
+  intros HH. desf.
+  apply H2. exists y0.
+  apply SUB. apply seq_eqv_lr. splits; auto.
+  apply RMWCLOS. basic_solver 10.
 Qed.
