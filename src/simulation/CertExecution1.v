@@ -98,6 +98,7 @@ Hypothesis WF : Wf Gf.
 Hypothesis WF_SC : wf_sc Gf sc.
 Hypothesis IMMCON : imm_consistent Gf sc.
 Hypothesis RELCOV : FW ∩₁ FRel ∩₁ I ⊆₁ C.
+Hypothesis RMWCOV : forall r w (RMW : Frmw r w), C r <-> C w.
 Hypothesis ETCCOH : etc_coherent Gf sc (mkETC T S).
 
 Local Lemma TCCOH : tc_coherent Gf sc T.
@@ -750,9 +751,37 @@ Proof using WF ETCCOH IMMCON.
   eapply sub_coherence; eauto; [eapply SUB| eapply IMMCON].
 Qed.
 
+Lemma Frmw_E_prefix_clos : codom_rel (⦗E⦘ ⨾ Frmw) ⊆₁ E.
+Proof using WF ETCCOH RELCOV RMWCOV.
+  rewrite E_E0 at 1.
+  unfold E0. rewrite !id_union, !seq_union_l. rewrite !codom_union.
+  unionL.
+  { rewrite <- C_in_E. unfolder. ins. desf.
+    eapply RMWCOV with (r:=x0); eauto. }
+  { rewrite TCCOH.(issuedW).
+    rewrite WF.(wf_rmwD). type_solver. }
+  { rewrite (dom_l WF.(wf_rmwD)).
+    unfolder. ins. desf.
+    { subst x0 z. 
+      match goal with
+      | H : S _ |- _ => eapply (reservedW WF ETCCOH) in H
+      end.
+      type_solver. }
+    subst z.
+    assert (Fsb^? x y) as [|SB]; try subst x.
+    { apply WF.(transp_rmw_sb). eexists; eauto. }
+    { apply tid_S_in_E. by split. }
+    apply dom_sb_TS_in_E. basic_solver 10. }
+  unfolder. ins. desf.
+  assert (y = x); subst.
+  2: by apply I_in_E.
+  eapply wf_rmwf; eauto.
+Qed.
+
 Lemma acyc_ext_rst : acyc_ext rstG rst_sc.
-Proof using WF ETCCOH IMMCON.
-  eapply sub_acyc_ext; eauto; [eapply SUB| eapply IMMCON].
+Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
+  eapply sub_acyc_ext; eauto; [eapply SUB| |eapply IMMCON].
+  apply Frmw_E_prefix_clos.
 Qed.
 
 Lemma rmw_atomicity_rst : rmw_atomicity rstG.
@@ -941,7 +970,7 @@ basic_solver 21.
 Qed.
 
 Lemma COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ∩₁ R ⊆₁ codom_rel Grf.
-Proof using WF ETCCOH IMMCON.
+Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
   rewrite (dom_l (wf_ppoE rstWF)).
   unfolder; ins; desf.
   cdes IMMCON.
@@ -958,7 +987,8 @@ Proof using WF ETCCOH IMMCON.
   eapply I_in_E.
   generalize (dom_rfe_ppo_issued WF TCCOH).
   apply (sub_ppo_in SUB) in H1.
-  basic_solver 21.
+  { basic_solver 21. }
+  apply Frmw_E_prefix_clos.
 Qed.
 
 Lemma COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ rppo rstG ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.

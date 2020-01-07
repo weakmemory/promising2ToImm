@@ -17,6 +17,7 @@ Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import Traversal.
 Require Import ExtTraversalConfig.
+Require Import ExtTraversal.
 Require Import ExtTraversalProperties.
 Require Import ViewRelHelpers.
 Require Import PlainStepBasic.

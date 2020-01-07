@@ -243,7 +243,7 @@ Qed.
 Lemma simrel_common_fS PC smode
       (SIMREL: simrel_common G sc PC T S f_to f_from smode):
   simrel_common G sc PC T S f_to' f_from' smode.
-Proof using WF RELCOV ETCCOH FCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
+Proof using WF IMMCON RELCOV ETCCOH FCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL.
   red; splits; auto.
   { eapply f_to_coherent_fS; eauto. }
