@@ -992,7 +992,7 @@ Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
 Qed.
 
 Lemma COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ rppo rstG ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
-Proof using WF ETCCOH IMMCON.
+Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
   arewrite ((Gdata ∪ Grfi)＊ ⨾ rppo rstG ⊆ ⦗E⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ rppo rstG).
   { apply dom_rel_helper.
     rewrite rtE, seq_union_l, seq_id_l, dom_union. unionL.
@@ -1004,6 +1004,7 @@ Proof using WF ETCCOH IMMCON.
   rewrite (sub_data_in SUB).
   rewrite (sub_rfi_in SUB).
   rewrite (sub_rppo_in SUB).
+  2: by apply Frmw_E_prefix_clos.
   unfolder. ins. desf.
   cdes IMMCON.
   exploit (Comp x).
