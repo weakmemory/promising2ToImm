@@ -232,7 +232,7 @@ Lemma sc_view_f_issued sc_view
           max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view)):
   forall l,
     max_value f_to' (S_tm G l (covered T)) (LocFun.find l sc_view).
-Proof using WF RELCOV TCCOH ISSEQ_TO.
+Proof using WF RELCOV TCCOH ISSEQ_TO IMMCON.
   intros l; specialize (SC_REQ l).
   eapply max_value_new_f; eauto.
   intros x H; apply ISSEQ_TO.
