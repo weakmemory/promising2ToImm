@@ -255,33 +255,33 @@ Qed.
 (*   basic_solver 40. *)
 (* Qed. *)
 
-Lemma rfe_rmw_E : dom_rel (Frfe ⨾ Frmw ⨾ ⦗E⦘) ⊆₁ E.
-Proof using WF ETCCOH.
-  rewrite E_E0 at 1; unfold E0.
-  rewrite !id_union; relsf; unionL; splits.
-  4: { rewrite (dom_r (wf_rmwD WF)) at 1.
-       rewrite (dom_l (wf_rmwD WF)) at 2.
-       clear. type_solver. }
-  { rewrite <- I_in_E.
-    rewrite (rmw_in_sb WF) at 1.
-    rewrite (dom_rel_helper TCCOH.(dom_sb_covered)).
-    arewrite (Frfe ⊆ Frf). rewrite <- !seqA.
-    rewrite (dom_rel_helper (dom_rf_covered WF TCCOH)).
-    clear. basic_solver. }
-  { rewrite <- I_in_E.
-    arewrite (Frfe ⊆ Frf).
-    eapply rfrmw_I_in_I; eauto. apply TCCOH. }
-  rewrite <- I_in_E.
-  rewrite <- seqA, dom_rel_eqv_dom_rel, !seqA.
-  arewrite (⦗Tid_ thread ∩₁ S⦘ ⊆ ⦗FW⦘ ⨾ ⦗S⦘).
-  { arewrite (S ⊆₁ FW ∩₁ S) at 1.
-    2: clear; basic_solver.
-    apply set_subset_inter_r. split; [|done]. apply (reservedW WF ETCCOH). }
-  sin_rewrite WF.(rmw_sb_cr_W_in_rppo).
-  etransitivity.
-  2: by apply ETCCOH.(etc_rppo_S).
-  rewrite <- inclusion_id_rt. clear. basic_solver 20.
-Qed.
+(* Lemma rfe_rmw_E : dom_rel (Frfe ⨾ Frmw ⨾ ⦗E⦘) ⊆₁ E. *)
+(* Proof using WF ETCCOH. *)
+(*   rewrite E_E0 at 1; unfold E0. *)
+(*   rewrite !id_union; relsf; unionL; splits. *)
+(*   4: { rewrite (dom_r (wf_rmwD WF)) at 1. *)
+(*        rewrite (dom_l (wf_rmwD WF)) at 2. *)
+(*        clear. type_solver. } *)
+(*   { rewrite <- I_in_E. *)
+(*     rewrite (rmw_in_sb WF) at 1. *)
+(*     rewrite (dom_rel_helper TCCOH.(dom_sb_covered)). *)
+(*     arewrite (Frfe ⊆ Frf). rewrite <- !seqA. *)
+(*     rewrite (dom_rel_helper (dom_rf_covered WF TCCOH)). *)
+(*     clear. basic_solver. } *)
+(*   { rewrite <- I_in_E. *)
+(*     arewrite (Frfe ⊆ Frf). *)
+(*     eapply rfrmw_I_in_I; eauto. apply TCCOH. } *)
+(*   rewrite <- I_in_E. *)
+(*   rewrite <- seqA, dom_rel_eqv_dom_rel, !seqA. *)
+(*   arewrite (⦗Tid_ thread ∩₁ S⦘ ⊆ ⦗FW⦘ ⨾ ⦗S⦘). *)
+(*   { arewrite (S ⊆₁ FW ∩₁ S) at 1. *)
+(*     2: clear; basic_solver. *)
+(*     apply set_subset_inter_r. split; [|done]. apply (reservedW WF ETCCOH). } *)
+(*   sin_rewrite WF.(rmw_sb_cr_W_in_rppo). *)
+(*   etransitivity. *)
+(*   2: by apply ETCCOH.(etc_rppo_S). *)
+(*   rewrite <- inclusion_id_rt. clear. basic_solver 20. *)
+(* Qed. *)
 
 Lemma rfe_rmw_I :dom_rel (Frfe ⨾ Frmw ⨾ ⦗I⦘) ⊆₁ I.
 Proof using WF ETCCOH.
@@ -381,23 +381,31 @@ Proof using WF ETCCOH.
     { basic_solver. }
       by apply ETCCOH. }
 
+  arewrite (⦗I⦘ ⊆ ⦗I⦘ ⨾ ⦗I⦘) at 2.
+  { basic_solver. }
   rewrite I_in_E at 2.
   arewrite (⦗I⦘ ⨾ ⦗FW_ex⦘ ⨾ (Frfi ⨾ Frmw)^? ⨾ ⦗E⦘ ⊆ ⦗I⦘ ⨾ ⦗E⦘ ⨾ (⦗E⦘ ⨾ Frf ⨾ ⦗E⦘ ⨾ Frmw ⨾ ⦗E⦘ )^?).
   { generalize I_in_E rmw_E_rfi; ie_unfolder; basic_solver 80. }
   relsf; rewrite rfi_union_rfe at 1; relsf.
   remember (⦗E⦘ ⨾ Frf ⨾ ⦗E⦘ ⨾ Frmw ⨾ ⦗E⦘) as X.
 
+  arewrite_id ⦗I⦘ at 5. arewrite_id ⦗I⦘ at 2. rewrite !seq_id_l.
+  relsf.
   unionL; [basic_solver 40|].
 
-  arewrite (Frfe ⨾ Frmw ⨾ ⦗I⦘ ⊆ ⦗I⦘ ⨾ Frfe ⨾ Frmw).
-  generalize rfe_rmw_I; basic_solver 12.
-  arewrite (Frfe ⨾ Frmw ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾ (⦗E⦘ ⨾ Frf ⨾ ⦗E⦘ ⨾ Frmw ⨾ ⦗E⦘)^?).
-
-  generalize rmw_E_rfe rfe_rmw_E; ie_unfolder; basic_solver 80.
-  subst.
-  relsf.
-  remember (⦗E⦘ ⨾ Frf ⨾ ⦗E⦘ ⨾ Frmw ⨾ ⦗E⦘) as X.
-  basic_solver 21.
+  arewrite (Frfe ⨾ Frmw ⨾ ⦗I⦘ ⊆ ⦗I⦘ ⨾ Frfe ⨾ Frmw ⨾ ⦗I⦘).
+  { generalize rfe_rmw_I; basic_solver 12. }
+  arewrite (Frfe ⨾ Frmw ⨾ ⦗I⦘ ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾ (⦗E⦘ ⨾ Frf ⨾ ⦗E⦘ ⨾ Frmw ⨾ ⦗E⦘)^?).
+  2:{ subst. relsf. remember (⦗E⦘ ⨾ Frf ⨾ ⦗E⦘ ⨾ Frmw ⨾ ⦗E⦘) as X. basic_solver 21. }
+  rewrite crE. rewrite seq_union_r. unionR right. 
+  hahn_frame_r. rewrite (dom_rel_helper rfe_rmw_I).
+  rewrite I_in_E at 1.
+  unfold rfe.
+  unfolder. ins. desf. splits; auto.
+  eexists. splits; eauto. eexists.
+  splits; eauto.
+  apply rmw_E_rfe. unfold rfe. unfolder. splits; eauto.
+  do 2 eexists. splits; eauto. by apply I_in_E.
 Qed.
 
 Lemma release_I : Frelease ⨾ ⦗I⦘ ⊆ ⦗C⦘ ⨾ Grelease.
