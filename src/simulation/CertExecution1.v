@@ -991,18 +991,20 @@ Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
   apply Frmw_E_prefix_clos.
 Qed.
 
-Lemma COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ rppo rstG ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
+Lemma COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ rppo rstG ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
 Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
-  arewrite ((Gdata ∪ Grfi)＊ ⨾ rppo rstG ⊆ ⦗E⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ rppo rstG).
+  arewrite ((Gdata ∪ Grfi ∪ Grmw)＊ ⨾ rppo rstG ⊆ ⦗E⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ rppo rstG).
   { apply dom_rel_helper.
     rewrite rtE, seq_union_l, seq_id_l, dom_union. unionL.
     { rewrite (dom_l (wf_rppoE rstWF)). basic_solver. }
     rewrite (dom_l (wf_dataE rstWF)).
     rewrite (dom_l (wf_rfiE rstWF)).
-    rewrite <- seq_union_r.
+    rewrite (dom_l (wf_rmwE rstWF)).
+    rewrite <- !seq_union_r.
     rewrite inclusion_ct_seq_eqv_l. basic_solver. }
   rewrite (sub_data_in SUB).
   rewrite (sub_rfi_in SUB).
+  rewrite (sub_rmw_in SUB).
   rewrite (sub_rppo_in SUB).
   2: by apply Frmw_E_prefix_clos.
   unfolder. ins. desf.
