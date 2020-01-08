@@ -105,7 +105,7 @@ Record etc_coherent (T : ext_trav_config) :=
 
       etc_F_sb_S : dom_rel (⦗F∩₁Acq/Rel⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ ecovered T ;
       etc_dr_R_acq_I :
-        dom_rel ((detour ∪ rfe) ⨾ ⦗R∩₁Acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
+        dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
       etc_W_ex_sb_I : dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
       
       etc_sb_S :
