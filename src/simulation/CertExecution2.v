@@ -477,7 +477,7 @@ relsf; unionL.
 Qed.
 
 Lemma dom_ppo_D : dom_rel (Gppo ⨾ ⦗D⦘) ⊆₁ D.
-Proof using WF TCCOH E_to_S S_in_W.
+Proof using All.
 cut (Gppo ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (fun _ _ => True)).
 by unfolder; ins; desf; eapply H; eauto.
 unfold ppo.
@@ -487,7 +487,11 @@ rewrite path_ut_first.
 rewrite !seqA.
 arewrite (Gsb ⨾ (Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grfi ∪ Grmw
         ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb)＊ ⊆ Gsb).
-admit.
+{ arewrite_id ⦗GR_ex \₁ dom_rel Grmw⦘.
+  rewrite WF.(data_in_sb), WF.(addr_in_sb), WF.(ctrl_in_sb).
+  rewrite WF.(rmw_dep_in_sb), WF.(rmw_in_sb).
+  arewrite (Grfi ⊆ Gsb).
+  generalize (@sb_trans G); ins; relsf. }
 relsf; unionL.
 { arewrite_id ⦗W⦘.
 rels.
@@ -499,7 +503,7 @@ rewrite (dom_rel_helper dom_R_ex_fail_sb_D).
 rewrite rtE; relsf.
 seq_rewrite (dom_rel_helper dom_ppo_D_helper).
 basic_solver 12.
-Admitted.
+Qed.
 
 Lemma dom_ppo_CI : dom_rel (Gppo ⨾ ⦗C ∪₁ I⦘) ⊆₁ D.
 Proof using WF TCCOH E_to_S S_in_W.
