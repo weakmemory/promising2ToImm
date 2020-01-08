@@ -560,8 +560,8 @@ Proof using WF ETCCOH.
   rewrite id_inter. rewrite <- !seqA.
   rewrite dom_rel_eqv_dom_rel.
   generalize ETCCOH.(etc_dr_R_acq_I).
-  unfold eissued. simpls.
-  basic_solver 10.
+  unfold eissued. simpls. rewrite rtE.
+  basic_solver 20.
 Qed.
 
 Lemma rfe_sb_F_E : dom_rel (Frfe ⨾ Fsb ⨾ ⦗E ∩₁ FF ∩₁ FAcq/Rel⦘) ⊆₁ I.

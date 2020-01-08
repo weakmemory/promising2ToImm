@@ -1219,18 +1219,107 @@ Proof using All.
   exists z; splits; eauto; red.
   basic_solver.
 Qed.
+ 
+ (* TODO: move this up *)
+Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
+(*Lemma rt_rf_rmw : (rf ⨾ rmw)＊ ⊆ (rfi ⨾ rmw)＊ ⨾ (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊)＊.
+Proof.
+eapply rt_ind_left with (P:=fun r=> r); eauto with hahn.
+basic_solver 12.
+intros k H.
+rewrite !seqA, H.
+rewrite rfi_union_rfe; relsf; unionL.
+- rewrite rt_begin at 3.
+  basic_solver 21.
+- rewrite (rt_begin (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊)) at 2.
+  basic_solver 21.
+Qed.
+*)
 Lemma cert_sb_sw_helper : Gsb ∪ Gsw ⊆ Gsb ∪ Csw.
 Proof using All.
   unionL; [basic_solver|].
   unfold imm_s_hb.sw; ins.
   rewrite cert_F, cert_Acq, cert_sb.
-
-
   rewrite !crE, !seq_union_l, !seq_union_r, !seq_id_l, !seqA.
   unionL.
-  { eauto 6 with hahn hahn_full. }
-  2: { arewrite (Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ≡ ⦗D⦘ ⨾ Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘) at 1.
+  { arewrite (⦗Acq⦘ ⊆ (⦗D⦘ ∪ ⦗set_compl D⦘) ⨾ ⦗Acq⦘) at 1.
+    { unfolder. ins. desf. destruct (classic (D y)); eauto. }
+    rewrite !seq_union_l, !seq_union_r.
+    unionL.
+    { seq_rewrite (dom_rel_helper dom_rf_D). admit. }
+    rewrite rfi_union_rfe.
+    rewrite !seq_union_l, !seq_union_r.
+    unionL; cycle 1.
+    { transitivity (fun _ _ : actid => False); [|basic_solver].
+      rewrite (dom_r WF.(wf_rfeD)).
+      unfold D; basic_solver 21. }
+    rewrite (dom_r WF.(wf_rfiE)) at 1.
+    rewrite E_to_S.
+    rewrite C_in_D; rewrite id_union, !seq_union_r, !seq_union_l, !seq_union_r, !seqA.
+    unionL; [basic_solver|].
+    unfold release at 1, rs at 1.
+    rewrite rt_rf_rmw.
+    rewrite rtE with (r:= Grfe ⨾ Grmw ⨾ (Grfi ⨾ Grmw)＊).
+    rewrite !seq_union_r, !seq_union_l; unionL.
+    { (* SB! *) admit. }
+    rewrite ct_end, <- !seqA.
+    arewrite (((((((⦗Rel⦘ ⨾ (⦗F⦘ ⨾ Gsb)^?) ⨾ ⦗W⦘) ⨾ (Gsb ∩ Gsame_loc)^?) ⨾ ⦗W⦘) ⨾ 
+      (Grfi ⨾ Grmw)＊) ⨾ ((Grfe ⨾ Grmw) ⨾ (Grfi ⨾ Grmw)＊)＊) ⊆ Grelease).
+    { admit. }
+    
+    assert (BB: Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⊆ (Grmw ⨾ Grfi)^+).
+    { seq_rewrite <- rt_seq_swap.
+      rewrite !seqA.
+      remember (Grmw ⨾ Grfi) as X.
+      apply ct_end. }
+    sin_rewrite BB.
+    assert (AA: dom_rel (Grfe ⨾ (Grmw ⨾ Grfi)⁺ ⨾ ⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⨾ ⦗Acq⦘) ⊆₁ I).
+    { rewrite (dom_r WF.(wf_rfiD)) at 1.
+      rewrite seq_eqvC.
+      rewrite <- !seqA.
+      rewrite dom_rel_eqv_dom_rel, seqA. rewrite inclusion_ct_seq_eqv_r, !seqA.
+      arewrite (⦗R⦘ ⨾ ⦗Acq⦘ ⨾ Gsb^? ⨾ ⦗S⦘ ⊆ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘).
+      { rewrite crE; relsf. rewrite S_in_W at 1. type_solver 32. }
+      arewrite (Grfe ⊆ Gdetour ∪ Grfe). 
+      by rewrite inclusion_t_rt. }
+    rewrite seq_eqvC.
+    seq_rewrite (dom_rel_helper AA).
+    rewrite I_in_D.
+    
+    Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi_nD_in_new_rf
+    Print D.
+    SearchAbout new_rf.
+     SearchAbout new_rf.
+      SearchAbout (dom_rel ( _ ;; <| dom_rel _ |>)).
+    SearchAbout (_ (_ ;; _ )^*).
+    re
+    
+    
+
+unfold release at 1.
+    SearchAbout release.
+    Print D.
+    SearchAbout E.
+    
+     sin_rewrite Grfi_nD_in_new_rf.
+
+  2: { rewrite <- R_Acq_codom_rfe at 2.
+       rewrite (dom_r (wf_rfeD WF)) at 1.
+       basic_solver 21. }
+  arewrite (⦗Acq⦘ ⊆ (⦗D⦘ ∪ ⦗set_compl D⦘) ⨾ ⦗Acq⦘) at 1.
+  { unfolder. ins. desf. destruct (classic (D y)); eauto. }
+  rewrite !seq_union_l, !seq_union_r.
+  unionL.
+  { eauto with hahn. }
+  sin_rewrite Grfi_nD_in_new_rf.
+  eauto with hahn.
+
+
+
+  admit.
+(*   { eauto 6 with hahn hahn_full. }
+ *)  arewrite (Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ≡ ⦗D⦘ ⨾ Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘) at 1.
        2: basic_solver 12.
        rewrite (dom_r (@wf_sbE G)). generalize dom_sb_F_Acq_in_D.
        basic_solver 12. }
