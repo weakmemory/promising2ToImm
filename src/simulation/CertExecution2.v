@@ -1505,7 +1505,10 @@ Proof using All.
     { unfolder. ins. desf. destruct (classic (D y)); eauto. }
     rewrite !seq_union_l, !seq_union_r.
     unionL.
-    { seq_rewrite (dom_rel_helper dom_rf_D). admit. }
+    { seq_rewrite (dom_rel_helper dom_rf_D).
+      rewrite !seqA.
+      sin_rewrite Grelease_D_in_Crelease.
+      subst X; basic_solver 12. }
     rewrite rfi_union_rfe at 1.
     rewrite !seq_union_l, !seq_union_r.
     unionL; cycle 1.
@@ -1520,12 +1523,18 @@ Proof using All.
     rewrite rt_rf_rmw.
     rewrite rtE with (r:= Grfe ⨾ Grmw ⨾ (Grfi ⨾ Grmw)＊).
     rewrite !seq_union_r, !seq_union_l; unionL.
-    { (* SB! *) admit. }
+    { arewrite (Grfi ⊆ Gsb).
+      rewrite WF.(rmw_in_sb).
+      generalize (@sb_trans G); ins; relsf.
+      revert H; basic_solver 21. }
     rewrite ct_end, <- !seqA.
     arewrite (((((((⦗Rel⦘ ⨾ (⦗F⦘ ⨾ Gsb)^?) ⨾ ⦗W⦘) ⨾ (Gsb ∩ Gsame_loc)^?) ⨾ ⦗W⦘) ⨾ 
       (Grfi ⨾ Grmw)＊) ⨾ ((Grfe ⨾ Grmw) ⨾ (Grfi ⨾ Grmw)＊)＊) ⊆ Grelease).
-    { admit. }
-    
+    { arewrite (Grfi ⊆ Grf).
+      arewrite (Grfe ⊆ Grf).
+      rewrite <- !seqA.
+      rewrite <- !ct_begin.
+      rewrite !seqA; relsf. }
     assert (BB: Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⊆ (Grmw ⨾ Grfi)^+).
     { seq_rewrite <- rt_seq_swap.
       rewrite !seqA.
@@ -1570,11 +1579,23 @@ Proof using All.
     rewrite !seqA.
     arewrite (Grelease ⨾ ⦗I⦘ ⊆ release certG).
     { rewrite I_in_D; apply Grelease_D_in_Crelease. }
-    rels.
-    rewrite inclusion_t_rt.
-    sin_rewrite release_rf_rmw_steps.
-    subst X; ins; basic_solver 12.
-    Admitted.
+  rels.
+  rewrite inclusion_t_rt.
+  sin_rewrite release_rf_rmw_steps.
+  subst X; ins; basic_solver 12. }
+  
+rewrite (dom_r (@wf_sbE G)), !seqA.
+arewrite (⦗E⦘ ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ⊆ ⦗E ∩₁ F ∩₁ Acq/Rel⦘ ⨾ ⦗Acq⦘) at 1.
+by mode_solver 21.
+seq_rewrite (dom_rel_helper dom_sb_F_AcqRel_in_D).
+rewrite !seqA.
+seq_rewrite (dom_rel_helper dom_rf_D).
+seq_rewrite <- cert_rf_D.
+rewrite !seqA.
+sin_rewrite Grelease_D_in_Crelease.
+unionR right -> right.
+basic_solver 21.
+Qed.
 
 Lemma cert_sb_sw : Gsb ∪ Csw ≡ Gsb ∪ Gsw.
 Proof using All.
