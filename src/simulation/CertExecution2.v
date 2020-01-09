@@ -1253,8 +1253,37 @@ Qed.
 
 Lemma Grfe_in_inv_Gco_cr_Crf : Grfe ⊆ (Gco^{-1})^? ;; Crf.
 Proof using All.
-arewrite (Grfe ⊆ ((Gco ∪ Gco^{-1})^? ;; Crf) ∩ Grfe).
-{ admit. }
+arewrite (Grfe ⊆ Grfe ⨾ ⦗D ∪₁ set_compl D⦘).
+by clear; unfolder; ins; desf; tauto.
+rewrite id_union; rewrite seq_union_r; unionL.
+{ arewrite (Grfe ⊆ Grf).
+  rewrite <- cert_rf_D. 
+  basic_solver. }
+arewrite (Grfe ⨾ ⦗set_compl D⦘ ⊆ ((Gco ∪ Gco^{-1})^? ;; Crf) ∩ Grfe).
+{ 
+rewrite WF.(wf_rfeE).
+rewrite WF.(wf_rfeD).
+unfolder; ins; desf.
+splits; eauto.
+exploit new_rf_comp; unfolder; ins; splits; eauto.
+desf; exists a; splits; eauto.
+assert (H44:=H4).
+eapply is_w_loc in H4; desc.
+assert (H11:=x1).
+apply wf_new_rfD in x1.
+unfolder in x1; desf.
+assert (H111:=x1).
+eapply is_w_loc in x1; desc.
+cut (x <> a -> Gco x a \/ Gco a x).
+tauto.
+eapply WF.(wf_co_total).
+unfolder; splits; eauto.
+unfolder; splits; eauto.
+apply wf_new_rfE in H11; unfolder in H11; desf.
+apply wf_new_rfl in H11; unfolder in H11; desf.
+unfold rfe in H0; unfolder in H0; desf.
+apply WF.(wf_rfl) in H0; unfolder in H0; desf.
+unfold same_loc in *; congruence. }
 rewrite crE at 1; relsf.
 rewrite !inter_union_l; unionL.
 1,3: basic_solver.
@@ -1266,7 +1295,7 @@ unfolder; ins; desf.
 eapply eco_furr_irr; eauto.
 eexists; splits; eauto.
 apply fr_in_eco; eexists; splits; eauto.
-Admitted.
+Qed.
 
 Lemma I_Grfe_in_inv_Gco_cr_Crf : <| I |> ;; Grfe ⊆ (cert_co ∩ Gco^{-1})^? ;; Crf.
 Proof.
@@ -1320,8 +1349,10 @@ rewrite seq_union_l, !inter_union_l, !seq_union_l; unionL.
 by basic_solver.
 transitivity (fun _ _ : actid => False); [|basic_solver].
 arewrite (cert_co ∩ Gco⁻¹ ⊆ cert_co ∩ Gco⁻¹ ;; <|set_compl I|>).
-admit.
-
+{ cut (codom_rel (cert_co ∩ Gco⁻¹) ⊆₁ set_compl I).
+  basic_solver 21.
+  rewrite cert_co_alt'; unfolder; ins; desf; eauto.
+  exfalso; eapply WF.(co_irr); eapply WF.(co_trans); eauto. }
 rewrite (dom_l WF.(wf_coE)) at 1.
 rewrite transp_seq; rels.
 rewrite AuxRel.seq_eqv_inter_rr, !seqA.
@@ -1334,24 +1365,24 @@ arewrite (⦗E⦘ ⨾ ⦗set_compl I⦘ ⨾ new_rf ⊆ ⦗set_compl I⦘ ⨾ Gsb
 rewrite coi_union_coe, transp_union, inter_union_r; relsf.
 rewrite inter_union_l; relsf.
 unionL.
-{ 
-rewrite (dom_l (@wf_sbE G)) at 1.
-arewrite (⦗set_compl I⦘ ⨾ ⦗E⦘ ⊆ ⦗set_compl Init⦘).
-{ generalize init_issued; basic_solver 21. }
-arewrite (⦗set_compl Init⦘ ⊆ ⦗set_compl Init⦘ ;; ⦗set_compl Init⦘).
-{ basic_solver. }
-arewrite (Gcoi ⊆ Gsb).
-rewrite ImmProperties.ninit_sb_same_tid.
-rewrite <- seqA.
-rewrite <- !AuxRel.seq_eqv_inter_rr.
-arewrite (Gsb⁻¹ ⨾ ⦗set_compl Init⦘ ⊆ same_tid).
-{ generalize (@ImmProperties.ninit_sb_same_tid G).
-  unfold same_tid; unfolder; clear; ins; desf; symmetry; eauto. }
-arewrite (cert_co ∩ same_tid ⨾ same_tid ⊆ same_tid).
-{ clear; generalize (ImmProperties.same_tid_trans); basic_solver 21. }
-generalize (ImmProperties.rfe_n_same_tid WF COH).
-basic_solver 21.
-Admitted.
+{ rewrite (dom_l (@wf_sbE G)) at 1.
+  arewrite (⦗set_compl I⦘ ⨾ ⦗E⦘ ⊆ ⦗set_compl Init⦘).
+  { generalize init_issued; basic_solver 21. }
+  arewrite (⦗set_compl Init⦘ ⊆ ⦗set_compl Init⦘ ;; ⦗set_compl Init⦘).
+  { basic_solver. }
+  arewrite (Gcoi ⊆ Gsb).
+  rewrite ImmProperties.ninit_sb_same_tid.
+  rewrite <- seqA.
+  rewrite <- !AuxRel.seq_eqv_inter_rr.
+  arewrite (Gsb⁻¹ ⨾ ⦗set_compl Init⦘ ⊆ same_tid).
+  { generalize (@ImmProperties.ninit_sb_same_tid G).
+    unfold same_tid; unfolder; clear; ins; desf; symmetry; eauto. }
+  arewrite (cert_co ∩ same_tid ⨾ same_tid ⊆ same_tid).
+  { clear; generalize (ImmProperties.same_tid_trans); basic_solver 21. }
+  generalize (ImmProperties.rfe_n_same_tid WF COH).
+  basic_solver 21. }
+revert ETC_DR_R_ACQ_I; unfold detour; basic_solver 21.
+Qed.
 
 (******************************************************************************)
 (** **   *)
