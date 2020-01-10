@@ -381,4 +381,10 @@ Proof using WF.
   basic_solver 10.
 Qed.
 
+Lemma W_ex_eq_EW_W_ex : W_ex ≡₁ E ∩₁ W ∩₁ W_ex.
+Proof using WF.
+  generalize W_ex_in_E.
+  generalize WF.(W_ex_in_W). clear. basic_solver 10.
+Qed.
+
 End ImmProperties.
