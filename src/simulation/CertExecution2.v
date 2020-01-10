@@ -1470,6 +1470,16 @@ Proof using All.
   apply seq_eqv_r. by split.
 Qed.
 
+Lemma Crf_to_Acq_nC_in_Grf : Crf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗E∩₁R∩₁Acq \₁ C⦘) |> ⊆ Grf.
+Proof using All.
+  arewrite (E∩₁R∩₁Acq \₁ C ⊆₁ R∩₁Acq ∩₁ dom_rel (Gsb ⨾ ⦗S⦘)).
+  2: { rewrite id_inter. rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel.
+       rewrite !seqA. apply Crf_to_Acq_S_in_Grf. }
+  rewrite E_to_S.
+  rewrite crE, seq_union_l. rewrite S_in_W at 1.
+  clear. type_solver 20.
+Qed.
+
 (******************************************************************************)
 (** **   *)
 (******************************************************************************)
@@ -1668,7 +1678,8 @@ Proof using All.
     arewrite (⦗R⦘ ⨾ ⦗Acq⦘ ⨾ Gsb^? ⨾ ⦗S⦘ ;; ⦗W⦘ ⊆ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘).
     {  type_solver 21. }
     rewrite rtE. basic_solver 21. }
-    sin_rewrite Grfe_to_Acq_S_in_Crf.
+    arewrite (Grfe ⊆ Grf).
+    sin_rewrite Grf_to_Acq_S_in_Crf.
     arewrite (Grmw ⊆ certG.(rmw)).
     rewrite Grfi_in_Crfi at 1.
     arewrite_id ⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘.
@@ -1697,16 +1708,48 @@ basic_solver 21.
 Qed.
 
 Lemma Crfi_Crmw_in_Grfi_Grmw :
-    (Crfi ⨾ Crmw) ⨾ Grfi ⨾ ⦗E ∩₁ R ∩₁ Acq \₁ D⦘ ⊆
-    (Grfi ⨾ Grmw) ⨾ Grfi ⨾ ⦗E ∩₁ R ∩₁ Acq \₁ D⦘.
+    Crfi ⨾ Crmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⨾ ⦗Acq \₁ C⦘ ⊆
+    Grfi ⨾ Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi.
 Proof using All.
-Admitted.
+  rewrite (dom_r WF.(wf_rfiE)) at 2.
+  rewrite E_to_S.
+  rewrite (dom_r WF.(wf_rfiD)) at 2. rewrite !seqA.
+  arewrite (⦗R⦘ ⨾ ⦗C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⨾ ⦗Acq \₁ C⦘ ⊆
+            ⦗dom_rel (Gsb ⨾ ⦗S⦘)⦘ ⨾ ⦗Acq⦘).
+  { generalize S_in_W. clear. 
+    ins. unfolder. ins. desf; splits; eauto.
+    exfalso. apply S_in_W in H5. type_solver 10. }
+  arewrite (Crmw ⊆ Grmw).
+  arewrite (Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⨾ ⦗dom_rel (Gsb ⨾ ⦗S⦘)⦘ ⨾ ⦗Acq⦘ ⊆
+            ⦗dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘)⦘ ;; Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi).
+  2: { hahn_frame.
+       unfold rfi. rewrite cert_sb.
+       generalize Crf_to_Acq_S_in_Grf. basic_solver 20. }
+  seq_rewrite <- !rt_seq_swap. rewrite !seqA.
+  remember (Grmw ⨾ Grfi) as X.
+  rewrite (dom_r WF.(wf_rfiD)) at 1.
+  assert (Grmw ⨾ Grfi ⊆ X) as AA by (by subst X).
+  rewrite !seqA. sin_rewrite AA. seq_rewrite <- !ct_end.
+  rewrite <- inclusion_t_rt.
+  basic_solver 10.
+Qed.
 
 Lemma Crfi_Crmw_rt_in_Grfi_Grmw :
-    (Crfi ⨾ Crmw)＊ ⨾ Grfi ⨾ ⦗E ∩₁ R ∩₁ Acq \₁ D⦘ ⊆
-    (Grfi ⨾ Grmw)＊ ⨾ Grfi ⨾ ⦗E ∩₁ R ∩₁ Acq \₁ D⦘.
+    (Crfi ⨾ Crmw)＊ ⨾ Grfi ⨾ ⦗Acq \₁ C⦘ ⊆
+    (Grfi ⨾ Grmw)＊ ⨾ Grfi.
 Proof using All.
-Admitted.
+  eapply rt_ind_left with (P:=fun r=> r ;; Grfi ;; ⦗Acq \₁ C⦘); eauto with hahn.
+  { rewrite rtE. basic_solver 12. }
+  intros k H.
+  arewrite (⦗Acq \₁ C⦘ ⊆ ⦗Acq \₁ C⦘ ;; ⦗Acq \₁ C⦘) by (clear; basic_solver).
+  sin_rewrite H. rewrite !seqA.
+  rewrite Crfi_Crmw_in_Grfi_Grmw.
+  rewrite <- !seqA. rewrite <- ct_begin. by rewrite inclusion_t_rt.
+Qed.
+
+(* TODO: move to AuxRel.v *) 
+Lemma r_to_dom_rel_r_r {A} (r: relation A) : r ≡ <|dom_rel r|> ;; r.
+Proof using. basic_solver. Qed.
 
 Lemma cert_sb_sw : Gsb ∪ Csw ≡ Gsb ∪ Gsw.
 Proof using All.
@@ -1754,8 +1797,8 @@ Proof using All.
     rewrite WF.(rmw_in_sb).
     generalize (@sb_trans G); ins; relsf.
     revert H; basic_solver 21. }
+  unionR right -> left.
   rewrite ct_end, <- !seqA.
-
   arewrite (((((((⦗CRel⦘ ⨾ (⦗CF⦘ ⨾ Csb)^?) ⨾ ⦗CW⦘) ⨾ (Csb ∩ Csame_loc)^?) ⨾ ⦗CW⦘) ⨾ 
                (Crfi ⨾ Crmw)＊) ⨾ ((Crfe ⨾ Crmw) ⨾ (Crfi ⨾ Crmw)＊)＊) ⊆ Crelease).
   { arewrite (Crfi ⊆ Crf).
@@ -1763,88 +1806,24 @@ Proof using All.
     rewrite <- !seqA.
     rewrite <- !ct_begin.
     rewrite !seqA; relsf. }
-  rewrite Crfi_Crmw_rt_in_Grfi_Grmw.
+  arewrite (⦗E ∩₁ R ∩₁ Acq \₁ D⦘ ⊆ ⦗Acq \₁ C⦘ ;; ⦗E ∩₁ R ∩₁ Acq \₁ C⦘).
+  { rewrite <- C_in_D. clear. basic_solver. }
+  sin_rewrite Crfi_Crmw_rt_in_Grfi_Grmw.
   arewrite (Crmw ⊆ Grmw).
   rewrite (dom_rel_helper dom_Crfe_in_I), !seqA.
   rewrite I_in_D.
   seq_rewrite Crelease_D_eq_Grelease_D.
-  rewrite seqA.
-
-  assert (BB: Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⊆ (Grmw ⨾ Grfi)^+).
-  { seq_rewrite <- rt_seq_swap.
-    rewrite !seqA.
-    remember (Grmw ⨾ Grfi) as Y.
-    apply ct_end. }
-  sin_rewrite BB.
-
-  assert (AA: dom_rel (Grfe ⨾ (Grmw ⨾ Grfi)⁺ ⨾ ⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⨾ ⦗Acq⦘) ⊆₁ I).
-  { rewrite (dom_r WF.(wf_rfiD)) at 1.
-    rewrite seq_eqvC.
-    rewrite <- !seqA.
-    rewrite dom_rel_eqv_dom_rel, seqA. rewrite inclusion_ct_seq_eqv_r, !seqA.
-    arewrite (⦗R⦘ ⨾ ⦗Acq⦘ ⨾ Gsb^? ⨾ ⦗S⦘ ⊆ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘).
-    { rewrite crE; relsf. rewrite S_in_W at 1. type_solver 32. }
-    arewrite (Grfe ⊆ Gdetour ∪ Grfe). 
-      by rewrite inclusion_t_rt. }
-  rewrite seq_eqvC.
-  seq_rewrite (dom_rel_helper AA).
   rewrite !seqA.
-  arewrite ((Grmw ⨾ Grfi)⁺ ⨾ ⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⨾ ⦗Acq⦘ ⊆ 
-                         ⦗dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘)⦘ ⨾ 
-                         (Grmw ⨾ Grfi)⁺ ⨾ ⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⨾ ⦗Acq⦘).
-  { apply dom_rel_helper.
-    rewrite seq_eqvC, <- seqA.
-    
-    rewrite dom_rel_eqv_dom_rel.
-    rewrite (dom_r WF.(wf_rfiD)) at 1. 
-    rewrite <- !seqA.
-    rewrite inclusion_ct_seq_eqv_r, !seqA.
-    arewrite (⦗S⦘ ⊆ ⦗S⦘ ;; ⦗W⦘) at 1.
-    { generalize S_in_W; clear; basic_solver. }
-    arewrite (⦗R⦘ ⨾ ⦗Acq⦘ ⨾ Gsb^? ⨾ ⦗S⦘ ;; ⦗W⦘ ⊆ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘).
-    {  type_solver 21. }
-    rewrite rtE. basic_solver 21. }
-  arewrite (⦗I⦘ ⊆  ⦗I⦘ ;;  ⦗I⦘) by basic_solver.
-  sin_rewrite Grfe_to_Acq_S_in_Crf.
-  arewrite (Grmw ⊆ certG.(rmw)).
-  rewrite Grfi_in_Crfi at 1.
-  arewrite_id ⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘.
-  arewrite_id ⦗set_compl D⦘.
-  arewrite (Crfi ⊆ Crf).
-  seq_rewrite <- ct_seq_swap.
-  rewrite !seqA.
-  arewrite (Grelease ⨾ ⦗I⦘ ⊆ release certG).
-  { rewrite I_in_D; apply Grelease_D_in_Crelease. }
-  rels.
-  rewrite inclusion_t_rt.
+  arewrite (Crfe ⊆ Crf).
+  arewrite (Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⊆ (Grmw ⨾ Grfi)＊).
+  { rewrite rt_seq_swap. rewrite <- seqA, <- ct_begin. apply inclusion_t_rt. }
+  rewrite r_to_dom_rel_r_r with (r:=(Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq \₁ C⦘).
+  sin_rewrite Crf_to_Acq_nC_in_Grf.
+  arewrite_id ⦗D⦘. rewrite seq_id_l.
+  arewrite (Grfi ⊆ Grf).
+  seq_rewrite <- rt_seq_swap. rewrite !seqA.
   sin_rewrite release_rf_rmw_steps.
-  subst X; ins; basic_solver 12. }
-
-rewrite (dom_r (@wf_sbE G)), !seqA.
-  arewrite (⦗E⦘ ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ⊆ ⦗E ∩₁ F ∩₁ Acq/Rel⦘ ⨾ ⦗Acq⦘) at 1.
-    by mode_solver 21.
-    seq_rewrite (dom_rel_helper dom_sb_F_AcqRel_in_D).
-    rewrite !seqA.
-    seq_rewrite (dom_rel_helper dom_rf_D).
-    seq_rewrite <- cert_rf_D.
-    rewrite !seqA.
-    sin_rewrite Grelease_D_in_Crelease.
-    unionR right -> right.
-    basic_solver 21.
-
-  unionR right -> left.
-  (* hahn_frame. *)
-  rewrite <- !seqA.
-  intros x y HH.
-  apply seq_eqv_r in HH. destruct HH as [[z [HH GG]] [[[x' CC] [BB ACQ]] ND]].
-  apply seq_eqv_r. split; auto.
-  assert (x' = z); subst.
-  { eapply wf_new_rff; eauto.
-    apply Grfi_nD_in_new_rf. apply seq_eqv_r. split; auto. }
-  exists z. split; [|by apply CC].
-
-  eapply wf_new_rff; eauto.
-  apply Grfi_nD_in_new_rf. apply seq_eqv_r. split; auto.
+  clear. basic_solver.
 Qed.
 
 Lemma cert_hb : Chb ≡ Ghb.
