@@ -1368,7 +1368,8 @@ Proof using WF ETCCOH.
     unionL.
     { rewrite (reservedW WF ETCCOH). type_solver. }
     rewrite <- ETCCOH.(etc_dr_R_acq_I).
-    basic_solver 10. }
+    rewrite rtE.
+    basic_solver 20. }
   rewrite (rmw_in_ppo WF).
   arewrite
     (dom_rel (Fppo ⨾ ⦗NTid_ thread ∩₁ I⦘)
