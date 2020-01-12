@@ -141,9 +141,8 @@ Qed.
 
 Lemma rfe_rmw_S : dom_rel (rfe ⨾ rmw ⨾ ⦗S⦘) ⊆₁ I.
 Proof using WF ETCCOH.
-rewrite (rmw_in_rppo WF).
-generalize (etc_rppo_S ETCCOH).
-basic_solver 21.
+  arewrite (rfe ⊆ rf).
+  apply dom_rf_rmw_S_in_I.
 Qed.
 
 Lemma nI_rfrmw_in_rfirmw :

@@ -84,7 +84,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 (** **   *)
 (******************************************************************************)
 
-Definition rppo := (ctrl ∪ addr ⨾ sb^? ∪ rmw ∪ rmw_dep ;; sb
+Definition rppo := (ctrl ∪ addr ⨾ sb^? ∪ rmw_dep ;; sb
                          ∪ ⦗R_ex \₁ dom_rel rmw⦘ ⨾ sb) ⨾ ⦗ W ⦘.
 
 Lemma wf_rppoE : rppo ≡ ⦗E⦘ ⨾ rppo ⨾ ⦗E⦘.
@@ -95,7 +95,7 @@ Proof using WF.
   rewrite WF.(wf_addrE) at 1.
   rewrite wf_sbE at 1 2 3.
   rewrite WF.(wf_rmw_depE) at 1.
-  rewrite WF.(wf_rmwE) at 1.
+  (* rewrite WF.(wf_rmwE) at 1. *)
   basic_solver 10.
 Qed.
 
@@ -106,7 +106,8 @@ Proof using WF.
   rewrite WF.(wf_ctrlD) at 1.
   rewrite WF.(wf_addrD) at 1.
   rewrite WF.(wf_rmw_depD) at 1.
-  rewrite WF.(wf_rmwD) at 1. generalize R_ex_in_R.
+  (* rewrite WF.(wf_rmwD) at 1. *)
+  generalize R_ex_in_R.
   basic_solver 20.
 Qed.
 
@@ -136,7 +137,7 @@ Proof using WF.
   unfold rppo, imm_s_ppo.ppo. hahn_frame.
   rewrite WF.(wf_ctrlD) at 1.
   rewrite (dom_l WF.(wf_addrD)) at 1.
-  rewrite (dom_l WF.(wf_rmwD)) at 1. rewrite R_ex_in_R at 1.
+  (* rewrite (dom_l WF.(wf_rmwD)) at 1. rewrite R_ex_in_R at 1. *)
   rewrite (dom_l WF.(wf_rmw_depD)) at 1.
   arewrite (⦗R_ex \₁ dom_rel rmw⦘ ⊆ ⦗R⦘ ;; ⦗R_ex \₁ dom_rel rmw⦘).
   { type_solver. }
@@ -149,24 +150,24 @@ Qed.
 Lemma rppo_in_sb : rppo ⊆ sb.
 Proof using WF. by rewrite rppo_in_ppo, ppo_in_sb. Qed.
 
-(* Lemma rppo_sb_in_rppo : rppo ⨾ sb ⨾ ⦗W⦘ ⊆ rppo. *)
-(* Proof using WF. *)
-(*   unfold rppo. *)
-(*   hahn_frame. arewrite_id ⦗W⦘. rewrite seq_id_l. *)
-(*   rewrite !seq_union_l, !seqA. *)
-(*   rewrite WF.(ctrl_sb). *)
-(*   arewrite (sb^? ⨾ sb ⊆ sb^?). *)
-(*   { generalize (@sb_trans G). basic_solver. } *)
-(*   arewrite (sb ⨾ sb ⊆ sb). *)
-(*   2: done. *)
-(*   apply transitiveI. apply sb_trans. *)
-(* Qed. *)
+Lemma rppo_sb_in_rppo : rppo ⨾ sb ⨾ ⦗W⦘ ⊆ rppo.
+Proof using WF.
+  unfold rppo.
+  hahn_frame. arewrite_id ⦗W⦘. rewrite seq_id_l.
+  rewrite !seq_union_l, !seqA.
+  rewrite WF.(ctrl_sb).
+  arewrite (sb^? ⨾ sb ⊆ sb^?).
+  { generalize (@sb_trans G). basic_solver. }
+  arewrite (sb ⨾ sb ⊆ sb).
+  2: done.
+  apply transitiveI. apply sb_trans.
+Qed.
 
-(* Lemma rppo_cr_sb_in_rppo : rppo ⨾ sb^? ⨾ ⦗W⦘ ⊆ rppo. *)
-(* Proof using WF. *)
-(*   rewrite crE. rewrite seq_union_l, seq_union_r. rewrite rppo_sb_in_rppo. *)
-(*   basic_solver. *)
-(* Qed. *)
+Lemma rppo_cr_sb_in_rppo : rppo ⨾ sb^? ⨾ ⦗W⦘ ⊆ rppo.
+Proof using WF.
+  rewrite crE. rewrite seq_union_l, seq_union_r. rewrite rppo_sb_in_rppo.
+  basic_solver.
+Qed.
 
 Lemma data_rfi_rppo_in_ppo : ⦗R⦘ ⨾ (data ∪ rfi)＊ ⨾ rppo ⊆ ppo.
 Proof using.
@@ -188,11 +189,11 @@ Proof using WF.
     by rewrite data_rfi_rppo_in_ppo.
 Qed.
 
-Lemma rmw_in_rppo : rmw ⊆ rppo.
-Proof using WF.
-  rewrite (dom_r WF.(wf_rmwD)).
-  unfold rppo. basic_solver 10.
-Qed.
+(* Lemma rmw_in_rppo : rmw ⊆ rppo. *)
+(* Proof using WF. *)
+(*   rewrite (dom_r WF.(wf_rmwD)). *)
+(*   unfold rppo. basic_solver 10. *)
+(* Qed. *)
 
 (* Lemma rmw_sb_W_in_rppo : rmw ⨾ sb ⨾ ⦗W⦘ ⊆ rppo. *)
 (* Proof using WF. *)
@@ -221,12 +222,12 @@ Proof using.
   rewrite (sub_addr SUB).
   rewrite (sub_sb SUB) at 1 2.
   rewrite (sub_frmw SUB).
-  rewrite (sub_rmw SUB) at 1.
+  (* rewrite (sub_rmw SUB) at 1. *)
   rewrite (sub_W SUB).
   rewrite (sub_R_ex SUB).
   hahn_frame.
   unionL.
-  1-4: basic_solver 12.
+  1-3: basic_solver 12.
   unionR right.
   rewrite (dom_l (@wf_sbE G')).
   rewrite (sub_sb_in SUB).
