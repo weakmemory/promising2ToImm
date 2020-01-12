@@ -1943,21 +1943,17 @@ arewrite  (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread�
 arewrite (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘) at 2.
 basic_solver 12.
 
-arewrite ((Crelease ⨾ Crf)^? ⨾ ⦗C⦘ ≡ (Grelease ⨾ Grf)^? ⨾ ⦗C⦘).
+arewrite ((Grelease ⨾ Crf)^? ⨾ ⦗C⦘ ≡ (Grelease ⨾ Grf)^? ⨾ ⦗C⦘).
 { arewrite (⦗C⦘ ≡ ⦗D⦘ ⨾ ⦗C⦘).
-  { split.
-    generalize C_in_D; basic_solver.
-    basic_solver. }
-  rewrite !crE; relsf.
-  rewrite !seqA.
-  seq_rewrite cert_rf_D.
-  rewrite !seqA.
-  apply union_more; [done|].
-  rewrite seq_eqvC at 1 2.
-  seq_rewrite rf_covered; eauto. rewrite !seqA.
-  arewrite (⦗I⦘ ≡ ⦗D⦘ ;; ⦗I⦘).
-  { generalize I_in_D. clear. basic_solver. }
-  seq_rewrite Crelease_D_eq_Grelease_D. by rewrite !seqA. }
+split.
+generalize C_in_D; basic_solver.
+basic_solver. 
+rewrite !crE; relsf.
+rewrite !seqA.
+seq_rewrite cert_rf_D.
+rewrite !seqA.
+done.
+}
 
 arewrite ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ (Grelease ⨾ Grf)^? ⨾  ⦗C⦘ ≡ ⦗C⦘ ⨾ (Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ (Grelease ⨾ Grf)^? ⨾ ⦗C⦘).
 split; [generalize (urr_helper_C)|]; basic_solver 21.
@@ -2000,7 +1996,7 @@ Qed.
 
 
 Lemma WF_cert : Wf certG.
-Proof using All.
+Proof using WF WF_SC TCCOH Grfe_E IT_new_co NEW_VAL OLD_VAL SAME ST_in_E S_in_W.
 constructor; ins.
 all: rewrite ?cert_sb, ?cert_R, ?cert_W, ?cert_same_loc, ?cert_E, ?cert_rf, ?cert_co, ?cert_R_ex.
 all: try by apply WF.
@@ -2111,7 +2107,7 @@ Proof using All.
   apply coh_helper_alt; rewrite cert_hb; relsf; unionL.
   { case_refl sc; [by apply hb_irr|].
     rewrite (wf_scD WF_SC); rotate 1.
-    sin_rewrite (f_sc_hb_f_sc_in_ar WF).
+    sin_rewrite (f_sc_hb_f_sc_in_ar sc WF).
     unfolder; ins; desc.
     eapply ACYC_EXT.
     eapply t_trans; [edone| apply t_step].
@@ -2196,7 +2192,7 @@ Proof using All.
 red; case_refl _.
 - rewrite cert_hb.
   rewrite (wf_scD WF_SC); rotate 2.
-  sin_rewrite (f_sc_hb_f_sc_in_ar WF).
+  sin_rewrite (f_sc_hb_f_sc_in_ar sc WF).
   unfolder; ins; desc.
   eapply ACYC_EXT.
   eapply t_trans; [edone| apply t_step].
@@ -2221,10 +2217,10 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
   unfold cert_co.
   rotate 1.
   unfold fr; ins; rewrite transp_union.
+  rewrite (dom_rel_helper (dom_rmw_in_D)).
   rewrite (dom_r (wf_new_rfE)).
   rewrite !transp_seq, !transp_eqv_rel, !seqA.
-  relsf; unionL.
-  2: { admit. }
+  relsf; unionL; [| basic_solver].
   unfold cert_co.
 
   arewrite ((new_co G cert_co_base 
@@ -2244,7 +2240,7 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
   assert (cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN.
   { rewrite cert_co_base_alt.
     rewrite I_eq_EW_I at 1.
-    rewrite W_ex_eq_EW_W_ex at 1; auto.
+    rewrite W_ex_eq_EW_W_ex at 1.
     intros x [[AA|AA] BB].
     { split; [by apply AA|].
       intros HH. apply BB. split; auto. by apply AA. }
@@ -2286,25 +2282,47 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
   eapply (new_co_trans IST_new_co); try apply WF.
   apply H3.
   apply new_co_helper; [apply WF| apply WF| basic_solver 12].
-Admitted.
+Qed.
 
 (******************************************************************************)
 (** **   *)
 (******************************************************************************)
-
+(* TODO: move *)
+Lemma ppo_helper : Cppo ⊆
+ ⦗CR⦘ ⨾ (certG.(data) ∪ certG.(ctrl) ∪ certG.(addr) ⨾ Csb^? ∪ Crfi ∪ Crmw ∪ certG.(rmw_dep) ⨾ Csb^?)^+ ⨾  
+   (⦗(R_ex certG.(lab)) \₁ dom_rel Crmw⦘ ⨾ Csb)^?⨾ ⦗CW⦘.
+Proof.
+Admitted.
 
 Lemma cert_ppo_D : Cppo ⨾ ⦗ D ⦘ ⊆ Gppo.
-Proof using E_to_S Grfe_E SAME S_in_W TCCOH WF WF_SC.
-remember (Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ ⦗GR_ex⦘ ⨾ Gsb ∪ Grmw_dep) as X.
-
+Proof using All.
+rewrite ppo_helper.
 unfold ppo; ins.
-arewrite (Cppo ⊆ ⦗R⦘ ⨾ (X ∪ Crfi)⁺ ⨾ ⦗W⦘).
-{ unfold ppo; rewrite cert_R, cert_W, cert_sb, cert_R_ex.
-rewrite HeqX; hahn_frame; apply inclusion_t_t; basic_solver 12. }
-arewrite (Gppo ≡ ⦗R⦘ ⨾ (X ∪ Grfi)⁺ ⨾ ⦗W⦘).
-by unfold ppo; rewrite HeqX; split; hahn_frame; apply inclusion_t_t; basic_solver 12.
-arewrite (⦗W⦘ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ ⦗W⦘) by basic_solver.
-hahn_frame.
+
+rewrite cert_R, cert_W, cert_sb, cert_R_ex, !seqA.
+
+arewrite ((⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb)^? ⨾ ⦗W⦘ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ;; (⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb)^? ⨾ ⦗W⦘).
+{ rewrite crE, !seq_union_l, !seqA.
+  seq_rewrite (dom_rel_helper dom_R_ex_fail_sb_D).
+  clear; basic_solver 12. }
+
+rewrite <- ct_cr with (r:=(Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grfi ∪ Grmw ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb)).
+hahn_frame_r.
+rewrite <- !seqA.
+apply seq_mori; [|clear; basic_solver 12].
+
+
+
+remember (Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grmw ∪ Grmw_dep ⨾ Gsb^?) as X.
+
+arewrite (Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Crfi ∪ Grmw ∪ Grmw_dep ⨾ Gsb^? ⊆ X ∪ Crfi).
+{ subst X; clear; basic_solver 12. }
+
+assert (XX: X ∪ Grfi ⊆ Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grfi ∪ Grmw ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb).
+{ subst X; clear; basic_solver 12. }
+rewrite <- XX.
+(* arewrite (⦗W⦘ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ ⦗W⦘) by basic_solver. *)
+(* hahn_frame. *)
 rewrite path_union; relsf; unionL.
 generalize inclusion_t_t; basic_solver.
 rewrite !seqA.
@@ -2315,7 +2333,7 @@ assert (X_D_helper: dom_rel (X ⨾ ⦗D⦘) ⊆₁ D).
   apply dom_data_D.
   rewrite (dom_rel_helper dom_ctrl_in_D); basic_solver.
   rewrite (dom_rel_helper dom_addr_in_D); basic_solver.
-  rewrite (dom_l (@wf_sbE G)); generalize (Rex_in_D); basic_solver.
+  apply dom_rmw_D.
   rewrite (dom_rel_helper dom_frmw_in_D); basic_solver. }
 
 assert (X_D: dom_rel (X＊ ⨾ ⦗D⦘) ⊆₁ D).
@@ -2356,7 +2374,7 @@ relsf.
 Qed.
 
 Lemma cert_ppo_CI : Cppo ⨾ ⦗ C ∪₁ I ⦘ ⊆ Gppo.
-Proof using E_to_S Grfe_E SAME S_in_W TCCOH WF WF_SC.
+Proof using All.
 rewrite C_in_D, I_in_D; relsf.
 apply cert_ppo_D.
 Qed.
@@ -2452,11 +2470,12 @@ Proof using All.
   { unionR right. 
     rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel.
     rewrite !seqA.
-    arewrite (Gsb ⨾ ⦗W⦘ ⨾ (Gdata ∪ Grfi)＊ ⨾ Grppo ⊆ Gsb).
+    arewrite (Gsb ⨾ ⦗W⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⊆ Gsb).
     2: by apply W_ex_acq_sb_S.
     arewrite (Grfi ⊆ Gsb).
     rewrite WF.(data_in_sb).
     rewrite WF.(rppo_in_sb).
+    rewrite WF.(rmw_in_sb).
     rewrite unionK.
     rewrite rt_of_trans.
     all: generalize (@sb_trans G); basic_solver. }
@@ -2466,12 +2485,299 @@ Proof using All.
   clear. type_solver 20.
 Qed.
 
+(* TODO: move up *)
+Lemma Crf_to_Acq_in_Grf : Crf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗Acq⦘) |> ⊆ Grf.
+Proof using All.
+Admitted.
+
+Lemma Crfi_to_Acq_in_Grf : Crfi ⨾ ⦗Acq⦘  ⊆ Grfi.
+Proof using All.
+Admitted.
+
+Lemma cert_ar_int_I : Car_int⁺ ⨾ ⦗ C ∪₁ I ⦘ ⊆ ⦗ D ∪₁ R ∩₁ Acq ⦘ ⨾ Gar_int⁺.
+Proof.
+rewrite (ct_ar_int_alt WF_cert).
+2: by apply (coherence_sc_per_loc cert_coherence).
+rewrite cert_R, cert_Acq, cert_sb, cert_W_ex_acq, cert_W.
+rewrite cert_same_loc, cert_Rel, cert_AcqRel, cert_F, cert_W_ex.
+  arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗Acq⦘ ;; ⦗R ∩₁ Acq⦘) at 3.
+  { clear; basic_solver. }
+  sin_rewrite Crfi_to_Acq_in_Grf.
+
+relsf; unionL.
+- unfold ar_int, bob, fwbob.
+case_refl Gsb.
+rewrite (dom_l (@wf_sbE G)) at 1.
+generalize E_F_AcqRel_in_C, C_in_D.
+rewrite <- ct_step; basic_solver 12.
+rewrite (dom_l (@wf_sbE G)) at 2.
+generalize E_F_AcqRel_in_C, (dom_sb_covered TCCOH), C_in_D.
+rewrite ct_begin, <- inclusion_t_rt, <- ct_step; basic_solver 32.
+- unfold ar_int, bob.
+rewrite <- ct_step; basic_solver 12.
+- unfold ar_int, bob, fwbob.
+case_refl Gsb.
+rewrite (dom_r (@wf_sbE G)) at 1.
+generalize E_F_AcqRel_in_C, (dom_sb_covered TCCOH), C_in_D.
+rewrite <- ct_step; basic_solver 21.
+rewrite (dom_r (@wf_sbE G)) at 1.
+generalize E_F_AcqRel_in_C, (dom_sb_covered TCCOH), C_in_D.
+rewrite ct_begin, <- inclusion_t_rt, <- ct_step; basic_solver 32.
+- unfold ar_int, bob, fwbob.
+rewrite W_rel_sb_loc_W_CI.
+generalize C_in_D, I_in_D.
+rewrite <- ct_step; basic_solver 21.
+- unfold ar_int, bob, fwbob.
+rewrite !seqA.
+rewrite (cr_helper W_rel_sb_loc_W_CI).
+rewrite <- seqA.
+sin_rewrite sb_W_rel_CI.
+generalize C_in_D, I_in_D.
+rewrite <- ct_cr, <- ct_step; basic_solver 32.
+
+- rewrite !seqA.
+rewrite (cr_helper W_rel_sb_loc_W_CI).
+
+arewrite ((⦗W ∩₁ Rel⦘ ⨾ Gsb ∩ Gsame_loc ⨾ ⦗W⦘)^?  ⊆ Gar_int^?) at 1.
+unfold ar_int, bob, fwbob; basic_solver 21.
+
+rewrite <- (ct_cr Gar_int).
+hahn_frame_r.
+
+arewrite (Cppo ⨾ ⦗C ∪₁ I⦘ ⊆ Gppo⨾ ⦗C ∪₁ I⦘).
+generalize cert_ppo_CI; basic_solver 12.
+
+arewrite (Gppo ⨾ ⦗C ∪₁ I⦘ ⊆ ⦗D⦘ ⨾ Gppo).
+rewrite C_in_D, I_in_D; generalize dom_ppo_D; basic_solver.
+
+
+rewrite <-ct_step.
+
+unfold ar_int; basic_solver 12.
+
+- rewrite !seqA.
+rewrite (cr_helper W_rel_sb_loc_W_CI).
+
+
+arewrite ((⦗W ∩₁ Rel⦘ ⨾ Gsb ∩ Gsame_loc ⨾ ⦗W⦘)^?  ⊆ Gar_int^?) at 3.
+unfold ar_int, bob, fwbob; basic_solver 21.
+
+rewrite <- (ct_cr Gar_int).
+hahn_frame_r.
+
+
+arewrite (Cppo^? ⨾ ⦗C ∪₁ I⦘ ⊆ Gppo^?⨾ ⦗C ∪₁ I⦘).
+generalize cert_ppo_CI; basic_solver 12.
+
+arewrite (Gppo^? ⨾ ⦗C ∪₁ I⦘ ⊆ ⦗D⦘ ⨾ Gppo^?).
+rewrite C_in_D, I_in_D; generalize dom_ppo_D; basic_solver.
+
+arewrite (Gppo^?  ⊆ Gar_int^?).
+unfold ar_int; basic_solver 12.
+
+rewrite <- (ct_cr Gar_int).
+hahn_frame_r.
+
+apply ct_inclusion_from_rt_inclusion1.
+
+{ rewrite detour_in_sb, !(ppo_in_sb WF_cert).
+arewrite_id ⦗W⦘ at 1.
+arewrite_id ⦗W⦘ at 1.
+arewrite_id ⦗R ∩₁ Acq⦘ at 1.
+arewrite_id  ⦗W ∩₁ Rel⦘ at 1.
+arewrite_id  ⦗W ∩₁ Rel⦘ at 1.
+arewrite_id  ⦗W ∩₁ Rel⦘ at 1.
+arewrite_id  ⦗GW_ex_acq⦘ at 1.
+arewrite (Gsb ∩ Gsame_loc ⊆ Gsb) at 1.
+arewrite_id  ⦗W ∩₁ Rel⦘ at 1.
+arewrite_id  ⦗GW_ex⦘ at 1.
+arewrite (Gsb ∩ Gsame_loc ⊆ Gsb) at 1.
+arewrite_id ⦗R ∩₁ Acq⦘ at 1.
+arewrite (Grfi ⊆ Gsb) at 1.
+
+rewrite cert_sb.
+arewrite_id  ⦗W ∩₁ Rel⦘ at 1.
+arewrite_id ⦗W⦘ at 1.
+generalize (@sb_trans G); ins; relsf.
+apply sb_acyclic. }
+
+
+
+apply rt_ind_right with (P:= fun r =>  r ⨾ ⦗D⦘).
+by auto with hahn.
+by basic_solver.
+
+intros k H; rewrite !seqA.
+
+ relsf; unionL.
+* case_refl (⦗R ∩₁ Acq⦘ ⨾ Gsb).
++
+rewrite cert_detour_D.
+
+arewrite (Gdetour  ⊆ Gar_int).
+rewrite (rt_end Gar_int); relsf; unionR right.
+hahn_frame_r.
+
+arewrite (⦗I⦘ ⊆ ⦗C ∪₁ I⦘).
+
+
+rewrite (cr_helper sb_W_rel_CI).
+
+arewrite ((Gsb ⨾ ⦗W ∩₁ Rel⦘)^?  ⊆ Gar_int^?).
+unfold ar_int, bob, fwbob; basic_solver 21.
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+
+arewrite (Cppo^? ⨾ ⦗C ∪₁ I⦘ ⊆ Gppo^? ⨾ ⦗C ∪₁ I⦘).
+generalize cert_ppo_CI; basic_solver 12.
+
+arewrite (Gppo^? ⨾ ⦗C ∪₁ I⦘ ⊆ ⦗D⦘ ⨾ Gppo^?  ).
+rewrite C_in_D, I_in_D; generalize dom_ppo_D; basic_solver.
+
+arewrite (Gppo ⊆ Gar_int).
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+
+done.
+
++
+rewrite !seqA, cert_detour_R_Acq_sb_D.
+arewrite (⦗R ∩₁ Acq⦘ ⨾ Gsb  ⊆ Gar_int).
+by unfold ar_int, bob, fwbob; basic_solver 21.
+
+rewrite (rt_end Gar_int); relsf; unionR right.
+hahn_frame_r.
+
+arewrite (Gdetour  ⊆ Gar_int^?).
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+arewrite (⦗I⦘ ⊆ ⦗C ∪₁ I⦘).
+rewrite (cr_helper sb_W_rel_CI).
+
+arewrite ((Gsb ⨾ ⦗W ∩₁ Rel⦘)^?  ⊆ Gar_int^?).
+unfold ar_int, bob, fwbob; basic_solver 21.
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+
+
+arewrite (Cppo^? ⨾ ⦗C ∪₁ I⦘ ⊆ Gppo^? ⨾ ⦗C ∪₁ I⦘).
+generalize cert_ppo_CI; basic_solver 12.
+
+arewrite (Gppo^? ⨾ ⦗C ∪₁ I⦘ ⊆ ⦗D⦘ ⨾ Gppo^?  ).
+rewrite C_in_D, I_in_D; generalize dom_ppo_D; basic_solver.
+
+arewrite (Gppo ⊆ Gar_int).
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+
+done.
+* 
+(* TODO: move and improve hypothesis! *)
+assert (W_ex_acq_sb_S1 : GW_ex_acq ⊆₁ I).
+admit.
+
+rewrite (dom_l (@wf_sbE G)) at 3; rewrite !seqA.
+
+arewrite (⦗GW_ex_acq⦘ ⨾ ⦗E⦘ ⊆ ⦗C ∪₁ I⦘ ⨾ ⦗GW_ex_acq⦘ ⨾ ⦗E⦘).
+generalize W_ex_acq_sb_S1; basic_solver 21.
+
+arewrite (⦗GW_ex_acq⦘ ⨾ ⦗E⦘ ⨾ Gsb ⨾ ⦗W⦘  ⊆ Gar_int^?).
+by unfold ar_int, bob, fwbob; basic_solver 21.
+arewrite_id ⦗D⦘; rels.
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+rewrite (cr_helper W_rel_sb_loc_W_CI).
+
+arewrite ((⦗W ∩₁ Rel⦘ ⨾ Gsb ∩ Gsame_loc ⨾ ⦗W⦘)^?  ⊆ Gar_int^?) at 1.
+unfold ar_int, bob, fwbob; basic_solver 21.
+
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+
+rewrite (cr_helper sb_W_rel_CI).
+
+arewrite ((Gsb ⨾ ⦗W ∩₁ Rel⦘)^?  ⊆ Gar_int^?).
+unfold ar_int, bob, fwbob; basic_solver 21.
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+
+arewrite (Cppo^? ⨾ ⦗C ∪₁ I⦘ ⊆ Gppo^? ⨾ ⦗C ∪₁ I⦘).
+generalize cert_ppo_CI; basic_solver 12.
+
+arewrite (Gppo^? ⨾ ⦗C ∪₁ I⦘ ⊆ ⦗D⦘ ⨾ Gppo^?  ).
+rewrite C_in_D, I_in_D; generalize dom_ppo_D; basic_solver.
+
+arewrite (Gppo ⊆ Gar_int).
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+
+done.
+
+*
+SearchAbout Grf Acq.
+Print ar_int.
+Print D.
+SearchAbout sb D.
+rewrite (dom_l WF.(wf_rfiE)).
+
+rewrite !seqA.
+
+arewrite (⦗GW_ex⦘ ⨾ ⦗E⦘ ⊆ ⦗C ∪₁ I⦘ ⨾ ⦗GW_ex⦘).
+generalize W_ex_E; basic_solver 21.
+
+arewrite (⦗GW_ex⦘ ⊆ ⦗GW_ex⦘ ;; ⦗set_compl Init⦘).
+by generalize (W_ex_not_init WF); basic_solver.
+sin_rewrite Crfi_Acq.
+rewrite !seqA.
+
+arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗R ∩₁ Acq⦘ ;; ⦗R ∩₁ Acq⦘).
+basic_solver.
+arewrite (⦗R ∩₁ Acq⦘ ⨾ Gsb^? ⊆ Gar_int^?).
+unfold ar_int, bob, fwbob; basic_solver 21.
+arewrite (⦗GW_ex⦘ ⨾ Grfi ⨾ ⦗R ∩₁ Acq⦘ ⊆ Gar_int^*).
+rels.
+
+arewrite_id ⦗D⦘; rels.
+rewrite <- (rt_rt Gar_int) at 2.
+hahn_frame_r.
+rewrite (cr_helper W_rel_sb_loc_W_CI).
+
+arewrite ((⦗W ∩₁ Rel⦘ ⨾ Gsb ∩ Gsame_loc ⨾ ⦗W⦘)^?  ⊆ Gar_int^?) at 1.
+unfold ar_int, bob, fwbob; basic_solver 21.
+
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+
+rewrite (cr_helper sb_W_rel_CI).
+
+arewrite ((Gsb ⨾ ⦗W ∩₁ Rel⦘)^?  ⊆ Gar_int^?).
+unfold ar_int, bob, fwbob; basic_solver 21.
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+
+arewrite (Cppo^? ⨾ ⦗C ∪₁ I⦘ ⊆ Gppo^? ⨾ ⦗C ∪₁ I⦘).
+generalize cert_ppo_CI; basic_solver 12.
+
+arewrite (Gppo^? ⨾ ⦗C ∪₁ I⦘ ⊆ ⦗D⦘ ⨾ Gppo^?  ).
+rewrite C_in_D, I_in_D; generalize dom_ppo_D; basic_solver.
+
+arewrite (Gppo ⊆ Gar_int).
+rewrite <- (rt_cr Gar_int).
+hahn_frame_r.
+
+done.
+Qed.
+
 Lemma cert_ar_int_I : Car_int⁺ ⨾ ⦗ C ∪₁ I ⦘ ⊆ ⦗ D ∪₁ R ∩₁ Acq ⦘ ⨾ Gar_int⁺.
 Proof using All.
   rewrite (ct_ar_int_alt WF_cert).
   2: by apply (coherence_sc_per_loc cert_coherence).
   rewrite cert_R, cert_Acq, cert_sb, cert_W_ex_acq, cert_W.
-  rewrite cert_same_loc, cert_Rel, cert_AcqRel, cert_F.
+  rewrite cert_same_loc, cert_Rel, cert_AcqRel, cert_F, cert_W_ex.
+  arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗Acq⦘ ;; ⦗R ∩₁ Acq⦘) at 3.
+  { clear; basic_solver. }
+  sin_rewrite Crfi_to_Acq_in_Grf.
+
   relsf; unionL.
   { unfold ar_int, bob, fwbob.
     case_refl Gsb.
@@ -2481,7 +2787,7 @@ Proof using All.
     rewrite (dom_l (@wf_sbE G)) at 2.
     generalize E_F_AcqRel_in_C, (dom_sb_covered TCCOH), C_in_D.
     rewrite ct_begin, <- inclusion_t_rt, <- ct_step.
-    basic_solver 21. }
+    basic_solver 32. }
   { unfold ar_int, bob.
     rewrite <- ct_step. basic_solver 12. }
   { unfold ar_int, bob, fwbob.
@@ -2492,12 +2798,12 @@ Proof using All.
     rewrite (dom_r (@wf_sbE G)) at 1.
     generalize E_F_AcqRel_in_C, (dom_sb_covered TCCOH), C_in_D.
     rewrite ct_begin, <- inclusion_t_rt, <- ct_step.
-    basic_solver 21. }
+    basic_solver 32. }
   { unfold ar_int, bob, fwbob.
     rewrite W_rel_sb_loc_W_CI.
     generalize C_in_D, I_in_D.
     rewrite <- ct_step.
-    basic_solver 12. }
+    basic_solver 21. }
   { unfold ar_int, bob, fwbob.
     rewrite !seqA.
     rewrite (cr_helper W_rel_sb_loc_W_CI).
@@ -2518,11 +2824,19 @@ Proof using All.
     arewrite (Gppo ⨾ ⦗C ∪₁ I⦘ ⊆ ⦗D⦘ ⨾ Gppo).
     { rewrite C_in_D, I_in_D; generalize dom_ppo_D; basic_solver. }
     rewrite <- ct_step.
-    unfold ar_int. basic_solver. }
+    unfold ar_int. basic_solver 12. }
   rewrite !seqA.
   rewrite (cr_helper W_rel_sb_loc_W_CI).
   arewrite ((⦗W ∩₁ Rel⦘ ⨾ Gsb ∩ Gsame_loc ⨾ ⦗W⦘)^?  ⊆ Gar_int^?) at 2.
   { unfold ar_int, bob, fwbob. basic_solver 21. }
+  
+  SearchAbout 
+  arewrite (⦗GW_ex⦘ ⨾ Grfi ⨾ ⦗R ∩₁ Acq⦘ ⨾ Gsb^?  ⊆ Gar_int^?) at 2.
+  { unfold ar_int, bob, fwbob. basic_solver 21. }
+
+  
+  
+  
   rewrite <- (ct_cr Gar_int).
   hahn_frame_r.
   arewrite (Cppo^? ⨾ ⦗C ∪₁ I⦘ ⊆ Gppo^?⨾ ⦗C ∪₁ I⦘).
