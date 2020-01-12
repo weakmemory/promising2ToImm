@@ -1,6 +1,7 @@
 From hahn Require Import Hahn.
 From imm Require Import Events Execution imm_s AuxDef.
 Require Import ExtTraversalConfig.
+Require Import ExtTraversal.
 Require Import ExtSimTraversal.
 
 Set Implicit Arguments.

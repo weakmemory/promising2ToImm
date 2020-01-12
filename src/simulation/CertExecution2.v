@@ -1943,17 +1943,21 @@ arewrite  (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread�
 arewrite (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘) at 2.
 basic_solver 12.
 
-arewrite ((Grelease ⨾ Crf)^? ⨾ ⦗C⦘ ≡ (Grelease ⨾ Grf)^? ⨾ ⦗C⦘).
+arewrite ((Crelease ⨾ Crf)^? ⨾ ⦗C⦘ ≡ (Grelease ⨾ Grf)^? ⨾ ⦗C⦘).
 { arewrite (⦗C⦘ ≡ ⦗D⦘ ⨾ ⦗C⦘).
-split.
-generalize C_in_D; basic_solver.
-basic_solver. 
-rewrite !crE; relsf.
-rewrite !seqA.
-seq_rewrite cert_rf_D.
-rewrite !seqA.
-done.
-}
+  { split.
+    generalize C_in_D; basic_solver.
+    basic_solver. }
+  rewrite !crE; relsf.
+  rewrite !seqA.
+  seq_rewrite cert_rf_D.
+  rewrite !seqA.
+  apply union_more; [done|].
+  rewrite seq_eqvC at 1 2.
+  seq_rewrite rf_covered; eauto. rewrite !seqA.
+  arewrite (⦗I⦘ ≡ ⦗D⦘ ;; ⦗I⦘).
+  { generalize I_in_D. clear. basic_solver. }
+  seq_rewrite Crelease_D_eq_Grelease_D. by rewrite !seqA. }
 
 arewrite ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ (Grelease ⨾ Grf)^? ⨾  ⦗C⦘ ≡ ⦗C⦘ ⨾ (Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ (Grelease ⨾ Grf)^? ⨾ ⦗C⦘).
 split; [generalize (urr_helper_C)|]; basic_solver 21.
@@ -1996,7 +2000,7 @@ Qed.
 
 
 Lemma WF_cert : Wf certG.
-Proof using WF WF_SC TCCOH Grfe_E IT_new_co NEW_VAL OLD_VAL SAME ST_in_E S_in_W.
+Proof using All.
 constructor; ins.
 all: rewrite ?cert_sb, ?cert_R, ?cert_W, ?cert_same_loc, ?cert_E, ?cert_rf, ?cert_co, ?cert_R_ex.
 all: try by apply WF.
@@ -2107,7 +2111,7 @@ Proof using All.
   apply coh_helper_alt; rewrite cert_hb; relsf; unionL.
   { case_refl sc; [by apply hb_irr|].
     rewrite (wf_scD WF_SC); rotate 1.
-    sin_rewrite (f_sc_hb_f_sc_in_ar sc WF).
+    sin_rewrite (f_sc_hb_f_sc_in_ar WF).
     unfolder; ins; desc.
     eapply ACYC_EXT.
     eapply t_trans; [edone| apply t_step].
@@ -2192,7 +2196,7 @@ Proof using All.
 red; case_refl _.
 - rewrite cert_hb.
   rewrite (wf_scD WF_SC); rotate 2.
-  sin_rewrite (f_sc_hb_f_sc_in_ar sc WF).
+  sin_rewrite (f_sc_hb_f_sc_in_ar WF).
   unfolder; ins; desc.
   eapply ACYC_EXT.
   eapply t_trans; [edone| apply t_step].
@@ -2217,10 +2221,10 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
   unfold cert_co.
   rotate 1.
   unfold fr; ins; rewrite transp_union.
-  rewrite (dom_rel_helper (dom_rmw_in_D)).
   rewrite (dom_r (wf_new_rfE)).
   rewrite !transp_seq, !transp_eqv_rel, !seqA.
-  relsf; unionL; [| basic_solver].
+  relsf; unionL.
+  2: { admit. }
   unfold cert_co.
 
   arewrite ((new_co G cert_co_base 
@@ -2240,7 +2244,7 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
   assert (cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN.
   { rewrite cert_co_base_alt.
     rewrite I_eq_EW_I at 1.
-    rewrite W_ex_eq_EW_W_ex at 1.
+    rewrite W_ex_eq_EW_W_ex at 1; auto.
     intros x [[AA|AA] BB].
     { split; [by apply AA|].
       intros HH. apply BB. split; auto. by apply AA. }
@@ -2282,7 +2286,7 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
   eapply (new_co_trans IST_new_co); try apply WF.
   apply H3.
   apply new_co_helper; [apply WF| apply WF| basic_solver 12].
-Qed.
+Admitted.
 
 (******************************************************************************)
 (** **   *)
