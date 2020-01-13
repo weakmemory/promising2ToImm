@@ -414,42 +414,53 @@ Qed.
 (** Definition of certification graph rf relation   *)
 (******************************************************************************)
 
-Definition cert_rf := Grf ⨾ ⦗D⦘ ∪ new_rf.
-(* ⨾ ⦗set_compl GR_ex⦘. *)
-(* ∪ immediate cert_co ;; Grmw⁻¹ ⨾ ⦗set_compl D⦘. *)
+Definition cert_rf := Grf ⨾ ⦗D⦘ ∪ new_rf ⨾ ⦗set_compl GR_ex⦘
+                          ∪ immediate cert_co ;; Grmw⁻¹ ⨾ ⦗set_compl D⦘.
 Definition cert_rfe := cert_rf \ Gsb.
 Definition cert_rfi := cert_rf ∩ Gsb.
 
 Lemma cert_rfE : cert_rf ≡ ⦗E⦘ ⨾ cert_rf ⨾ ⦗E⦘.
-Proof using WF WF_SC.
+Proof using WF WF_SC IT_new_co ST_in_E S_in_W.
   apply dom_helper_3. 
   unfold cert_rf.
-  rewrite (wf_new_rfE), (wf_rfE WF).
+  rewrite (wf_new_rfE), (wf_rfE WF), (wf_rmwE WF), wf_cert_coE; eauto.
   clear. basic_solver.
 Qed.
 
 Lemma cert_rfD : cert_rf ≡ ⦗W⦘ ⨾ cert_rf ⨾ ⦗R⦘.
-Proof using WF.
+Proof using WF S_in_W ST_in_E IT_new_co.
   apply dom_helper_3. 
   unfold cert_rf.
-  rewrite (wf_new_rfD), (wf_rfD WF).
+  rewrite (wf_new_rfD), (wf_rfD WF), (wf_rmwD WF), wf_cert_coD; eauto.
+  rewrite R_ex_in_R at 2.
   clear. basic_solver.
 Qed.
 
 Lemma cert_rfl : cert_rf ⊆ Gsame_loc.
-Proof using WF.
+Proof using WF S_in_W ST_in_E IT_new_co.
   unfold cert_rf.
   rewrite (wf_new_rfl), (wf_rfl WF).
-  clear. basic_solver.
+  rewrite (wf_rmwl WF). rewrite AuxRel.immediate_in.
+  rewrite wf_cert_col; eauto.
+  generalize (@same_loc_trans _ Glab).
+  rewrite AuxRel.transp_sym_equiv; [|by apply same_loc_sym].
+  clear. basic_solver 10.
 Qed.
 
 Lemma cert_rff : functional cert_rf⁻¹.
 Proof using IT_new_co ST_in_E S_in_W WF WF_SC.
   unfold cert_rf.
-  rewrite transp_union; apply functional_union.
-  { unfolder; ins; eapply (wf_rff WF); basic_solver. }
-  { by apply wf_new_rff. }
-  unfolder; ins; desf; apply wf_new_rfE in H0; unfolder in H0; basic_solver.
+  rewrite (dom_l WF.(wf_rmwD)).
+  rewrite (dom_r wf_new_rfE).
+  rewrite transp_union. apply functional_union.
+  3: { clear. basic_solver. }
+  { apply functional_union.
+    3: { unfolder; ins; desf. }
+    { unfolder; ins; eapply (wf_rff WF); basic_solver. }
+    eapply functional_mori.
+    2: by apply wf_new_rff.
+    red. clear. basic_solver. }
+  unfolder.
 Qed.
 
 Lemma cert_rfe_alt : cert_rfe ≡ ⦗I⦘ ⨾ Grfe ⨾ ⦗D⦘ ∪ ⦗I⦘ ⨾ (new_rf \ Gsb).
