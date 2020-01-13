@@ -97,25 +97,18 @@ Definition dom_sb_S_rfrmw T rrf P :=
 
 Record etc_coherent (T : ext_trav_config) :=
   mkETCC {
-      etc_tccoh  : tc_coherent G sc (etc_TC T);
-
-      etc_S_in_E : reserved T ⊆₁ E;
-      etc_I_in_S : eissued T ⊆₁ reserved T;
-      etc_S_I_in_W_ex : reserved T \₁ eissued T ⊆₁ W_ex;
-
-      etc_F_sb_S : dom_rel (⦗F∩₁Acq/Rel⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ ecovered T ;
-      etc_dr_R_acq_I :
-        dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
-      etc_W_ex_sb_I : dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
-      
-      etc_sb_S :
-        dom_sb_S_rfrmw T rf (eissued T) ⊆₁ reserved T;
-
-      etc_rppo_S :
-        dom_rel ((detour ∪ rfe) ⨾ (data ∪ rfi ∪ rmw)＊ ⨾ rppo ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
-
-      etc_S_W_ex_rfrmw_I : reserved T ∩₁ W_ex ⊆₁ codom_rel (⦗eissued T⦘ ⨾ rf ⨾ rmw);
-    }.
+  etc_tccoh          : tc_coherent G sc (etc_TC T);
+  etc_S_in_E         : reserved T ⊆₁ E;
+  etc_I_in_S         : eissued T ⊆₁ reserved T;
+  etc_S_I_in_W_ex    : reserved T \₁ eissued T ⊆₁ W_ex;
+  etc_F_sb_S         : dom_rel (⦗F∩₁Acq/Rel⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ ecovered T ;
+  etc_dr_R_acq_I     : dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
+  etc_W_ex_sb_I      : dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
+  etc_sb_S           : dom_sb_S_rfrmw T rf (eissued T) ⊆₁ reserved T;
+  etc_rppo_S         : dom_rel ((detour ∪ rfe) ⨾ (data ∪ rfi ∪ rmw)＊ ⨾ (rppo ∪ rmw) ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
+  etc_detour_rmw_S   : dom_rel (detour ⨾ rmw ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
+  etc_S_W_ex_rfrmw_I : reserved T ∩₁ W_ex ⊆₁ codom_rel (⦗eissued T⦘ ⨾ rf ⨾ rmw);
+ }.
 
 Section Props.
 

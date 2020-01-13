@@ -147,7 +147,8 @@ Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ 
 Definition D := C ∪₁ I ∪₁ (E ∩₁ NTid_ thread) ∪₁
   dom_rel (Grfi^? ⨾ Gppo ⨾ ⦗ I ⦘) ∪₁ 
   dom_rel ((Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗ S ⦘) ∪₁ 
-  codom_rel (⦗I⦘ ⨾ Grfi) ∪₁ codom_rel (Grfe ⨾ ⦗ R ∩₁ Acq ⦘).
+  codom_rel (⦗I⦘ ⨾ Grfi) ∪₁ codom_rel (Grfe ⨾ ⦗ R ∩₁ Acq ⦘)
+  ∪₁ codom_rel Grfe ∩₁ dom_rel (Grmw ⨾ ⦗ S ⦘).
 
 Lemma C_in_D : C ⊆₁ D.
 Proof using. unfold D; basic_solver 12. Qed.
@@ -256,7 +257,7 @@ Proof using sc WF TCCOH.
   { rewrite WF.(rmw_in_ppo) at 1.
     clear. basic_solver 12. }
   { unionR left -> left -> left -> left.
-    unionR right.
+    unionR left -> right.
     rewrite (dom_l WF.(wf_rmwE)) at 1. 
     rewrite WF.(wf_rmwt) at 1.
     clear; unfold same_tid; basic_solver 12. }
@@ -264,10 +265,11 @@ Proof using sc WF TCCOH.
     rewrite WF.(rmw_in_ppo) at 1.
     rewrite (dom_r (@wf_ppoD G)) at 1.
     rewrite (dom_l (@wf_ppoD G)) at 2.
-    unionR left -> left -> left -> right.
+    unionR left -> left -> left -> left. 
+    unionR right.
     generalize (@ppo_rfi_ppo G).
     clear; type_solver 21. }
-  { unionR left -> left -> right.
+  { unionR left -> left -> left -> right.
     rewrite dom_rel_eqv_dom_rel.
     rewrite <- inclusion_t_rt at 2.
     rewrite ct_begin.
@@ -277,6 +279,8 @@ Proof using sc WF TCCOH.
     clear; type_solver. }
   { rewrite (dom_r (wf_rmwD WF)).
     clear; type_solver. }
+  rewrite (wf_rmwD WF).
+  clear; type_solver.
 Qed.
 
 Lemma dom_R_ex_fail_sb_D : 
@@ -288,18 +292,18 @@ Proof.
     clear.
     basic_solver 21. }
   { rewrite I_in_S at 1. unfold rppo.
-    unionR left -> left -> right.
+    unionR left -> left -> left -> right.
     rewrite rtE.
     basic_solver 21. }
   { unionR left -> left -> left -> left.
-    unionR right.
+    unionR left -> right.
     rewrite (dom_l (@wf_sbE G)) at 1.
     arewrite ((GR_ex \₁ dom_rel Grmw) ⊆₁ set_compl Init).
     by rewrite WF.(init_w), R_ex_in_R; type_solver.
     generalize (@ninit_sb_same_tid G).
     unfold same_tid; unfolder; ins; desf; splits; eauto.
     erewrite H; eauto. }
-  { unionR left -> left -> right.
+  { unionR left -> left -> left -> right.
     arewrite (Grfi ⊆ Gsb) at 1.
     rewrite WF.(ppo_in_sb) at 1.
     rewrite I_in_S.
@@ -307,7 +311,7 @@ Proof.
     by generalize S_in_W; basic_solver.
     unfold rppo.
     generalize (@sb_trans G); basic_solver 21. }
-  { unionR left -> left -> right.
+  { unionR left -> left -> left -> right.
     arewrite (Grfi ⊆ Gsb) at 1.
     rewrite WF.(data_in_sb) at 1.
     rewrite WF.(rmw_in_sb) at 2.
@@ -321,8 +325,10 @@ Proof.
     generalize (@sb_trans G); basic_solver 32. }
   { rewrite (dom_r (wf_rfiD WF)).
     type_solver. }
-  rewrite (dom_r (wf_rmwD WF)).
-  type_solver.
+  { rewrite (dom_r (wf_rmwD WF)).
+    type_solver. }
+  rewrite (wf_rmwD WF).
+  clear; type_solver.
 Qed.
 
 Lemma dom_detour_D : dom_rel (Gdetour ⨾ ⦗D⦘) ⊆₁ I.
@@ -352,12 +358,13 @@ Proof using WF WF_SC TCCOH RPPO_S detour_Acq_E detour_E.
     basic_solver 10. }
   { rewrite dom_rel_eqv_codom_rel, transp_seq; relsf.
     sin_rewrite (detour_transp_rfi WF); rels. }
-  rewrite (dom_r (wf_rfeE WF)).
-  relsf.
-  transitivity (dom_rel (Gdetour ⨾ ⦗R ∩₁ Acq⦘ ⨾ ⦗E⦘)).
-  { clear. basic_solver 21. }
-  generalize detour_Acq_E. clear. basic_solver 21.
-Qed.
+  { rewrite (dom_r (wf_rfeE WF)).
+    relsf.
+    transitivity (dom_rel (Gdetour ⨾ ⦗R ∩₁ Acq⦘ ⨾ ⦗E⦘)).
+    { clear. basic_solver 21. }
+    generalize detour_Acq_E. clear. basic_solver 21. }
+
+Admitted.
 
 Lemma dom_data_D: dom_rel (Gdata ⨾ ⦗D⦘) ⊆₁ D.
 Proof using WF TCCOH.
@@ -371,7 +378,7 @@ Proof using WF TCCOH.
     rewrite (dom_l (@wf_sbE G)) at 1.
     rewrite sb_tid_init' at 1; relsf; unionL; split.
     { unionR left -> left -> left -> left.
-      unionR right.
+      unionR left -> right.
       unfold same_tid; unfolder; ins; desf; eauto 20. }
     arewrite (⦗E⦘ ⨾ ⦗fun a : actid => is_init a⦘ ⊆ ⦗D⦘).
     { generalize D_init. clear. basic_solver. }
@@ -390,6 +397,7 @@ Proof using WF TCCOH.
     rewrite <- ct_begin.
     apply inclusion_t_rt. }
   { rewrite (dom_r (wf_dataD WF)), (dom_r (wf_rfiD WF)). clear. type_solver. }
+  { rewrite (dom_r (wf_dataD WF)), (dom_r (wf_rfeD WF)). clear. type_solver. }
   rewrite (dom_r (wf_dataD WF)), (dom_r (wf_rfeD WF)). clear. type_solver.
 Qed.
 
@@ -448,7 +456,7 @@ Proof using WF TCCOH.
     rewrite sb_tid_init'; relsf; unionL; splits.
     { unfold D.
       unionR left -> left -> left -> left.
-      unionR right.
+      unionR left -> right.
       unfold same_tid. clear. basic_solver. }
     transitivity D; [|unfold D; clear; basic_solver 21].
     rewrite <- D_init; clear; basic_solver. }
@@ -464,6 +472,10 @@ Proof using WF TCCOH.
   { unfold D. ie_unfolder; unfolder; ins; desf.
     assert (x=z); subst; eauto 15.
     eapply WF; clear; basic_solver. }
+  { ie_unfolder; unfolder; ins; desc.
+    assert (x=x0); subst.
+    eapply WF; clear; basic_solver.
+    exfalso; auto. }
   ie_unfolder; unfolder; ins; desc.
   assert (x=x0); subst.
   eapply WF; clear; basic_solver.
@@ -548,5 +560,10 @@ Proof using All.
   rewrite C_in_D, I_in_D; relsf.
   apply dom_ppo_D.
 Qed.
+
+Lemma dom_ar_int_D : dom_rel (Gar_int ⨾ ⦗D⦘) ⊆₁ D.
+Proof using All.
+unfold ar_int.
+Admitted.
 
 End CertExec_D.
