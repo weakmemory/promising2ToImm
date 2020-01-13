@@ -582,7 +582,7 @@ Proof using TCCOH RELCOV.
   generalize RELCOV, (dom_sb_covered TCCOH).
   basic_solver 12.
 Qed.
-
+(*
 Lemma dom_ar_int_D : dom_rel (Gar_int^+ ⨾ ⦗D⦘) ⊆₁ D.
 Proof using All.
 rewrite (ct_ar_int_alt WF).
@@ -858,24 +858,9 @@ unfold ar_int, bob, fwbob; relsf; unionL; splits.
 SearchAbout Rel covered.
 red in TCCOH.
 
-(* rewrite (cr_helper W_rel_sb_loc_W_CI).
-unfold ar_int, bob, fwbob.
-    case_refl Gsb.
-    { rewrite (dom_r (@wf_sbE G)) at 1.
-      generalize E_F_AcqRel_in_C, (dom_sb_covered TCCOH), C_in_D.
-      rewrite <- ct_step. basic_solver 21. }
-    rewrite (dom_r (@wf_sbE G)) at 1.
-    generalize E_F_AcqRel_in_C, (dom_sb_covered TCCOH), C_in_D.
-    rewrite ct_begin, <- inclusion_t_rt, <- ct_step.
-    basic_solver 32. }
-  { unfold ar_int, bob, fwbob.
-    rewrite W_rel_sb_loc_W_CI.
-    generalize C_in_D, I_in_D.
-    rewrite <- ct_step.
-    basic_solver 21. }
-*)    
-Admitted.
 
+Admitted.
+*)
 (*
 Lemma dom_W_ex_acq_sb_W_D_in_CI :
   dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗W⦘ ⨾ ⦗D⦘) ⊆₁ C ∪₁ I.
