@@ -1798,7 +1798,8 @@ Qed.
 
 
 Lemma WF_cert : Wf certG.
-Proof using WF WF_SC TCCOH Grfe_E IT_new_co NEW_VAL OLD_VAL SAME ST_in_E S_in_W.
+Proof using All.
+(* Proof using WF WF_SC TCCOH Grfe_E IT_new_co NEW_VAL OLD_VAL SAME ST_in_E S_in_W. *)
 constructor; ins.
 all: rewrite ?cert_sb, ?cert_R, ?cert_W, ?cert_same_loc, ?cert_E, ?cert_rf, ?cert_co, ?cert_R_ex.
 all: try by apply WF.
@@ -1813,18 +1814,18 @@ all: try by apply WF.
   by intro B; eapply B; eauto.
   by intro A; eapply A; generalize dom_rf_D; basic_solver.
 - apply Crff.
-- apply wf_new_coE; [apply IST_new_co|apply (wf_coE WF)].
-- apply wf_new_coD; [apply IST_new_co|apply (wf_coD WF)].
-- apply wf_new_col; [apply IST_new_co|apply (wf_coD WF)].
+- apply wf_new_coE; [eapply IST_new_co|apply (wf_coE WF)]; edone.
+- apply wf_new_coD; [eapply IST_new_co|apply (wf_coD WF)]; edone.
+- apply wf_new_col; [eapply IST_new_co|apply (wf_coD WF)]; edone.
 - apply new_co_trans.
-  apply IST_new_co.
+  eapply IST_new_co; try edone.
   all: apply WF.
 - intros. erewrite same_lab_u2v_loc; try edone.
   apply wf_new_co_total. 
-  apply IST_new_co.
+  eapply IST_new_co; try edone.
   all: apply WF.
 - apply new_co_irr. 
-  apply IST_new_co.
+  eapply IST_new_co; try edone.
   all: apply WF.
 - ins; desf; apply cert_E.
   by apply (wf_init WF); exists b; splits; [apply cert_E| rewrite <- cert_loc].
@@ -1867,7 +1868,7 @@ Proof using All.
 assert (A: dom_rel (Gdetour ⨾ ⦗D⦘) ⊆₁ I).
 by apply dom_detour_D. (* Ori: weird Coq behavior? *)
 
-rewrite wf_cert_col.
+rewrite wf_cert_col; try edone.
 unfold same_loc; unfolder; ins; desc; splits; eauto.
 assert (CO: Gco x z1).
 { eapply tot_ex.
@@ -1909,7 +1910,7 @@ Proof using All.
   apply coh_helper_alt; rewrite cert_hb; relsf; unionL.
   { case_refl sc; [by apply hb_irr|].
     rewrite (wf_scD WF_SC); rotate 1.
-    sin_rewrite (f_sc_hb_f_sc_in_ar sc WF).
+    sin_rewrite (f_sc_hb_f_sc_in_ar WF).
     unfolder; ins; desc.
     eapply ACYC_EXT.
     eapply t_trans; [edone| apply t_step].
@@ -1918,17 +1919,18 @@ Proof using All.
     { revert COH CSC; unfold coherence, coh_sc, eco.
       ie_unfolder. basic_solver 21. }
     generalize new_rf_hb. basic_solver 12. }
-  { rewrite cert_co_alt'; relsf; unionL.
+  { ins; rewrite cert_co_alt'; try edone; relsf; unionL.
     { revert COH CSC. unfold coherence, coh_sc, eco. basic_solver 21. }
     revert W_hb_sc_hb_to_I_NTid. basic_solver 21. }
   { rewrite cert_rfe; relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E).
       unfold certG; ins; rewrite !seqA.
-      rewrite I_in_cert_co_base at 1.
-      sin_rewrite cert_co_I.
+      rewrite (I_in_cert_co_base G T) at 1.
+      arewrite (cert_co ⨾ ⦗cert_co_base G T⦘ ⊆ co G ⨾ ⦗cert_co_base G T⦘).
+      eby eapply cert_co_I.
       revert COH CSC. unfold coherence, coh_sc, eco.
       ie_unfolder. basic_solver 21. }
-    rewrite cert_co_alt'; relsf; unionL.
+    ins; rewrite cert_co_alt'; try edone; relsf; unionL.
     2: { generalize non_I_new_rf. basic_solver 16. }
     rewrite new_rf_in_furr.
     rotate 1.
@@ -1937,12 +1939,12 @@ Proof using All.
     { generalize (furr_hb_sc_hb WF WF_SC ACYC_EXT). basic_solver 21. }
     generalize (eco_furr_irr WF WF_SC CSC COH).
     unfold eco. basic_solver 21. }
-  { unfold fr; rewrite cert_co_alt'; unfold certG; ins.
+  { unfold fr; ins; rewrite cert_co_alt'; try edone; unfold certG; ins.
     rewrite transp_union, transp_seq; relsf; unionL.
     { revert COH CSC. unfold coherence, coh_sc, eco, fr. ie_unfolder. basic_solver 21. }
     { rotate 1.
       arewrite (Gco ∩ cert_co ⊆ cert_co).
-      rewrite (dom_r (wf_cert_coD)), !seqA.
+      rewrite (dom_r WF_cert.(wf_coD)), !seqA, cert_W.
       arewrite (⦗W⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
       { rewrite (furr_alt WF_SC). basic_solver 21. }
       unfold new_rf. basic_solver 21. }
@@ -1956,8 +1958,9 @@ Proof using All.
   { unfold fr; unfold certG; ins.
     rewrite transp_union, transp_seq; relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E), !seqA.
-      rewrite I_in_cert_co_base at 1.
-      sin_rewrite cert_co_I.
+      rewrite (I_in_cert_co_base G T) at 1.
+      arewrite (cert_co ⨾ ⦗cert_co_base G T⦘ ⊆ co G ⨾ ⦗cert_co_base G T⦘).
+      eby eapply cert_co_I.
       revert COH CSC. unfold coherence, coh_sc, eco, fr. ie_unfolder.
       basic_solver 21. }
     arewrite (Grfe ⨾ ⦗D⦘ ⊆ Grf) by ie_unfolder; basic_solver.
@@ -1967,7 +1970,7 @@ Proof using All.
     unfold new_rf. basic_solver 21. }
   unfold fr; unfold certG; ins.
   rewrite transp_union, transp_seq; relsf; unionL.
-  all: rewrite cert_co_alt'; relsf; unionL.
+  all: rewrite cert_co_alt'; try edone; relsf; unionL.
   2,4: generalize non_I_new_rf; basic_solver 16.
   { rewrite new_rf_in_furr.
     rotate 1.
@@ -1994,14 +1997,13 @@ Proof using All.
 red; case_refl _.
 - rewrite cert_hb.
   rewrite (wf_scD WF_SC); rotate 2.
-  sin_rewrite (f_sc_hb_f_sc_in_ar sc WF).
+  sin_rewrite (f_sc_hb_f_sc_in_ar WF).
   unfolder; ins; desc.
   eapply ACYC_EXT.
   eapply t_trans; [edone| apply t_step].
   by apply sc_in_ar.
 - generalize coh_helper; basic_solver 21.
 Qed.
-
 
 Lemma cert_rmw_atomicity : rmw_atomicity certG.
 Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E S_in_W 
@@ -2013,7 +2015,7 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
   red; ins; cut (irreflexive (Cfr ⨾ (cert_co \ Gsb) ⨾ Grmw^{-1})).
   { basic_solver 12. }
   rewrite (rmw_W_ex), !transp_seq, !transp_eqv_rel.
-  unfold Cert_co.cert_co.
+  unfold cert_co.
   rotate 1.
   unfold fr; ins; rewrite transp_union.
   rewrite (dom_rel_helper (dom_rmw_in_D)).
