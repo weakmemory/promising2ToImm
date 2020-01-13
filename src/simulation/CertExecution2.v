@@ -893,6 +893,16 @@ Proof using All.
   rewrite <- !seqA. rewrite <- ct_begin. by rewrite inclusion_t_rt.
 Qed.
 
+(* TODO: move up *)
+Lemma Crf_to_Acq_in_Grf : Crf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗Acq⦘) |> ⊆ Grf.
+Proof using All.
+Admitted.
+
+Lemma Crfi_to_Acq_in_Grf : Crfi ⨾ ⦗Acq⦘  ⊆ Grfi.
+Proof using All.
+Admitted.
+
+
 (******************************************************************************)
 (** **   *)
 (******************************************************************************)
@@ -1848,95 +1858,13 @@ Proof using All.
   generalize new_rfe_Acq. basic_solver 21.
 Qed.
 
-(* TODO: move *)
-Lemma W_rel_sb_loc_W_CI :
- (⦗W ∩₁ Rel⦘ ⨾ Gsb ∩ Gsame_loc ⨾ ⦗W⦘) ⨾ ⦗C ∪₁ I⦘ ⊆
-⦗C ∪₁ I⦘ ⨾ (⦗W ∩₁ Rel⦘ ⨾ Gsb ∩ Gsame_loc ⨾ ⦗W⦘).
-Proof using TCCOH.
-  (* case_refl _; [basic_solver|]. *)
-  rewrite !seqA.
-  arewrite (⦗W⦘ ⨾ ⦗C ∪₁ I⦘ ⊆ ⦗W⦘ ⨾ ⦗I⦘).
-  { generalize (w_covered_issued TCCOH). basic_solver. }
-  generalize (dom_W_Rel_sb_loc_I_in_C TCCOH). basic_solver 12.
-Qed.
 
-(* TODO: move *)
-Lemma sb_W_rel_CI :
- (Gsb ⨾ ⦗W ∩₁ Rel⦘) ⨾ ⦗C ∪₁ I⦘ ⊆ ⦗C ∪₁ I⦘ ⨾ (Gsb ⨾ ⦗W ∩₁ Rel⦘).
-Proof using TCCOH RELCOV.
-  generalize RELCOV, (dom_sb_covered TCCOH).
-  basic_solver 12.
-Qed.
 
-(* TODO: remove *)
-Lemma E_ntid_in_D : E ∩₁ NTid_ thread ⊆₁ D.
-Proof using. unfold Cert_D.D. basic_solver 10. Qed.
 
-(* TODO: introduce a separate file w/ definition of D and its properties. *)
-Lemma dom_W_ex_acq_sb_W_D_in_CI :
-  dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗W⦘ ⨾ ⦗D⦘) ⊆₁ C ∪₁ I.
-Proof using All.
-  assert (dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗I⦘) ⊆₁ I) as AA.
-  { arewrite (⦗I⦘ ⊆ ⦗W⦘ ⨾ ⦗I⦘).
-    { generalize (issuedW TCCOH). basic_solver. }
-    arewrite (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗W⦘ ⊆ ⦗W⦘ ⨾ Gar).
-    2: by apply ar_I_in_I.
-    arewrite (⦗GW_ex_acq⦘ ⊆ ⦗W⦘ ⨾ ⦗GW_ex_acq⦘).
-    { generalize (W_ex_in_W WF). basic_solver. }
-      by rewrite w_ex_acq_sb_w_in_ar. }
-  unfold Cert_D.D at 1. rewrite !id_union, !seq_union_r, !dom_union.
-  unionL.
-  { unionR left.
-    generalize (dom_sb_covered TCCOH). basic_solver. }
-  { unionR right. arewrite_id ⦗W⦘. by rewrite seq_id_l. }
-  { arewrite (⦗GW_ex_acq⦘ ⊆ ⦗GW_ex_acq⦘ ⨾ ⦗set_compl is_init⦘).
-    { generalize W_ex_acq_not_init. basic_solver. }
-    arewrite_id ⦗W⦘. rewrite seq_id_l.
-    rewrite (dom_rel_helper (@E_ntid_sb_prcl G thread)).
-    arewrite (GW_ex_acq ⊆₁ W).
-    { generalize WF.(W_ex_in_W). basic_solver. }
-    rewrite !dom_eqv1. unionR right.
-    rewrite <- !set_interA.
-    arewrite (W ∩₁ E ⊆₁ E ∩₁ W) by basic_solver.
-    rewrite <- IT_new_co. basic_solver. }
-  { rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel.
-    rewrite !seqA.
-    arewrite (Gsb ⨾ ⦗W⦘ ⨾ Grfi^? ⨾ Gppo ⊆ Gsb).
-    2: by unionR right. 
-    arewrite (Grfi ⊆ Gsb).
-    rewrite WF.(ppo_in_sb).
-    generalize (@sb_trans G). basic_solver. }
-  { unionR right. 
-    rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel.
-    rewrite !seqA.
-    arewrite (Gsb ⨾ ⦗W⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⊆ Gsb).
-    2: rewrite W_ex_acq_in_I; basic_solver.
-    arewrite (Grfi ⊆ Gsb).
-    rewrite WF.(data_in_sb).
-    rewrite WF.(rppo_in_sb).
-    rewrite WF.(rmw_in_sb).
-    rewrite unionK.
-    rewrite rt_of_trans.
-    all: generalize (@sb_trans G); basic_solver. }
-  { rewrite (dom_r WF.(wf_rfiD)).
-    rewrite <- !seqA. rewrite codom_eqv1.
-    clear. type_solver 20. }
-  clear. type_solver 20.
-Qed.
-
-(* TODO: move up *)
-Lemma Crf_to_Acq_in_Grf : Crf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗Acq⦘) |> ⊆ Grf.
-Proof using All.
-Admitted.
-
-Lemma Crfi_to_Acq_in_Grf : Crfi ⨾ ⦗Acq⦘  ⊆ Grfi.
-Proof using All.
-Admitted.
 
 Lemma cert_ar_int_I : Car_int⁺ ⨾ ⦗ C ∪₁ I ⦘ ⊆ ⦗ D ∪₁ R ∩₁ Acq ⦘ ⨾ Gar_int⁺.
 Proof.
-Admitted.
-(*
+
 rewrite (ct_ar_int_alt WF_cert).
 2: by apply (coherence_sc_per_loc cert_coherence).
 rewrite cert_R, cert_Acq, cert_sb, cert_W_ex_acq, cert_W.
