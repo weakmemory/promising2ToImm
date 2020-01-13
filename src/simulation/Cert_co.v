@@ -320,4 +320,23 @@ Proof using WF S_in_W ST_in_E S IT_new_co.
   exfalso. by apply ICOXY with (c:=z).
 Qed.
 
+Lemma imm_cert_co_tf : functional (immediate cert_co)⁻¹.
+Proof using WF S_in_W ST_in_E S IT_new_co.
+  intros x y z ICOXY ICOXZ. red in ICOXY. red in ICOXZ.
+  assert (cert_co y x) as COXY by apply ICOXY.
+  assert (cert_co z x) as COXZ by apply ICOXZ.
+  apply wf_cert_coD in COXY. destruct_seq COXY as [BB1 BB2].
+  apply wf_cert_coE in COXY. destruct_seq COXY as [BB3 BB4].
+  apply wf_cert_coD in COXZ. destruct_seq COXZ as [AA1 AA2].
+  apply wf_cert_coE in COXZ. destruct_seq COXZ as [AA3 AA4].
+  apply is_w_loc in AA2. desf.
+  set (CC:=COXY). apply wf_cert_col in CC. red in CC.
+  set (DD:=COXZ). apply wf_cert_col in DD. red in DD.
+  destruct (classic (y = z)); auto.
+  edestruct (wf_cert_co_total); eauto.
+  1,2: split; [split|]; eauto.
+  { exfalso. by apply ICOXY with (c:=z). }
+  exfalso. by apply ICOXZ with (c:=y).
+Qed.
+
 End CertExec_CO.

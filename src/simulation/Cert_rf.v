@@ -460,7 +460,12 @@ Proof using IT_new_co ST_in_E S_in_W WF WF_SC.
     eapply functional_mori.
     2: by apply wf_new_rff.
     red. clear. basic_solver. }
-  unfolder.
+  forward (eapply imm_cert_co_tf); try edone.
+  generalize WF.(wf_rmwf).
+  clear.
+  unfold functional, transp, seq, eqv_rel.
+  ins; desf.
+  assert (z0 = z1) by eauto; subst; eauto.
 Qed.
 
 Lemma cert_rfe_alt : cert_rfe ≡ ⦗I⦘ ⨾ Grfe ⨾ ⦗D⦘ ∪ ⦗I⦘ ⨾ (new_rf \ Gsb).
