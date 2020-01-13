@@ -182,6 +182,10 @@ Proof using TCCOH.
   cdes TCCOH; generalize ICOV; unfold D; basic_solver 12.
 Qed.
 
+Lemma E_ntid_in_D : E ∩₁ NTid_ thread ⊆₁ D.
+Proof using. unfold D. basic_solver 10. Qed.
+
+
 Lemma dom_rppo_S_in_D : dom_rel (Grppo ⨾ ⦗S⦘) ⊆₁ D.
 Proof using.
   unfold D. basic_solver 21.
