@@ -1044,54 +1044,53 @@ Proof using All.
     by apply sc_in_ar.
 Qed.
 
-(*
 Lemma cert_rmw_atomicity : rmw_atomicity certG.
-Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E S_in_W 
-      TCCOH_rst_new_T W_hb_sc_hb_to_I_NTid detour_E S_I_in_W_ex.
-  clear OLD_VAL NEW_VAL SAME ACYC_EXT CSC COMP_ACQ.
+Proof using All.
   generalize (atomicity_alt WF (coherence_sc_per_loc COH) AT).
   intro AT'; clear AT.
 
   red; ins; cut (irreflexive (Cfr ⨾ (cert_co \ Gsb) ⨾ Grmw^{-1})).
   { basic_solver 12. }
   rewrite (rmw_W_ex), !transp_seq, !transp_eqv_rel.
-  unfold cert_co.
   rotate 1.
-  unfold fr; ins; rewrite transp_union.
-  rewrite (dom_rel_helper (dom_rmw_in_D)).
-  rewrite (dom_r (wf_new_rfE)).
-  rewrite !transp_seq, !transp_eqv_rel, !seqA.
-  relsf; unionL; [| basic_solver].
-  unfold cert_co.
+  unfold fr. ins; unfold Cert_rf.cert_rf.
 
-  arewrite ((new_co G cert_co_base 
-                    (E ∩₁ W ∩₁ Tid_ thread) \ Gsb) ⨾ ⦗GW_ex⦘ ⊆
-            (new_co G cert_co_base
-                    (E ∩₁ W ∩₁ Tid_ thread) ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘).
-  { cut (new_co G cert_co_base (E ∩₁ W ∩₁ Tid_ thread) ⨾ ⦗GW_ex⦘ ⊆ Gco).
+  rewrite !transp_union.
+  arewrite (new_rf ⊆ new_rf ;; <| E \₁ D |>).
+  { rewrite wf_new_rfE; eauto. basic_solver. }
+
+  rewrite !transp_seq, !transp_eqv_rel, !seqA.
+  relsf. unionL; rewrite !seqA.
+  {   arewrite ((cert_co \ Gsb) ⨾ ⦗GW_ex⦘ ⊆
+            (cert_co ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘).
+  { cut (new_co G (cert_co_base G T) (E ∩₁ W ∩₁ Tid_ thread) ⨾ ⦗GW_ex⦘ ⊆ Gco).
     { basic_solver 21. }
     rewrite W_ex_in_cert_co_base.
-    rewrite (new_co_I IST_new_co); try apply WF.
-    clear. basic_solver. }
+    erewrite new_co_I; try apply WF.
+    clear. basic_solver.
+    eapply IST_new_co; eauto. }
 
-  rewrite (new_co_in IST_new_co) at 1; try apply WF.
-  relsf; unionL.
-  1,2: generalize (co_trans WF); revert AT'; unfold fr; basic_solver 12.
+    unfold Cert_co.cert_co.
+erewrite new_co_in at 1; try apply WF.
+2: eapply IST_new_co; eauto.
+relsf; unionL.
 
-  assert (cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN.
-  { rewrite cert_co_base_alt.
-    rewrite I_eq_EW_I at 1.
-    rewrite W_ex_eq_EW_W_ex at 1.
+    1,2: generalize (co_trans WF); revert AT'; unfold fr; basic_solver 12.
+
+  assert (cert_co_base G T \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN.
+  { rewrite cert_co_base_alt; eauto.
+    rewrite I_eq_EW_I at 1; eauto.
+    rewrite W_ex_eq_EW_W_ex at 1; eauto.
     intros x [[AA|AA] BB].
     { split; [by apply AA|].
       intros HH. apply BB. split; auto. by apply AA. }
     exfalso. apply BB. generalize AA. clear. basic_solver. }
 
-  remember (new_co G cert_co_base (E ∩₁ W ∩₁ Tid_ thread)) as new.
+  remember (new_co G (cert_co_base G T) (E ∩₁ W ∩₁ Tid_ thread)) as new.
   rewrite !seqA.
-  arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘
+  arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base G T⦘
               ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘ ⊆
-            ⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘
+            ⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base G T⦘
               ⨾ new ⨾ ⦗GW_ex \₁ E ∩₁ W ∩₁ Tid_ thread⦘).
   { unfolder; ins; desf; splits; eauto.
     intros [[EY WY] TT].
@@ -1106,7 +1105,7 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
   subst new.
 
   rewrite (inter_inclusion
-             (@T_I_new_co_I_T G cert_co_base 
+             (@T_I_new_co_I_T G (cert_co_base G T)
                               (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
 
   rewrite (inter_eq (wf_rfD WF)), (inter_eq (wf_rfE WF)),
@@ -1119,12 +1118,23 @@ Proof using WF WF_SC TCCOH AT COH COMP_NTID E_to_S G IT_new_co I_in_S S ST_in_E 
     intro; subst z1; eauto. }
   destruct K.
   2: revert AT'; unfold fr; basic_solver 12.
-  eapply (new_co_irr IST_new_co); try apply WF.
-  eapply (new_co_trans IST_new_co); try apply WF.
+  eapply (@new_co_irr _  (cert_co_base G T)); try apply WF.
+  eapply IST_new_co; eauto.
+  eapply (@new_co_trans _  (cert_co_base G T)); try apply WF.
+  eapply IST_new_co; eauto.
+  
   apply H3.
   apply new_co_helper; [apply WF| apply WF| basic_solver 12].
-Qed.
-*)
+
+ }
+  { rewrite (dom_l WF.(wf_rmwD)). basic_solver. }
+  arewrite (Grmw⁻¹ ⨾ ⦗set_compl D⦘ ⨾ Grmw ⊆ ⦗fun _ => True⦘).
+  2: basic_solver.
+  arewrite_id  ⦗set_compl D⦘.
+  rels.
+  apply functional_alt.
+  apply WF.(wf_rmwf).
+  Qed.
 
 (******************************************************************************)
 (** **   *)

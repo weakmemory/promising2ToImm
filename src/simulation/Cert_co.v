@@ -215,8 +215,7 @@ Proof using WF S_in_W ST_in_E IT_new_co.
 Qed.
 
 Lemma cert_co_for_split_helper : ⦗set_compl cert_co_base⦘ ⨾ (immediate cert_co) ⊆ Gsb.
-Proof using All.
-(* Proof using WF S_in_W ST_in_E IT_new_co. *)
+Proof using WF S_in_W ST_in_E IT_new_co S_I_in_W_ex COH.
   unfold cert_co.
   red; intros x y H.
   assert (A: (E ∩₁ W ∩₁ Tid_ thread) y).
@@ -256,7 +255,7 @@ Qed.
 
 Lemma cert_co_for_split :
   ⦗set_compl (GW_ex ∪₁ (I ∪₁ S ∩₁ Tid_ thread))⦘ ⨾ (immediate cert_co) ⊆ Gsb.
-Proof using All.
+Proof using WF S_in_W S_I_in_W_ex ST_in_E IT_new_co COH.
   arewrite (immediate cert_co ⊆
             <|cert_co_base ∪₁ set_compl cert_co_base|> ;; immediate cert_co).
   { rewrite AuxRel.set_compl_union_id. unfold set_full. by rewrite seq_id_l. }
@@ -273,7 +272,7 @@ Lemma cert_co_alt :
   cert_co  ⊆ Gco ∩ cert_co ⨾ ⦗ cert_co_base ⦘ ∪ ⦗ Tid_ thread ⦘ ⨾ Gco ∩ cert_co ∪ 
            ⦗ I ∩₁ NTid_ thread ⦘ ⨾ cert_co ⨾ ⦗ (E ∩₁ W ∩₁ Tid_ thread) \₁
                                               cert_co_base ⦘.
-Proof using All.
+Proof using WF TCCOH S_in_W ST_in_E S IT_new_co.
   arewrite (I ∩₁ NTid_ thread ≡₁ cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread).
   { rewrite cert_co_base_alt.
     split.
@@ -295,7 +294,7 @@ Qed.
 
 Lemma cert_co_alt' : cert_co  ⊆ Gco ∩ cert_co ∪ 
   ⦗ I ∩₁ NTid_ thread ⦘ ⨾ cert_co ⨾ ⦗ (E ∩₁ W ∩₁ Tid_ thread) \₁ I ⦘.
-Proof using All.
+Proof using WF TCCOH S_in_W ST_in_E S IT_new_co.
   rewrite cert_co_alt at 1.
   clear.
   unionL.
@@ -340,6 +339,21 @@ Proof using WF S_in_W ST_in_E S IT_new_co.
   1,2: split; [split|]; eauto.
   { exfalso. by apply ICOXY with (c:=z). }
   exfalso. by apply ICOXZ with (c:=y).
+Qed.
+
+Lemma cert_co_sb_irr : irreflexive (cert_co ;; Gsb).
+Proof using WF COH TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co.
+  rewrite cert_co_alt at 1.
+  relsf; unionL.
+  1-2: rewrite co_in_eco, sb_in_hb; 
+       revert COH; unfold coherence; basic_solver 21.
+  rewrite !seqA.
+  arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘ ⊆ ⦗Tid_ thread⦘ ;; ⦗set_compl Init⦘).
+  { unfold cert_co_base. 
+    generalize (init_issued WF TCCOH).
+    basic_solver 21. }
+  rewrite ninit_sb_same_tid.
+  unfold same_tid; basic_solver.
 Qed.
 
 End CertExec_CO.
