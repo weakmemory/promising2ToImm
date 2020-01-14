@@ -131,3 +131,10 @@ Lemma length_nzero_in A (l : list A) n : length l = S n -> exists x, In x l.
 Proof using.
   destruct l; ins; desf; eauto.
 Qed.
+
+Lemma r_to_dom_rel_r_r {A} (r: relation A) : r ≡ <|dom_rel r|> ;; r.
+Proof using. basic_solver. Qed.
+
+Lemma r_to_r_codom_rel_r {A} (r: relation A) : r ≡ r ;; <|codom_rel r|>.
+Proof using. basic_solver. Qed.
+

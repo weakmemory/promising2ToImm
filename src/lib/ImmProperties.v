@@ -1,7 +1,7 @@
 Require Import Setoid.
 From hahn Require Import Hahn.
 From imm Require Import Events Execution Execution_eco
-     imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxDef.
+     imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxDef TraversalConfig.
 Require Import AuxRel AuxRel2.
 
 Set Implicit Arguments.
@@ -69,6 +69,7 @@ Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 Notation "'Init'" := (fun a => is_true (is_init a)).
 Notation "'Loc_' l" := (fun x => loc x = Some l) (at level 1).
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
+Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 Notation "'W_' l" := (W ∩₁ Loc_ l) (at level 1).
 
 Notation "'Pln'" := (fun x => is_true (is_only_pln lab x)).
@@ -387,4 +388,30 @@ Proof using WF.
   generalize WF.(W_ex_in_W). clear. basic_solver 10.
 Qed.
 
+Lemma tid_set_dec thread : Tid_ thread ∪₁ NTid_ thread ≡₁ (fun x => True).
+Proof using. unfolder; split; ins; desf; tauto. Qed.
+
+Lemma sc_rfe_ct_in_sc_rfe : (sc ∪ rfe)⁺ ⊆ sc ∪ rfe.
+Proof using WF CON.
+  rewrite path_union.
+  cdes CON.
+  generalize (sc_trans Wf_sc); ins; relsf; unionL; [basic_solver|].
+  rewrite crE at 2; relsf; unionL.
+  { arewrite (sc^? ⨾ rfe ⊆ rfe).
+    { rewrite crE; relsf; unionL; [basic_solver|].
+      rewrite (dom_l (wf_rfeD WF)) at 1.
+      rewrite (dom_r (wf_scD Wf_sc)) at 1.
+      type_solver. }
+    rewrite ct_begin, rtE; relsf; unionL; [basic_solver|].
+    rewrite ct_begin.
+    rewrite (wf_rfeD WF).
+    type_solver. }
+  rewrite (dom_r (wf_rfeD WF)).
+  rewrite <- !seqA.
+  rewrite inclusion_ct_seq_eqv_r, !seqA.
+  rewrite (dom_l (wf_scD Wf_sc)) at 2.
+  type_solver.
+Qed.
+
 End ImmProperties.
+

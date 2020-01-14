@@ -257,15 +257,6 @@ Proof using All.
   unfold cert_co_base. clear. basic_solver.
 Qed.
 
-(* TODO: move to ImmProperties.v *)
-Lemma I_eq_EW_I : I ≡₁ E ∩₁ W ∩₁ I.
-Proof using TCCOH.
-  clear -TCCOH.
-  split; [|clear; basic_solver].
-  generalize (issuedW TCCOH), (issuedE TCCOH).
-  basic_solver.
-Qed.
-
 Lemma cert_co_alt :
   cert_co  ⊆ Gco ∩ cert_co ⨾ ⦗ cert_co_base ⦘ ∪ ⦗ Tid_ thread ⦘ ⨾ Gco ∩ cert_co ∪ 
            ⦗ I ∩₁ NTid_ thread ⦘ ⨾ cert_co ⨾ ⦗ (E ∩₁ W ∩₁ Tid_ thread) \₁

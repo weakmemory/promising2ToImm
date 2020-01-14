@@ -561,27 +561,6 @@ Proof using All.
   apply dom_ppo_D.
 Qed.
 
-
-(* TODO: move *)
-Lemma W_rel_sb_loc_W_CI :
- (⦗W ∩₁ Rel⦘ ⨾ Gsb ∩ Gsame_loc ⨾ ⦗W⦘) ⨾ ⦗C ∪₁ I⦘ ⊆
-⦗C ∪₁ I⦘ ⨾ (⦗W ∩₁ Rel⦘ ⨾ Gsb ∩ Gsame_loc ⨾ ⦗W⦘).
-Proof using TCCOH.
-  (* case_refl _; [basic_solver|]. *)
-  rewrite !seqA.
-  arewrite (⦗W⦘ ⨾ ⦗C ∪₁ I⦘ ⊆ ⦗W⦘ ⨾ ⦗I⦘).
-  { generalize (w_covered_issued TCCOH). basic_solver. }
-  generalize (dom_W_Rel_sb_loc_I_in_C TCCOH). basic_solver 12.
-Qed.
-
-
-(* TODO: move *)
-Lemma sb_W_rel_CI :
- (Gsb ⨾ ⦗W ∩₁ Rel⦘) ⨾ ⦗C ∪₁ I⦘ ⊆ ⦗C ∪₁ I⦘ ⨾ (Gsb ⨾ ⦗W ∩₁ Rel⦘).
-Proof using TCCOH RELCOV.
-  generalize RELCOV, (dom_sb_covered TCCOH).
-  basic_solver 12.
-Qed.
 (*
 Lemma dom_ar_int_D : dom_rel (Gar_int^+ ⨾ ⦗D⦘) ⊆₁ D.
 Proof using All.

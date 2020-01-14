@@ -927,6 +927,31 @@ Section Properties.
     basic_solver 12.
   Qed.
 
+  Lemma I_eq_EW_I : issued T ≡₁ E ∩₁ W ∩₁ issued T.
+  Proof using TCCOH.
+    split; [|clear; basic_solver].
+    generalize issuedW, issuedE.
+    basic_solver.
+  Qed.
+
+  Lemma W_rel_sb_loc_W_CI :
+    (⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘) ⨾ ⦗covered T ∪₁ issued T⦘ ⊆
+    ⦗covered T ∪₁ issued T⦘ ⨾ (⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘).
+  Proof using TCCOH.
+    (* case_refl _; [basic_solver|]. *)
+    rewrite !seqA.
+    arewrite (⦗W⦘ ⨾ ⦗covered T ∪₁ issued T⦘ ⊆ ⦗W⦘ ⨾ ⦗issued T⦘).
+    { generalize w_covered_issued. basic_solver. }
+    generalize dom_W_Rel_sb_loc_I_in_C. basic_solver 12.
+  Qed.
+
+  Lemma sb_W_rel_CI (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T) :
+    (sb ⨾ ⦗W ∩₁ Rel⦘) ⨾ ⦗covered T ∪₁ issued T⦘ ⊆ ⦗covered T ∪₁ issued T⦘ ⨾ (sb ⨾ ⦗W ∩₁ Rel⦘).
+  Proof using TCCOH.
+    generalize RELCOV, dom_sb_covered.
+    basic_solver 12.
+  Qed.
+
   Lemma W_Rel_sb_loc_I : dom_rel (⦗W ∩₁ Rel⦘ ⨾  (sb ∩ same_loc) ⨾ ⦗W ∩₁ issued T⦘) ⊆₁ issued T.
   Proof using TCCOH.
     generalize dom_W_Rel_sb_loc_I_in_C, w_covered_issued. basic_solver 21.

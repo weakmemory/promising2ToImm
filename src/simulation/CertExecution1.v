@@ -18,10 +18,6 @@ Remove Hints plus_n_O.
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 
-(* TODO: move it and remove a duplicate from CertExecution2.v *)
-Lemma tid_set_dec thread: Tid_ thread ∪₁ NTid_ thread ≡₁ (fun x => True).
-Proof using. unfolder; split; ins; desf; tauto. Qed.
-
 Section RestExec.
 
 Variable Gf : execution.

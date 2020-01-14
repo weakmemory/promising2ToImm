@@ -28,10 +28,6 @@ Remove Hints plus_n_O.
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 
-(* TODO: move to more appropriate place. *)
-Lemma tid_set_dec thread : Tid_ thread ∪₁ NTid_ thread ≡₁ (fun x => True).
-Proof using. unfolder; split; ins; desf; tauto. Qed.
-
 Section CertExec.
 
 Variable G : execution.
@@ -536,10 +532,6 @@ sin_rewrite Grelease_D_in_Crelease.
 unionR right -> right.
 basic_solver 21.
 Qed.
-
-(* TODO: move to AuxRel.v *) 
-Lemma r_to_dom_rel_r_r {A} (r: relation A) : r ≡ <|dom_rel r|> ;; r.
-Proof using. basic_solver. Qed.
 
 Lemma cert_sb_sw : Gsb ∪ Csw ≡ Gsb ∪ Gsw.
 Proof using All.
@@ -1667,40 +1659,17 @@ Proof using All.
 Qed.
 *)
 
-(* TODO: move to ImmPropoerties.v *)
-Lemma  cert_acyc_ext_helper : (sc ∪ certG.(rfe))⁺ ⊆ sc ∪ certG.(rfe).
-Proof using All.
-rewrite path_union.
-generalize (sc_trans WF_SC); ins; relsf; unionL; [basic_solver|].
-rewrite crE at 2; relsf; unionL.
-- arewrite (sc^? ⨾ rfe certG ⊆ rfe certG ).
-  rewrite crE; relsf; unionL; [basic_solver|].
-  rewrite (dom_l (wf_rfeD WF_cert)), cert_W.
-  rewrite (dom_r (wf_scD WF_SC)) at 1.
-  type_solver.
-  rewrite ct_begin, rtE; relsf; unionL; [basic_solver|].
-  rewrite ct_begin.
-  rewrite (dom_l (wf_rfeD WF_cert)).
-  rewrite (dom_r (wf_rfeD WF_cert)).
-  type_solver.
-- rewrite (dom_r (wf_rfeD WF_cert)), cert_R.
-  rewrite <- !seqA.
-  rewrite inclusion_ct_seq_eqv_r, !seqA.
-  rewrite (dom_l (wf_scD WF_SC)) at 2.
-  type_solver.
-Qed.
-
 Lemma cert_acyc_ext : acyc_ext certG sc.
 Proof using All.
 red; unfold imm_s.ar.
 rewrite unionC.
 apply acyclic_union1.
 - rewrite (ar_int_in_sb WF_cert); apply sb_acyclic.
-- red; rewrite cert_acyc_ext_helper; unionL.
+- red; rewrite sc_rfe_ct_in_sc_rfe; unionL.
   apply WF_SC.
   arewrite (certG.(rfe) ⊆ certG.(rf)).
   apply rf_irr, WF_cert.
-- rewrite cert_acyc_ext_helper.
+- rewrite sc_rfe_ct_in_sc_rfe.
   arewrite ((sc ∪ rfe certG) ⊆ ⦗ C ∪₁ I ⦘ ⨾ (sc ∪ rfe certG)).
   { unionL.
     - rewrite (dom_l (wf_scD WF_SC)) at 1.
