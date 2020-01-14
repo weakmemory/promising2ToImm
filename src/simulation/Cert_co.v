@@ -265,7 +265,7 @@ Proof using All.
   arewrite (I ∩₁ NTid_ thread ≡₁ cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread).
   { rewrite cert_co_base_alt.
     split.
-    2: { rewrite WF.(W_ex_eq_EW_W_ex), I_eq_EW_I at 1.
+    2: { rewrite WF.(W_ex_eq_EW_W_ex), TCCOH.(I_eq_EW_I) at 1.
          rewrite set_minus_union_l. unionL.
          2: { clear. intros x [HH BB]. exfalso. apply BB.
               generalize HH. basic_solver. }
