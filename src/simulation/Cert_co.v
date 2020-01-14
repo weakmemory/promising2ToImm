@@ -181,6 +181,13 @@ Proof using WF S_in_W ST_in_E IT_new_co.
   all: apply WF.
 Qed.
 
+Lemma cert_co_irr : irreflexive cert_co.
+Proof using WF S_in_W ST_in_E IT_new_co.
+  apply new_co_irr. 
+  apply IST_new_co.
+  all: apply WF.
+Qed.
+
 Lemma Gco_in_cert_co_sym_clos : Gco ⊆ cert_co ∪ cert_co^{-1}.
 Proof.
   rewrite WF.(wf_coE). do 2 rewrite WF.(wf_coD).
@@ -193,11 +200,16 @@ Proof.
   all: split; [split|]; eauto.
 Qed.
 
-Lemma cert_co_irr : irreflexive cert_co.
-Proof using WF S_in_W ST_in_E IT_new_co.
-  apply new_co_irr. 
-  apply IST_new_co.
-  all: apply WF.
+Lemma cert_co_in_Gco_sym_clos : cert_co ⊆ Gco ∪ Gco^{-1}.
+Proof.
+  rewrite (wf_cert_coE). do 2 rewrite (wf_cert_coD).
+  arewrite (W ⊆₁ fun x => exists l, loc Glab x = Some l) at 1.
+  { clear. unfolder. ins. by apply is_w_loc. }
+  arewrite (cert_co ⊆ cert_co ∩ cert_co).
+  rewrite (wf_cert_col) at 1.
+  unfolder. ins. desf. eapply WF.(wf_co_total).
+  3: eby intros HH; subst; eapply cert_co_irr.
+  all: split; [split|]; eauto.
 Qed.
 
 Lemma cert_co_I : cert_co ⨾ ⦗ cert_co_base ⦘ ⊆ Gco ⨾ ⦗ cert_co_base ⦘.

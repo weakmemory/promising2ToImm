@@ -365,27 +365,6 @@ intro; desf.
   red. basic_solver.
 Qed.
 
-(* TODO: move to Cert_D *)
-Lemma dom_Grfi_nD_in_thread :
-  dom_rel (Grfi ⨾ ⦗set_compl D⦘) ⊆₁ Tid_ thread.
-Proof using WF TCCOH.
-  unfolder. intros x [y [RFI ND]].
-  destruct (classic (I x)) as [IX|NIX].
-  { exfalso. apply ND.
-    do 2 red. left. left. right. basic_solver 10. }
-  destruct RFI as [RF SB].
-  apply WF.(wf_rfE) in RF.
-  unfolder in RF. desf.
-  assert (~ is_init x) as NINX.
-  { intros II. apply NIX. 
-    eapply init_issued; eauto. by split. }
-  apply sb_tid_init in SB. desf.
-  apply NNPP. intros NTX.
-  assert (tid y <> thread) as NTY.
-  { intros HH. apply NTX. by rewrite <- HH. }
-  apply ND. red. do 5 left. right. by split.
-Qed.
-
 Lemma Grfi_nD_in_new_rf : Grfi ⨾ ⦗set_compl D⦘ ⊆ new_rf.
 Proof using All.
   unfold new_rf.
@@ -399,7 +378,9 @@ Proof using All.
     rewrite (WF.(wf_rfl)) at 1.
     clear.
     basic_solver 21. }
-  rewrite (dom_rel_helper dom_Grfi_nD_in_thread).
+  arewrite (Grfi ⨾ ⦗set_compl D⦘ ⊆ ⦗Tid_ thread⦘ ⨾ Grfi ⨾ ⦗set_compl D⦘).
+  { forward (eapply dom_Grfi_nD_in_thread with (T:=T) (S:=S) (thread:=thread)); try edone.
+    basic_solver. }
   arewrite (Grfi ⊆ Grf).
   rewrite cert_co_alt'; try edone.
   unfolder; ins; desf.
@@ -479,14 +460,6 @@ Qed.
 Lemma minus_eqv_r {A: Type} (r r': relation A) (s : A -> Prop) : r ;; <| s |> \ r' ≡ (r \ r') ;; <| s |>.
 Proof.
 basic_solver 21.
-Qed.
- (* TODO: move to Cert_D *)
-Lemma E_minus_D_in_tid : E \₁ D ⊆₁ Tid_ thread.
-Proof using. 
-arewrite (E ⊆₁ E ∩₁ Tid_ thread ∪₁ E ∩₁ NTid_ thread).
-{ clear; unfolder; ins; desf; tauto. }
-rewrite E_ntid_in_D with (T:=T) (S:=S) (thread:=thread).
-clear; basic_solver.
 Qed.
 
 Lemma cert_rfe_alt : cert_rfe ≡ ⦗I⦘ ⨾ Grfe ⨾ ⦗D⦘ ∪ ⦗I⦘ ⨾ (new_rf \ Gsb) ⨾ ⦗set_compl GR_ex⦘

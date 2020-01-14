@@ -198,6 +198,14 @@ Proof using.
   unfold D. basic_solver 21.
 Qed.
 
+Lemma E_minus_D_in_tid : E \₁ D ⊆₁ Tid_ thread.
+Proof using. 
+arewrite (E ⊆₁ E ∩₁ Tid_ thread ∪₁ E ∩₁ NTid_ thread).
+{ clear; unfolder; ins; desf; tauto. }
+rewrite E_ntid_in_D.
+clear; basic_solver.
+Qed.
+
 Lemma dom_addr_in_D : dom_rel Gaddr ⊆₁ D.
 Proof using WF TCCOH E_to_S S_in_W.
   rewrite (dom_r (wf_addrE WF)).
@@ -488,6 +496,26 @@ Proof using WF TCCOH Grfe_E.
   relsf; unionL; splits.
   { apply dom_rfi_D. }
   revert Grfe_E. generalize I_in_D. clear. basic_solver.
+Qed.
+
+Lemma dom_Grfi_nD_in_thread :
+  dom_rel (Grfi ⨾ ⦗set_compl D⦘) ⊆₁ Tid_ thread.
+Proof using WF TCCOH.
+  unfolder. intros x [y [RFI ND]].
+  destruct (classic (I x)) as [IX|NIX].
+  { exfalso. apply ND.
+    do 2 red. left. left. right. basic_solver 10. }
+  destruct RFI as [RF SB].
+  apply WF.(wf_rfE) in RF.
+  unfolder in RF. desf.
+  assert (~ is_init x) as NINX.
+  { intros II. apply NIX. 
+    eapply init_issued; eauto. by split. }
+  apply sb_tid_init in SB. desf.
+  apply NNPP. intros NTX.
+  assert (tid y <> thread) as NTY.
+  { intros HH. apply NTX. by rewrite <- HH. }
+  apply ND. red. do 5 left. right. by split.
 Qed.
 
 Lemma complete_D : D ∩₁ R  ⊆₁ codom_rel Grf.

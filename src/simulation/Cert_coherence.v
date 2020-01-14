@@ -251,7 +251,8 @@ Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 
 
 Lemma cert_coherece_detour_helper :
-  irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ ⦗D⦘ ⨾ Grf⁻¹⨾ ⦗I ∩₁ NTid_ thread⦘ ⨾ cert_co ⨾ ⦗E ∩₁ W ∩₁ Tid_ thread \₁ I⦘).
+  irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ ⦗D⦘ ⨾ Grf⁻¹⨾ 
+  ⦗I ∩₁ NTid_ thread⦘ ⨾ cert_co ⨾ ⦗E ∩₁ W ∩₁ Tid_ thread \₁ I⦘).
 Proof using All.
 assert (A: dom_rel (Gdetour ⨾ ⦗D⦘) ⊆₁ I).
 by eapply dom_detour_D; try edone.
