@@ -593,9 +593,12 @@ Proof using All.
     clear; unfolder; ins; desf; unfolder; eauto 12. }
   arewrite (Grfi ⨾ ⦗set_compl D⦘ ⊆ Gsb ∩ (Grfi ⨾ ⦗set_compl D⦘)).
   { clear; unfold rfi. basic_solver. }
-  rewrite Grfi_nD_in_new_rf. 
-  unfold rfi, cert_rfi, cert_rf.
-  clear; simpl. basic_solver.
+  arewrite (⦗set_compl D⦘ ⊆ (⦗set_compl D⦘ ;; ⦗set_compl GR_ex⦘ ∪ ⦗GR_ex⦘)).
+  { clear. unfolder. ins. desf. tauto. }
+  rewrite !seq_union_r. rewrite inter_union_r. unionL.
+  { sin_rewrite Grfi_nD_in_new_rf. 
+    unfold rfi, cert_rfi, cert_rf.
+    clear; simpl. basic_solver. }
 Qed.
 
 (* TODO: move to CombRelations.v *)
