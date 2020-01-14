@@ -365,6 +365,7 @@ intro; desf.
   red. basic_solver.
 Qed.
 
+(* TODO: move to Cert_D *)
 Lemma dom_Grfi_nD_in_thread :
   dom_rel (Grfi ⨾ ⦗set_compl D⦘) ⊆₁ Tid_ thread.
 Proof using WF TCCOH.
@@ -599,7 +600,8 @@ Proof using All.
   { sin_rewrite Grfi_nD_in_new_rf. 
     unfold rfi, cert_rfi, cert_rf.
     clear; simpl. basic_solver. }
-Qed.
+    
+Admitted.
 
 (* TODO: move to CombRelations.v *)
 Lemma rf_in_furr : Grf ⊆ Gfurr.
@@ -611,13 +613,15 @@ Proof using WF.
   basic_solver 21.
 Qed.
 
-Lemma cert_rf_in_furr : cert_rf ⊆ Gfurr.
+(*
+Lemma cert_rf_in_furr : cert_rf ;; ⦗set_compl GR_ex⦘ ⊆ Gfurr.
 Proof using WF.
   unfold cert_rf.
   rewrite new_rf_in_furr.
   rewrite rf_in_furr.
   basic_solver.
 Qed.
+*)
 
 Lemma Grfe_in_inv_Gco_cr_cert_rf : Grfe ⊆ (Gco^{-1})^? ;; cert_rf.
 Proof using All.
@@ -627,6 +631,12 @@ Proof using All.
   { arewrite (Grfe ⊆ Grf).
     rewrite <- cert_rf_D. 
     basic_solver. }
+  arewrite (⦗set_compl D⦘ ⊆ (⦗set_compl D⦘ ;; ⦗set_compl GR_ex⦘ ∪ ⦗GR_ex⦘)).
+  { clear. unfolder. ins. desf. tauto. }
+  rewrite !seq_union_r. unionL.
+  { admit. }
+  admit.  
+    (*
   arewrite (Grfe ⨾ ⦗set_compl D⦘ ⊆ ((Gco ∪ Gco^{-1})^? ;; cert_rf) ∩ Grfe).
   { rewrite WF.(wf_rfeE).
     rewrite WF.(wf_rfeD).
@@ -663,7 +673,13 @@ Proof using All.
   eapply eco_furr_irr; eauto.
   eexists; splits; eauto.
   apply fr_in_eco; eexists; splits; eauto.
-Qed.
+Qed.*)
+Admitted.
+
+(* TODO: move to cert_co *)
+Lemma Gco_in_cert_co_sym_clos : Gco ⊆ cert_co ∪ cert_co^{-1}.
+Proof.
+Admitted.
 
 Lemma I_Grfe_in_inv_Gco_cr_cert_rf : Grfe ⊆ (cert_co ∩ Gco^{-1})^? ;; cert_rf.
 Proof using All.
@@ -678,6 +694,17 @@ Proof using All.
   rewrite !inter_union_l, seq_union_l, seq_union_r; unionL.
   { basic_solver. }
   unionR right.
+  arewrite (Gco ⊆ Gco ∩ Gco) at 1.
+  rewrite Gco_in_cert_co_sym_clos at 1.
+  rewrite inter_union_l, transp_union, seq_union_l, inter_union_l, seq_union_l, seq_union_r.
+  unionL.
+  2: { basic_solver 21. }
+  transitivity (fun _ _ : actid => False); [|basic_solver].
+  arewrite (⦗set_compl D⦘ ⊆ (⦗set_compl D⦘ ;; ⦗set_compl GR_ex⦘ ∪ ⦗GR_ex⦘)).
+  { clear. unfolder. ins. desf. tauto. }
+  rewrite !seq_union_r. unionL.
+{ admit.
+  (*
   rewrite WF.(wf_coE).
   rewrite WF.(wf_coD).
   arewrite (Gco ⊆ Gco ∩ Gsame_loc) at 1.
@@ -698,7 +725,9 @@ Proof using All.
   apply H3.
   eexists; splits; eauto.
   apply rf_in_furr; unfold rfe in *; unfolder in H2; desf; eauto.
-Qed.
+  *) }
+  admit.
+  Admitted.
 
 Lemma Grf_to_Acq_S_in_cert_rf : Grf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) |> ⊆ cert_rf.
 Proof using All.
