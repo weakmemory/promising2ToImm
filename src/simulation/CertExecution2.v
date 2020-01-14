@@ -1016,7 +1016,15 @@ Proof using All.
     arewrite ((immediate cert_co)⁻¹ ⨾ cert_co ⊆ cert_co^?).
     { admit. }
     admit. }
-Qed.
+  rotate 1.
+  arewrite (⦗set_compl D⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gsb).
+  { admit. (* TODO: use hb_sc_hb_de *) }
+  unfold fr. rewrite !seqA.
+  rewrite AuxRel.immediate_in.
+  arewrite (cert_co ⨾ Grmw⁻¹ \ Gsb ⊆ cert_co ⨾ Grmw⁻¹).
+  arewrite (Cco ⨾ ⦗I⦘ ⨾ cert_co ;; Grmw⁻¹ ⊆ Gco ;; Grmw⁻¹).
+  { admit. }
+Admitted.
 
 Lemma cert_coherence : coherence certG.
 Proof using All.
