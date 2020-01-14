@@ -181,6 +181,18 @@ Proof using WF S_in_W ST_in_E IT_new_co.
   all: apply WF.
 Qed.
 
+Lemma Gco_in_cert_co_sym_clos : Gco ⊆ cert_co ∪ cert_co^{-1}.
+Proof.
+  rewrite WF.(wf_coE). do 2 rewrite WF.(wf_coD).
+  arewrite (W ⊆₁ fun x => exists l, loc Glab x = Some l) at 1.
+  { clear. unfolder. ins. by apply is_w_loc. }
+  arewrite (Gco ⊆ Gco ∩ Gco).
+  rewrite WF.(wf_col) at 1.
+  unfolder. ins. desf. eapply wf_cert_co_total.
+  3: eby intros HH; subst; eapply WF.(co_irr).
+  all: split; [split|]; eauto.
+Qed.
+
 Lemma cert_co_irr : irreflexive cert_co.
 Proof using WF S_in_W ST_in_E IT_new_co.
   apply new_co_irr. 
