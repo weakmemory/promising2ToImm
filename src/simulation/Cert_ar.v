@@ -493,14 +493,4 @@ Proof using All.
   red; relsf.
 Qed.
 
-(******************************************************************************)
-(** **   *)
-(******************************************************************************)
-
-(* TODO: move to another file , CertExcutionInit ?*)
-Lemma cert_imm_consistent : imm_consistent certG sc.
-Proof using All.
-red; splits; eauto using WF_SC_cert, cert_acyc_ext, cert_coh_sc, cert_complete, cert_coherence, cert_rmw_atomicity.
-Qed.
-
-End CertExec.
+End CertExec_ar.

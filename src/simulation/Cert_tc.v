@@ -21,6 +21,7 @@ Require Import ImmProperties.
 Require Import Cert_co.
 Require Import Cert_D.
 Require Import Cert_rf.
+Require Import Cert_ar.
 Require Import CertExecution2.
 
 Set Implicit Arguments.
@@ -159,6 +160,8 @@ Hypothesis SAME : same_lab_u2v lab' Glab.
 
 Notation "'certG'" := (certG G sc T S thread lab').
 
+Hypothesis WF_cert    : Wf certG.
+Hypothesis WF_SC_cert : wf_sc certG sc.
 
 (* Notation "'CE'" := certG.(acts_set). *)
 (* Notation "'Cacts'" := certG.(acts). *)
@@ -250,56 +253,62 @@ Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 
 Lemma dom_fwbob_I : dom_rel (Gfwbob ⨾ ⦗C ∪₁ I⦘) ⊆₁ C ∪₁ I.
 Proof using E_F_AcqRel_in_C E_to_S F_in_C RELCOV S_in_W TCCOH.
-unfold fwbob; relsf; unionL; splits.
-- rewrite sb_W_rel_CI; basic_solver.
-- rewrite W_rel_sb_loc_W_CI; basic_solver.
-- rewrite (dom_r (@wf_sbE G)).
-generalize dom_sb_F_AcqRel_in_CI. basic_solver 12.
-- rewrite (dom_l (@wf_sbE G)).
-generalize E_F_AcqRel_in_C; basic_solver 12.
+  unfold fwbob; relsf; unionL; splits.
+  { rewrite sb_W_rel_CI; eauto. basic_solver. }
+  { rewrite W_rel_sb_loc_W_CI; eauto. basic_solver. }
+  { rewrite (dom_r (@wf_sbE G)).
+    generalize dom_sb_F_AcqRel_in_C. basic_solver 12. }
+  rewrite (dom_l (@wf_sbE G)).
+  generalize E_F_AcqRel_in_C; basic_solver 12.
 Qed.
 
 Lemma TCCOH_cert_old : tc_coherent_alt_old certG sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
 Proof using All.
+  assert (dom_rel Crfe ⊆₁ I) as AA.
+  { rewrite cert_rfe_eq. eapply dom_cert_rfe_in_I with (G:=G); eauto. }
+
   assert (TCCOH1:= TCCOH_rst_new_T).
   apply (tc_coherent_implies_tc_coherent_alt WF WF_SC) in TCCOH1.
   destruct TCCOH1.
   constructor.
   all: try by ins.
-  { ins; rewrite cert_W; done. }
+  { ins; rewrite cert_W; edone. }
   { rewrite rfi_union_rfe; relsf; unionL; splits; ins.
-    rewrite (dom_l (wf_rfiD WF_cert)), cert_W.
-    arewrite (Crfi ⊆ Gsb).
-    generalize tc_sb_C, tc_W_C_in_I; basic_solver 21.
-    rewrite cert_rfe; basic_solver 21. }
-  { ins; rewrite cert_W; done. }
-  { ins; rewrite cert_fwbob; done. }
+    { rewrite (dom_l (wf_rfiD WF_cert)), cert_W; eauto.
+      arewrite (Crfi ⊆ Gsb).
+      generalize tc_sb_C, tc_W_C_in_I. basic_solver 21. }
+    rewrite (dom_rel_helper AA).
+    basic_solver 21. }
+  { ins; rewrite cert_W; edone. }
+  { ins; rewrite cert_fwbob; edone. }
   { relsf; unionL; splits; simpls.
-    3,4: rewrite cert_rfe; basic_solver.
+    3,4: rewrite (dom_rel_helper AA); basic_solver.
     { rewrite I_in_D at 1.
       arewrite (⦗D⦘ ⊆ ⦗D⦘ ⨾ ⦗D⦘) by basic_solver.
-      sin_rewrite cert_ppo_D.
-      forward (eapply dom_ppo_D); try edone.
-      forward (eapply cert_detour_D); try edone.
+      forward (eapply cert_ppo_D with (G:=G)); eauto.
+      intros HH. sin_rewrite HH.
+      forward (eapply dom_ppo_D with (G:=G)); try edone.
+      forward (eapply cert_detour_D with (G:=G)); try edone.
       clear. unfolder; ins; desf. eapply H; basic_solver 42. }
     { unfold bob; relsf; unionL; splits; simpls.
       { arewrite (⦗I⦘ ⊆ ⦗C ∪₁ I⦘) at 1.
-        rewrite cert_fwbob.
+        rewrite cert_fwbob; auto.
         rewrite (dom_rel_helper dom_fwbob_I).
         rewrite C_in_D, I_in_D at 1; relsf.
-        sin_rewrite cert_detour_D.
-        basic_solver. }
+        forward (eapply cert_detour_D with (G:=G)); eauto.
+        intros HH. sin_rewrite HH.
+        basic_solver 20. }
       rewrite I_in_D at 1.
       rewrite !seqA.
       rewrite cert_sb.
-      rewrite cert_R, cert_Acq.
-      rewrite cert_detour_R_Acq_sb_D.
-      basic_solver. }
-    { rewrite cert_W_ex, cert_R, cert_Acq.
+      rewrite cert_R, cert_Acq; eauto.
+      forward (eapply cert_detour_R_Acq with (G:=G)); eauto.
+      intros HH. sin_rewrite HH. basic_solver. }
+    { rewrite cert_W_ex, cert_R, cert_Acq; eauto.
       admit. }
-    rewrite cert_W_ex, cert_R, cert_Acq, cert_bob.
+    rewrite cert_W_ex, cert_R, cert_Acq, cert_bob; eauto.
     admit. }
-  { ins; rewrite cert_W_ex_acq.
+  { ins; rewrite cert_W_ex_acq; eauto.
     rewrite cert_sb. eapply tc_W_ex_sb_I; eauto.
     apply tc_coherent_implies_tc_coherent_alt; eauto. }
   simpls.
@@ -308,7 +317,9 @@ Proof using All.
     rewrite rmw_in_ppo; auto.
     rewrite I_in_D.
     eapply dom_ppo_D; edone. }
-  sin_rewrite cert_rfi_D. rewrite !seqA.
+  rewrite cert_rfi_eq.
+  forward (eapply cert_rfi_D with (G:=G) (T:=T) (S:=S) (thread:=thread)); eauto.
+  intros HH. sin_rewrite HH.
   arewrite_id ⦗D⦘. rewrite !seq_id_l.
   arewrite (Grfi ⊆ Grf).
   eapply rfrmw_I_in_I; eauto.
@@ -329,14 +340,16 @@ Proof using All.
   destruct TCCOH1.
   apply tc_coherent_alt_implies_tc_coherent; constructor.
   all: try by ins.
-  { ins; rewrite cert_W; done. }
+  { ins; rewrite cert_W; edone. }
   { rewrite rfi_union_rfe; relsf; unionL; splits; ins.
-    rewrite (dom_l (wf_rfiD WF_cert)), cert_W.
+    2: { rewrite cert_rfe_eq.
+         arewrite_id ⦗C ∪₁ E ∩₁ NTid_ thread⦘. rewrite seq_id_r.
+         eapply dom_cert_rfe_in_I with (G:=G); eauto. }
+    rewrite (dom_l (wf_rfiD WF_cert)), cert_W; eauto.
     arewrite (Crfi ⊆ Gsb).
-    generalize tc_sb_C, tc_W_C_in_I; basic_solver 21.
-    rewrite cert_rfe; basic_solver 21. }
-  { ins; rewrite cert_W; done. }
-  { ins; rewrite cert_fwbob; done. }
+    generalize tc_sb_C, tc_W_C_in_I; basic_solver 21. }
+  { ins; rewrite cert_W; edone. }
+  { ins; rewrite cert_fwbob; edone. }
   ins. apply dom_cert_ar_rfrmw_I.
 Qed.
 
