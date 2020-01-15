@@ -331,13 +331,13 @@ Proof using All.
   apply new_co_helper; [apply WF| apply WF| basic_solver 12].
 
  }
-  { rewrite (dom_l WF.(wf_rmwD)). basic_solver. }
+  { basic_solver. }
   arewrite (Grmw⁻¹ ⨾ ⦗set_compl D⦘ ⨾ Grmw ⊆ ⦗fun _ => True⦘).
   2: basic_solver.
   arewrite_id  ⦗set_compl D⦘.
   rels.
   apply functional_alt.
   apply WF.(wf_rmwf).
-  Qed.
+Qed.
 
 End CertExec_at.
