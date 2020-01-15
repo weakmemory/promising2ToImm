@@ -294,6 +294,9 @@ assert (DETOURE: Gdetour x z0).
 apply H6, A; unfolder; ins; desf; splits; eauto.
 Qed.
 
+(* TODO: move up *)
+Hypothesis WF_cert : Wf certG.
+
 Lemma coh_helper : irreflexive (Chb ⨾ (sc ⨾ Chb)^? ⨾ Ceco^?).
 Proof using All.
   apply coh_helper_alt; rewrite cert_hb; eauto.
@@ -305,7 +308,8 @@ Proof using All.
     eapply ACYC_EXT.
     eapply t_trans; [edone| apply t_step].
      by apply sc_in_ar. }
-  { rewrite cert_rfe_eq. rewrite cert_rfe_alt; relsf; unionL.
+  { rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
+    relsf; unionL.
     { revert COH CSC; unfold coherence, coh_sc, eco.
       ie_unfolder. basic_solver 21. }
     { generalize new_rf_hb. basic_solver 12. }
@@ -316,7 +320,8 @@ Proof using All.
   { ins; rewrite cert_co_alt'; try edone; relsf; unionL.
     { revert COH CSC. unfold coherence, coh_sc, eco. basic_solver 21. }
     revert W_hb_sc_hb_to_I_NTid. basic_solver 21. }
-  { rewrite cert_rfe_eq. rewrite cert_rfe_alt; relsf; unionL.
+  { rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
+    relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E).
       unfold CertExecution2.certG; ins; rewrite !seqA.
       rewrite (I_in_cert_co_base G T) at 1.
@@ -326,7 +331,7 @@ Proof using All.
       ie_unfolder. basic_solver 21. }
     ins; rewrite cert_co_alt'; try edone; relsf; unionL.
     2: { generalize non_I_new_rf. basic_solver 16. }
-    { arewrite_id ⦗set_compl GR_ex⦘. rewrite seq_id_r.
+    { arewrite_id ⦗set_compl (dom_rel Grmw)⦘. rewrite seq_id_r.
       rewrite new_rf_in_furr.
       rotate 1.
       arewrite (Gfurr \ Gsb ⊆ Gfurr).
@@ -351,7 +356,7 @@ Proof using All.
     { revert COH CSC. unfold coherence, coh_sc, eco, fr. ie_unfolder. basic_solver 21. }
     { rotate 1.
       arewrite (Gco ∩ cert_co ⊆ cert_co).
-      rewrite (dom_r WF_cert.(wf_coD)), !seqA, cert_W.
+      rewrite (dom_r WF_cert.(wf_coD)), !seqA, cert_W; eauto.
       arewrite (⦗W⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gfurr).
       { rewrite (furr_alt WF_SC). basic_solver 21. }
       unfold Cert_rf.new_rf. basic_solver 21. }
@@ -374,8 +379,8 @@ Proof using All.
     rewrite WF.(rmw_in_sb).
     (* TODO: one of the previous cases. *)
     admit. }
-  rewrite cert_rfe_eq. rewrite cert_rfe_alt; relsf; unionL.
-  { unfold fr; unfold certG; ins. unfold Cert_rf.cert_rf.
+  rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto. relsf; unionL.
+  { unfold fr. unfold CertExecution2.certG. ins. unfold Cert_rf.cert_rf.
     rewrite !transp_union, transp_seq; relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E), !seqA.
       rewrite (I_in_cert_co_base G T) at 1.
@@ -394,11 +399,11 @@ Proof using All.
     arewrite (cert_co^? ⨾ ⦗I⦘ ⊆ Gco^? ⨾ ⦗I⦘).
     { admit. }
     admit. }
-  { unfold fr; unfold certG; ins. unfold Cert_rf.cert_rf.
+  { unfold fr; unfold CertExecution2.certG; ins. unfold Cert_rf.cert_rf.
     rewrite !transp_union, !transp_seq; relsf; unionL.
     1-2: rewrite cert_co_alt'; try edone; relsf; unionL.
     2,4: generalize non_I_new_rf; basic_solver 16.
-    { arewrite_id ⦗set_compl GR_ex⦘. rewrite seq_id_r.
+    { arewrite_id ⦗set_compl (dom_rel Grmw)⦘. rewrite seq_id_r.
       rewrite new_rf_in_furr.
       rotate 1.
       arewrite (Gfurr \ Gsb ⊆ Gfurr).
@@ -406,7 +411,7 @@ Proof using All.
       { generalize (furr_hb_sc_hb WF WF_SC ACYC_EXT). basic_solver 21. }
       generalize (eco_furr_irr WF WF_SC CSC COH).
       unfold eco, fr. basic_solver 21. }
-    { arewrite_id ⦗set_compl GR_ex⦘. rewrite !seq_id_r.
+    { arewrite_id ⦗set_compl (dom_rel Grmw)⦘. rewrite !seq_id_r.
       rewrite new_rf_in_furr at 2.
       rotate 1.
       arewrite (Gfurr \ Gsb ⊆ Gfurr).
@@ -429,14 +434,14 @@ Admitted.
 
 Lemma cert_coherence : coherence certG.
 Proof using All.
-red; generalize coh_helper; basic_solver 12.
+  red; generalize coh_helper; basic_solver 12.
 Qed.
 
 Lemma cert_coh_sc : coh_sc certG sc.
 Proof using All.
   red; case_refl _.
   2: generalize coh_helper; basic_solver 21.
-  rewrite cert_hb.
+  rewrite cert_hb; auto.
   rewrite (wf_scD WF_SC); rotate 2.
   sin_rewrite (f_sc_hb_f_sc_in_ar WF).
   unfolder; ins; desc.
@@ -444,6 +449,5 @@ Proof using All.
   eapply t_trans; [edone| apply t_step].
     by apply sc_in_ar.
 Qed.
-
 
 End CertExec_coh.
