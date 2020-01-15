@@ -391,10 +391,9 @@ Qed.
 Lemma tid_set_dec thread : Tid_ thread ∪₁ NTid_ thread ≡₁ (fun x => True).
 Proof using. unfolder; split; ins; desf; tauto. Qed.
 
-Lemma sc_rfe_ct_in_sc_rfe : (sc ∪ rfe)⁺ ⊆ sc ∪ rfe.
-Proof using WF CON.
+Lemma sc_rfe_ct_in_sc_rfe (Wf_sc : wf_sc G sc) : (sc ∪ rfe)⁺ ⊆ sc ∪ rfe.
+Proof using WF.
   rewrite path_union.
-  cdes CON.
   generalize (sc_trans Wf_sc); ins; relsf; unionL; [basic_solver|].
   rewrite crE at 2; relsf; unionL.
   { arewrite (sc^? ⨾ rfe ⊆ rfe).

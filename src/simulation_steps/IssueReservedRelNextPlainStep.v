@@ -377,7 +377,7 @@ Proof using WF CON.
 
   assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
   { (* TODO: generalize to a lemma. *)
-    destruct WNEXT as [_ [y AA]]. destruct_seq_l AA as BB; subst.
+    destruct WNEXT as [[_ [y AA]]]. destruct_seq_l AA as BB; subst.
     generalize AA. clear. unfold Execution.rfi. basic_solver 10. }
   assert (~ S wnext) as NRESNEXT.
   { intros HH. apply ISS.

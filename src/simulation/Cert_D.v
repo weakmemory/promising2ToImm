@@ -409,7 +409,7 @@ Proof using WF TCCOH.
   rewrite (dom_r (wf_dataD WF)), (dom_r (wf_rfeD WF)). clear. type_solver.
 Qed.
 
-Lemma dom_sb_F_AcqRel_in_CI : dom_rel (Gsb ⨾ ⦗F ∩₁ Acq/Rel⦘) ⊆₁ C ∪₁ I.
+Lemma dom_sb_F_AcqRel_in_C : dom_rel (Gsb ⨾ ⦗F ∩₁ Acq/Rel⦘) ⊆₁ C.
 Proof using TCCOH F_in_C.
   rewrite (dom_r (@wf_sbE G)), !seqA.
   arewrite (⦗E⦘ ⨾ ⦗F ∩₁ Acq/Rel⦘ ⊆ ⦗C⦘).
@@ -419,7 +419,7 @@ Qed.
 
 Lemma dom_sb_F_AcqRel_in_D : dom_rel (Gsb ⨾ ⦗F ∩₁ Acq/Rel⦘) ⊆₁ D.
 Proof using TCCOH F_in_C.
-  rewrite dom_sb_F_AcqRel_in_CI, C_in_D, I_in_D. basic_solver.
+  rewrite dom_sb_F_AcqRel_in_C, C_in_D. basic_solver.
 Qed.
 
 Lemma dom_sb_F_Acq_in_D : dom_rel (Gsb ⨾ ⦗F ∩₁ Acq⦘) ⊆₁ D.
@@ -589,16 +589,37 @@ Proof using All.
   apply dom_ppo_D.
 Qed.
 
-(*
-Lemma dom_ar_int_D : dom_rel (Gar_int^+ ⨾ ⦗D⦘) ⊆₁ D.
+Lemma dom_ar_int_D : dom_rel (Gar_int^+ ⨾ ⦗I⦘) ⊆₁ D ∪₁ R ∩₁ Acq.
 Proof using All.
+  arewrite (Gar_int ⊆ Gar_int ;; <|R ∪₁ W|> ∪ Gar_int ;; <|F∩₁ Acq/Rel|>).
+  { admit. } (* clear. type_solver. } *)
+  rewrite path_ut_first. rewrite seq_union_l, dom_union.
+  unionL.
+  2: { rewrite !seqA. rewrite WF.(ar_int_in_sb).
+       arewrite_id ⦗R ∪₁ W⦘. rewrite seq_id_r.
+       generalize (@sb_trans G). ins. relsf.
+       generalize C_in_D, dom_sb_F_AcqRel_in_C.
+       clear. basic_solver 10. }
+  rewrite id_union, seq_union_r.
+  rewrite path_ut_first. rewrite seq_union_l, dom_union.
+  unionL.
+  { rewrite ct_end. rewrite issuedW; eauto. clear. type_solver. }
+  arewrite (Gar_int ⨾ ⦗R⦘ ∪ Gar_int ⨾ ⦗W⦘ ⊆ Gar_int).
+  arewrite (⦗W⦘ ⨾ Gar_int＊ ⨾ ⦗I⦘ ⊆ ⦗I⦘ ;; ⦗W⦘ ⨾ Gar_int＊ ⨾ ⦗I⦘).
+  { admit. }
+  rewrite <- !seqA. do 3 rewrite dom_seq. rewrite !seqA.
+
+
+  assert (dom_rel ((Gar_int ⨾ ⦗R⦘)^* ⨾ ⦗I⦘)⊆₁ D ∪₁ R ∩₁ Acq) as AA.
+  { admit. }
+  { by rewrite inclusion_t_rt. }
+
+
 rewrite (ct_ar_int_alt WF).
 2: by apply (coherence_sc_per_loc COH).
 relsf; unionL; splits.
 - 
-rewrite (dom_l (@wf_sbE G)) at 2.
-generalize E_F_AcqRel_in_C, C_in_D.
-rewrite (dom_l (@wf_sbE G)) at 1.
+rewrite (dom_l (@wf_sbE G)) at 2. generalize E_F_AcqRel_in_C, C_in_D. rewrite (dom_l (@wf_sbE G)) at 1.
 generalize E_F_AcqRel_in_C, (dom_sb_covered TCCOH), C_in_D.
 basic_solver 32.
 - admit. 

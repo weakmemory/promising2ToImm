@@ -274,12 +274,12 @@ Proof using All.
     clear. basic_solver.
     eapply IST_new_co; eauto. }
 
-    unfold Cert_co.cert_co.
-erewrite new_co_in at 1; try apply WF.
-2: eapply IST_new_co; eauto.
-relsf; unionL.
+  unfold Cert_co.cert_co.
+  erewrite new_co_in at 1; try apply WF.
+  2: eapply IST_new_co; eauto.
+  relsf; unionL.
 
-    1,2: generalize (co_trans WF); revert AT'; unfold fr; basic_solver 12.
+  1,2: generalize (co_trans WF); revert AT'; unfold fr; basic_solver 12.
 
   assert (cert_co_base G T \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN.
   { rewrite cert_co_base_alt; eauto.
