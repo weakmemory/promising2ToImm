@@ -159,6 +159,8 @@ Hypothesis SAME : same_lab_u2v lab' Glab.
 
 Notation "'certG'" := (certG G sc T S thread lab').
 
+Hypothesis WF_cert    : Wf certG.
+Hypothesis WF_SC_cert : wf_sc certG sc.
 
 (* Notation "'CE'" := certG.(acts_set). *)
 (* Notation "'Cacts'" := certG.(acts). *)
@@ -248,27 +250,33 @@ Notation "'CAcqrel'" := (fun a => is_true (is_acqrel Clab a)).
 Notation "'CAcq/Rel'" := (fun a => is_true (is_ra Clab a)).
 Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 
-(* TODO: move *)
-Lemma ppo_helper : Cppo ⊆
- ⦗CR⦘ ⨾ (certG.(data) ∪ certG.(ctrl) ∪ certG.(addr) ⨾ Csb^? ∪ Crfi ∪ Crmw ∪ certG.(rmw_dep) ⨾ Csb^?)^+ ⨾  
-   (⦗(R_ex certG.(lab)) \₁ dom_rel Crmw⦘ ⨾ Csb)^?⨾ ⦗CW⦘.
-Proof using.
-Admitted.
+
 
 Lemma cert_ppo_D : Cppo ⨾ ⦗ D ⦘ ⊆ Gppo.
 Proof using All.
-rewrite ppo_helper.
-unfold ppo; ins.
-
+rewrite ppo_helper; auto.
 rewrite (cert_R _ SAME).
 rewrite (cert_W _ SAME).
 rewrite cert_sb.
 rewrite (cert_R_ex _ SAME).
 rewrite !seqA.
 
+
+rewrite rtE.
+rewrite !seq_union_l, !seq_union_r.
+unionL.
+{ relsf.
+  unfold ppo.
+  rewrite <- ct_step.
+  rewrite crE.
+  type_solver 21. }
+
+unfold ppo; ins.
+
+
 arewrite ((⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb)^? ⨾ ⦗W⦘ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ;; (⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb)^? ⨾ ⦗W⦘).
 { rewrite crE, !seq_union_l, !seqA.
-  forward (eapply dom_R_ex_fail_sb_D); try edone.
+  forward (eapply dom_R_ex_fail_sb_D with (G:=G)); try edone.
   clear; basic_solver 12. }
 
 rewrite <- ct_cr with (r:=(Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grfi ∪ Grmw ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb)).
@@ -351,7 +359,7 @@ Proof using All.
   enough (Cdetour ⨾ ⦗ D ⦘ ⊆ Gdetour).
   { arewrite (⦗D⦘ ⊆ ⦗D⦘ ⨾ ⦗D⦘) by basic_solver.
     sin_rewrite H.
-    forward (eapply dom_detour_D with (T:=T)); try edone.
+    forward (eapply dom_detour_D with (T:=T) (G:=G)); try edone.
     clear. basic_solver. }
   unfold detour, Execution.coe.
   rewrite cert_sb.
@@ -364,9 +372,6 @@ Proof using All.
   clear. basic_solver 21.
 Qed.
 
-(* TODO: move up *)
-Hypothesis WF_cert    : Wf certG.
-Hypothesis WF_SC_cert : wf_sc certG sc.
 
 Lemma cert_detour_R_Acq : Cdetour ⨾ ⦗R∩₁Acq⦘ ⊆ ⦗ I ⦘ ⨾ Gdetour ⨾ ⦗R∩₁Acq⦘.
 Proof using All.

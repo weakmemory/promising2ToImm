@@ -412,5 +412,26 @@ Proof using WF.
   type_solver.
 Qed.
 
+Lemma ppo_helper : ppo ⊆
+ ⦗R⦘ ⨾ (data ∪ ctrl ∪ addr ⨾ sb^? ∪ rfi ∪ rmw ∪ rmw_dep ⨾ sb^?)^* ⨾  
+   (⦗R_ex \₁ dom_rel rmw⦘ ⨾ sb)^?⨾ ⦗W⦘.
+Proof using WF.
+unfold imm_s_ppo.ppo.
+rewrite path_ut_first.
+rewrite !seq_union_l, !seq_union_r; unionL.
+{ basic_solver 21. }
+hahn_frame_l.
+hahn_frame_l.
+hahn_frame_r.
+rewrite WF.(data_in_sb).
+rewrite WF.(ctrl_in_sb).
+rewrite WF.(addr_in_sb).
+rewrite WF.(rmw_dep_in_sb).
+rewrite WF.(rmw_in_sb) at 2.
+arewrite (rfi ⊆ sb).
+arewrite_id ⦗R_ex \₁ dom_rel rmw⦘ at 2.
+generalize (@sb_trans G); ins; relsf.
+Qed.
+
 End ImmProperties.
 
