@@ -648,6 +648,17 @@ Proof using All.
   unfold bob, fwbob. clear. type_solver 10.
 Admitted.
 
+Lemma dom_ar_int_rt_CI_D : dom_rel (Gar_int^* ⨾ ⦗C ∪₁ I⦘) ⊆₁ D ∪₁ R ∩₁ Acq.
+Proof using All.
+  rewrite id_union, seq_union_r, dom_union. unionL.
+  2: { rewrite rtE. generalize I_in_D, dom_ar_int_D. clear.
+       basic_solver. }
+  rewrite ar_int_in_sb; auto.
+  rewrite rt_of_trans; [|by apply sb_trans].
+  rewrite <- C_in_D.
+  generalize (dom_sb_covered TCCOH). clear. basic_solver 10.
+Qed.
+
 (*
 Lemma dom_W_ex_acq_sb_W_D_in_CI :
   dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗W⦘ ⨾ ⦗D⦘) ⊆₁ C ∪₁ I.

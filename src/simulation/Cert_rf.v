@@ -791,12 +791,22 @@ Proof using All.
   clear. type_solver 20.
 Qed.
 
-Lemma cert_rf_to_Acq_in_Grf : cert_rf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗Acq⦘) |> ⊆ Grf.
+Lemma cert_rf_to_rmwrfi_Acq_in_Grf : cert_rf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗Acq⦘) |> ⊆ Grf.
 Proof using All.
   (* TODO: easy w/ the previous lemma. *)
 Admitted.
 
-Lemma cert_rfi_to_Acq_in_Grf : cert_rfi ⨾ ⦗Acq⦘  ⊆ Grfi.
+Lemma cert_rf_to_Acq_in_Grf : cert_rf ⨾ ⦗Acq⦘ ⊆ Grf.
+Proof using All.
+  (* TODO: easy w/ the previous lemma. *)
+Admitted.
+
+Lemma cert_rfi_to_Acq_in_Grfi : cert_rfi ⨾ ⦗Acq⦘  ⊆ Grfi.
+Proof using All.
+  (* TODO: easy w/ the previous lemma. *)
+Admitted.
+
+Lemma cert_rfe_to_Acq_in_Grfe : cert_rfe ⨾ ⦗Acq⦘ ⊆ Grfe.
 Proof using All.
   (* TODO: easy w/ the previous lemma. *)
 Admitted.
