@@ -22,6 +22,8 @@ Require Import Cert_co.
 Require Import Cert_D.
 Require Import Cert_rf.
 Require Import Cert_ar.
+Require Import Cert_atomicity.
+Require Import Cert_coherence.
 Require Import CertExecution2.
 
 Set Implicit Arguments.
@@ -158,6 +160,9 @@ Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ 
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
 
+Hypothesis NEW_VAL : forall r w (RF: cert_rf w r), val lab' w = val lab' r.
+Hypothesis OLD_VAL : forall a (NIN: ~ (E \₁ D) a), val lab' a = Gval a.
+
 Notation "'certG'" := (certG G sc T S thread lab').
 
 Hypothesis WF_cert    : Wf certG.
@@ -250,6 +255,11 @@ Notation "'CAcq'" := (fun a => is_true (is_acq Clab a)).
 Notation "'CAcqrel'" := (fun a => is_true (is_acqrel Clab a)).
 Notation "'CAcq/Rel'" := (fun a => is_true (is_ra Clab a)).
 Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
+
+Lemma cert_imm_consistent : imm_consistent certG sc.
+Proof using All.
+red; splits; eauto using WF_SC_cert, cert_acyc_ext, cert_coh_sc, cert_complete, cert_coherence, cert_rmw_atomicity.
+Qed.
 
 Lemma dom_fwbob_I : dom_rel (Gfwbob ⨾ ⦗C ∪₁ I⦘) ⊆₁ C ∪₁ I.
 Proof using E_F_AcqRel_in_C E_to_S F_in_C RELCOV S_in_W TCCOH.
@@ -354,16 +364,15 @@ Proof using All.
 Qed.
 
 Lemma cert_detour_rfe_D : (Cdetour ∪ certG.(rfe)) ⨾ ⦗D⦘ ⊆ ⦗I⦘ ⨾ (Gdetour ∪ Grfe).
-Proof using ACYC_EXT COH CSC Grfe_E IT_new_co RPPO_S ST_in_E S_in_W TCCOH WF WF_SC
-      detour_Acq_E detour_E.
+Proof using All.
   rewrite seq_union_l.
-  rewrite cert_detour_D, cert_rfe_D.
+  forward (eapply cert_detour_D with (G:=G)); eauto. intros HH. rewrite HH.
+  forward (eapply cert_rfe_D with (G:=G)); eauto. intros AA. rewrite AA. 
     by rewrite seq_union_r.
 Qed.
 
 Lemma dom_cert_detour_rfe_D : dom_rel ((Cdetour ∪ certG.(rfe)) ⨾ ⦗D⦘) ⊆₁ I.
-Proof using ACYC_EXT COH CSC Grfe_E IT_new_co RPPO_S ST_in_E S_in_W TCCOH WF WF_SC
-      detour_Acq_E detour_E.
+Proof using All.
   rewrite cert_detour_rfe_D.
   basic_solver.
 Qed.
@@ -371,8 +380,8 @@ Qed.
 Lemma Crppo_in_rppo : rppo certG ⊆ Grppo.
 Proof using SAME.
   unfold rppo.
-  rewrite cert_sb, cert_R_ex, cert_W.
-  unfold certG. simpls.
+  rewrite cert_sb, cert_R_ex, cert_W; eauto.
+  unfold CertExecution2.certG. simpls.
 Qed.
 
 Lemma dom_data_Crfi_rmw_D_in_D : dom_rel ((Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘) ⊆₁ D.
@@ -385,7 +394,7 @@ Proof using Grfe_E TCCOH WF WF_SC.
   { eapply dom_data_D; try edone. basic_solver 10. }
   { assert ((Crfi ⨾ ⦗D⦘) x y) as AA.
     { basic_solver 10. }
-    apply cert_rfi_D in AA. unfolder in AA. desf. } 
+    eapply cert_rfi_D in AA. unfolder in AA. desf. } 
   eapply dom_rmw_D; try edone. basic_solver 10.
 Qed.
 
