@@ -588,15 +588,14 @@ Proof using WF.
   basic_solver 21.
 Qed.
 
-(*
-Lemma cert_rf_in_furr : cert_rf ;; ⦗set_compl GR_ex⦘ ⊆ Gfurr.
+Lemma cert_rf_in_furr : cert_rf ;; ⦗set_compl (dom_rel Grmw)⦘ ⊆ Gfurr.
 Proof using WF.
   unfold cert_rf.
   rewrite new_rf_in_furr.
   rewrite rf_in_furr.
-  basic_solver.
+  unfolder; ins; desf; splits; eauto 20.
+  exfalso; eauto.
 Qed.
-*)
 
 Lemma Grfe_in_inv_Gco_cr_cert_rf : Grfe ⊆ (Gco^{-1})^? ;; cert_rf.
 Proof using All.
@@ -606,22 +605,19 @@ Proof using All.
   { arewrite (Grfe ⊆ Grf).
     rewrite <- cert_rf_D. 
     basic_solver. }
-  arewrite (⦗set_compl D⦘ ⊆ (⦗set_compl D⦘ ;; ⦗set_compl GR_ex⦘ ∪ ⦗GR_ex⦘)).
+  arewrite (⦗set_compl D⦘ ⊆ (⦗set_compl D⦘ ;; ⦗set_compl (dom_rel Grmw)⦘ ∪ ⦗set_compl D⦘ ;; ⦗(dom_rel Grmw)⦘)).
   { clear. unfolder. ins. desf. tauto. }
   rewrite !seq_union_r. unionL.
-  { admit. }
-  admit.  
-    (*
-  arewrite (Grfe ⨾ ⦗set_compl D⦘ ⊆ ((Gco ∪ Gco^{-1})^? ;; cert_rf) ∩ Grfe).
+  {   arewrite (Grfe ⨾ ⦗set_compl D⦘ ⨾ ⦗set_compl (dom_rel Grmw)⦘ ⊆ ((Gco ∪ Gco^{-1})^? ;; cert_rf) ∩ Grfe ⨾ ⦗set_compl (dom_rel Grmw)⦘).
   { rewrite WF.(wf_rfeE).
     rewrite WF.(wf_rfeD).
     unfolder; ins; desf.
     splits; eauto.
     exploit new_rf_comp; unfolder; ins; splits; eauto.
     desf; exists a; splits; eauto.
-    2: unfold cert_rf; basic_solver.
-    assert (H44:=H4).
-    eapply is_w_loc in H4; desc.
+    {
+    assert (H55:=H5).
+    eapply is_w_loc in H5; desc.
     assert (H11:=x1).
     apply wf_new_rfD in x1.
     unfolder in x1; desf.
@@ -637,18 +633,25 @@ Proof using All.
     unfold rfe in H0; unfolder in H0; desf.
     apply WF.(wf_rfl) in H0; unfolder in H0; desf.
     unfold same_loc in *; congruence. }
+    unfold cert_rf; left; right.
+    unfolder; ins; desf; splits; eauto. }
   rewrite crE at 1; relsf.
-  rewrite !inter_union_l; unionL.
+  rewrite !inter_union_l; relsf; unionL.
+  
   1,3: basic_solver.
   transitivity (fun _ _ : actid => False); [|basic_solver].
-  rewrite cert_rf_in_furr.
+  arewrite ((Gco ⨾ cert_rf) ∩ Grfe ⨾ ⦗set_compl (dom_rel Grmw)⦘ ⊆ (Gco ⨾ cert_rf  ⨾ ⦗set_compl (dom_rel Grmw)⦘) ∩ Grfe).
+  { clear. basic_solver. }
+  sin_rewrite cert_rf_in_furr.
   clear - COH WF WF_SC CSC.
   unfold rfe.
   unfolder; ins; desf.
   eapply eco_furr_irr; eauto.
   eexists; splits; eauto.
-  apply fr_in_eco; eexists; splits; eauto.
-Qed.*)
+  apply fr_in_eco; eexists; splits; eauto. }
+  
+  admit.
+  
 Admitted.
 
 Lemma I_Grfe_in_inv_Gco_cr_cert_rf : Grfe ⊆ (cert_co ∩ Gco^{-1})^? ;; cert_rf.

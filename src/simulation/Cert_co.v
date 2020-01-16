@@ -368,4 +368,35 @@ Proof using WF COH TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co.
   unfold same_tid; basic_solver.
 Qed.
 
+Lemma imm_cert_co_inv_exists : E ∩₁ W ∩₁ set_compl Init ⊆₁ codom_rel (immediate cert_co).
+Proof using WF TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co COH.
+unfolder; ins.
+ins; eapply fsupp_immediate_pred.
+{ eapply fsupp_mon; [| eapply fsupp_cross].
+  apply dom_helper_3.
+  eapply wf_cert_coE.
+  unfold acts_set.
+  unfold set_finite.
+  eauto. }
+{ eapply cert_co_irr. }
+{ eapply cert_co_trans. }
+unfolder; intro HH.
+exploit is_w_loc; eauto; ins; desf.
+eapply HH with (b := InitEvent l).
+eapply tot_ex.
+{ apply wf_cert_co_total. }
+{ basic_solver. }
+{ unfolder; splits; try edone.
+  eapply (wf_init WF); exists x; splits; eauto.
+  { by unfold is_w; rewrite (wf_init_lab WF) in *. }
+  rewrite x1.
+  by unfold loc; rewrite (wf_init_lab WF) in *. }
+{ intro A.
+  eapply cert_co_sb_irr; eauto.
+  unfolder; eexists; splits; eauto.
+  eapply init_ninit_sb; eauto.
+  by apply (wf_init WF); eexists; splits; eauto. }
+unfold is_init in *; desf.
+Qed.
+
 End CertExec_CO.

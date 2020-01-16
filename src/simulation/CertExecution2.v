@@ -400,63 +400,21 @@ Proof using All.
                       E ∩₁ R ∩₁ (dom_rel Grmw) ∩₁ set_compl D).
   { unfolder; ins; desf. 
     destruct (classic (D x)); destruct (classic ((dom_rel Grmw) x)); eauto 10. }
-unionL.
-{ unfolder; ins; desf.
-forward (eapply (complete_D) with (T:=T) (x:=x)); try edone.
+  unionL.
+  { unfolder; ins; desf.
+    forward (eapply (complete_D) with (T:=T) (x:=x)); try edone.
     unfold Cert_rf.cert_rf.
     unfolder; ins; desf; eauto 20. }
-{ unfolder; ins; desf.
-forward (apply new_rf_comp); try edone. 
-  unfold Cert_rf.cert_rf; basic_solver 12. }
-
-
-
-
-unfolder; ins; desf.
-
-forward (eapply (@fsupp_immediate_pred _ Cco) with (x:=y)).
-{ eapply fsupp_mon; [| eapply fsupp_cross].
-apply dom_helper_3.
-eapply WF_cert.
-unfold acts_set.
-unfold set_finite.
-eauto. }
-
-{ eapply WF_cert.(co_irr). }
-{ eapply WF_cert.(co_trans). }
-{ unfolder; intro HH.
-apply WF_cert.(wf_rmwD) in H1; unfolder in H1; desf.
-apply WF_cert.(wf_rmwE) in H3; unfolder in H3; desf.
-exploit is_w_loc; eauto; ins; desf.
- eapply HH with (b := InitEvent l).
-
-eapply tot_ex.
-- eapply WF_cert.
-- basic_solver.
-- unfolder; splits; try edone.
-  eapply (wf_init WF_cert); exists y; splits; eauto.
-by unfold is_w;
-  rewrite (wf_init_lab WF_cert) in *.
-rewrite x1.
-by unfold loc; rewrite (wf_init_lab WF_cert) in *.
-- intro A.
-eapply cert_co_sb_irr with (T:=T); eauto.
-unfolder; eexists; splits; eauto.
-eapply init_ninit_sb with (G:=certG); eauto.
-by apply WF_cert.
-by apply (wf_init WF_cert); eexists; splits; eauto.
-
-eapply WF_cert.(rmw_non_init_lr) in H5; unfolder in H5; desf.
-- 
-intro. 
-eapply WF_cert.(rmw_non_init_lr) in H5; unfolder in H5; desf.
-}
-
-unfolder; ins ;desf.
-
-eexists; eauto.
-right.
-eexists; split; eauto.
+  { unfolder; ins; desf.
+    forward (apply new_rf_comp); try edone. 
+    unfold Cert_rf.cert_rf; basic_solver 12. }
+  unfolder; ins; desf.
+  assert (AA: exists z, (immediate cert_co) z y).
+  { eapply (imm_cert_co_inv_exists) with (T:=T); eauto.
+    apply WF.(wf_rmwD) in H1; unfolder in H1; desf.
+    apply WF.(wf_rmwE) in H3; unfolder in H3; desf.
+    apply WF.(rmw_non_init_lr) in H5; unfolder in H5; desf. }
+  desf; eexists; eauto.
 Qed.
 
 
