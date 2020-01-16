@@ -460,14 +460,13 @@ Proof using WF CON.
         2: by cdes PLN_RLX_EQ; simpls; rewrite EQ_CUR.
         edestruct (max_event_cur) as [a_max]; eauto; desc.
         assert (E a_max) as EA.
-        { apply (wf_urrE WF) in CCUR.
-          revert CCUR; unfold seq; unfolder; ins; desf.
-            by apply CON. }
+        { apply (wf_urrE WF) in CCUR; [|by apply CON].
+          revert CCUR. clear -NEQ. basic_solver. }
         assert (issued T a_max) as AISS.
         { assert (A: (urr G sc locr ⨾ ⦗coverable G sc T⦘) a_max r).
-            by basic_solver.
-            apply (urr_coverable) in A; try done.
-            revert A; unfold seq; unfolder; ins; desf. }
+          { basic_solver. }
+          apply (urr_coverable) in A; try done.
+          revert A. clear. basic_solver. }
         assert (S a_max) as SA by (by apply TCCOH.(etc_I_in_S)).
         rewrite <- FF.
         destruct (classic (a_max = w')) as [|AWNEQ]; [by desf|].
