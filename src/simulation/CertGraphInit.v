@@ -390,7 +390,8 @@ assert (RPPO_RMW_S : dom_rel ((detour G ∪ rfe G) ⨾ (data G ∪ rfi G ∪ rmw
   rewrite sub_rfi_in; eauto.
   subst.
   rewrite sub_rppo_in; eauto.
-  2: { admit. }
+  2: { (* TODO: prove in CertExecution1.v? *)
+    admit. }
   rewrite sub_rmw_in; eauto.
   apply ETCCOH. }
 
@@ -411,16 +412,16 @@ set (new_rfe_ex := new_rfe ∪ ⦗ set_compl (codom_rel new_rfe) ⦘).
 assert (new_rfe_unique: forall r, exists ! w, new_rfe_ex⁻¹  r w).
 { ins.
   destruct (classic ((codom_rel new_rfe) r)) as [X|X].
-  - unfolder in X; desf.
+  { unfolder in X; desf.
     exists x; red; splits.
     unfold new_rfe_ex; basic_solver 12.
     unfold new_rfe_ex; unfolder; ins; desf.
     eapply new_rfef; basic_solver.
-    exfalso; eauto.
-  - exists r; red; splits.
-    unfold new_rfe_ex; basic_solver 12.
-    unfold new_rfe_ex; unfolder; ins; desf.
-    unfolder in X; exfalso; eauto. }
+    exfalso; eauto. }
+  exists r; red; splits.
+  unfold new_rfe_ex; basic_solver 12.
+  unfold new_rfe_ex; unfolder; ins; desf.
+  unfolder in X; exfalso; eauto. }
 
 assert (exists new_value, forall x, (new_rfe_ex)⁻¹ x (new_value x)); desc.
 { apply (unique_choice (new_rfe_ex)⁻¹ (new_rfe_unique)). }
@@ -680,7 +681,7 @@ assert (issued T ∪₁ S ∩₁ Tid_ thread ⊆₁ S) as IST_in_S.
 { generalize ETCCOH.(etc_I_in_S). unfold eissued. simpls.
   basic_solver. } 
 
-(* TODO: fix*)
+(* TODO: fix *)
 assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘ ⊆
         rf Gf ⨾ rmw Gf) as RFRMW_IST_IN.
 { admit. }
