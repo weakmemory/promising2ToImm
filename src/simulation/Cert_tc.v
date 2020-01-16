@@ -144,7 +144,7 @@ Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grp
 Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
 
 Hypothesis S_in_W : S ⊆₁ W.
-Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
+Hypothesis RPPO_RMW_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ (Grppo ∪ Grmw) ⨾ ⦗S⦘) ⊆₁ I.
 Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 Hypothesis W_ex_acq_in_I :GW_ex_acq ⊆₁ I.
@@ -431,7 +431,7 @@ Qed.
 Lemma ETCCOH_cert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ I ⊆₁ GW_ex)
       (ISTex_rf_I : (I ∪₁ S ∩₁ Tid_ thread) ∩₁ GW_ex ⊆₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ Grmw))
       (DOM_SB_S_rf_I :
-         dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ∩₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ Grmw)
+         dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ∩₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ Grmw ∩ Gctrl)
                  ⊆₁ I ∪₁ S ∩₁ Tid_ thread) :
   etc_coherent certG sc (mkETC (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I)
                                (I ∪₁ S ∩₁ Tid_ thread)).
@@ -473,11 +473,14 @@ Proof using All.
     }
   { rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S, W_ex_acq_in_I; basic_solver. }
   { unfold dom_sb_S_rfrmw. simpls.
-  
     rewrite cert_sb, cert_W_ex.
-(*   2: by rewrite QQ, cert_W_ex. *)
-admit.
-     }
+    arewrite (cert_rf ⨾ Grmw ∩ Gctrl ⊆ Grf ⨾ Grmw ∩ Gctrl); auto.
+    arewrite (Gctrl ⊆ <|D|> ;; Gctrl) at 1.
+    { apply dom_rel_helper. eapply dom_ctrl_in_D; eauto. }
+    arewrite (Grmw ∩ (⦗D⦘ ⨾ Gctrl) ⊆ ⦗D⦘ ⨾ (Grmw ∩ Gctrl)).
+    { clear. basic_solver. }
+    arewrite (cert_rf ⨾ ⦗D⦘ ⊆ Grf ⨾ ⦗D⦘); [|clear; basic_solver].
+    eapply cert_rf_D; eauto. }
   { rewrite Crppo_in_rppo.
     admit. }
     (* arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆ *)

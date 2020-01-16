@@ -950,7 +950,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   { eapply f_to_co_mon; eauto. }
 
   assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
-  { destruct WNEXT as [[_ BB]]. generalize BB. unfold Execution.rfi.
+  { destruct WNEXT as [_ BB]. generalize BB. unfold Execution.rfi.
     clear. basic_solver. }
   assert (w <> wnext) as NEQ.
   { intros HH; subst. eapply wf_rfrmw_irr; eauto. }

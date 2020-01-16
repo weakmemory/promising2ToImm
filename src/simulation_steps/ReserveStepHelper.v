@@ -21,6 +21,7 @@ Require Import MaxValue.
 Require Import ViewRel.
 Require Import Event_imm_promise.
 Require Import ExtTraversalConfig.
+Require Import ExtTraversal.
 Require Import FtoCoherent.
 Require Import SimulationRelProperties.
 Require Import ExistsReserveInterval.

@@ -127,7 +127,7 @@ Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grp
 Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
 
 Hypothesis S_in_W : S ⊆₁ W.
-Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
+Hypothesis RPPO_RMW_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ (Grppo ∪ Grmw) ⨾ ⦗S⦘) ⊆₁ I.
 Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 Hypothesis W_ex_acq_in_I :GW_ex_acq ⊆₁ I.
@@ -139,8 +139,6 @@ Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
-
-Hypothesis ETC_DETOUR_RMW_S : dom_rel (Gdetour ⨾ Grmw ⨾ ⦗ S ⦘) ⊆₁ I.
 
 (******************************************************************************)
 (**  the set D   *)
@@ -342,7 +340,7 @@ Proof.
 Qed.
 
 Lemma dom_detour_D : dom_rel (Gdetour ⨾ ⦗D⦘) ⊆₁ I.
-Proof using WF WF_SC TCCOH RPPO_S detour_Acq_E detour_E.
+Proof using WF WF_SC TCCOH detour_Acq_E detour_E RPPO_RMW_S.
   unfold D.
   rewrite !id_union; relsf; unionL; splits.
   { rewrite (dom_l (wf_detourD WF)).
@@ -363,9 +361,8 @@ Proof using WF WF_SC TCCOH RPPO_S detour_Acq_E detour_E.
     basic_solver 10. }
   { rewrite dom_rel_eqv_dom_rel.
     etransitivity.
-    2: by apply RPPO_S.
-    clear.
-    basic_solver 10. }
+    2: by apply RPPO_RMW_S.
+    clear. basic_solver 15. }
   { rewrite dom_rel_eqv_codom_rel, transp_seq; relsf.
     sin_rewrite (detour_transp_rfi WF); rels. }
   { rewrite (dom_r (wf_rfeE WF)).
@@ -373,8 +370,10 @@ Proof using WF WF_SC TCCOH RPPO_S detour_Acq_E detour_E.
     transitivity (dom_rel (Gdetour ⨾ ⦗R ∩₁ Acq⦘ ⨾ ⦗E⦘)).
     { clear. basic_solver 21. }
     generalize detour_Acq_E. clear. basic_solver 21. }
-
-Admitted.
+  etransitivity.
+  2: by apply RPPO_RMW_S.
+  rewrite rtE. clear. basic_solver 15.
+Qed.
 
 Lemma dom_data_D: dom_rel (Gdata ⨾ ⦗D⦘) ⊆₁ D.
 Proof using WF TCCOH.
@@ -608,7 +607,7 @@ Qed.
 
 Lemma dom_ar_int_D : dom_rel (Gar_int^+ ⨾ ⦗I⦘) ⊆₁ D ∪₁ R ∩₁ Acq.
 Proof using All.
-  arewrite (Gar_int^+ ⊆ <|R ∪₁ W ∪₁ F∩₁ Acq/Rel|> ;; Gar_int^+).
+  arewrite (Gar_int^+ ⊆ <|R ∪₁ W ∪₁ F ∩₁ Acq/Rel|> ;; Gar_int^+).
   { admit. }
   rewrite !id_union, !seq_union_l, !dom_union. unionL.
   3: { rewrite WF.(ar_int_in_sb). rewrite ct_of_trans; [|by apply sb_trans].

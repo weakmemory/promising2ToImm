@@ -93,7 +93,7 @@ Definition eissued  T := issued  (etc_TC T).
 Definition ecovered T := covered (etc_TC T).
 
 Definition dom_sb_S_rfrmw T rrf P :=
-  dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗P⦘ ⨾ rrf ⨾ rmw) ∩₁ codom_rel (rmw ∩ ctrl).
+  dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗P⦘ ⨾ rrf ⨾ (rmw ∩ ctrl)).
 
 Record etc_coherent (T : ext_trav_config) :=
   mkETCC {
@@ -106,7 +106,6 @@ Record etc_coherent (T : ext_trav_config) :=
   etc_W_ex_sb_I      : dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
   etc_sb_S           : dom_sb_S_rfrmw T rf (eissued T) ⊆₁ reserved T;
   etc_rppo_S         : dom_rel ((detour ∪ rfe) ⨾ (data ∪ rfi ∪ rmw)＊ ⨾ (rppo ∪ rmw) ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
-  etc_detour_rmw_S   : dom_rel (detour ⨾ rmw ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
   etc_S_W_ex_rfrmw_I : reserved T ∩₁ W_ex ⊆₁ codom_rel (⦗eissued T⦘ ⨾ rf ⨾ rmw);
  }.
 

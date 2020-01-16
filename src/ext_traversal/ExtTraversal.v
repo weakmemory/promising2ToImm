@@ -644,7 +644,7 @@ Proof using WF.
   unfold dom_sb_S_rfrmw.
   arewrite (rfi ⊆ sb).
   rewrite WF.(rmw_in_sb).
-  arewrite (sb ;; sb ⊆ sb).
+  arewrite (sb ;; sb ∩ ctrl ⊆ sb).
   { generalize (@sb_trans G). basic_solver. }
   arewrite (<|eq w|> ⊆ <|eq w|> ;; <| set_compl is_init |>).
   { basic_solver. }
@@ -665,9 +665,9 @@ Lemma dom_sb_S_rfrmwf T w wn1 wn2
       (DD2 : dom_sb_S_rfrmw G T rfi (eq w) wn2) :
   wn1 = wn2.
 Proof using WF IMMCON.
-  destruct DD1 as [[_ [y1 AA1]] _]. destruct_seq_l AA1 as BB1; subst.
-  destruct DD2 as [[_ [y2 AA2]] _]. destruct_seq_l AA2 as BB2; subst.
-  eapply wf_rfirmwsf; eauto.
+  generalize wf_rfirmwsf, DD1, DD2. 
+  unfold dom_sb_S_rfrmw.
+  basic_solver 10.
 Qed.
   
 Lemma dom_sb_S_rfrmw_single T w wn
