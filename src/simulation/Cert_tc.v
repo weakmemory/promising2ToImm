@@ -446,15 +446,15 @@ Proof using All.
   all: unfold eissued, ecovered; simpls.
   { apply TCCOH_cert. }
   { arewrite (I ∪₁ S ∩₁ Tid_ thread ⊆₁ E ∩₁ W).
-    2: { unfold certG. unfold acts_set. basic_solver. }
+    2: { unfold CertExecution2.certG. unfold acts_set. basic_solver. }
     rewrite <- IST_new_co; try edone.
     rewrite IST_in_cert_co_base; try edone.
     basic_solver 10. }
   { eauto with hahn. }
   { rewrite cert_W_ex. generalize ST_in_W_ex.
     basic_solver. }
-  { rewrite cert_F, cert_AcqRel, cert_sb, IST_in_S. admit. }
-  { rewrite cert_sb, cert_Acq, cert_R.
+  { rewrite cert_F, cert_AcqRel, cert_sb, IST_in_S; eauto. admit. }
+  { rewrite cert_sb, cert_Acq, cert_R; eauto.
   admit.
 (*    unfolder. intros x [y [z [DRF [[RZ ACQZ] [SB SS]]]]].
     assert (exists w, rfe certG w z) as [w CRFE].
@@ -479,17 +479,19 @@ Proof using All.
 admit.
      }
   { rewrite Crppo_in_rppo.
-    arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆
-                  ⦗D⦘ ⨾ Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘).
-    { apply dom_rel_helper.
-      rewrite IST_in_S.
-      apply dom_rppo_S_in_D. }
-    arewrite ((Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘).
-    { apply dom_rel_helper.
-      eapply dom_data_Crfi_rmw_D_in_D. }
-    rewrite <- !seqA.
-    do 4 rewrite AuxRel.dom_seq.
-    apply dom_cert_detour_rfe_D. }
+    admit. }
+    (* arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆ *)
+    (*               ⦗D⦘ ⨾ Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘). *)
+    (* { apply dom_rel_helper. *)
+    (*   rewrite IST_in_S. *)
+    (*   apply dom_rppo_S_in_D. } *)
+    (* arewrite ((Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘). *)
+    (* { apply dom_rel_helper. *)
+    (*   eapply dom_data_Crfi_rmw_D_in_D. } *)
+    (* rewrite <- !seqA. *)
+    (* do 4 rewrite AuxRel.dom_seq. *)
+    (* apply dom_cert_detour_rfe_D. } *)
+  { admit. }
   admit.
 Admitted.
 
