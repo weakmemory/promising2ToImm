@@ -494,8 +494,7 @@ Proof using All.
     (* rewrite <- !seqA. *)
     (* do 4 rewrite AuxRel.dom_seq. *)
     (* apply dom_cert_detour_rfe_D. } *)
-  { admit. }
   admit.
 Admitted.
 
-End CertExec.
+End CertExec_tc.

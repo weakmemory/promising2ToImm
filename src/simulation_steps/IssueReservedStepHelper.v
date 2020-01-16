@@ -756,7 +756,7 @@ Proof using All.
   { intros HH. apply WNCOV. eapply init_covered; [by apply ETCCOH| by split]. }
 
   assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
-  { destruct WNEXT as [[_ BB] _]. generalize BB. unfold Execution.rfi.
+  { destruct WNEXT as [_ BB]. generalize BB. unfold Execution.rfi.
     clear. basic_solver. }
   assert (w <> wnext) as NEQNEXT.
   { intros HH; subst. eapply wf_rfrmw_irr; eauto. }
