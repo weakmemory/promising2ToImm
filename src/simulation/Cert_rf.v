@@ -650,9 +650,42 @@ Proof using All.
   eexists; splits; eauto.
   apply fr_in_eco; eexists; splits; eauto. }
   
-  admit.
-  
-Admitted.
+  unfold cert_rf.
+  rewrite !seq_union_r.
+  unionR right.
+  arewrite (Grfe ⊆ Grf).
+  rewrite WF.(wf_rfE) at 1.
+  rewrite WF.(wf_rfD) at 1.
+  rewrite WF.(wf_rmwE) at 1.
+  rewrite WF.(wf_rmwD) at 1.
+  rewrite WF.(rmw_non_init_lr) at 1.
+  unfolder; ins; desf.
+  assert (AA: exists z, (immediate cert_co) z y0).
+  { eapply (imm_cert_co_inv_exists) with (T:=T); eauto; basic_solver. }
+  desf.
+  assert (BB: x = z \/ Gco x z \/ Gco z x).
+  { cut (x <> z -> Gco x z \/ Gco z x); [tauto|].
+    apply AuxRel.immediate_in in AA.
+    eapply WF.(wf_co_total).
+    unfolder; splits; eauto.
+    unfolder; splits; eauto.
+    eapply (wf_cert_coE) in AA; try edone; unfolder in AA; desf.
+    eapply (wf_cert_coD) in AA; try edone; unfolder in AA; desf.
+    eapply wf_cert_col in AA; try edone.
+    apply WF.(wf_rfl) in H0; unfolder in H0; desf.
+    apply WF.(wf_rmwl) in H7; unfolder in H7; desf.
+    unfold same_loc in *; congruence. } 
+  desf; eauto 10.
+  exfalso.
+  assert (Gco z y0).
+  { apply AuxRel.immediate_in in AA.
+    forward (eapply cert_co_I); eauto.
+    unfolder; ins; desf; eapply H4; splits; eauto.
+    red; right; red; basic_solver. }
+  eapply atomicity_alt; eauto.
+  by eapply coherence_sc_per_loc; eauto.
+  unfold fr in *; unfolder; splits; eauto 10.
+Qed.
 
 Lemma I_Grfe_in_inv_Gco_cr_cert_rf : Grfe ⊆ (cert_co ∩ Gco^{-1})^? ;; cert_rf.
 Proof using All.
