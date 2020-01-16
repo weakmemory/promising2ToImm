@@ -163,6 +163,8 @@ Hypothesis SAME : same_lab_u2v lab' Glab.
 Hypothesis NEW_VAL : forall r w (RF: cert_rf w r), val lab' w = val lab' r.
 Hypothesis OLD_VAL : forall a (NIN: ~ (E \₁ D) a), val lab' a = Gval a.
 
+Hypothesis ETC_DETOUR_RMW_S : dom_rel (Gdetour ⨾ Grmw ⨾ ⦗ S ⦘) ⊆₁ I.
+
 Notation "'certG'" := (certG G sc T S thread lab').
 
 Hypothesis WF_cert    : Wf certG.
@@ -280,6 +282,22 @@ Proof using All.
   assert (TCCOH1:= TCCOH_rst_new_T).
   apply (tc_coherent_implies_tc_coherent_alt WF WF_SC) in TCCOH1.
   destruct TCCOH1.
+
+  assert (dom_rel ((⦗GW_ex⦘ ⨾ Grfi ⨾ ⦗R ∩₁ Acq⦘) ⨾ (Cppo ∪ bob certG) ⨾ ⦗I⦘) ⊆₁ I) as BB.
+  { arewrite (⦗I⦘ ⊆ ⦗D⦘ ;; ⦗I⦘).
+    { generalize I_in_D. clear. basic_solver. }
+    arewrite ((Cppo ∪ bob certG) ⨾ ⦗D⦘ ⊆ Gar_int).
+    { rewrite seq_union_l. unionL.
+      2: { rewrite cert_bob; eauto. rewrite bob_in_ar_int. clear. basic_solver. }
+      rewrite <- ppo_in_ar_int.
+      eapply cert_ppo_D; eauto. }
+    arewrite (⦗GW_ex⦘ ⊆ ⦗W⦘ ;; ⦗GW_ex⦘).
+    { generalize WF.(W_ex_in_W). clear. basic_solver. }
+    arewrite (⦗GW_ex⦘ ⨾ Grfi ⨾ ⦗R ∩₁ Acq⦘ ⊆ Gar_int).
+    arewrite (Gar_int ⨾ Gar_int ⊆ Gar_int⁺).
+    { by rewrite <- ct_ct, <- ct_step. }
+    arewrite (Gar_int ⊆ Gar ∪ Grf ⨾ Grmw); auto. }
+
   constructor.
   all: try by ins.
   { ins; rewrite cert_W; edone. }
@@ -291,8 +309,18 @@ Proof using All.
     basic_solver 21. }
   { ins; rewrite cert_W; edone. }
   { ins; rewrite cert_fwbob; edone. }
-  { relsf; unionL; splits; simpls.
-    3,4: rewrite (dom_rel_helper AA); basic_solver.
+  { rewrite cert_W_ex, cert_R, cert_Acq; eauto.
+    arewrite (⦗GW_ex⦘ ⨾ Crfi ⨾ ⦗R ∩₁ Acq⦘ ⊆ ⦗GW_ex⦘ ⨾ Grfi ⨾ ⦗R ∩₁ Acq⦘).
+    { arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗Acq⦘ ;; ⦗R ∩₁ Acq⦘).
+      { clear. basic_solver. }
+      arewrite (Crfi ⨾ ⦗Acq⦘ ⊆ Grfi); try done.
+      rewrite cert_rfi_eq. eapply cert_rfi_to_Acq_in_Grfi; eauto. }
+    remember (Cppo ∪ bob certG) as X.
+    rewrite !seq_union_l, !dom_union.
+    unionL.
+    3: { subst X. apply BB. }
+    2: { rewrite (dom_rel_helper AA); basic_solver. }
+    subst X. rewrite !seq_union_l, !seq_union_r, !dom_union. unionL; simpls.
     { rewrite I_in_D at 1.
       arewrite (⦗D⦘ ⊆ ⦗D⦘ ⨾ ⦗D⦘) by basic_solver.
       forward (eapply cert_ppo_D with (G:=G)); eauto.
@@ -300,24 +328,20 @@ Proof using All.
       forward (eapply dom_ppo_D with (G:=G)); try edone.
       forward (eapply cert_detour_D with (G:=G)); try edone.
       clear. unfolder; ins; desf. eapply H; basic_solver 42. }
-    { unfold bob; relsf; unionL; splits; simpls.
-      { arewrite (⦗I⦘ ⊆ ⦗C ∪₁ I⦘) at 1.
-        rewrite cert_fwbob; auto.
-        rewrite (dom_rel_helper dom_fwbob_I).
-        rewrite C_in_D, I_in_D at 1; relsf.
-        forward (eapply cert_detour_D with (G:=G)); eauto.
-        intros HH. sin_rewrite HH.
-        basic_solver 20. }
-      rewrite I_in_D at 1.
-      rewrite !seqA.
-      rewrite cert_sb.
-      rewrite cert_R, cert_Acq; eauto.
-      forward (eapply cert_detour_R_Acq with (G:=G)); eauto.
-      intros HH. sin_rewrite HH. basic_solver. }
-    { rewrite cert_W_ex, cert_R, cert_Acq; eauto.
-      admit. }
-    rewrite cert_W_ex, cert_R, cert_Acq, cert_bob; eauto.
-    admit. }
+    unfold bob; relsf; unionL; splits; simpls.
+    { arewrite (⦗I⦘ ⊆ ⦗C ∪₁ I⦘) at 1.
+      rewrite cert_fwbob; auto.
+      rewrite (dom_rel_helper dom_fwbob_I).
+      rewrite C_in_D, I_in_D at 1; relsf.
+      forward (eapply cert_detour_D with (G:=G)); eauto.
+      intros HH. sin_rewrite HH.
+      basic_solver 20. }
+    rewrite I_in_D at 1.
+    rewrite !seqA.
+    rewrite cert_sb.
+    rewrite cert_R, cert_Acq; eauto.
+    forward (eapply cert_detour_R_Acq with (G:=G)); eauto.
+    intros HH. sin_rewrite HH. basic_solver. }
   { ins; rewrite cert_W_ex_acq; eauto.
     rewrite cert_sb. eapply tc_W_ex_sb_I; eauto.
     apply tc_coherent_implies_tc_coherent_alt; eauto. }
@@ -333,7 +357,9 @@ Proof using All.
   arewrite_id ⦗D⦘. rewrite !seq_id_l.
   arewrite (Grfi ⊆ Grf).
   eapply rfrmw_I_in_I; eauto.
-Admitted.
+Unshelve.
+all:auto.
+Qed.
 
 Lemma dom_cert_ar_rfrmw_I : dom_rel (⦗is_w certG.(lab)⦘ ⨾ (Car ∪ Crf ⨾ rmw certG)⁺ ⨾ ⦗I⦘) ⊆₁ I.
 Proof using All.
@@ -386,16 +412,20 @@ Qed.
 
 Lemma dom_data_Crfi_rmw_D_in_D : dom_rel ((Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘) ⊆₁ D.
 Proof using Grfe_E TCCOH WF WF_SC.
-  unfolder. ins. desf.
-  induction H.
-  3: intuition.
-  2: basic_solver.
-  desf.
-  { eapply dom_data_D; try edone. basic_solver 10. }
-  { assert ((Crfi ⨾ ⦗D⦘) x y) as AA.
-    { basic_solver 10. }
-    eapply cert_rfi_D in AA. unfolder in AA. desf. } 
-  eapply dom_rmw_D; try edone. basic_solver 10.
+  cut ((Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (fun _ _ => True)).
+  { unfolder; intros HH; ins; desf. eapply HH; eauto. }
+  apply rt_ind_right with (P:= fun r => r ⨾ ⦗D⦘).
+  { eauto with hahn. }
+  { basic_solver. }
+  intros h HH; rewrite !seqA.
+  arewrite ((Gdata ∪ Crfi ∪ Grmw) ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (fun _ _ : actid => True)).
+  2: { sin_rewrite HH. clear. basic_solver. }
+  transitivity (⦗D⦘ ⨾ (Gdata ∪ Crfi ∪ Grmw) ⨾ ⦗D⦘).
+  2: { clear. basic_solver. }
+  apply dom_rel_helper. rewrite !seq_union_l, !dom_union. unionL.
+  { eby eapply dom_data_D. }
+  { rewrite cert_rfi_eq. erewrite cert_rfi_D; eauto. clear. basic_solver. }
+  eby eapply dom_rmw_D.
 Qed.
 
 Lemma ETCCOH_cert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ I ⊆₁ GW_ex)
