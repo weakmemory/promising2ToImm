@@ -15,6 +15,10 @@ From imm Require Import Prog.
 From imm Require Import Receptiveness.
 From imm Require Import ProgToExecution ProgToExecutionProperties.
 
+Require Import Cert_rf.
+Require Import Cert_tc.
+Require Import Cert_ar.
+Require Import Cert_D.
 Require Import CertExecution2.
 Require Import TraversalConfig.
 Require Import MaxValue.
@@ -75,8 +79,10 @@ by subst; eapply WF_SC_rst; edone.
 assert (RELCOV_G : is_w G.(lab) ∩₁ is_rel G.(lab) ∩₁ T.(issued) ⊆₁ T.(covered)).
 by rewrite (sub_W SUB), (sub_Rel SUB).
 
+assert (RMWCOV : forall r w : actid, rmw Gf r w -> covered T r <-> covered T w) by apply SIMREL.
+
 assert (TCCOH_G : tc_coherent G Gsc T).
-subst; eapply TCCOH_rst; edone.
+{ subst; eapply TCCOH_rst; try edone. }
 
 assert (TCCOH_rst_new_T : tc_coherent G Gsc (mkTC ( T.(covered) ∪₁ (G.(acts_set) ∩₁ NTid_ thread))  T.(issued))).
 { subst; eapply TCCOH_rst_new_T; eauto. }
@@ -359,9 +365,9 @@ assert (acts_set (ProgToExecution.G state) ⊆₁ covered T) as STATECOV.
 
 set (new_rfi := ⦗ Tid_ thread ⦘ ⨾ new_rf G Gsc T S thread ⨾ ⦗ Tid_ thread ⦘).
 
-assert (COMP_RPPO : dom_rel (⦗fun a => is_r (lab G) a⦘ ⨾ (data G ∪ rfi G)＊ ⨾ rppo G ⨾ ⦗S⦘)
+assert (COMP_RPPO : dom_rel (⦗fun a => is_r (lab G) a⦘ ⨾ (data G ∪ rfi G ∪ rmw G)＊ ⨾ rppo G ⨾ ⦗S⦘)
                         ⊆₁ codom_rel (rf G)).
-{ subst; eapply COMP_RPPO; edone. }
+{ subst. eapply COMP_RPPO; edone. }
 
 assert (S_in_W : S ⊆₁ is_w G.(lab)).
 { rewrite (reservedW WF ETCCOH).
@@ -377,13 +383,15 @@ assert
   rewrite sub_AcqRel; eauto.
   rewrite sub_sb_in; eauto.
   apply ETCCOH. }
-assert (RPPO_S : dom_rel ((detour G ∪ rfe G) ⨾ (data G ∪ rfi G)＊ ⨾ rppo G ⨾ ⦗S⦘) ⊆₁ issued T).
+assert (RPPO_RMW_S : dom_rel ((detour G ∪ rfe G) ⨾ (data G ∪ rfi G ∪ rmw G)＊ ⨾ (rppo G ∪ rmw G) ⨾ ⦗S⦘) ⊆₁ issued T).
 { rewrite sub_detour_in; eauto.
   rewrite sub_rfe_in; eauto.
   rewrite sub_data_in; eauto.
   rewrite sub_rfi_in; eauto.
   subst.
   rewrite sub_rppo_in; eauto.
+  2: { admit. }
+  rewrite sub_rmw_in; eauto.
   apply ETCCOH. }
 
 assert (new_rfif : functional new_rfi⁻¹).
@@ -484,29 +492,30 @@ basic_solver. }
 arewrite_id ⦗Tid_ thread⦘; rels.
 rewrite (@dom_addr_in_D G _ _ S thread WF_G TCCOH_G); try done.
 basic_solver. }
-{ 
-rewrite TEH''.(tr_acts_set).
-unfolder; ins; desc.
-eapply H5; eauto.
-eapply (@Rex_in_D G _ _ thread); try done.
-split; [|done].
-unfold R_ex, rmwmod in *.
-rewrite TEH''.(tr_lab) in H2; auto.
-eapply TEH''.(tr_acts_set). by split. }
+{ (* TODO: relax the condition on R_ex values in receptiveness_full. *)
+  admit. }
+(* rewrite TEH''.(tr_acts_set). *)
+(* unfolder; ins; desc. *)
+(* eapply H5; eauto. *)
+(* eapply (@Rex_in_D G _ _ thread); try done. *)
+(* split; [|done]. *)
+(* unfold R_ex, rmwmod in *. *)
+(* rewrite TEH''.(tr_lab) in H2; auto. *)
+(* eapply TEH''.(tr_acts_set). by split. } *)
 { rewrite TEH''.(tr_ctrl).
-arewrite_id ⦗Tid_ thread⦘; rels.
-rewrite (@dom_ctrl_in_D G _ _ S thread WF_G TCCOH_G); try done.
-basic_solver. }
+  arewrite_id ⦗Tid_ thread⦘; rels.
+  rewrite (@dom_ctrl_in_D G _ _ S thread WF_G TCCOH_G); try done.
+  basic_solver. }
 { rewrite TEH''.(tr_data).
-rewrite (dom_r (wf_dataE WF_G)).
-subst G.
-rewrite (E_E0 thread WF ETCCOH).
-unfolder; ins; desc.
-eapply H4; splits; eauto.
-intro.
-apply H6.
-apply (@dom_data_D (rstG Gf T S thread) Gsc T S thread WF_G); try done.
-basic_solver 12. }
+  rewrite (dom_r (wf_dataE WF_G)).
+  subst G.
+  rewrite (E_E0 thread WF ETCCOH).
+  unfolder; ins; desc.
+  eapply H4; splits; eauto.
+  intro.
+  apply H6.
+  apply (@dom_data_D (rstG Gf T S thread) Gsc T S thread WF_G); try done.
+  basic_solver 12. }
 
 ins; desc. 
 set (lab' := fun x =>
@@ -559,15 +568,14 @@ assert (new_rf G Gsc T S thread ≡ new_rfi ∪ new_rfe) as NEWRF_SPLIT.
        { split; [basic_solver|].
          intros x _. red. by destruct (classic (tid x = thread)); [left|right]. }
        basic_solver. }
-
-split; [|basic_solver].
-cut (codom_rel (new_rf G Gsc T S thread) ⊆₁ Tid_ thread).
-basic_solver 21.
-rewrite wf_new_rfE at 1; try done.
-unfold D.
-unfolder; ins; desf.
-destruct (classic (tid x = thread)); [done|].
-exfalso; eapply H4. left; left; left; left; right; eauto. }
+  split; [|basic_solver].
+  cut (codom_rel (new_rf G Gsc T S thread) ⊆₁ Tid_ thread).
+  { clear. basic_solver 21. }
+  rewrite wf_new_rfE at 1; try done.
+  unfold D.
+  unfolder; ins; desf.
+  destruct (classic (tid x = thread)); [done|].
+  exfalso; eapply H4. do 5 left. by right. }
 
 assert (forall r w : actid, new_rf G Gsc T S thread w r -> val lab' w = val lab' r)
   as SAME_VAL_RF.
@@ -663,8 +671,7 @@ assert (forall a : actid, ~ (acts_set G \₁ D G T S thread) a -> val lab' a = v
 assert (forall b (ISSB : issued T b), val lab' b = val Gf.(lab) b) as ISS_OLD.
 { ins. rewrite <- lab_G_eq_lab_Gf.
   rewrite SAME_VAL; auto.
-  intros [_ HH]. apply HH.
-  red. do 5 left. by right. }
+  intros [_ HH]. apply HH. by apply I_in_D. }
 
 assert (acts_certG_in_acts_Gf : acts_set (certG G Gsc T S thread lab') ⊆₁ acts_set Gf).
 { by unfold certG. }
@@ -673,24 +680,26 @@ assert (issued T ∪₁ S ∩₁ Tid_ thread ⊆₁ S) as IST_in_S.
 { generalize ETCCOH.(etc_I_in_S). unfold eissued. simpls.
   basic_solver. } 
 
+(* TODO: fix*)
 assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘ ⊆
         rf Gf ⨾ rmw Gf) as RFRMW_IST_IN.
-{ intros x y H2. apply seq_eqv_r in H2.
-  destruct H2 as [H2 ISSZ].
-  destruct H2 as [z [RF RMW']].
-  exists z. split.
-  2: { apply rmw_G_rmw_Gf in RMW'. generalize RMW'. basic_solver. }
-  destruct RF as [RF|RF].
-  { apply seq_eqv_r in RF. destruct RF as [RF _].
-    rewrite H in RF. unfold rstG, restrict in RF. simpls.
-    generalize RF. basic_solver. }
-  exfalso.
-  apply wf_new_rfE in RF; auto.
-  apply seq_eqv_l in RF. destruct RF as [_ RF].
-  apply seq_eqv_r in RF. destruct RF as [_ [_ RF]].
-  apply RF.
-  apply dom_rppo_S_in_D. exists y. 
-  apply seq_eqv_r. split; auto. by apply rmw_in_rppo. }
+{ admit. }
+  (* intros x y H2. apply seq_eqv_r in H2. *)
+  (* destruct H2 as [H2 ISSZ]. *)
+  (* destruct H2 as [z [RF RMW']]. *)
+  (* exists z. split. *)
+  (* 2: { apply rmw_G_rmw_Gf in RMW'. generalize RMW'. basic_solver. } *)
+  (* destruct RF as [RF|RF]. *)
+  (* { apply seq_eqv_r in RF. destruct RF as [RF _]. *)
+  (*   rewrite H in RF. unfold rstG, restrict in RF. simpls. *)
+  (*   generalize RF. basic_solver. } *)
+  (* exfalso. *)
+  (* apply wf_new_rfE in RF; auto. *)
+  (* apply seq_eqv_l in RF. destruct RF as [_ RF]. *)
+  (* apply seq_eqv_r in RF. destruct RF as [_ [_ RF]]. *)
+  (* apply RF. *)
+  (* apply dom_rppo_S_in_D. exists y.  *)
+  (* apply seq_eqv_r. split; auto. by apply rmw_in_rppo. } *)
 
 assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) ⨾ ⦗issued T⦘ ⊆
         rf Gf ⨾ rmw Gf) as RFRMW_IN.
