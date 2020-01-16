@@ -433,5 +433,28 @@ arewrite_id ⦗R_ex \₁ dom_rel rmw⦘ at 2.
 generalize (@sb_trans G); ins; relsf.
 Qed.
 
-End ImmProperties.
+Lemma rmwrf_ct_Acq_in_ar_rfrmw_ct : (rmw ⨾ rf)⁺ ⨾ ⦗Acq⦘ ⊆ (ar G sc ∪ rf ;; rmw)⁺.
+Proof using WF.
+  rewrite rmw_W_ex at 1. rewrite !seqA.
+  rewrite clos_trans_rotl, !seqA.
+  arewrite (⦗W_ex⦘ ⨾ rf ⨾ ⦗Acq⦘ ⊆ ar G sc).
+  { rewrite rfi_union_rfe, !seq_union_l, !seq_union_r.
+    unionL.
+    2: { rewrite rfe_in_ar. basic_solver. }
+    rewrite (dom_r WF.(wf_rfiD)), !seqA. rewrite <- id_inter.
+    unfold ar, ar_int. eauto with hahn. }
+  rewrite WF.(rmw_in_ar_int) at 1. rewrite ar_int_in_ar with (sc:=sc).
+  arewrite (⦗W_ex⦘ ⨾ rf ⨾ rmw ⊆ ar G sc ∪ rf ⨾ rmw).
+  arewrite (ar G sc ⊆ ar G sc ∪ rf ⨾ rmw) at 1.
+  arewrite (ar G sc ⊆ ar G sc ∪ rf ⨾ rmw) at 3.
+  rewrite <- ct_end.
+  rewrite ct_step with (r:=ar G sc ∪ rf ⨾ rmw) at 1.
+  apply ct_ct.
+Qed.
 
+Lemma rmwrf_rt_Acq_in_ar_rfrmw_rt : (rmw ⨾ rf)^* ⨾ ⦗Acq⦘ ⊆ (ar G sc ∪ rf ;; rmw)^*.
+Proof using WF.
+  rewrite !rtE, seq_union_l. rewrite rmwrf_ct_Acq_in_ar_rfrmw_ct. basic_solver.
+Qed.
+
+End ImmProperties.

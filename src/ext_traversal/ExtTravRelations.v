@@ -169,7 +169,7 @@ Proof using WF.
   basic_solver.
 Qed.
 
-Lemma data_rfi_rppo_in_ppo : ⦗R⦘ ⨾ (data ∪ rfi)＊ ⨾ rppo ⊆ ppo.
+Lemma data_rfi_rmw_rppo_in_ppo : ⦗R⦘ ⨾ (data ∪ rfi ∪ rmw)＊ ⨾ rppo ⊆ ppo.
 Proof using.
   unfold rppo, imm_s_ppo.ppo.
   hahn_frame.
@@ -180,13 +180,26 @@ Proof using.
   all: by rewrite <- ct_step; eauto 10 with hahn.
 Qed.
 
-Lemma detour_rfe_data_rfi_rppo_in_detour_rfe_ppo :
-  (detour ∪ rfe) ⨾ (data ∪ rfi)＊ ⨾ rppo ⊆ (detour ∪ rfe) ⨾ ppo.
+Lemma data_rfi_rppo_in_ppo : ⦗R⦘ ⨾ (data ∪ rfi)＊ ⨾ rppo ⊆ ppo.
+Proof using.
+  arewrite (rfi ⊆ rfi ∪ rmw). rewrite <- unionA.
+  apply data_rfi_rmw_rppo_in_ppo.
+Qed.
+
+Lemma detour_rfe_data_rfi_rmw_rppo_in_detour_rfe_ppo :
+  (detour ∪ rfe) ⨾ (data ∪ rfi ∪ rmw)＊ ⨾ rppo ⊆ (detour ∪ rfe) ⨾ ppo.
 Proof using WF.
   rewrite (dom_r WF.(wf_detourD)) at 1.
   rewrite (dom_r WF.(wf_rfeD)) at 1.
   rewrite <- seq_union_l, !seqA.
-    by rewrite data_rfi_rppo_in_ppo.
+    by rewrite data_rfi_rmw_rppo_in_ppo.
+Qed.
+
+Lemma detour_rfe_data_rfi_rppo_in_detour_rfe_ppo :
+  (detour ∪ rfe) ⨾ (data ∪ rfi)＊ ⨾ rppo ⊆ (detour ∪ rfe) ⨾ ppo.
+Proof using WF.
+  arewrite (rfi ⊆ rfi ∪ rmw). rewrite <- unionA.
+  apply detour_rfe_data_rfi_rmw_rppo_in_detour_rfe_ppo.
 Qed.
 
 (* Lemma rmw_in_rppo : rmw ⊆ rppo. *)

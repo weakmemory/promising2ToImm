@@ -2,6 +2,7 @@ Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution
      Execution_eco imm_s_hb imm_s imm_bob imm_s_ppo CombRelations imm_s_rfrmw.
+Require Import ImmProperties.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -759,7 +760,7 @@ Section Properties.
     sin_rewrite ar_ar_in_ar_ct.
     apply dom_ar_ct_issuable.
   Qed.
-
+  
   Lemma dom_detour_rfe_ppo_issued :
     dom_rel ((detour ∪ rfe) ⨾ ppo ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof using WF TCCOH.
@@ -786,6 +787,34 @@ Section Properties.
   Proof using WF TCCOH.
     rewrite issued_in_issuable at 1.
     apply dom_detour_rfe_acq_sb_issuable.
+  Qed.
+
+  Lemma dom_detour_rmwrfi_rfe_acq_sb_issuable :
+    dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF.
+    arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗Acq⦘ ;; ⦗R ∩₁ Acq⦘) by basic_solver.
+    arewrite (rfi ⊆ rf).
+    sin_rewrite (@rmwrf_rt_Acq_in_ar_rfrmw_rt G WF sc); auto.
+    rewrite (dom_l WF.(wf_detourD)).
+    rewrite (dom_l WF.(wf_rfeD)).
+    arewrite (rfe ⊆ ar).
+    arewrite (detour ⊆ ar).
+    relsf.
+    arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ ar).
+    { arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ bob). unfold imm_s.ar, ar_int. eauto with hahn. }
+    arewrite (ar ⊆ ar ∪ rf ⨾ rmw) at 3.
+    arewrite (ar ⊆ ar ∪ rf ⨾ rmw) at 1.
+    seq_rewrite <- ct_end.
+    arewrite ((ar ∪ rf ⨾ rmw) ⨾ (ar ∪ rf ⨾ rmw)⁺ ⊆ (ar ∪ rf ⨾ rmw)⁺).
+    { rewrite ct_step with (r:= ar ∪ rf ⨾ rmw) at 1. apply ct_ct. }
+    apply ar_rfrmw_ct_issuable_in_I.
+  Qed.
+
+  Lemma dom_detour_rmwrfi_rfe_acq_sb_issued :
+    dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TCCOH.
+    rewrite issued_in_issuable at 1.
+    apply dom_detour_rmwrfi_rfe_acq_sb_issuable.
   Qed.
 
   Lemma dom_rfe_acq_sb_issuable :
