@@ -399,4 +399,25 @@ eapply tot_ex.
 unfold is_init in *; desf.
 Qed.
 
+Lemma transp_cert_co_imm_cert_co : (immediate cert_co)⁻¹ ;; cert_co  ⊆ cert_co^?.
+Proof using WF S_in_W ST_in_E S IT_new_co.
+rewrite wf_cert_coE at 2.
+rewrite wf_cert_coD at 2.
+unfolder; ins; desf.
+cut (x = y \/ cert_co y x \/ cert_co x y).
+by ins; desf; eauto 21; exfalso; eauto.
+cut (x <> y -> cert_co y x \/ cert_co x y).
+tauto.
+ins.
+eapply wf_cert_co_total; eauto.
+by unfolder; ins; desf.
+hahn_rewrite wf_cert_coE in H; unfolder in H; desf.
+hahn_rewrite wf_cert_coD in H7; unfolder in H7; desf.
+hahn_rewrite wf_cert_col in H9; unfolder in H7; desf.
+hahn_rewrite wf_cert_col in H1; unfolder in H1; desf.
+unfold same_loc in *; desf.
+unfolder; splits; eauto.
+congruence.
+Qed.
+
 End CertExec_CO.
