@@ -160,6 +160,7 @@ Hypothesis SAME : same_lab_u2v lab' Glab.
 
 Notation "'certG'" := (certG G sc T S thread lab').
 
+Hypothesis WF_cert : Wf certG.
 
 (* Notation "'CE'" := certG.(acts_set). *)
 (* Notation "'Cacts'" := certG.(acts). *)
@@ -294,34 +295,68 @@ assert (DETOURE: Gdetour x z0).
 apply H6, A; unfolder; ins; desf; splits; eauto.
 Qed.
 
-(* TODO: move up *)
-Hypothesis WF_cert : Wf certG.
+Lemma hb_sc_irr : irreflexive (Ghb ⨾ sc^?).
+Proof.
+case_refl sc; [by apply hb_irr|].
+rewrite (wf_scD WF_SC); rotate 1.
+sin_rewrite (f_sc_hb_f_sc_in_ar WF).
+unfolder; ins; desc.
+eapply ACYC_EXT.
+eapply t_trans; [edone| apply t_step].
+by apply sc_in_ar.
+Qed.
 
-Lemma coh_helper : irreflexive (Chb ⨾ (sc ⨾ Chb)^? ⨾ Ceco^?).
-Proof using All.
-  apply coh_helper_alt; rewrite cert_hb; eauto.
-  relsf; unionL.
-  { case_refl sc; [by apply hb_irr|].
-    rewrite (wf_scD WF_SC); rotate 1.
-    sin_rewrite (f_sc_hb_f_sc_in_ar WF).
-    unfolder; ins; desc.
-    eapply ACYC_EXT.
-    eapply t_trans; [edone| apply t_step].
-     by apply sc_in_ar. }
-  { rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
-    relsf; unionL.
-    { revert COH CSC; unfold coherence, coh_sc, eco.
-      ie_unfolder. basic_solver 21. }
-    { generalize new_rf_hb. basic_solver 12. }
-    rotate 1.
-    arewrite (⦗set_compl D⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gsb).
-    { admit. (* TODO: use hb_sc_hb_de *) }
-    admit. }
-  { ins; rewrite cert_co_alt'; try edone; relsf; unionL.
-    { revert COH CSC. unfold coherence, coh_sc, eco. basic_solver 21. }
-    revert W_hb_sc_hb_to_I_NTid. basic_solver 21. }
-  { rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
-    relsf; unionL.
+Lemma set_compl_D_helper : ⦗set_compl D⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gsb.
+Proof.
+rewrite <- hb_sc_hb_de.
+rewrite (dom_l WF.(wf_hbE)) at 1.
+rewrite !seqA.
+forward (eapply C_in_D with (G:=G) (T:=T) (S:=S) (thread:=thread)); eauto.
+forward (eapply I_in_D with (G:=G) (T:=T) (S:=S) (thread:=thread)); eauto.
+basic_solver 21.
+Qed.
+
+Lemma hb_rfe_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Crfe).
+Proof.
+rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
+relsf; unionL.
+{ revert COH CSC; unfold coherence, coh_sc, eco.
+  ie_unfolder. basic_solver 21. }
+{ generalize new_rf_hb. basic_solver 12. }
+rotate 1.
+sin_rewrite set_compl_D_helper.
+admit.
+Admitted.
+
+Lemma hb_co_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cco).
+Proof.
+ins; rewrite cert_co_alt'; try edone; relsf; unionL.
+{ revert COH CSC. unfold coherence, coh_sc, eco. basic_solver 21. }
+revert W_hb_sc_hb_to_I_NTid. basic_solver 21.
+Qed.
+
+Lemma hb_co_irr' : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cco^?).
+Proof.
+rewrite (crE cert_co); relsf; unionL; splits.
+generalize hb_sc_irr (@hb_trans G); basic_solver 21.
+apply hb_co_irr.
+Qed.
+
+Lemma hb_co_irr'' : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ ⦗set_compl D⦘ ⨾ Grmw ⨾ Cco^?).
+Proof.
+      rewrite WF.(rmw_in_sb).
+      rewrite sb_in_hb.
+      arewrite_id ⦗set_compl D⦘; rels.
+      arewrite (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Ghb ⊆ Ghb ⨾ (sc ⨾ Ghb)^?).
+      { generalize (@hb_trans G). basic_solver 21. }
+      apply hb_co_irr'.
+Qed.
+
+
+Lemma hb_co_rfe_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cco ;; Crfe).
+Proof.
+rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
+relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E).
       unfold CertExecution2.certG; ins; rewrite !seqA.
       rewrite (I_in_cert_co_base G T) at 1.
@@ -340,16 +375,27 @@ Proof using All.
       generalize (eco_furr_irr WF WF_SC CSC COH).
       unfold eco. basic_solver 21. }
     rotate 1.
-    arewrite (⦗set_compl D⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gsb).
-    { admit. (* TODO: use hb_sc_hb_de *) }
+sin_rewrite set_compl_D_helper.
     rewrite AuxRel.immediate_in.
     arewrite (cert_co ⨾ Grmw⁻¹ \ Gsb ⊆ cert_co ⨾ Grmw⁻¹).
     arewrite (Cco ⨾ ⦗I⦘ ⨾ cert_co ⊆ cert_co).
     { admit. }
     (* arewrite (Cco ⨾ ⦗I⦘ ⊆ Gco ⨾ ⦗I⦘). *)
     (* { admit. (* TODO: use cert_co_alt' *) } *)
-    admit. }
-  { unfold fr; ins; rewrite cert_co_alt'; try edone; unfold CertExecution2.certG; ins.
+    admit.
+Admitted.
+
+Lemma hb_co_rfe_irr' : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cco^? ;; Crfe).
+Proof.
+rewrite (crE cert_co); relsf; unionL; splits.
+generalize hb_rfe_irr (@hb_trans G); basic_solver 21.
+apply hb_co_rfe_irr.
+Qed.
+
+
+Lemma hb_fr_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cfr).
+Proof.
+unfold fr; ins; rewrite cert_co_alt'; try edone; unfold CertExecution2.certG; ins.
     unfold Cert_rf.cert_rf.
     do 2 rewrite transp_union.
     rewrite transp_seq; relsf; unionL.
@@ -363,9 +409,7 @@ Proof using All.
     { rewrite !transp_seq. relsf. rewrite !seqA.
       arewrite ((immediate cert_co)⁻¹ ⨾ Gco ∩ cert_co ⊆ cert_co^?).
       { admit. }
-      rewrite WF.(rmw_in_sb).
-      (* TODO: one of the previous cases. *)
-      admit. }
+apply hb_co_irr''. }
     { rewrite !seqA. eapply cert_coherece_detour_helper. }
     { rotate 1.
       arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ I⦘ ⊆ ⦗W⦘) by basic_solver.
@@ -376,10 +420,12 @@ Proof using All.
     arewrite ((immediate cert_co)⁻¹
              ⨾ ⦗I ∩₁ NTid_ thread⦘ ⨾ cert_co ⨾ ⦗E ∩₁ W ∩₁ Tid_ thread \₁ I⦘ ⊆ cert_co^?).
     { admit. }
-    rewrite WF.(rmw_in_sb).
-    (* TODO: one of the previous cases. *)
-    admit. }
-  rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto. relsf; unionL.
+apply hb_co_irr''.
+Admitted.
+
+Lemma hb_fr_rfe : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cfr ⨾ Crfe).
+Proof.
+rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto. relsf; unionL.
   { unfold fr. unfold CertExecution2.certG. ins. unfold Cert_rf.cert_rf.
     rewrite !transp_union, transp_seq; relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E), !seqA.
@@ -423,8 +469,7 @@ Proof using All.
     { admit. }
     admit. }
   rotate 1.
-  arewrite (⦗set_compl D⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gsb).
-  { admit. (* TODO: use hb_sc_hb_de *) }
+  sin_rewrite set_compl_D_helper.
   unfold fr. rewrite !seqA.
   rewrite AuxRel.immediate_in.
   arewrite (cert_co ⨾ Grmw⁻¹ \ Gsb ⊆ cert_co ⨾ Grmw⁻¹).
@@ -432,9 +477,17 @@ Proof using All.
   { admit. }
 Admitted.
 
+Lemma coh_helper : irreflexive (Chb ⨾ (sc ⨾ Chb)^? ⨾ Ceco^?).
+Proof using All.
+  apply coh_helper_alt; rewrite cert_hb; eauto.
+  generalize hb_sc_irr, hb_rfe_irr, hb_co_irr, 
+             hb_co_rfe_irr, hb_fr_irr, hb_fr_rfe.
+  basic_solver 21.
+Qed.
+
 Lemma cert_coherence : coherence certG.
 Proof using All.
-  red; generalize coh_helper; basic_solver 12.
+  red. generalize coh_helper; basic_solver 12.
 Qed.
 
 Lemma cert_coh_sc : coh_sc certG sc.
