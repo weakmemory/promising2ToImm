@@ -560,6 +560,8 @@ Qed.
 
 Lemma Grfi_in_cert_rfi : Grfi ⊆ cert_rfi.
 Proof using All.
+  assert (sc_per_loc G) as GSPL.
+  { by apply coherence_sc_per_loc. }
   arewrite (Grfi ⊆ Grfi ⨾ ⦗D ∪₁ set_compl D⦘).
   { clear; unfolder; ins; desf; tauto. }
   rewrite id_union; rewrite seq_union_r; unionL.
@@ -580,22 +582,34 @@ Proof using All.
   cut (Grfi ⨾ ⦗dom_rel Grmw⦘ ⨾ ⦗set_compl D⦘ ⊆ cert_rf).
   { clear. basic_solver 10. }
   unfold cert_rf. unionR right. 
-  hahn_frame_r.
-  cut (Grfi ⨾ Grmw ⊆ immediate cert_co).
+  cut (Grfi ⨾ ⦗set_compl D⦘ ⨾ Grmw ⊆ immediate cert_co).
   { basic_solver 10. }
-  arewrite (Grfi ⨾ Grmw ⊆ (Grfi ⨾ Grmw) ∩ Gco).
+  arewrite (Grfi ⨾ ⦗set_compl D⦘ ⨾ Grmw ⊆ (Grfi ⨾ ⦗set_compl D ⦘⨾ Grmw) ∩ Gco).
   { forward (eapply rf_rmw_in_co); eauto.
-    { by apply coherence_sc_per_loc. }
     { (* TODO: fix after strengthening the lemma in IMM *) admit. }
     unfold rfi. clear. basic_solver 20. }
   rewrite Gco_in_cert_co_sym_clos; eauto.
   rewrite inter_union_r. unionL.
   2: { transitivity (fun _ _ : actid => False); [|basic_solver].
+       arewrite_id ⦗set_compl D⦘. rewrite seq_id_l.
        rewrite WF.(rfi_rmw_in_sb_loc).
        forward (eapply cert_co_sb_irr with (T:=T)); eauto.
        clear. basic_solver. }
-  unfolder. intros x y [[z [RFI RMW]]].
-  split; auto.
+  unfolder. intros x y [[z [RFI [ND RMW]]] CCO].
+  split; auto. ins.
+  assert ((Gco ;; <|cert_co_base G T|>) c y) as CC'.
+  { eapply cert_co_I; eauto. 
+    unfold cert_co_base. unfold W_ex. basic_solver. }
+  eapply atomicity_alt; eauto.
+  split; eauto.
+  exists c. split.
+  2: { generalize CC'. clear. basic_solver. }
+  exists x. split; [by apply RFI|].
+  eapply cert_co_alt in R1; eauto.
+  unfolder in R1. desf.
+  exfalso. apply ND.
+  red. do 2 left; right. (* TODO: introduce a selector. *)
+  basic_solver 10.
 Admitted.
 
 (* TODO: move to CombRelations.v *)
