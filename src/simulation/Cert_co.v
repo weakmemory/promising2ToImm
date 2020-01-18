@@ -420,4 +420,12 @@ unfolder; splits; eauto.
 congruence.
 Qed.
 
+Lemma transp_cert_co_imm_cert_co' : cert_co⁻¹ ;; immediate cert_co  ⊆ cert_co⁻¹^?.
+Proof using WF S_in_W ST_in_E S IT_new_co.
+apply inclusion_transpE.
+rewrite transp_seq, transp_cr.
+rels.
+apply transp_cert_co_imm_cert_co.
+Qed.
+
 End CertExec_CO.

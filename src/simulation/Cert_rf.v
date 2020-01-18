@@ -457,12 +457,6 @@ Proof using IT_new_co ST_in_E S_in_W WF WF_SC.
   assert (z0 = z1) by eauto; subst; eauto.
 Qed.
 
-(* TODO: move to AuxRel *)
-Lemma minus_eqv_r {A: Type} (r r': relation A) (s : A -> Prop) : r ;; <| s |> \ r' ≡ (r \ r') ;; <| s |>.
-Proof.
-basic_solver 21.
-Qed.
-
 Lemma cert_rfe_alt : cert_rfe ≡ ⦗I⦘ ⨾ Grfe ⨾ ⦗D⦘ 
    ∪ ⦗I⦘ ⨾ (new_rf \ Gsb) ⨾ ⦗set_compl (dom_rel Grmw)⦘
    ∪ ⦗I⦘ ⨾ (immediate cert_co ⨾  Grmw⁻¹ \ Gsb) ⨾ ⦗set_compl D⦘.
@@ -759,7 +753,30 @@ Proof using All.
   relsf; unionL.
   1,2: basic_solver.
 
-  admit.
+  arewrite (Grfe ⊆ Grf).
+  arewrite ((cert_co ∩ Gco)⁻¹ ⊆ cert_co⁻¹).
+  rewrite <- !seqA.
+  rewrite transp_cert_co_imm_cert_co'; eauto.
+  rewrite !seqA.
+  rewrite I_in_cert_co_base with (G:=G); eauto.
+  seq_rewrite <- seq_eqv_inter_ll.
+
+  arewrite (⦗cert_co_base G T⦘ ⨾ (cert_co⁻¹)^? ⊆ Gco⁻¹^?).
+  { forward (eapply cert_co_I); eauto.
+    clear. unfolder; ins; desf; eauto.
+    right; eapply H; eauto. }
+    unfolder; ins; desf.
+  { forward (eapply rf_rmw_in_co); eauto.
+    { apply coherence_sc_per_loc; eauto. }
+    { admit. (* fix *) }
+    generalize WF.(co_irr). basic_solver 21. }
+
+  eapply COH.
+  clear H1.
+  eexists; splits.
+  { apply sb_in_hb, WF.(rmw_in_sb); eauto. }
+  unfold eco.
+  basic_solver 12.
 Admitted.
 
 Lemma Grf_to_Acq_S_in_cert_rf : Grf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) |> ⊆ cert_rf.

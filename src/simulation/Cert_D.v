@@ -157,7 +157,6 @@ Proof using. unfold D; basic_solver 12. Qed.
 Lemma D_in_E : D ⊆₁ E.
 Proof using WF TCCOH. 
   unfold D.
-  (* TODO: introduce a lemma? *)
   arewrite ((Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⊆ ⦗E⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗E⦘).
   { rewrite (wf_rppoE WF) at 1.
     rewrite rtE. rewrite !seq_union_l, !seq_union_r, !seq_id_l.

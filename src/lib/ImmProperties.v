@@ -356,32 +356,6 @@ Proof using WF CON.
   exists z. eexists. eauto.
 Qed.
 
-(* TODO: fix lemma in imm_s.v *)
-Lemma rfe_n_same_tid (COH: coherence G) : rfe ∩ same_tid ⊆ ∅₂.
-Proof using WF.
-  arewrite (rfe ∩ same_tid ⊆ rfe ∩ (<|E|> ;; same_tid ;; <|E|>)).
-  { rewrite WF.(wf_rfeE) at 1. basic_solver. }
-  arewrite (⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘ ⊆ same_tid ∩ (⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘)) by basic_solver.
-  rewrite tid_sb.
-  rewrite !inter_union_r.
-  unionL.
-  3: { rewrite WF.(wf_rfeD). rewrite init_w; eauto. type_solver. }
-  2: { unfolder. ins. desf.
-       eapply COH. eexists. split.
-       { eby apply sb_in_hb. }
-       right. apply rf_in_eco.
-       match goal with
-       | H : rfe _ _ |- _ => apply H
-       end. }
-  unfolder. ins. desf.
-  { eapply eco_irr; eauto. apply rf_in_eco.
-    match goal with
-    | H : rfe _ _ |- _ => apply H
-    end. }
-  eapply (thread_rfe_sb WF (coherence_sc_per_loc COH)).
-  basic_solver 10.
-Qed.
-
 Lemma W_ex_eq_EW_W_ex : W_ex ≡₁ E ∩₁ W ∩₁ W_ex.
 Proof using WF.
   generalize W_ex_in_E.
