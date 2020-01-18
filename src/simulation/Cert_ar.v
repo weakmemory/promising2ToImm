@@ -276,12 +276,12 @@ unionL.
 unfold ppo; ins.
 
 
-arewrite ((⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb)^? ⨾ ⦗W⦘ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ;; (⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb)^? ⨾ ⦗W⦘).
+arewrite ((⦗GR_ex⦘ ⨾ Gsb)^? ⨾ ⦗W⦘ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ;; (⦗GR_ex⦘ ⨾ Gsb)^? ⨾ ⦗W⦘).
 { rewrite crE, !seq_union_l, !seqA.
-  forward (eapply dom_R_ex_fail_sb_D with (G:=G)); try edone.
+  forward (eapply dom_R_ex_sb_D with (G:=G)); try edone.
   clear; basic_solver 12. }
 
-rewrite <- ct_cr with (r:=(Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grfi ∪ Grmw ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb)).
+rewrite <- ct_cr with (r:=(Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grfi ∪ Grmw ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex⦘ ⨾ Gsb)).
 hahn_frame_r.
 rewrite <- !seqA.
 apply seq_mori; [|clear; basic_solver 12].
@@ -293,7 +293,7 @@ remember (Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grmw ∪ Grmw_dep ⨾ Gsb^?) a
 arewrite (Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Crfi ∪ Grmw ∪ Grmw_dep ⨾ Gsb^? ⊆ X ∪ Crfi).
 { subst X; clear; basic_solver 12. }
 
-assert (XX: X ∪ Grfi ⊆ Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grfi ∪ Grmw ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb).
+assert (XX: X ∪ Grfi ⊆ Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grfi ∪ Grmw ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex⦘ ⨾ Gsb).
 { subst X; clear; basic_solver 12. }
 rewrite <- XX.
 (* arewrite (⦗W⦘ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ ⦗W⦘) by basic_solver. *)

@@ -1058,7 +1058,6 @@ Section Properties.
     exfalso; clear -BB WF IMMCON.
     unfolder in *; desf.
     eapply ar_rfrmw_acyclic; eauto.
-    apply IMMCON.
   Qed.
   
   Variable RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T.

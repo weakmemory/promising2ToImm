@@ -274,7 +274,7 @@ Proof using All.
     exists w. apply seqA. apply seq_eqv_r. split; auto. }
   
   assert (R r) as RR.
-  { apply WF.(wf_rmwD) in RMW. destruct_seq RMW as [AA BB]. by apply R_ex_in_R. }
+  { apply WF.(wf_rmwD) in RMW. by destruct_seq RMW as [AA BB]. }
 
   assert (Memory.le promises_add memory_add) as PP.
   { eapply memory_le_add2 with (mem1:=promises_cancel) (mem2:=memory_cancel); eauto.

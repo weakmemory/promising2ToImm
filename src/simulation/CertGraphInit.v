@@ -486,23 +486,25 @@ destruct (classic (tid x = thread)); try done.
 exfalso; apply H1; eauto 20. }
 { rewrite STATECOV. rewrite C_in_D. basic_solver. }
 { rewrite TEH''.(tr_rmw_dep).
-arewrite_id ⦗Tid_ thread⦘; rels.
-rewrite (@dom_frmw_in_D G _ _ S thread WF_G TCCOH_G); try done.
-basic_solver. }
+  arewrite_id ⦗Tid_ thread⦘; rels.
+  rewrite (@dom_frmw_in_D G _ _ S thread WF_G TCCOH_G); try done.
+  basic_solver. }
 { rewrite TEH''.(tr_addr).
-arewrite_id ⦗Tid_ thread⦘; rels.
-rewrite (@dom_addr_in_D G _ _ S thread WF_G TCCOH_G); try done.
-basic_solver. }
-{ (* TODO: relax the condition on R_ex values in receptiveness_full. *)
+  arewrite_id ⦗Tid_ thread⦘; rels.
+  rewrite (@dom_addr_in_D G _ _ S thread WF_G TCCOH_G); try done.
+  basic_solver. }
+{ rewrite TEH''.(tr_acts_set).
+  unfolder; ins; desc.
+  eapply H5; eauto.
+  eapply Rex_in_D with (sc:=Gsc) (T:=T); try done.
+  { admit. }
+  { admit. }
+  split; [|done].
+  unfold R_ex, rmwmod in *.
+  rewrite TEH''.(tr_lab) in H2; auto.
+  eapply TEH''.(tr_acts_set). by split. }
+{ (* TODO: relax the condition on FADDs values in receptiveness_full. *)
   admit. }
-(* rewrite TEH''.(tr_acts_set). *)
-(* unfolder; ins; desc. *)
-(* eapply H5; eauto. *)
-(* eapply (@Rex_in_D G _ _ thread); try done. *)
-(* split; [|done]. *)
-(* unfold R_ex, rmwmod in *. *)
-(* rewrite TEH''.(tr_lab) in H2; auto. *)
-(* eapply TEH''.(tr_acts_set). by split. } *)
 { rewrite TEH''.(tr_ctrl).
   arewrite_id ⦗Tid_ thread⦘; rels.
   rewrite (@dom_ctrl_in_D G _ _ S thread WF_G TCCOH_G); try done.

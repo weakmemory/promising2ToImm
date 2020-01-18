@@ -308,7 +308,6 @@ Proof using WF CON.
   apply inclusion_inter_r.
   2: { rewrite <- seqA. rewrite rfrmw_in_im_co; eauto. basic_solver. }
   rewrite <- rf_rmw_in_co; auto.
-  2: by apply CON.
   generalize DRES. basic_solver 10.
 Qed.
 
@@ -388,7 +387,7 @@ Qed.
 
 Lemma ppo_helper : ppo ⊆
  ⦗R⦘ ⨾ (data ∪ ctrl ∪ addr ⨾ sb^? ∪ rfi ∪ rmw ∪ rmw_dep ⨾ sb^?)^* ⨾  
-   (⦗R_ex \₁ dom_rel rmw⦘ ⨾ sb)^?⨾ ⦗W⦘.
+   (⦗R_ex⦘ ⨾ sb)^?⨾ ⦗W⦘.
 Proof using WF.
 unfold imm_s_ppo.ppo.
 rewrite path_ut_first.
@@ -401,9 +400,9 @@ rewrite WF.(data_in_sb).
 rewrite WF.(ctrl_in_sb).
 rewrite WF.(addr_in_sb).
 rewrite WF.(rmw_dep_in_sb).
-rewrite WF.(rmw_in_sb) at 2.
+rewrite WF.(rmw_in_sb).
 arewrite (rfi ⊆ sb).
-arewrite_id ⦗R_ex \₁ dom_rel rmw⦘ at 2.
+arewrite_id ⦗R_ex⦘ at 2.
 generalize (@sb_trans G); ins; relsf.
 Qed.
 

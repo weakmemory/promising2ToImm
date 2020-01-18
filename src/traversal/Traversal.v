@@ -282,7 +282,7 @@ ins; desc; subst.
                       dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺) (issued T) w /\
                       E w) as WMIN.
     { intros P; desf.
-      induction w using (well_founded_ind (wf_ar_rfrmw_ct WF COM IMMCON WFSC)).
+      induction w using (well_founded_ind (wf_ar_rfrmw_ct WF IMMCON WFSC)).
       destruct (classic (dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺) (issued T) w)); eauto.
       unfolder in H0. unfold dom_rel in H0.
       apply not_all_ex_not in H0; desf.
@@ -297,7 +297,7 @@ ins; desc; subst.
                       doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺ ⨾ ⦗eq f⦘) (covered T) /\
                       E f) as FMIN.
     { intros P; desf.
-      induction f using (well_founded_ind (wf_ar_rfrmw_ct WF COM IMMCON WFSC)).
+      induction f using (well_founded_ind (wf_ar_rfrmw_ct WF IMMCON WFSC)).
       destruct (classic (doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺ ⨾ ⦗eq f⦘) (covered T)))
         as [H0 | H0]; eauto.
       rewrite seq_eqv_r, seq_eqv_l in H0.

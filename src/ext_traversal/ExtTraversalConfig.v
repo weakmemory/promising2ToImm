@@ -93,7 +93,7 @@ Definition eissued  T := issued  (etc_TC T).
 Definition ecovered T := covered (etc_TC T).
 
 Definition dom_sb_S_rfrmw T rrf P :=
-  dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗P⦘ ⨾ rrf ⨾ (rmw ∩ ctrl)).
+  dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗P⦘ ⨾ rrf ⨾ ⦗R_ex⦘ ⨾ rmw).
 
 Record etc_coherent (T : ext_trav_config) :=
   mkETCC {

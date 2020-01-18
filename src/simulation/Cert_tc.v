@@ -431,7 +431,7 @@ Qed.
 Lemma ETCCOH_cert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ I ⊆₁ GW_ex)
       (ISTex_rf_I : (I ∪₁ S ∩₁ Tid_ thread) ∩₁ GW_ex ⊆₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ Grmw))
       (DOM_SB_S_rf_I :
-         dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ∩₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ Grmw ∩ Gctrl)
+         dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ∩₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ ⦗GR_ex⦘ ⨾ Grmw)
                  ⊆₁ I ∪₁ S ∩₁ Tid_ thread) :
   etc_coherent certG sc (mkETC (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I)
                                (I ∪₁ S ∩₁ Tid_ thread)).
@@ -474,13 +474,14 @@ Proof using All.
   { rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S, W_ex_acq_in_I; basic_solver. }
   { unfold dom_sb_S_rfrmw. simpls.
     rewrite cert_sb, cert_W_ex.
-    arewrite (cert_rf ⨾ Grmw ∩ Gctrl ⊆ Grf ⨾ Grmw ∩ Gctrl); auto.
-    arewrite (Gctrl ⊆ <|D|> ;; Gctrl) at 1.
-    { apply dom_rel_helper. eapply dom_ctrl_in_D; eauto. }
-    arewrite (Grmw ∩ (⦗D⦘ ⨾ Gctrl) ⊆ ⦗D⦘ ⨾ (Grmw ∩ Gctrl)).
-    { clear. basic_solver. }
-    arewrite (cert_rf ⨾ ⦗D⦘ ⊆ Grf ⨾ ⦗D⦘); [|clear; basic_solver].
-    eapply cert_rf_D; eauto. }
+    arewrite (cert_rf ⨾ ⦗R_ex lab'⦘ ⨾ Grmw ⊆ Grf ⨾ ⦗GR_ex⦘ ⨾ Grmw); auto.
+    admit. }
+    (* arewrite (Gctrl ⊆ <|D|> ;; Gctrl) at 1. *)
+    (* { apply dom_rel_helper. eapply dom_ctrl_in_D; eauto. } *)
+    (* arewrite (Grmw ∩ (⦗D⦘ ⨾ Gctrl) ⊆ ⦗D⦘ ⨾ (Grmw ∩ Gctrl)). *)
+    (* { clear. basic_solver. } *)
+    (* arewrite (cert_rf ⨾ ⦗D⦘ ⊆ Grf ⨾ ⦗D⦘); [|clear; basic_solver]. *)
+    (* eapply cert_rf_D; eauto. } *)
   { rewrite Crppo_in_rppo.
     admit. }
     (* arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆ *)

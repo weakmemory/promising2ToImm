@@ -290,11 +290,26 @@ Proof using sc WF TCCOH.
   clear; type_solver.
 Qed.
 
-Lemma dom_R_ex_fail_sb_D : 
-  dom_rel (⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb ⨾ ⦗W⦘ ⨾ ⦗D⦘) ⊆₁ D.
+Lemma Rex_in_D : GR_ex ∩₁ E ⊆₁ D.
 Proof.
+  rewrite E_to_S.
+  rewrite set_inter_union_r. unionL.
+  { rewrite <- C_in_D. clear. basic_solver. }
+  rewrite <- dom_eqv1.
+  arewrite (⦗S⦘ ⊆ ⦗W⦘ ;; ⦗S⦘).
+  { rewrite <- S_in_W. clear. basic_solver. }
+  rewrite crE. rewrite seq_union_l, seq_union_r, dom_union. unionL.
+  { type_solver. }
+  sin_rewrite R_ex_sb_W_in_rppo.
+  unfold D. rewrite rtE.
+  clear. basic_solver 20.
+Qed.
+
+Lemma dom_R_ex_sb_D : 
+  dom_rel (⦗GR_ex⦘ ⨾ Gsb ⨾ ⦗W⦘ ⨾ ⦗D⦘) ⊆₁ D.
+Proof using All.
   unfold D.
-  rewrite !id_union; relsf; unionL; splits.
+  rewrite !id_union, !seq_union_r, !dom_union. unionL; splits.
   { generalize (dom_sb_covered TCCOH), (w_covered_issued TCCOH).
     clear.
     basic_solver 21. }
@@ -305,8 +320,8 @@ Proof.
   { unionR left -> left -> left -> left.
     unionR left -> right.
     rewrite (dom_l (@wf_sbE G)) at 1.
-    arewrite ((GR_ex \₁ dom_rel Grmw) ⊆₁ set_compl Init).
-    by rewrite WF.(init_w), R_ex_in_R; type_solver.
+    arewrite ((GR_ex) ⊆₁ set_compl Init).
+    { rewrite WF.(init_w), R_ex_in_R; type_solver. }
     generalize (@ninit_sb_same_tid G).
     unfold same_tid; unfolder; ins; desf; splits; eauto.
     erewrite H; eauto. }
@@ -321,7 +336,7 @@ Proof.
   { unionR left -> left -> left -> right.
     arewrite (Grfi ⊆ Gsb) at 1.
     rewrite WF.(data_in_sb) at 1.
-    rewrite WF.(rmw_in_sb) at 2.
+    rewrite WF.(rmw_in_sb) at 1.
     rewrite WF.(rppo_in_sb) at 1.
     arewrite (⦗S⦘ ⊆ ⦗S⦘ ;; ⦗W⦘) at 1.
     by generalize S_in_W; basic_solver.
@@ -337,6 +352,10 @@ Proof.
   rewrite (wf_rmwD WF).
   clear; type_solver.
 Qed.
+
+Lemma dom_R_ex_fail_sb_D : 
+  dom_rel (⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb ⨾ ⦗W⦘ ⨾ ⦗D⦘) ⊆₁ D.
+Proof using All. rewrite <- dom_R_ex_sb_D at 2. basic_solver 10. Qed.
 
 Lemma dom_detour_D : dom_rel (Gdetour ⨾ ⦗D⦘) ⊆₁ I.
 Proof using WF WF_SC TCCOH detour_Acq_E detour_E RPPO_RMW_S.
@@ -564,8 +583,8 @@ rels.
 rewrite path_ut_first.
 rewrite !seqA.
 arewrite (Gsb ⨾ (Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grfi ∪ Grmw
-        ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex \₁ dom_rel Grmw⦘ ⨾ Gsb)＊ ⊆ Gsb).
-{ arewrite_id ⦗GR_ex \₁ dom_rel Grmw⦘.
+        ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex⦘ ⨾ Gsb)＊ ⊆ Gsb).
+{ arewrite_id ⦗GR_ex⦘.
   rewrite WF.(data_in_sb), WF.(addr_in_sb), WF.(ctrl_in_sb).
   rewrite WF.(rmw_dep_in_sb), WF.(rmw_in_sb).
   arewrite (Grfi ⊆ Gsb).
@@ -577,7 +596,7 @@ rewrite (dom_rel_helper dom_ppo_D_helper).
 basic_solver. }
 
 rewrite !seqA.
-rewrite (dom_rel_helper dom_R_ex_fail_sb_D).
+rewrite (dom_rel_helper dom_R_ex_sb_D).
 rewrite rtE; relsf.
 seq_rewrite (dom_rel_helper dom_ppo_D_helper).
 basic_solver 12.

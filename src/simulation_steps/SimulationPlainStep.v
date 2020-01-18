@@ -174,7 +174,7 @@ Proof using WF CON.
 
   { (* Relaxed RMW covering *)
     assert (R r) as RR.
-    { apply (dom_l WF.(wf_rmwD)) in RMW. hahn_rewrite (R_ex_in_R) in RMW. apply seq_eqv_l in RMW. desf. }
+    { apply (dom_l WF.(wf_rmwD)) in RMW. apply seq_eqv_l in RMW. desf. }
     cdes TS1. desf; unfold eissued, ecovered in *; simpls.
     { edestruct rlx_rmw_cover_step; eauto.
       desc. do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }

@@ -85,7 +85,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 (******************************************************************************)
 
 Definition rppo := (ctrl ∪ addr ⨾ sb^? ∪ rmw_dep ;; sb
-                         ∪ ⦗R_ex \₁ dom_rel rmw⦘ ⨾ sb) ⨾ ⦗ W ⦘.
+                         ∪ ⦗R_ex⦘ ⨾ sb) ⨾ ⦗ W ⦘.
 
 Lemma wf_rppoE : rppo ≡ ⦗E⦘ ⨾ rppo ⨾ ⦗E⦘.
 Proof using WF.
@@ -127,10 +127,10 @@ Proof using WF.
   unfold rppo. basic_solver 10.
 Qed.
 
-(* Lemma R_ex_sb_W_in_rppo : ⦗R_ex⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ rppo. *)
-(* Proof using. *)
-(*   unfold rppo. basic_solver 10. *)
-(* Qed. *)
+Lemma R_ex_sb_W_in_rppo : ⦗R_ex⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ rppo.
+Proof using.
+  unfold rppo. basic_solver 10.
+Qed.
 
 Lemma rppo_in_ppo : rppo ⊆ ppo.
 Proof using WF.
@@ -139,7 +139,7 @@ Proof using WF.
   rewrite (dom_l WF.(wf_addrD)) at 1.
   (* rewrite (dom_l WF.(wf_rmwD)) at 1. rewrite R_ex_in_R at 1. *)
   rewrite (dom_l WF.(wf_rmw_depD)) at 1.
-  arewrite (⦗R_ex \₁ dom_rel rmw⦘ ⊆ ⦗R⦘ ;; ⦗R_ex \₁ dom_rel rmw⦘).
+  arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ;; ⦗R_ex⦘).
   { type_solver. }
   rewrite <- !seq_union_r.
   hahn_frame.
@@ -245,9 +245,4 @@ Proof using.
   rewrite (dom_l (@wf_sbE G')).
   rewrite (sub_sb_in SUB).
   unfolder. ins. desf.
-  splits; auto.
-  intros HH. desf.
-  apply H2. exists y0.
-  apply SUB. apply seq_eqv_lr. splits; auto.
-  apply RMWCLOS. basic_solver 10.
 Qed.

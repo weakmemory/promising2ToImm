@@ -249,11 +249,11 @@ Proof using WF IMMCON ETCCOH.
   destruct
   (classic (exists w',
                (dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗eq e⦘) ∩₁
-                codom_rel (⦗eissued T⦘ ⨾ rf ⨾ rmw ∩ ctrl) \₁ reserved T) w'))
+                codom_rel (⦗eissued T⦘ ⨾ rf ⨾ ⦗R_ex⦘ ⨾ rmw) \₁ reserved T) w'))
     as [[w' WWB]|NWHH].
   { edestruct wf_impl_min_elt
               with (B := dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗eq e⦘) ∩₁
-                         codom_rel (⦗eissued T⦘ ⨾ rf ⨾ rmw ∩ ctrl) \₁ reserved T)
+                         codom_rel (⦗eissued T⦘ ⨾ rf ⨾ ⦗R_ex⦘ ⨾ rmw) \₁ reserved T)
                    (r := ⦗W_ex⦘ ⨾ sb) as [w [[[WHH WAA] NRES] MIN]].
     { arewrite (⦗W_ex⦘ ⨾ sb ⊆ sb).
       apply wf_sb. }
@@ -268,13 +268,16 @@ Proof using WF IMMCON ETCCOH.
     { generalize WHH. basic_solver 10. } 
     assert ((rppo ∪ rmw) ⨾ ⦗eq w⦘ ⊆ rppo ⨾ ⦗eq w⦘) as RPPO_RMW_W.
     { rewrite seq_union_l. unionL; [done|].
-      rewrite <- ctrl_W_in_rppo.
       destruct WAA as [y AA]. destruct_seq_l AA as BB.
-      destruct AA as [z [_ [AA DD]]].
+      destruct AA as [z [_ AA]]. destruct_seq_l AA as DD.
       intros v u HH. destruct_seq_r HH as CC; subst.
       assert (v = z); subst.
       { eapply WF.(wf_rmw_invf); eauto. }
-      generalize WF.(W_ex_in_W). basic_solver 10. }
+      apply seq_eqv_r. split; auto.
+      apply R_ex_sb_W_in_rppo.
+      apply seq_eqv_lr. splits; auto.
+      { apply rmw_in_sb; auto. }
+        by apply WF.(W_ex_in_W). }
 
     exists (mkETC (mkTC (ecovered T) (eissued T))
                   (reserved T ∪₁ eq w)).
@@ -655,7 +658,7 @@ Proof using WF.
   unfold dom_sb_S_rfrmw.
   arewrite (rfi ⊆ sb).
   rewrite WF.(rmw_in_sb).
-  arewrite (sb ;; sb ∩ ctrl ⊆ sb).
+  arewrite (sb ;; ⦗R_ex⦘ ;; sb ⊆ sb).
   { generalize (@sb_trans G). basic_solver. }
   arewrite (<|eq w|> ⊆ <|eq w|> ;; <| set_compl is_init |>).
   { basic_solver. }

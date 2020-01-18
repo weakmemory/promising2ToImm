@@ -420,7 +420,6 @@ Proof using WF S_in_W ST_in_E IT_new_co.
   apply dom_helper_3. 
   unfold cert_rf.
   rewrite (wf_new_rfD), (wf_rfD WF), (wf_rmwD WF), wf_cert_coD; eauto.
-  rewrite R_ex_in_R at 2.
   clear. basic_solver.
 Qed.
 
@@ -456,6 +455,10 @@ Proof using IT_new_co ST_in_E S_in_W WF WF_SC.
   ins; desf.
   assert (z0 = z1) by eauto; subst; eauto.
 Qed.
+
+(* TODO: move to AuxRel *)
+Lemma minus_eqv_r {A: Type} (r r': relation A) (s : A -> Prop) : r ;; <| s |> \ r' ≡ (r \ r') ;; <| s |>.
+Proof. basic_solver 21. Qed.
 
 Lemma cert_rfe_alt : cert_rfe ≡ ⦗I⦘ ⨾ Grfe ⨾ ⦗D⦘ 
    ∪ ⦗I⦘ ⨾ (new_rf \ Gsb) ⨾ ⦗set_compl (dom_rel Grmw)⦘
@@ -580,7 +583,6 @@ Proof using All.
   { basic_solver 10. }
   arewrite (Grfi ⨾ ⦗set_compl D⦘ ⨾ Grmw ⊆ (Grfi ⨾ ⦗set_compl D ⦘⨾ Grmw) ∩ Gco).
   { forward (eapply rf_rmw_in_co); eauto.
-    { (* TODO: fix after strengthening the lemma in IMM *) admit. }
     unfold rfi. clear. basic_solver 20. }
   rewrite Gco_in_cert_co_sym_clos; eauto.
   rewrite inter_union_r. unionL.
@@ -604,7 +606,7 @@ Proof using All.
   exfalso. apply ND.
   red. do 2 left; right. (* TODO: introduce a selector. *)
   basic_solver 10.
-Admitted.
+Qed.
 
 (* TODO: move to CombRelations.v *)
 Lemma rf_in_furr : Grf ⊆ Gfurr.
@@ -768,7 +770,6 @@ Proof using All.
     unfolder; ins; desf.
   { forward (eapply rf_rmw_in_co); eauto.
     { apply coherence_sc_per_loc; eauto. }
-    { admit. (* fix *) }
     generalize WF.(co_irr). basic_solver 21. }
 
   eapply COH.
@@ -777,7 +778,7 @@ Proof using All.
   { apply sb_in_hb, WF.(rmw_in_sb); eauto. }
   unfold eco.
   basic_solver 12.
-Admitted.
+Qed.
 
 Lemma Grf_to_Acq_S_in_cert_rf : Grf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) |> ⊆ cert_rf.
 Proof using All.

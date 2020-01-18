@@ -508,7 +508,9 @@ Proof using WF ETCCOH IMMCON.
     { rewrite (sub_rfe_in SUB), rfe_E. basic_solver. }
     rewrite (sub_rfe_in SUB).
     unfolder; ins; desf; exfalso.
-    { eapply rfe_n_same_tid; eauto. split; eauto. by red. }
+    { eapply rfe_n_same_tid; eauto.
+      { apply IMMCON. }
+      split; eauto. by red. }
     cdes IMMCON.
     eapply (thread_rfe_sb WF (coherence_sc_per_loc Cint)).
     unfold same_tid. unfolder. eauto. }
@@ -776,8 +778,7 @@ Qed.
 
 Lemma acyc_ext_rst : acyc_ext rstG rst_sc.
 Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
-  eapply sub_acyc_ext; eauto; [eapply SUB| |eapply IMMCON].
-  apply Frmw_E_prefix_clos.
+  eapply sub_acyc_ext; eauto; [eapply SUB |eapply IMMCON].
 Qed.
 
 Lemma rmw_atomicity_rst : rmw_atomicity rstG.
@@ -983,8 +984,7 @@ Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
   eapply I_in_E.
   generalize (dom_rfe_ppo_issued WF TCCOH).
   apply (sub_ppo_in SUB) in H1.
-  { basic_solver 21. }
-  apply Frmw_E_prefix_clos.
+  basic_solver 21.
 Qed.
 
 Lemma COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ rppo rstG ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
@@ -1128,12 +1128,11 @@ Proof using All.
   { generalize WF.(W_ex_in_W). basic_solver. }
   arewrite (Frmw ⨾ (Frfi ⨾ Frmw)＊ ;; ⦗W⦘ ⊆ Fppo).
   { rewrite (dom_l WF.(wf_rmwD)) at 1.
-    rewrite R_ex_in_R. rewrite seqA.
-    unfold ppo. hahn_frame.
+    rewrite seqA. unfold ppo. hahn_frame.
     rewrite ct_begin. apply seq_mori; [eauto with hahn|].
     rewrite <- rt_of_ct with
         (r:= Fdata ∪ Fctrl ∪ Faddr ⨾ Fsb^? ∪ Frfi ∪ Frmw ∪ Frmw_dep ⨾ Fsb^?
-                   ∪ ⦗FR_ex \₁ dom_rel Frmw⦘ ⨾ Fsb).
+                   ∪ ⦗FR_ex⦘ ⨾ Fsb).
     apply clos_refl_trans_mori.
     rewrite <- ct_ct, <- ct_step.
     apply seq_mori; eauto with hahn. }
@@ -1392,8 +1391,7 @@ Proof using WF ETCCOH RELCOV RMWCOV.
   { rewrite (sub_W SUB). rewrite II at 1. basic_solver 12. }
   { rewrite (sub_fwbob_in SUB). rewrite II at 1. basic_solver 12. }
   rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_rmw_in SUB).
-  { rewrite II at 1. basic_solver 12. }
-  apply Frmw_E_prefix_clos.
+  rewrite II at 1. basic_solver 12.
 Qed.
 
 Lemma C_E_NTid : C ∪₁ (E ∩₁ NTid_ thread) ≡₁
@@ -1481,7 +1479,6 @@ Proof using All.
   { apply I_in_E. }
   { rewrite (sub_fwbob_in SUB), tc_fwbob_I. basic_solver. }
   rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_rmw_in SUB); auto.
-  apply Frmw_E_prefix_clos.
 Qed.
 
 End RestExec.
