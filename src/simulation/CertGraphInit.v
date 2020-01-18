@@ -12,7 +12,6 @@ From imm Require Import SubExecution.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 From imm Require Import Prog.
-From imm Require Import Receptiveness.
 From imm Require Import ProgToExecution ProgToExecutionProperties.
 
 Require Import Cert_rf.
@@ -29,6 +28,7 @@ Require Import ExtTraversalConfig.
 Require Import CertExecution1.
 Require Import ImmProperties.
 Require Import ExtTraversalProperties.
+Require Import Receptiveness.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -503,8 +503,6 @@ exfalso; apply H1; eauto 20. }
   unfold R_ex, rmwmod in *.
   rewrite TEH''.(tr_lab) in H2; auto.
   eapply TEH''.(tr_acts_set). by split. }
-{ (* TODO: relax the condition on FADDs values in receptiveness_full. *)
-  admit. }
 { rewrite TEH''.(tr_ctrl).
   arewrite_id ⦗Tid_ thread⦘; rels.
   rewrite (@dom_ctrl_in_D G _ _ S thread WF_G TCCOH_G); try done.
