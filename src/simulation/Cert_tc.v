@@ -475,6 +475,7 @@ Proof using All.
   { rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S, W_ex_acq_in_I; basic_solver. }
   { unfold dom_sb_S_rfrmw. simpls.
     rewrite cert_sb, cert_W_ex.
+    rewrite !seqA.
     arewrite (cert_rf ⨾ ⦗R_ex lab'⦘ ⨾ Grmw ⊆ Grf ⨾ ⦗GR_ex⦘ ⨾ Grmw); auto.
     admit. }
     (* arewrite (Gctrl ⊆ <|D|> ;; Gctrl) at 1. *)
@@ -496,6 +497,7 @@ Proof using All.
     (* rewrite <- !seqA. *)
     (* do 4 rewrite AuxRel.dom_seq. *)
     (* apply dom_cert_detour_rfe_D. } *)
+  admit.
   admit.
 Admitted.
 
