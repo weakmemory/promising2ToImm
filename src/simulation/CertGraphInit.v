@@ -496,7 +496,14 @@ exfalso; apply H1; eauto 20. }
   unfolder; ins; desc.
   eapply H5; eauto.
   eapply Rex_in_D with (sc:=Gsc) (T:=T); try done.
-  { admit. }
+  { rewrite sub_detour_in; eauto.
+    rewrite sub_rfe_in; eauto.
+    rewrite sub_rmw_in; eauto.
+    rewrite sub_rfi_in; eauto.
+    rewrite sub_sb_in; eauto.
+    rewrite sub_R; eauto.
+    rewrite sub_Acq; eauto.
+    apply ETCCOH. }
   { admit. }
   split; [|done].
   unfold R_ex, rmwmod in *.
