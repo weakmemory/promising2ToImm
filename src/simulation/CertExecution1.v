@@ -1082,12 +1082,6 @@ Proof using All.
   rels; sin_rewrite (release_I); basic_solver.
 Qed.
 
-(* TODO: move to ExtTraversalProperties.v *)
-Lemma dom_rfe_rmw_ct_rfi_Acq_sb_S_in_I :
-  dom_rel (Frfe ⨾ Frmw ⨾ (Frfi ⨾ Frmw)＊ ⨾ Frfi ⨾ ⦗FAcq⦘ ⨾ Fsb^? ⨾ ⦗S⦘) ⊆₁ I.
-Proof using All.
-Admitted.
-
 Lemma dom_rfe_rmw_ct_rfi_Acq_in_I :
   dom_rel (Grfe ⨾ Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⨾ ⦗Acq⦘) ⊆₁ I.
 Proof using All.
@@ -1112,8 +1106,8 @@ Proof using All.
     rewrite (sub_rfi_in SUB).
     rewrite (sub_rmw_in SUB).
     rewrite (sub_Acq SUB).
-    arewrite (Tid_ thread ∩₁ S ⊆₁ S) by basic_solver. 
-    apply dom_rfe_rmw_ct_rfi_Acq_sb_S_in_I. }
+    arewrite (Tid_ thread ∩₁ S ⊆₁ S) by basic_solver.
+    forward (eapply dom_rfe_rmw_ct_rfi_Acq_sb_S_in_I); eauto. }
   rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel. rewrite !seqA.
   rewrite (sub_rfe_in SUB).
   rewrite (sub_rfi_in SUB).

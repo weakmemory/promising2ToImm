@@ -229,4 +229,26 @@ Proof using WF ETCCOH.
   eexists. apply HH.
 Qed.
 
+Lemma dom_rfe_rmw_ct_rfi_Acq_sb_S_in_I :
+  dom_rel (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊ ⨾ rfi ⨾ ⦗Acq⦘ ⨾ sb^? ⨾ ⦗S⦘) ⊆₁ I.
+Proof using WF ETCCOH.
+seq_rewrite rt_seq_swap.
+rewrite !seqA.
+arewrite (rmw ⨾ rfi ⨾ (rmw ⨾ rfi)＊ ⊆ (rmw ⨾ rfi)＊).
+{ rewrite rtE. rewrite ct_begin at 2. 
+  basic_solver 21. }
+rewrite (dom_r WF.(wf_rfeD)), !seqA.
+rewrite (dom_r WF.(wf_rfiD)).
+arewrite (⦗R⦘ ⨾ (rmw ⨾ rfi ⨾ ⦗R⦘)＊ ⊆ (rmw ⨾ rfi)＊ ;; ⦗R⦘).
+{ rewrite !rtE, <- !seqA, inclusion_ct_seq_eqv_r.
+  basic_solver. }
+arewrite (⦗S⦘ ⊆ ⦗S⦘ ;; ⦗W⦘).
+{ forward (eapply reservedW); eauto.
+  basic_solver. }
+arewrite (⦗R⦘ ⨾ ⦗Acq⦘ ⨾ sb^? ⨾ ⦗S⦘ ⨾ ⦗W⦘ ⊆ ⦗R⦘ ⨾ ⦗Acq⦘ ⨾ sb ⨾ ⦗S⦘).
+{ type_solver 21. }
+generalize (ETCCOH.(etc_dr_R_acq_I)).
+basic_solver 21.
+Qed.
+
 End ExtTraversalProperties.
