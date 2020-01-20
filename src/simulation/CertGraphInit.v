@@ -390,8 +390,7 @@ assert (RPPO_S : dom_rel ((detour G ∪ rfe G) ⨾ (data G ∪ rfi G ∪ rmw G)�
   rewrite sub_rfi_in; eauto.
   subst.
   rewrite sub_rppo_in; eauto.
-  2: { (* TODO: prove in CertExecution1.v? *)
-    admit. }
+  2: by eapply Frmw_E_prefix_clos; eauto.
   rewrite sub_rmw_in; eauto.
   apply ETCCOH. }
 
