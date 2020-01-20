@@ -565,12 +565,12 @@ Proof using WF IMMCON.
   constructor; unfold dom_sb_S_rfrmw, eissued, ecovered; simpls.
   { by apply init_trav_coherent. }
   { basic_solver. }
-Admitted.
-(*   6: rewrite WF.(rppo_in_sb). *)
-(*   2-6: rewrite no_sb_to_init; basic_solver. *)
-(*   intros x [AA BB]. intuition. *)
-(*   rewrite WF.(W_ex_not_init). basic_solver. *)
-(* Qed. *)
+  6: rewrite WF.(rppo_in_sb).
+  2-6: rewrite no_sb_to_init; basic_solver.
+  { intros x [AA BB]. intuition. }
+  rewrite rmw_W_ex.
+  all: rewrite WF.(W_ex_not_init); basic_solver.
+Qed.
 
 Lemma ext_itrav_stepE e T T' (STEP : ext_itrav_step e T T') : E e.
 Proof using.
