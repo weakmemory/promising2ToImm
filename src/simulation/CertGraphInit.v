@@ -383,7 +383,7 @@ assert
   rewrite sub_AcqRel; eauto.
   rewrite sub_sb_in; eauto.
   apply ETCCOH. }
-assert (RPPO_RMW_S : dom_rel ((detour G ∪ rfe G) ⨾ (data G ∪ rfi G ∪ rmw G)＊ ⨾ (rppo G ∪ rmw G) ⨾ ⦗S⦘) ⊆₁ issued T).
+assert (RPPO_S : dom_rel ((detour G ∪ rfe G) ⨾ (data G ∪ rfi G ∪ rmw G)＊ ⨾ rppo G ⨾ ⦗S⦘) ⊆₁ issued T).
 { rewrite sub_detour_in; eauto.
   rewrite sub_rfe_in; eauto.
   rewrite sub_data_in; eauto.

@@ -127,7 +127,8 @@ Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grp
 Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
 
 Hypothesis S_in_W : S ⊆₁ W.
-Hypothesis RPPO_RMW_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ (Grppo ∪ Grmw) ⨾ ⦗S⦘) ⊆₁ I.
+Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
+Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ;; Grmw ;; <|S|>) ⊆₁ I.
 Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 Hypothesis W_ex_acq_in_I :GW_ex_acq ⊆₁ I.
@@ -358,7 +359,7 @@ Lemma dom_R_ex_fail_sb_D :
 Proof using All. rewrite <- dom_R_ex_sb_D at 2. basic_solver 10. Qed.
 
 Lemma dom_detour_D : dom_rel (Gdetour ⨾ ⦗D⦘) ⊆₁ I.
-Proof using WF WF_SC TCCOH detour_Acq_E detour_E RPPO_RMW_S.
+Proof using WF WF_SC TCCOH detour_Acq_E detour_E RPPO_S RMW_S.
   unfold D.
   rewrite !id_union; relsf; unionL; splits.
   { rewrite (dom_l (wf_detourD WF)).
@@ -379,7 +380,7 @@ Proof using WF WF_SC TCCOH detour_Acq_E detour_E RPPO_RMW_S.
     basic_solver 10. }
   { rewrite dom_rel_eqv_dom_rel.
     etransitivity.
-    2: by apply RPPO_RMW_S.
+    2: by apply RPPO_S.
     clear. basic_solver 15. }
   { rewrite dom_rel_eqv_codom_rel, transp_seq; relsf.
     sin_rewrite (detour_transp_rfi WF); rels. }
@@ -389,8 +390,8 @@ Proof using WF WF_SC TCCOH detour_Acq_E detour_E RPPO_RMW_S.
     { clear. basic_solver 21. }
     generalize detour_Acq_E. clear. basic_solver 21. }
   etransitivity.
-  2: by apply RPPO_RMW_S.
-  rewrite rtE. clear. basic_solver 15.
+  2: by apply RMW_S.
+  clear. basic_solver 15.
 Qed.
 
 Lemma dom_data_D: dom_rel (Gdata ⨾ ⦗D⦘) ⊆₁ D.

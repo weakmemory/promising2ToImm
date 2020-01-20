@@ -266,9 +266,8 @@ Proof using WF IMMCON ETCCOH.
     { basic_solver. }
     assert (eq w ⊆₁ dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗eq e⦘)) as EQWSB.
     { generalize WHH. basic_solver 10. } 
-    assert ((rppo ∪ rmw) ⨾ ⦗eq w⦘ ⊆ rppo ⨾ ⦗eq w⦘) as RPPO_RMW_W.
-    { rewrite seq_union_l. unionL; [done|].
-      destruct WAA as [y AA]. destruct_seq_l AA as BB.
+    assert (rmw ⨾ ⦗eq w⦘ ⊆ rppo ⨾ ⦗eq w⦘) as RPPO_RMW_W.
+    { destruct WAA as [y AA]. destruct_seq_l AA as BB.
       destruct AA as [z [_ AA]]. destruct_seq_l AA as DD.
       intros v u HH. destruct_seq_r HH as CC; subst.
       assert (v = z); subst.
@@ -278,6 +277,11 @@ Proof using WF IMMCON ETCCOH.
       apply seq_eqv_lr. splits; auto.
       { apply rmw_in_sb; auto. }
         by apply WF.(W_ex_in_W). }
+    assert (rppo ⨾ ⦗W_ex⦘ ⨾ sb ⨾ ⦗eq e⦘ ⊆ rppo ⨾ ⦗eq e⦘) as RPPO_WEX_SB.
+    { arewrite (⦗eq e⦘ ⊆ ⦗W⦘ ⨾ ⦗eq e⦘) at 1.
+      { generalize WE. basic_solver. }
+      arewrite_id ⦗W_ex⦘. rewrite seq_id_l.
+        by sin_rewrite WF.(rppo_sb_in_rppo). }
 
     exists (mkETC (mkTC (ecovered T) (eissued T))
                   (reserved T ∪₁ eq w)).
@@ -304,17 +308,15 @@ Proof using WF IMMCON ETCCOH.
          eapply MIN.
          { split; [apply BB|apply CC]. }
          destruct AA as [y AA]. apply seqA in AA. destruct_seq_r AA as DD; desf. }
-    1-4: rewrite id_union, !seq_union_r, dom_union.
-    1-4: unionL; [by apply ETCCOH|].
-    4: sin_rewrite RPPO_RMW_W.
-    1-4: rewrite EQWSB.
-    1-4: rewrite <- !seqA, dom_rel_eqv_dom_rel, !seqA.
+    1-5: rewrite id_union, !seq_union_r, dom_union.
+    1-5: unionL; [by apply ETCCOH|].
+    5: rewrite RPPO_RMW_W.
+    1-5: rewrite EQWSB.
+    1-5: rewrite <- !seqA, dom_rel_eqv_dom_rel, !seqA.
     1-3: by arewrite (sb ⨾ ⦗W_ex⦘ ⨾ sb ⊆ sb) by (generalize (@sb_trans G); basic_solver).
-    { arewrite (rppo ⨾ ⦗W_ex⦘ ⨾ sb ⨾ ⦗eq e⦘ ⊆ rppo ⨾ ⦗eq e⦘); auto.
-      arewrite (⦗eq e⦘ ⊆ ⦗W⦘ ⨾ ⦗eq e⦘) at 1.
-      { generalize WE. basic_solver. }
-      arewrite_id ⦗W_ex⦘. rewrite seq_id_l.
-        by sin_rewrite WF.(rppo_sb_in_rppo). }
+    1,2: rewrite RPPO_WEX_SB; auto.
+    { etransitivity; [|by apply RPPOSBE].
+      clear. rewrite rtE. basic_solver 15. }
     rewrite set_inter_union_l.
     unionL; [by apply ETCCOH|].
     generalize WAA. unfold eissued. basic_solver 10. }
