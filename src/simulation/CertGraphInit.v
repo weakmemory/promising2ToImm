@@ -504,7 +504,6 @@ exfalso; apply H1; eauto 20. }
     rewrite sub_R; eauto.
     rewrite sub_Acq; eauto.
     apply ETCCOH. }
-  { admit. }
   split; [|done].
   unfold R_ex, rmwmod in *.
   rewrite TEH''.(tr_lab) in H2; auto.
@@ -770,33 +769,35 @@ assert (ISTex_rf_I :
   exfalso. apply NTID. apply DD. }
 assert (DOM_SB_S_rf_I :
           dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘)
-                  ∩₁ codom_rel (⦗issued T⦘ ⨾ rf G ⨾ rmw G) ⊆₁
+                  ∩₁ codom_rel (⦗issued T⦘ ⨾ rf G ⨾ ⦗R_ex G.(lab)⦘ ⨾ rmw G) ⊆₁
                   issued T ∪₁ S ∩₁ Tid_ thread).
 { arewrite (⦗W_ex G⦘ ⊆ ⦗acts_set G⦘ ⨾ ⦗W_ex G⦘).
   { generalize WF_G.(W_ex_in_E). clear. basic_solver. }
   arewrite (⦗W_ex G⦘ ⊆ ⦗is_w G.(lab)⦘ ⨾ ⦗W_ex G⦘).
   { generalize WF_G.(W_ex_in_W). clear. basic_solver. }
   do 2 rewrite dom_eqv1. do 2 rewrite set_interA.
-  arewrite (W_ex G ⊆₁ W_ex Gf).
-  { subst G. unfold rstG, restrict, W_ex. simpls.
-    clear. basic_solver. }
-  arewrite (rf G ⊆ rf Gf).
-  { subst G. unfold rstG, restrict. simpls.
-    clear. basic_solver. }
-  arewrite (rmw G ⊆ rmw Gf).
-  { subst G. unfold rstG, restrict. simpls.
-    clear. basic_solver. }
-  arewrite (sb G ⊆ sb Gf).
-  { (* TODO: make a lemma *)
-    subst G. unfold rstG, restrict, sb. unfold acts_set; simpls.
-    clear. intros x y HH. apply seq_eqv_lr in HH. desc.
-    apply in_filterP_iff in HH. apply in_filterP_iff in HH1. desc.
-    apply seq_eqv_lr. splits; auto. }
+rewrite sub_W_ex_in; eauto.
+
+  arewrite (R_ex G.(lab) ⊆₁ R_ex Gf.(lab)).
+  { subst G. unfold rstG, restrict. simpls. }
+
+rewrite sub_rf_in; eauto.
+rewrite sub_rmw_in; eauto.
+rewrite sub_sb_in; eauto.
   arewrite (dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁
             dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ∩₁
             dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗S⦘)).
   { generalize IST_in_S. clear. basic_solver 10. }
-  rewrite set_interA. rewrite ETCCOH.(etc_sb_S). simpls.
+  rewrite set_interA.
+
+forward (eapply ETCCOH.(etc_sb_S)); intro AA1.
+unfold dom_sb_S_rfrmw in AA1.
+simpl in AA1.
+unfold eissued in AA1; simpl in AA1.
+rewrite !seqA in AA1.
+rewrite AA1.
+
+  simpls.
   rewrite <- set_interA.
   intros x [HH [AA SX]].
   destruct (classic (issued T x)) as [|NISS]; [by left|].
@@ -810,7 +811,7 @@ exists (mkTC (T.(covered) ∪₁ (G.(acts_set) ∩₁ NTid_ thread)) T.(issued))
 exists (T.(issued) ∪₁ S ∩₁ Tid_ thread).
 
 splits.
-{ by apply WF_cert. }
+{ by eapply WF_cert. }
 { apply cert_imm_consistent; auto. }
 { unfold certG, acts_set; ins; basic_solver. }
 cdes SIMREL. cdes COMMON.

@@ -139,7 +139,7 @@ Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 
 Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
-Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
+(* Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf. *)
 
 (******************************************************************************)
 (**  the set D   *)
@@ -292,7 +292,10 @@ Proof using sc WF TCCOH.
 Qed.
 
 Lemma Rex_in_D : GR_ex ∩₁ E ⊆₁ D.
-Proof.
+Proof using urr_helper_C urr_helper detour_Acq_E W_hb_sc_hb_to_I_NTid
+S_in_W RELCOV IT_new_co F_in_C E_to_S E_F_AcqRel_in_C
+ETC_DR_R_ACQ_I COMP_RPPO COMP_NTID COMP_C
+COMP_ACQ.
   rewrite E_to_S.
   rewrite set_inter_union_r. unionL.
   { rewrite <- C_in_D. clear. basic_solver. }
