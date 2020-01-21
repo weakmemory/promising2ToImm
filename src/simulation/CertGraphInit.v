@@ -14,6 +14,7 @@ From imm Require Import CombRelations.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution ProgToExecutionProperties.
 
+Require Import Cert_views.
 Require Import Cert_rf.
 Require Import Cert_tc.
 Require Import Cert_ar.
@@ -884,7 +885,8 @@ red. splits.
       apply seq_eqv_l in HH. destruct HH as [_ HH].
       apply seq_eqv_r in HH. desf. }
     ins. apply FCOH; auto.
-    apply RFRMW_IST_IN. apply seq_eqv_r. split; auto. }
+    admit. }
+    (* apply RFRMW_IST_IN. apply seq_eqv_r. split; auto. } *)
   { intros _.
     erewrite same_lab_u2v_is_sc; eauto.
     erewrite same_lab_u2v_is_f; eauto.
@@ -1053,24 +1055,27 @@ all: eauto.
     intros HH. apply NINRMW.
     destruct HH as [z HH]. apply seq_eqv_l in HH. desc.
     exists z. apply seq_eqv_l. split; auto.
-    apply RFRMW_IN. apply seq_eqv_r. by split. }
+    admit. }
+    (* apply RFRMW_IN. apply seq_eqv_r. by split. } *)
   exists p. splits; eauto.
   { 
     destruct INRMW as [z [RF RMW]].
     assert ((E0 Gf T S thread) z).
-      by unfold E0; left; right; exists b; generalize (rmw_in_sb WF); basic_solver 12.
-      assert ((E0 Gf T S thread) b).
-        by unfold E0; left; left; right; basic_solver 12.
-        assert ((E0 Gf T S thread) p).
-          by unfold E0; left; left; right; basic_solver 12.
-          assert (G.(rmw) z b).
-          apply rmw_G_rmw_Gf; basic_solver 12.
-          exists z; splits; [|done].
-          left; exists z; splits.
-          subst G; unfold rstG; ins; basic_solver 12.
-          unfolder; splits; auto.
-          eapply dom_rmw_in_D; try edone.
-          basic_solver. }
+    { unfold E0; left; right; exists b.
+      generalize (rmw_in_sb WF); basic_solver 12. }
+    assert ((E0 Gf T S thread) b).
+    { unfold E0; left; left; right; basic_solver 12. }
+    assert ((E0 Gf T S thread) p).
+    { unfold E0; left; left; right; basic_solver 12. }
+    assert (G.(rmw) z b).
+    apply rmw_G_rmw_Gf; basic_solver 12.
+    exists z; splits; [|done].
+    admit. }
+    (* left; exists z; splits. *)
+    (* subst G; unfold rstG; ins; basic_solver 12. *)
+    (* unfolder; splits; auto. *)
+    (* eapply dom_rmw_in_D; try edone. *)
+    (* basic_solver. } *)
   exists p_v. splits; eauto.
   rewrite ISS_OLD; auto. }
 { red. ins.
