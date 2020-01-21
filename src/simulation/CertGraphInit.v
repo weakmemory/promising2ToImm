@@ -394,6 +394,34 @@ assert (RPPO_S : dom_rel ((detour G ∪ rfe G) ⨾ (data G ∪ rfi G ∪ rmw G)�
   rewrite sub_rmw_in; eauto.
   apply ETCCOH. }
 
+assert (RMW_S : dom_rel ((detour G ∪ rfe G) ⨾ rmw G ⨾ ⦗S⦘) ⊆₁ issued T).
+{ rewrite sub_detour_in; eauto.
+  rewrite sub_rfe_in; eauto.
+  rewrite sub_rmw_in; eauto.
+  apply ETCCOH. }
+
+assert (W_ex G ∩₁ (is_xacq (lab G)) ⊆₁ issued T) as W_EX_ACQ_I.
+{ admit. }
+
+assert (dom_rel
+          ((detour G ∪ rfe G) ⨾ (rmw G ⨾ rfi G)＊ ⨾
+           ⦗(is_r (lab G)) ∩₁ (is_acq (lab G))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆₁ issued T)
+  as DRFE_RMW_RFI_R_ACQ.
+{ rewrite sub_detour_in; eauto.
+  rewrite sub_rfe_in; eauto.
+  rewrite sub_rmw_in; eauto.
+  rewrite sub_rfi_in; eauto.
+  rewrite sub_R; eauto.
+  rewrite sub_Acq; eauto.
+  rewrite sub_sb_in; eauto.
+  apply ETCCOH. }
+
+assert (dom_rel
+          ((rmw G ⨾ rfi G)＊ ⨾ ⦗acts_set G ∩₁ (is_r (lab G)) ∩₁
+           (is_acq (lab G))⦘) ⊆₁ codom_rel (rf G))
+  as RMW_RFI_ACQ.
+{ admit. }
+
 assert (new_rfif : functional new_rfi⁻¹).
 { arewrite  (new_rfi ⊆ new_rf G Gsc T S thread).
   unfold new_rfi; basic_solver.
@@ -496,14 +524,6 @@ exfalso; apply H1; eauto 20. }
   unfolder; ins; desc.
   eapply H5; eauto.
   eapply Rex_in_D with (sc:=Gsc) (T:=T); try done.
-  { rewrite sub_detour_in; eauto.
-    rewrite sub_rfe_in; eauto.
-    rewrite sub_rmw_in; eauto.
-    rewrite sub_rfi_in; eauto.
-    rewrite sub_sb_in; eauto.
-    rewrite sub_R; eauto.
-    rewrite sub_Acq; eauto.
-    apply ETCCOH. }
   split; [|done].
   unfold R_ex, rmwmod in *.
   rewrite TEH''.(tr_lab) in H2; auto.
@@ -584,7 +604,7 @@ assert (new_rf G Gsc T S thread ≡ new_rfi ∪ new_rfe) as NEWRF_SPLIT.
   exfalso; eapply H4. do 5 left. by right. }
 
 assert (forall r w : actid, new_rf G Gsc T S thread w r -> val lab' w = val lab' r)
-  as SAME_VAL_RF.
+  as SAME_VAL_RF_old.
 { intros r w NEWRF.
   apply NEWRF_SPLIT in NEWRF. destruct NEWRF as [NEWRF|NEWRF].
   { set (VV := NEWRF). apply NEW_VAL1 in VV.
@@ -659,6 +679,11 @@ assert (forall r w : actid, new_rf G Gsc T S thread w r -> val lab' w = val lab'
   eapply wf_new_rff.
   4: { red; eauto. }
   all: eauto. }
+
+assert (forall r w : actid,
+           cert_rf G Gsc T S thread w r -> val lab' w = val lab' r)
+  as SAME_VAL_RF.
+{ admit. }
 
 assert (forall a : actid, ~ (acts_set G \₁ D G T S thread) a -> val lab' a = val (lab G) a)
   as SAME_VAL.
@@ -810,9 +835,14 @@ exists Gsc.
 exists (mkTC (T.(covered) ∪₁ (G.(acts_set) ∩₁ NTid_ thread)) T.(issued)).
 exists (T.(issued) ∪₁ S ∩₁ Tid_ thread).
 
-splits.
-{ by eapply WF_cert. }
-{ apply cert_imm_consistent; auto. }
+assert (Wf (certG G Gsc T S thread lab')) as WF_CERT.
+{ eapply WF_cert; eauto. }
+assert (wf_sc (certG G Gsc T S thread lab') Gsc) as WF_SC_CERT.
+{ eapply WF_SC_cert; eauto. }
+
+splits; auto.
+{ apply cert_imm_consistent; auto.
+  rewrite <- RMW_S. clear. basic_solver 10. }
 { unfold certG, acts_set; ins; basic_solver. }
 cdes SIMREL. cdes COMMON.
 
