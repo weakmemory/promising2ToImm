@@ -932,6 +932,11 @@ eapply rfe_Acq_E.
  basic_solver 21.
 Qed.
 
+Lemma COMP_RMWRFI_ACQ :
+  dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
+Proof using WF ETCCOH IMMCON.
+Admitted.
+
 Lemma COMP_C : C ∩₁ R ⊆₁ codom_rel Grf.
 Proof using WF ETCCOH IMMCON.
 unfolder; ins; desf.

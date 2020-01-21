@@ -17,6 +17,7 @@ From imm Require Import ProgToExecution ProgToExecutionProperties.
 Require Import Cert_rf.
 Require Import Cert_tc.
 Require Import Cert_ar.
+Require Import Cert_co.
 Require Import Cert_D.
 Require Import CertExecution2.
 Require Import TraversalConfig.
@@ -112,7 +113,13 @@ assert (E_F_AcqRel_in_C: G.(acts_set) ∩₁ (is_f G.(lab)) ∩₁ (is_ra G.(lab
 subst; eapply E_F_AcqRel_in_C; edone.
 
 assert ( COMP_ACQ: forall r (IN: (G.(acts_set) ∩₁ (is_r G.(lab)) ∩₁ (is_acq G.(lab))) r), exists w, G.(rf) w r).
-subst; eapply COMP_ACQ; edone.
+{ subst; eapply COMP_ACQ; edone. }
+
+assert (dom_rel
+          ((rmw G ⨾ rfi G)＊ ⨾ ⦗acts_set G ∩₁ (is_r (lab G)) ∩₁
+           (is_acq (lab G))⦘) ⊆₁ codom_rel (rf G))
+  as RMW_RFI_ACQ.
+{ subst; eapply COMP_RMWRFI_ACQ; edone. }
 
 assert ( urr_helper: dom_rel ((G.(hb) ⨾ ⦗(is_f G.(lab)) ∩₁ (is_sc G.(lab))⦘)^? ⨾ Gsc^? ⨾ G.(hb)^? ⨾ G.(release) ⨾ ⦗T.(issued)⦘) ⊆₁ T.(covered)).
 subst; eapply urr_helper; edone.
@@ -399,6 +406,8 @@ assert (RMW_S : dom_rel ((detour G ∪ rfe G) ⨾ rmw G ⨾ ⦗S⦘) ⊆₁ issu
   rewrite sub_rfe_in; eauto.
   rewrite sub_rmw_in; eauto.
   apply ETCCOH. }
+assert (D_RMW_S : dom_rel (detour G ⨾ rmw G ⨾ ⦗S⦘) ⊆₁ issued T).
+{ rewrite <- RMW_S. clear. basic_solver 10. }
 
 assert (W_ex G ∩₁ (is_xacq (lab G)) ⊆₁ issued T) as W_EX_ACQ_I.
 { admit. }
@@ -415,12 +424,6 @@ assert (dom_rel
   rewrite sub_Acq; eauto.
   rewrite sub_sb_in; eauto.
   apply ETCCOH. }
-
-assert (dom_rel
-          ((rmw G ⨾ rfi G)＊ ⨾ ⦗acts_set G ∩₁ (is_r (lab G)) ∩₁
-           (is_acq (lab G))⦘) ⊆₁ codom_rel (rf G))
-  as RMW_RFI_ACQ.
-{ admit. }
 
 assert (new_rfif : functional new_rfi⁻¹).
 { arewrite  (new_rfi ⊆ new_rf G Gsc T S thread).
@@ -841,8 +844,7 @@ assert (wf_sc (certG G Gsc T S thread lab') Gsc) as WF_SC_CERT.
 { eapply WF_SC_cert; eauto. }
 
 splits; auto.
-{ apply cert_imm_consistent; auto.
-  rewrite <- RMW_S. clear. basic_solver 10. }
+{ apply cert_imm_consistent; auto. }
 { unfold certG, acts_set; ins; basic_solver. }
 cdes SIMREL. cdes COMMON.
 
