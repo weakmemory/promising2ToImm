@@ -297,7 +297,7 @@ apply H6, A; unfolder; ins; desf; splits; eauto.
 Qed.
 
 Lemma hb_sc_irr : irreflexive (Ghb ⨾ sc^?).
-Proof.
+Proof using All.
 case_refl sc; [by apply hb_irr|].
 rewrite (wf_scD WF_SC); rotate 1.
 sin_rewrite (f_sc_hb_f_sc_in_ar WF).
@@ -308,7 +308,7 @@ by apply sc_in_ar.
 Qed.
 
 Lemma set_compl_D_helper : ⦗set_compl D⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gsb.
-Proof.
+Proof using All.
 rewrite <- hb_sc_hb_de.
 rewrite (dom_l WF.(wf_hbE)) at 1.
 rewrite !seqA.
@@ -318,7 +318,7 @@ basic_solver 21.
 Qed.
 
 Lemma hb_rfe_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Crfe).
-Proof.
+Proof using All.
 rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
 relsf; unionL.
 { revert COH CSC; unfold coherence, coh_sc, eco.
@@ -344,21 +344,21 @@ generalize WF.(co_irr).
 Qed.
 
 Lemma hb_co_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cco).
-Proof.
+Proof using All.
 ins; rewrite cert_co_alt'; try edone; relsf; unionL.
 { revert COH CSC. unfold coherence, coh_sc, eco. basic_solver 21. }
 revert W_hb_sc_hb_to_I_NTid. basic_solver 21.
 Qed.
 
 Lemma hb_co_irr' : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cco^?).
-Proof.
+Proof using All.
 rewrite (crE cert_co); relsf; unionL; splits.
 generalize hb_sc_irr (@hb_trans G); basic_solver 21.
 apply hb_co_irr.
 Qed.
 
 Lemma hb_co_irr'' : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ ⦗set_compl D⦘ ⨾ Grmw ⨾ Cco^?).
-Proof.
+Proof using All.
       rewrite WF.(rmw_in_sb).
       rewrite sb_in_hb.
       arewrite_id ⦗set_compl D⦘; rels.
@@ -369,7 +369,7 @@ Qed.
 
 
 Lemma hb_co_rfe_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cco ;; Crfe).
-Proof.
+Proof using All.
 rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
 relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E).
@@ -412,7 +412,7 @@ generalize WF.(co_irr).
 Qed.
 
 Lemma hb_co_rfe_irr' : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cco^? ;; Crfe).
-Proof.
+Proof using All.
 rewrite (crE cert_co); relsf; unionL; splits.
 generalize hb_rfe_irr (@hb_trans G); basic_solver 21.
 apply hb_co_rfe_irr.
@@ -434,7 +434,7 @@ irreflexive
 
  *)
 Lemma hb_fr_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cfr).
-Proof.
+Proof using All.
 unfold fr; ins; rewrite cert_co_alt'; try edone; unfold CertExecution2.certG; ins.
     unfold Cert_rf.cert_rf.
     do 2 rewrite transp_union.
@@ -466,7 +466,7 @@ unfold fr; ins; rewrite cert_co_alt'; try edone; unfold CertExecution2.certG; in
 Qed.
 
 Lemma hb_fr_rfe : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cfr ⨾ Crfe).
-Proof.
+Proof using All.
 rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto. relsf; unionL.
   { unfold fr. unfold CertExecution2.certG. ins. unfold Cert_rf.cert_rf.
     rewrite !transp_union, transp_seq; relsf; unionL.
