@@ -410,9 +410,6 @@ assert (RMW_S : dom_rel ((detour G ∪ rfe G) ⨾ rmw G ⨾ ⦗S⦘) ⊆₁ issu
 assert (D_RMW_S : dom_rel (detour G ⨾ rmw G ⨾ ⦗S⦘) ⊆₁ issued T).
 { rewrite <- RMW_S. clear. basic_solver 10. }
 
-assert (W_ex G ∩₁ (is_xacq (lab G)) ⊆₁ issued T) as W_EX_ACQ_I.
-{ admit. }
-
 assert (dom_rel
           ((detour G ∪ rfe G) ⨾ (rmw G ⨾ rfi G)＊ ⨾
            ⦗(is_r (lab G)) ∩₁ (is_acq (lab G))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆₁ issued T)

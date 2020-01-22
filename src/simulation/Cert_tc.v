@@ -148,7 +148,7 @@ Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊
 Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ;; Grmw ;; <|S|>) ⊆₁ I.
 Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
-Hypothesis W_ex_acq_in_I :GW_ex_acq ⊆₁ I.
+Hypothesis W_ex_sb_I : dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 Hypothesis F_in_C : E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
 
@@ -261,7 +261,7 @@ Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 
 Lemma cert_imm_consistent : imm_consistent certG sc.
 Proof using All.
-red; splits; eauto using WF_SC_cert, cert_acyc_ext, cert_coh_sc, cert_complete, cert_coherence, cert_rmw_atomicity.
+  red; splits; eauto using WF_SC_cert, cert_acyc_ext, cert_coh_sc, cert_complete, cert_coherence, cert_rmw_atomicity.
 Qed.
 
 Lemma dom_fwbob_I : dom_rel (Gfwbob ⨾ ⦗C ∪₁ I⦘) ⊆₁ C ∪₁ I.
@@ -472,7 +472,7 @@ Proof using All.
     apply seq_eqv_lr in RFE. destruct RFE as [IW [RFE DZ]].
     eapply dom_cert_detour_rfe_D. basic_solver 10. *)
     }
-  { rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S, W_ex_acq_in_I; basic_solver. }
+  { rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S; eauto. }
   { unfold dom_sb_S_rfrmw. simpls.
     rewrite cert_sb, cert_W_ex.
     rewrite !seqA.
