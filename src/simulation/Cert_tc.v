@@ -454,7 +454,8 @@ Proof using All.
   { eauto with hahn. }
   { rewrite cert_W_ex. generalize ST_in_W_ex.
     basic_solver. }
-  { rewrite cert_F, cert_AcqRel, cert_sb, IST_in_S; eauto. admit. }
+  { rewrite cert_F, cert_AcqRel, cert_sb, IST_in_S; eauto.
+    rewrite <- F_in_C. rewrite wf_sbE. clear. basic_solver. }
   { rewrite cert_sb, cert_Acq, cert_R; eauto.
   admit.
 (*    unfolder. intros x [y [z [DRF [[RZ ACQZ] [SB SS]]]]].
