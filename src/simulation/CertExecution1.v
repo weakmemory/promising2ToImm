@@ -252,6 +252,34 @@ Qed.
 (*   basic_solver 40. *)
 (* Qed. *)
 
+Lemma rfe_rmw_I :dom_rel (Frfe ⨾ Frmw ⨾ ⦗I⦘) ⊆₁ I.
+Proof using WF ETCCOH.
+  arewrite (Frfe ⊆ Frf).
+  eapply rfrmw_I_in_I; eauto. apply TCCOH.
+Qed.
+
+Lemma rmw_E_rfe :  dom_rel (Frmw ⨾ ⦗E⦘) ∩₁ codom_rel Frfe ⊆₁ E.
+Proof using WF ETCCOH.
+  rewrite E_E0; unfold E0.
+  rewrite !id_union; relsf; unionL; splits.
+  { rewrite (rmw_in_sb WF) at 1.
+    generalize TCCOH, dom_sb_covered, dom_rf_covered.
+    ie_unfolder; basic_solver 21. }
+  { arewrite (⦗I⦘ ⊆ ⦗Tid_ thread ∩₁ I⦘ ∪ ⦗NTid_ thread ∩₁ I⦘).
+    { by unfolder; ins; desf; tauto. }
+    relsf; unionL; splits.
+    { rewrite (rmw_in_sb WF) at 1. rewrite ETCCOH.(etc_I_in_S) at 1. basic_solver 20. }
+    unionR right.
+    unfolder; ins; desf; splits; eauto. }
+  { rewrite dom_rel_eqv_dom_rel.
+    rewrite (rmw_in_sb WF) at 1.
+    generalize (@sb_trans Gf); ins; relsf.
+    basic_solver 12. }
+  rewrite (dom_r (wf_rmwD WF)) at 1.
+  rewrite (dom_l (wf_rmwD WF)) at 2.
+  clear. type_solver.
+Qed.
+
 (* Lemma rfe_rmw_E : dom_rel (Frfe ⨾ Frmw ⨾ ⦗E⦘) ⊆₁ E. *)
 (* Proof using WF ETCCOH. *)
 (*   rewrite E_E0 at 1; unfold E0. *)
@@ -279,33 +307,6 @@ Qed.
 (*   2: by apply ETCCOH.(etc_rppo_S). *)
 (*   rewrite <- inclusion_id_rt. clear. basic_solver 20. *)
 (* Qed. *)
-
-Lemma rfe_rmw_I :dom_rel (Frfe ⨾ Frmw ⨾ ⦗I⦘) ⊆₁ I.
-Proof using WF ETCCOH.
-  arewrite (Frfe ⊆ Frf).
-  eapply rfrmw_I_in_I; eauto. apply TCCOH.
-Qed.
-
-Lemma rmw_E_rfe :  dom_rel (Frmw ⨾ ⦗E⦘) ∩₁ codom_rel Frfe ⊆₁ E.
-Proof using WF ETCCOH.
-  rewrite E_E0; unfold E0.
-  rewrite !id_union; relsf; unionL; splits.
-  - rewrite (rmw_in_sb WF) at 1.
-    generalize TCCOH, dom_sb_covered, dom_rf_covered; ie_unfolder; basic_solver 21.
-  - arewrite (⦗I⦘ ⊆ ⦗Tid_ thread ∩₁ I⦘ ∪ ⦗NTid_ thread ∩₁ I⦘).
-    { by unfolder; ins; desf; tauto. }
-    relsf; unionL; splits.
-    { rewrite (rmw_in_sb WF) at 1. rewrite ETCCOH.(etc_I_in_S) at 1. basic_solver 20. }
-    unionR right.
-    unfolder; ins; desf; splits; eauto.
-  - rewrite dom_rel_eqv_dom_rel.
-    rewrite (rmw_in_sb WF) at 1.
-    generalize (@sb_trans Gf); ins; relsf.
-    basic_solver 12.
-  - rewrite (dom_r (wf_rmwD WF)) at 1.
-    rewrite (dom_l (wf_rmwD WF)) at 2.
-    clear. type_solver.
-Qed.
 
 Lemma rmw_E_rfi :  dom_rel (Frmw ⨾ ⦗E⦘) ∩₁ codom_rel (⦗FW_ex⦘ ⨾ Frfi) ⊆₁ E.
 Proof using WF ETCCOH.
