@@ -585,6 +585,14 @@ Proof using WF ETCCOH.
   basic_solver 40.
 Qed.
 
+Lemma rfe_Grmwrfi_rt_Acq_E :
+  dom_rel (Frfe ;; (Grmw ;; Grfi)^* ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
+Proof using WF ETCCOH.
+  rewrite (sub_rfi_in SUB).
+  rewrite (sub_rmw_in SUB).
+  apply rfe_rmwrfi_rt_Acq_E.
+Qed.
+
 Lemma rfe_Acq_E : dom_rel (Frfe ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
 Proof using WF ETCCOH.
   rewrite <- rfe_rmwrfi_rt_Acq_E.
@@ -940,31 +948,37 @@ Proof using WF ETCCOH.
   apply E_F_AcqRel_in_C.
 Qed.
 
-Lemma COMP_ACQ: forall r (IN: (E ∩₁ R ∩₁ Acq) r), exists w, Grf w r.
-Proof using WF ETCCOH IMMCON.
-ins.
-cdes IMMCON.
-unfolder in IN; desf.
-exploit (Comp r).
-- split.
-apply (sub_E SUB); basic_solver.
-apply (sub_R SUB); basic_solver.
-- unfolder; ins ;desf.
-cut (E0 x /\ E0 r).
-basic_solver 12.
-split; apply E_E0; [|done].
-hahn_rewrite rfi_union_rfe in x0; unfolder in x0; desf.
-eapply rfi_E.
- basic_solver 21.
-eapply I_in_E.
-eapply rfe_Acq_E.
- basic_solver 21.
-Qed.
-
 Lemma COMP_RMWRFI_ACQ :
   dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 Proof using WF ETCCOH IMMCON.
-Admitted.
+  assert (dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ E ∩₁ R) as AA.
+  { rewrite rtE. rewrite (dom_l rstWF.(wf_rmwE)), (dom_l rstWF.(wf_rmwD)).
+    rewrite !seqA. clear. rewrite !inclusion_ct_seq_eqv_l. basic_solver 10. }
+  rewrite (dom_rel_helper AA).
+  intros r IN.
+  cdes IMMCON.
+  unfolder in IN; desf.
+  exploit (Comp z).
+  { split. 
+    { apply (sub_E SUB); basic_solver. }
+    apply (sub_R SUB); basic_solver. }
+  unfolder; ins ;desf.
+  cut (E0 x /\ E0 z).
+  { basic_solver 12. }
+  split; apply E_E0; [|done].
+  hahn_rewrite rfi_union_rfe in x0; unfolder in x0; desf.
+  { eapply rfi_E. basic_solver 21. }
+  eapply I_in_E.
+  eapply rfe_Grmwrfi_rt_Acq_E.
+  basic_solver 21.
+Qed.
+
+Lemma COMP_ACQ: forall r (IN: (E ∩₁ R ∩₁ Acq) r), exists w, Grf w r.
+Proof using WF ETCCOH IMMCON.
+  assert (dom_rel (⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf) as AA.
+  { rewrite <- COMP_RMWRFI_ACQ. rewrite rtE. clear. basic_solver 10. }
+  ins. eapply AA. generalize IN. clear. basic_solver 10.
+Qed.
 
 Lemma COMP_C : C ∩₁ R ⊆₁ codom_rel Grf.
 Proof using WF ETCCOH IMMCON.
