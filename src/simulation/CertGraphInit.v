@@ -716,7 +716,7 @@ assert (issued T ∪₁ S ∩₁ Tid_ thread ⊆₁ S) as IST_in_S.
   basic_solver. } 
 
 (* TODO: fix *)
-assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘ ⊆
+assert ((cert_rf G Gsc T S thread ⨾ rmw G) ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘ ⊆
         rf Gf ⨾ rmw Gf) as RFRMW_IST_IN.
 { admit. }
   (* intros x y H2. apply seq_eqv_r in H2. *)
@@ -736,8 +736,7 @@ assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) 
   (* apply dom_rppo_S_in_D. exists y.  *)
   (* apply seq_eqv_r. split; auto. by apply rmw_in_rppo. } *)
 
-assert (((rf G ⨾ ⦗D G T S thread⦘ ∪ new_rf G Gsc T S thread) ⨾ rmw G) ⨾ ⦗issued T⦘ ⊆
-        rf Gf ⨾ rmw Gf) as RFRMW_IN.
+assert ((cert_rf G Gsc T S thread ⨾ rmw G) ⨾ ⦗issued T⦘ ⊆ rf Gf ⨾ rmw Gf) as RFRMW_IN.
 { arewrite (issued T ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread). by rewrite <- seqA. }
 
 assert (issued T ⊆₁ S) as I_in_S.
@@ -885,8 +884,7 @@ red. splits.
       apply seq_eqv_l in HH. destruct HH as [_ HH].
       apply seq_eqv_r in HH. desf. }
     ins. apply FCOH; auto.
-    admit. }
-    (* apply RFRMW_IST_IN. apply seq_eqv_r. split; auto. } *)
+    apply RFRMW_IST_IN. apply seq_eqv_r. split; auto. }
   { intros _.
     erewrite same_lab_u2v_is_sc; eauto.
     erewrite same_lab_u2v_is_f; eauto.
@@ -1055,11 +1053,9 @@ all: eauto.
     intros HH. apply NINRMW.
     destruct HH as [z HH]. apply seq_eqv_l in HH. desc.
     exists z. apply seq_eqv_l. split; auto.
-    admit. }
-    (* apply RFRMW_IN. apply seq_eqv_r. by split. } *)
+    apply RFRMW_IN. apply seq_eqv_r. by split. }
   exists p. splits; eauto.
-  { 
-    destruct INRMW as [z [RF RMW]].
+  { destruct INRMW as [z [RF RMW]].
     assert ((E0 Gf T S thread) z).
     { unfold E0; left; right; exists b.
       generalize (rmw_in_sb WF); basic_solver 12. }
@@ -1070,12 +1066,13 @@ all: eauto.
     assert (G.(rmw) z b).
     apply rmw_G_rmw_Gf; basic_solver 12.
     exists z; splits; [|done].
-    admit. }
-    (* left; exists z; splits. *)
-    (* subst G; unfold rstG; ins; basic_solver 12. *)
-    (* unfolder; splits; auto. *)
-    (* eapply dom_rmw_in_D; try edone. *)
-    (* basic_solver. } *)
+    cut ((cert_rf G Gsc T S thread ;; <|D G T S thread|>) p z).
+    { clear. basic_solver. }
+    apply cert_rf_D; auto. apply seq_eqv_r. split; auto.
+    { subst G. unfold rstG. unfold restrict. ins.
+      apply seq_eqv_lr. splits; auto. }
+    eapply dom_rmw_D; eauto. exists b.
+    apply seq_eqv_r. split; auto. by apply I_in_D. }
   exists p_v. splits; eauto.
   rewrite ISS_OLD; auto. }
 { red. ins.
