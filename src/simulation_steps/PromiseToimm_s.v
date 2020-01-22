@@ -29,6 +29,7 @@ Require Import TraversalConfig.
 Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
 Require Import ExtTraversalConfig.
+Require Import ExtTraversal.
 Require Import ExtTraversalCounting.
 Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
