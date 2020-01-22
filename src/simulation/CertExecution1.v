@@ -540,18 +540,40 @@ Proof using WF ETCCOH.
   end.
 Qed.
 
-Lemma rfe_Acq_E : dom_rel (Frfe ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
+Lemma rfe_rmwrfi_rt_Acq_E :
+  dom_rel (Frfe ;; (Frmw ;; Frfi)^* ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
 Proof using WF ETCCOH.
   clear RELCOV.
+  arewrite (Frfe ⨾ (Frmw ⨾ Frfi)＊ ⊆ (Frfe ⨾ (Frmw ⨾ Frfi)＊) ;; <|R|>).
+  { apply AuxRel2.codom_rel_helper.
+    rewrite (dom_r WF.(wf_rfiD)), (dom_r WF.(wf_rfeD)).
+    rewrite rtE. rewrite <- !seqA.
+    rewrite inclusion_ct_seq_eqv_r.
+    basic_solver. }
   rewrite E_E0; unfold E0.
   rewrite !set_inter_union_l.
   rewrite !id_union; relsf; unionL; splits.
-  { generalize (dom_rf_covered WF TCCOH). ie_unfolder. basic_solver 21. }
-  { rewrite (dom_r (wf_rfeD WF)) at 1; rewrite (issuedW TCCOH) at 1.
-    type_solver. }
-  2: { generalize rfe_rmw_I. basic_solver 21. }
+  { arewrite ((Frmw ⨾ Frfi)＊ ⊆ Fsb^?).
+    { rewrite rmw_in_sb, rfi_in_sb; auto.
+      generalize (@sb_trans Gf). intros HH.
+        by rewrite rewrite_trans, rt_of_trans. }
+    arewrite (Fsb^? ⨾ ⦗R⦘ ⨾ ⦗C ∩₁ FAcq⦘ ⊆ ⦗C⦘ ⨾ Fsb^?).
+    { generalize (dom_sb_covered TCCOH). basic_solver 20. }
+    generalize (dom_rf_covered WF TCCOH). ie_unfolder. basic_solver 21. }
+  { rewrite (issuedW TCCOH) at 1. type_solver. }
+  2: { arewrite_id ⦗R⦘. rewrite seq_id_l.
+       arewrite (dom_rel (Frmw ⨾ ⦗NTid_ thread ∩₁ I⦘) ∩₁ FAcq ⊆₁
+                 dom_rel (Frmw ⨾ ⦗I⦘)).
+       { basic_solver. }
+       rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel.
+       rewrite rfe_in_rf, rfi_in_rf. rewrite !seqA.
+       rewrite (dom_l WF.(wf_rfD)) at 1. rewrite !seqA.
+       seq_rewrite <- clos_trans_rotl.
+       arewrite (Frf ⨾ Frmw ⊆ Far ∪ Frf ⨾ Frmw).
+       apply (ar_rfrmw_ct_I_in_I TCCOH). }
   rewrite crE. rewrite seq_union_l, seq_id_l, dom_union.
-  rewrite set_inter_union_l. rewrite id_union. rewrite seq_union_r, dom_union.
+  rewrite set_inter_union_l. rewrite id_union.
+  rewrite !seq_union_r, dom_union.
   rewrite (dom_r (wf_rfeD WF)).
   unionL.
   { rewrite (reservedW WF ETCCOH). type_solver. }
@@ -559,8 +581,14 @@ Proof using WF ETCCOH.
   rewrite id_inter. rewrite <- !seqA.
   rewrite dom_rel_eqv_dom_rel.
   generalize ETCCOH.(etc_dr_R_acq_I).
-  unfold eissued. simpls. rewrite rtE.
-  basic_solver 20.
+  unfold eissued. simpls.
+  basic_solver 40.
+Qed.
+
+Lemma rfe_Acq_E : dom_rel (Frfe ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
+Proof using WF ETCCOH.
+  rewrite <- rfe_rmwrfi_rt_Acq_E.
+  rewrite rtE. basic_solver 10.
 Qed.
 
 Lemma rfe_sb_F_E : dom_rel (Frfe ⨾ Fsb ⨾ ⦗E ∩₁ FF ∩₁ FAcq/Rel⦘) ⊆₁ I.
