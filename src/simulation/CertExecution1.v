@@ -308,7 +308,7 @@ Qed.
 (*   rewrite <- inclusion_id_rt. clear. basic_solver 20. *)
 (* Qed. *)
 
-Lemma rmw_E_rfi :  dom_rel (Frmw ⨾ ⦗E⦘) ∩₁ codom_rel (⦗FW_ex⦘ ⨾ Frfi) ⊆₁ E.
+Lemma rmw_E_rfi :  dom_rel (Frmw ⨾ ⦗E⦘) ∩₁ codom_rel Frfi ⊆₁ E.
 Proof using WF ETCCOH.
 rewrite E_E0; unfold E0.
 rewrite !id_union; relsf; unionL; splits.
@@ -329,7 +329,7 @@ rewrite !id_union; relsf; unionL; splits.
   clear. type_solver.
 Qed.
 
-Lemma dom_Frmw_I_in_E : dom_rel (⦗codom_rel (⦗FW_ex⦘ ⨾ Frf)⦘ ⨾ Frmw ⨾ ⦗I⦘) ⊆₁ E.
+Lemma dom_Frmw_I_in_E : dom_rel (Frmw ⨾ ⦗I⦘) ⊆₁ E.
 Proof using WF ETCCOH.
   rewrite E_E0. unfold E0.
   arewrite (I ⊆₁ I ∩₁ (Tid_ thread ∪₁ NTid_ thread)) at 1.
