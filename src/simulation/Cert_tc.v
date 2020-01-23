@@ -475,29 +475,29 @@ Proof using All.
     }
   { rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S; eauto. }
   { unfold dom_sb_S_rfrmw. simpls.
-    rewrite cert_sb, cert_W_ex.
+    rewrite cert_sb, cert_W_ex, cert_R_ex; eauto.
     rewrite !seqA.
-    arewrite (cert_rf ⨾ ⦗R_ex lab'⦘ ⨾ Grmw ⊆ Grf ⨾ ⦗GR_ex⦘ ⨾ Grmw); auto.
-    admit. }
-    (* arewrite (Gctrl ⊆ <|D|> ;; Gctrl) at 1. *)
-    (* { apply dom_rel_helper. eapply dom_ctrl_in_D; eauto. } *)
-    (* arewrite (Grmw ∩ (⦗D⦘ ⨾ Gctrl) ⊆ ⦗D⦘ ⨾ (Grmw ∩ Gctrl)). *)
-    (* { clear. basic_solver. } *)
-    (* arewrite (cert_rf ⨾ ⦗D⦘ ⊆ Grf ⨾ ⦗D⦘); [|clear; basic_solver]. *)
-    (* eapply cert_rf_D; eauto. } *)
+    arewrite (cert_rf ⨾ ⦗GR_ex⦘ ⨾ Grmw ⊆ Grf ⨾ ⦗GR_ex⦘ ⨾ Grmw); auto.
+    arewrite (⦗GR_ex⦘ ⊆ ⦗GR_ex⦘ ⨾ ⦗GR_ex⦘) at 1.
+    { clear. basic_solver. }
+    rewrite (dom_l WF.(wf_rmwE)) at 1.
+    seq_rewrite <- (@id_inter _ _ E).
+    rewrite Rex_in_D; eauto.
+    seq_rewrite seq_eqvC. rewrite !seqA.
+    arewrite (cert_rf ⨾ ⦗D⦘ ⊆ Grf ⨾ ⦗D⦘); [|clear; basic_solver].
+    eapply cert_rf_D; eauto. }
   { rewrite Crppo_in_rppo.
-    admit. }
-    (* arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆ *)
-    (*               ⦗D⦘ ⨾ Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘). *)
-    (* { apply dom_rel_helper. *)
-    (*   rewrite IST_in_S. *)
-    (*   apply dom_rppo_S_in_D. } *)
-    (* arewrite ((Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘). *)
-    (* { apply dom_rel_helper. *)
-    (*   eapply dom_data_Crfi_rmw_D_in_D. } *)
-    (* rewrite <- !seqA. *)
-    (* do 4 rewrite AuxRel.dom_seq. *)
-    (* apply dom_cert_detour_rfe_D. } *)
+    arewrite (Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘ ⊆
+              ⦗D⦘ ⨾ Grppo ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘).
+    { apply dom_rel_helper.
+      rewrite IST_in_S.
+      apply dom_rppo_S_in_D. }
+    arewrite ((Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘).
+    { apply dom_rel_helper.
+      eapply dom_data_Crfi_rmw_D_in_D. }
+    rewrite <- !seqA.
+    do 4 rewrite AuxRel.dom_seq.
+    apply dom_cert_detour_rfe_D. }
   admit.
   admit.
 Admitted.
