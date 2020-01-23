@@ -498,7 +498,10 @@ Proof using All.
     rewrite <- !seqA.
     do 4 rewrite AuxRel.dom_seq.
     apply dom_cert_detour_rfe_D. }
-  admit.
+  { rewrite !seq_union_l, dom_union. unionL.
+    2: { rewrite !dom_seq.
+         rewrite cert_rfe_eq. eapply dom_cert_rfe_in_I with (G:=G); eauto. }
+    admit. }
   admit.
 Admitted.
 
