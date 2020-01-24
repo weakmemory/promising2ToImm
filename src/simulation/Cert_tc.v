@@ -429,7 +429,9 @@ Proof using Grfe_E TCCOH WF WF_SC.
   eby eapply dom_rmw_D.
 Qed.
 
-Lemma ETCCOH_cert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ I ⊆₁ GW_ex)
+Lemma ETCCOH_cert
+      (COMP_RMW_S : dom_rel (Grmw ⨾ ⦗S⦘) ⊆₁ codom_rel Grf)
+      (ST_in_W_ex : S ∩₁ Tid_ thread \₁ I ⊆₁ GW_ex)
       (ISTex_rf_I : (I ∪₁ S ∩₁ Tid_ thread) ∩₁ GW_ex ⊆₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ Grmw))
       (DOM_SB_S_rf_I :
          dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ∩₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ ⦗GR_ex⦘ ⨾ Grmw)
@@ -501,8 +503,18 @@ Proof using All.
   { rewrite !seq_union_l, dom_union. unionL.
     2: { rewrite !dom_seq.
          rewrite cert_rfe_eq. eapply dom_cert_rfe_in_I with (G:=G); eauto. }
+    (* rewrite IST_in_S. *)
+    (* rewrite (dom_rel_helper COMP_RMW_S). *)
+    (* rewrite rfi_union_rfe, codom_union. *)
     admit. }
-  admit.
+  transitivity (codom_rel (⦗I⦘ ⨾ cert_rf ⨾ Grmw ⨾ ⦗S⦘)).
+  2: { clear. basic_solver 10. }
+  rewrite cert_rmw_S_in_rf_rmw_S; auto.
+  rewrite cert_W_ex.
+  rewrite <- !seqA. rewrite codom_eqv1.
+  apply set_subset_inter_r. split.
+  2: { rewrite IST_in_S. clear. basic_solver. }
+  rewrite ISTex_rf_I. by rewrite !seqA.
 Admitted.
 
 End CertExec_tc.
