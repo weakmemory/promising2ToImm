@@ -371,8 +371,6 @@ desc.
 assert (acts_set (ProgToExecution.G state) ⊆₁ covered T) as STATECOV.
 { intros x EE. apply GPC.(acts_rep) in EE. desc. subst. by apply PCOV. }
 
-set (new_rfi := ⦗ Tid_ thread ⦘ ⨾ new_rf G Gsc T S thread ⨾ ⦗ Tid_ thread ⦘).
-
 assert (COMP_RPPO : dom_rel (⦗fun a => is_r (lab G) a⦘ ⨾ (data G ∪ rfi G ∪ rmw G)＊ ⨾ rppo G ⨾ ⦗S⦘)
                         ⊆₁ codom_rel (rf G)).
 { subst. eapply COMP_RPPO; edone. }
@@ -423,17 +421,36 @@ assert (dom_rel
   rewrite sub_sb_in; eauto.
   apply ETCCOH. }
 
+set (delta_rf :=
+       (new_rf G Gsc T S thread) ⨾ ⦗set_compl (dom_rel G.(rmw))⦘ ∪
+       immediate (cert_co G T thread) ;; G.(rmw)⁻¹ ⨾ ⦗set_compl (D G T S thread)⦘).
+set (new_rfi := ⦗  Tid_ thread ⦘ ⨾ delta_rf ⨾ ⦗ Tid_ thread ⦘).
+set (new_rfe := ⦗ NTid_ thread ⦘ ⨾ delta_rf ⨾ ⦗ Tid_ thread ⦘).
+
+assert (delta_rf ⊆ cert_rf G Gsc T S thread) as DELTA_RF_CERT.
+{ unfold delta_rf, cert_rf; clear. basic_solver 20. }
+
+assert (delta_rf ≡
+        <|acts_set G|> ;; delta_rf ;; <|acts_set G \₁ D G T S thread|>)
+  as delta_rfE.
+{ apply dom_helper_3.
+  admit. }
+(* rewrite DELTA_RF_CERT. rewrite cert_rfE; auto. clear. basic_solver 10. } *)
+
+assert (delta_rf ≡ <|is_w G.(lab)|> ;; delta_rf ;; <|is_r G.(lab)|>)
+  as delta_rfD.
+{ apply dom_helper_3.
+  rewrite DELTA_RF_CERT. rewrite cert_rfD; auto. clear. basic_solver 10. }
+
+assert (new_rfi ⊆ cert_rf G Gsc T S thread) as NEW_RFI_CERT.
+{ unfold new_rfi. rewrite DELTA_RF_CERT. basic_solver 20. }
 assert (new_rfif : functional new_rfi⁻¹).
-{ arewrite  (new_rfi ⊆ new_rf G Gsc T S thread).
-  unfold new_rfi; basic_solver.
-  apply wf_new_rff; auto. }
+{ rewrite NEW_RFI_CERT. apply cert_rff; auto. }
 
-set (new_rfe := ⦗ NTid_ thread ⦘ ⨾ new_rf G Gsc T S thread ⨾ ⦗ Tid_ thread ⦘).
-
+assert (new_rfe ⊆ cert_rf G Gsc T S thread) as NEW_RFE_CERT.
+{ unfold new_rfe. rewrite DELTA_RF_CERT. basic_solver 20. }
 assert (new_rfef : functional new_rfe⁻¹).
-{ arewrite  (new_rfe ⊆ new_rf G Gsc T S thread).
-  unfold new_rfe; basic_solver.
-    by apply wf_new_rff. }
+{ rewrite NEW_RFE_CERT. apply cert_rff; auto. }
 
 set (new_rfe_ex := new_rfe ∪ ⦗ set_compl (codom_rel new_rfe) ⦘).
 
@@ -462,51 +479,52 @@ exploit (@receptiveness_full thread state state'' new_val
                                new_rfi (E0 Gf T S thread \₁ D G T S thread)); auto.
 { split; [|basic_solver].
   rewrite TEH''.(tr_acts_set).
-  rewrite set_interC at 2.
-  rewrite !id_inter. unfold new_rfi. rewrite !seqA.
-  rewrite wf_new_rfE; auto.
-  basic_solver 10. }
-{ split; [|basic_solver].
-  unfold new_rfi at 2. rewrite !seqA. seq_rewrite <- !id_inter.
-  rewrite wf_new_rfE; auto. rewrite !seqA.
+  apply dom_helper_3.
+  rewrite set_interC at 2. unfold new_rfi.
+  rewrite delta_rfE. clear. basic_solver 10. }
+{ apply dom_helper_3.
+  unfold new_rfi. rewrite DELTA_RF_CERT.
+  rewrite cert_rfE; auto. rewrite !seqA.
+  rewrite cert_rfD; auto. rewrite !seqA.
   seq_rewrite <- !id_inter.
-  rewrite set_interA. rewrite set_interC with (s:=Tid_ thread) at 1.
+  rewrite set_interC with (s:=Tid_ thread) at 1.
   rewrite <- TEH''.(tr_acts_set).
-  arewrite (is_w (lab (ProgToExecution.G state'')) ∩₁ acts_set (ProgToExecution.G state'') ≡₁
-            is_w (lab G) ∩₁ acts_set (ProgToExecution.G state'')).
+  arewrite (acts_set (ProgToExecution.G state'') ∩₁  is_w (lab G) ≡₁
+            is_w (lab (ProgToExecution.G state'')) ∩₁
+            acts_set (ProgToExecution.G state'')).
   { split.
     all: intros x [AA BB]; split; auto.
     all: unfold is_w in *; rewrite TEH''.(tr_lab) in *; auto. }
-  rewrite <- set_interA.
-  rewrite !set_inter_minus_l.
-  rewrite <- TEH''.(tr_acts_set).
-  arewrite (acts_set (ProgToExecution.G state'') ∩₁ is_r (lab (ProgToExecution.G state'')) ≡₁
-            acts_set (ProgToExecution.G state'') ∩₁ is_r (lab G)).
+  arewrite (is_r (lab G) ∩₁ acts_set (ProgToExecution.G state'') ≡₁
+            is_r (lab (ProgToExecution.G state'')) ∩₁
+            acts_set (ProgToExecution.G state'')).
   { split.
     all: intros x [AA BB]; split; auto.
     all: unfold is_r in *; rewrite TEH''.(tr_lab) in *; auto. }
-  rewrite !TEH''.(tr_acts_set).
-  unfold new_rfi. rewrite wf_new_rfE at 1; auto.
-  rewrite wf_new_rfD at 1; auto.
-  basic_solver 20. }
-{ unfold new_rfi.
-  rewrite (wf_new_rfE); try done.
-  rewrite (wf_new_rfD); try done.
+  clear. basic_solver. }
+{ unfold new_rfi. rewrite DELTA_RF_CERT.
+  rewrite cert_rfE; auto. rewrite !seqA.
+  rewrite cert_rfD; auto. rewrite !seqA.
   unfolder; ins; desc; subst thread.
   apply (@same_thread G) in H5; try done.
-  - destruct H5 as [X|Y].
-    * destruct X; [subst; type_solver|]. 
-      exfalso.
-      eapply new_rf_hb; try edone.
-      hahn_rewrite <- (@sb_in_hb G).
-      basic_solver 12.
-    * unfold sb in Y; unfolder in Y; desf.
-  - intro K; eapply init_w in K; try edone; type_solver. }
-{ unfold new_rfi.
-arewrite_id ⦗Tid_ thread⦘; rels.
-rewrite <- new_rf_mod; try done.
-subst G; rewrite E_E0; try edone.
-basic_solver. }
+  2: { intro K; eapply init_w in K; try edone; type_solver. }
+  destruct H5 as [X|Y].
+  2: { unfold sb in Y; unfolder in Y; desf. }
+  destruct X; [subst; type_solver|]. 
+  exfalso.
+  admit. }
+  (* eapply new_rf_hb; try edone. *)
+  (* hahn_rewrite <- (@sb_in_hb G). *)
+  (* basic_solver 12. *)
+{ rewrite AuxRel.set_minus_inter_set_compl.
+  admit. }
+(* unfold new_rfi. *)
+(*   arewrite_id ⦗Tid_ thread⦘; rels. *)
+(*   unfold delta_rf. *)
+(*   rewrite codom_union. *)
+(*   rewrite <- new_rf_mod; try done. *)
+(*   subst G; rewrite E_E0; try edone. *)
+(*   clear. basic_solver 10. } *)
 { rewrite TEH''.(tr_acts_set).
 unfold D; subst G; rewrite E_E0; try edone.
 unfolder; ins; desf; splits; eauto.
@@ -587,32 +605,33 @@ assert (thread_restricted_execution (certG G Gsc T S thread lab') thread
   { rewrite <- RCTRL. apply TEH''.(tr_ctrl). }
   rewrite <- RFAILRMW. apply TEH''.(tr_rmw_dep). }
 
-assert (new_rf G Gsc T S thread ≡ new_rfi ∪ new_rfe) as NEWRF_SPLIT.
-{ arewrite (new_rf G Gsc T S thread ≡ new_rf G Gsc T S thread ⨾ ⦗ Tid_ thread ⦘).
+assert (delta_rf ≡ new_rfi ∪ new_rfe) as NEWRF_SPLIT.
+{ arewrite (delta_rf ≡ delta_rf ⨾ ⦗ Tid_ thread ⦘).
   2: { unfold new_rfi, new_rfe. 
        rewrite <- seq_union_l. rewrite <- id_union.
        arewrite (Tid_ thread ∪₁ NTid_ thread ≡₁ fun _ => True).
-       { split; [basic_solver|].
-         intros x _. red. by destruct (classic (tid x = thread)); [left|right]. }
-       basic_solver. }
-  split; [|basic_solver].
-  cut (codom_rel (new_rf G Gsc T S thread) ⊆₁ Tid_ thread).
+       2: { clear. basic_solver. }
+       split; [basic_solver|].
+       intros x _. red. by destruct (classic (tid x = thread)); [left|right]. }
+  split; [|clear; basic_solver].
+  cut (codom_rel delta_rf ⊆₁ Tid_ thread).
   { clear. basic_solver 21. }
-  rewrite wf_new_rfE at 1; try done.
-  unfold D.
-  unfolder; ins; desf.
-  destruct (classic (tid x = thread)); [done|].
-  exfalso; eapply H4. do 5 left. by right. }
+  admit. }
+  (* rewrite wf_new_rfE at 1; try done. *)
+  (* unfold D. *)
+  (* unfolder; ins; desf. *)
+  (* destruct (classic (tid x = thread)); [done|]. *)
+  (* exfalso; eapply H4. do 5 left. by right. } *)
 
-assert (forall r w : actid, new_rf G Gsc T S thread w r -> val lab' w = val lab' r)
-  as SAME_VAL_RF_old.
+assert (forall r w : actid, delta_rf w r -> val lab' w = val lab' r)
+  as SAME_VAL_RF.
 { intros r w NEWRF.
   apply NEWRF_SPLIT in NEWRF. destruct NEWRF as [NEWRF|NEWRF].
   { set (VV := NEWRF). apply NEW_VAL1 in VV.
     unfold new_rfi in NEWRF.
     apply seq_eqv_l in NEWRF. destruct NEWRF as [TIDW NEWRF].
     apply seq_eqv_r in NEWRF. destruct NEWRF as [NEWRF TIDR].
-    apply wf_new_rfE in NEWRF; auto.
+    apply delta_rfE in NEWRF; auto.
     apply seq_eqv_l in NEWRF. destruct NEWRF as [GEW NEWRF].
     apply seq_eqv_r in NEWRF. destruct NEWRF as [NEWRF [GER MOD]].
     assert (s'.(ProgToExecution.G).(acts_set) r) as ERR.
@@ -631,7 +650,7 @@ assert (forall r w : actid, new_rf G Gsc T S thread w r -> val lab' w = val lab'
   unfold new_rfe in NEWRF.
   apply seq_eqv_l in NEWRF. destruct NEWRF as [TIDW NEWRF].
   apply seq_eqv_r in NEWRF. destruct NEWRF as [NEWRF TIDR].
-  apply wf_new_rfE in NEWRF; auto.
+  apply delta_rfE in NEWRF; auto.
   apply seq_eqv_l in NEWRF. destruct NEWRF as [GEW NEWRF].
   apply seq_eqv_r in NEWRF. destruct NEWRF as [NEWRF [GER MOD]].
   unfold val, lab'.
@@ -642,7 +661,7 @@ assert (forall r w : actid, new_rf G Gsc T S thread w r -> val lab' w = val lab'
   2: { exfalso. apply HH2.
        unfold acts_set. rewrite <- RACTS. apply TEH''.(tr_acts_set).
        split; auto. }
-  apply wf_new_rfD in NEWRF.
+  apply delta_rfD in NEWRF.
   apply seq_eqv_l in NEWRF. destruct NEWRF as [WW NEWRF].
   apply seq_eqv_r in NEWRF. destruct NEWRF as [NEWRF RR].
 
@@ -677,14 +696,10 @@ assert (forall r w : actid, new_rf G Gsc T S thread w r -> val lab' w = val lab'
   apply seq_eqv_r in NEWRFI. destruct NEWRFI as [NEWRFI _].
   assert (z = w) as XX.
   2: by desf.
-  eapply wf_new_rff.
+  eapply cert_rff.
   4: { red; eauto. }
-  all: eauto. }
-
-assert (forall r w : actid,
-           cert_rf G Gsc T S thread w r -> val lab' w = val lab' r)
-  as SAME_VAL_RF.
-{ admit. }
+  all: eauto.
+  all: eapply DELTA_RF_CERT; eauto. }
 
 assert (forall a : actid, ~ (acts_set G \₁ D G T S thread) a -> val lab' a = val (lab G) a)
   as SAME_VAL.
@@ -699,6 +714,18 @@ assert (forall a : actid, ~ (acts_set G \₁ D G T S thread) a -> val lab' a = v
   unfold val in OLD_VAL. rewrite OLD_VAL.
   rewrite TEH''.(tr_lab); auto. 
   unfold acts_set. by rewrite RACTS. }
+
+assert (forall r w : actid, (cert_rf G Gsc T S thread) w r ->
+                            val lab' w = val lab' r)
+  as SAME_VAL_RF_CERT.
+{ intros r w HH. destruct HH as [[HH|HH]|HH].
+  2,3: apply SAME_VAL_RF; unfold delta_rf; generalize HH.
+  2,3: clear; basic_solver 10.
+  erewrite !SAME_VAL.
+  2,3: intros [_ AA]; apply AA.
+  3: { eapply dom_rf_D; eauto. eexists; eauto. }
+  2: { generalize HH. clear. basic_solver. }
+  apply wf_rfv; auto. generalize HH. clear. basic_solver. }
 
 assert (forall b (ISSB : issued T b), val lab' b = val Gf.(lab) b) as ISS_OLD.
 { ins. rewrite <- lab_G_eq_lab_Gf.
