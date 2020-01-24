@@ -434,8 +434,12 @@ assert (delta_rf ≡
         <|acts_set G|> ;; delta_rf ;; <|acts_set G \₁ D G T S thread|>)
   as delta_rfE.
 { apply dom_helper_3.
-  admit. }
-(* rewrite DELTA_RF_CERT. rewrite cert_rfE; auto. clear. basic_solver 10. } *)
+  arewrite (delta_rf ⊆ <|acts_set G|> ;; delta_rf ;; <|acts_set G|>).
+  { apply dom_helper_3.
+    rewrite DELTA_RF_CERT. rewrite cert_rfE; eauto.
+    clear. basic_solver. }
+  subst delta_rf. rewrite wf_new_rfE; auto.
+  clear. basic_solver 30. }
 
 assert (delta_rf ≡ <|is_w G.(lab)|> ;; delta_rf ;; <|is_r G.(lab)|>)
   as delta_rfD.
@@ -516,15 +520,9 @@ exploit (@receptiveness_full thread state state'' new_val
   (* eapply new_rf_hb; try edone. *)
   (* hahn_rewrite <- (@sb_in_hb G). *)
   (* basic_solver 12. *)
-{ rewrite AuxRel.set_minus_inter_set_compl.
-  admit. }
-(* unfold new_rfi. *)
-(*   arewrite_id ⦗Tid_ thread⦘; rels. *)
-(*   unfold delta_rf. *)
-(*   rewrite codom_union. *)
-(*   rewrite <- new_rf_mod; try done. *)
-(*   subst G; rewrite E_E0; try edone. *)
-(*   clear. basic_solver 10. } *)
+{ unfold new_rfi. rewrite delta_rfE.
+  subst G; rewrite E_E0; try edone.
+  clear. basic_solver 10. }
 { rewrite TEH''.(tr_acts_set).
 unfold D; subst G; rewrite E_E0; try edone.
 unfolder; ins; desf; splits; eauto.
@@ -616,12 +614,11 @@ assert (delta_rf ≡ new_rfi ∪ new_rfe) as NEWRF_SPLIT.
   split; [|clear; basic_solver].
   cut (codom_rel delta_rf ⊆₁ Tid_ thread).
   { clear. basic_solver 21. }
-  admit. }
-  (* rewrite wf_new_rfE at 1; try done. *)
-  (* unfold D. *)
-  (* unfolder; ins; desf. *)
-  (* destruct (classic (tid x = thread)); [done|]. *)
-  (* exfalso; eapply H4. do 5 left. by right. } *)
+  rewrite delta_rfE at 1; try done.
+  unfold D.
+  unfolder; ins; desf.
+  destruct (classic (tid x = thread)); [done|].
+  exfalso; eapply H4. do 5 left. by right. }
 
 assert (forall r w : actid, delta_rf w r -> val lab' w = val lab' r)
   as SAME_VAL_RF.
