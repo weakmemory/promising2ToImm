@@ -1068,6 +1068,29 @@ Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
   basic_solver 21.
 Qed.
 
+Lemma COMP_RMW_S :
+  dom_rel (Grmw ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
+Proof using WF ETCCOH IMMCON.
+  rewrite (dom_l (wf_rmwE rstWF)).
+  rewrite (dom_l (wf_rmwD rstWF)).
+  unfolder; ins; desf.
+  cdes IMMCON.
+  exploit (Comp x).
+  { split.
+    { apply (sub_E SUB); basic_solver. }
+    apply (sub_R SUB); basic_solver. }
+  unfolder; ins ;desf.
+  cut (E0 x0 /\ E0 x).
+  { basic_solver 12. }
+  split; apply E_E0; [|done].
+  hahn_rewrite rfi_union_rfe in x1; unfolder in x1; desf.
+  { eapply rfi_E. basic_solver 21. }
+  eapply I_in_E. eapply rfe_rmw_S with (T:=mkETC T S); eauto.
+  do 2 eexists. split; eauto.
+  apply seq_eqv_r. split; eauto.
+  generalize H0. basic_solver 21.
+Qed.
+
 Lemma urr_helper: 
   dom_rel ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ rst_sc^? ⨾ Ghb^? ⨾ Grelease ⨾ ⦗I⦘) ⊆₁ C.
 Proof using All.

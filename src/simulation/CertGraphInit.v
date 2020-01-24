@@ -712,32 +712,7 @@ assert (issued T ∪₁ S ∩₁ Tid_ thread ⊆₁ S) as IST_in_S.
 { generalize ETCCOH.(etc_I_in_S). unfold eissued. simpls.
   basic_solver. } 
 
-(* TODO: fix *)
-assert ((cert_rf G Gsc T S thread ⨾ rmw G) ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘ ⊆
-        rf Gf ⨾ rmw Gf) as RFRMW_IST_IN.
-{ admit. }
-  (* intros x y H2. apply seq_eqv_r in H2. *)
-  (* destruct H2 as [H2 ISSZ]. *)
-  (* destruct H2 as [z [RF RMW']]. *)
-  (* exists z. split. *)
-  (* 2: { apply rmw_G_rmw_Gf in RMW'. generalize RMW'. basic_solver. } *)
-  (* destruct RF as [RF|RF]. *)
-  (* { apply seq_eqv_r in RF. destruct RF as [RF _]. *)
-  (*   rewrite H in RF. unfold rstG, restrict in RF. simpls. *)
-  (*   generalize RF. basic_solver. } *)
-  (* exfalso. *)
-  (* apply wf_new_rfE in RF; auto. *)
-  (* apply seq_eqv_l in RF. destruct RF as [_ RF]. *)
-  (* apply seq_eqv_r in RF. destruct RF as [_ [_ RF]]. *)
-  (* apply RF. *)
-  (* apply dom_rppo_S_in_D. exists y.  *)
-  (* apply seq_eqv_r. split; auto. by apply rmw_in_rppo. } *)
-
-assert ((cert_rf G Gsc T S thread ⨾ rmw G) ⨾ ⦗issued T⦘ ⊆ rf Gf ⨾ rmw Gf) as RFRMW_IN.
-{ arewrite (issued T ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread). by rewrite <- seqA. }
-
-assert (issued T ⊆₁ S) as I_in_S.
-{ apply ETCCOH. }
+assert (issued T ⊆₁ S) as I_in_S by apply ETCCOH.
 
 assert (dom_rel (⦗W_ex G ∩₁ (is_xacq (lab G))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆₁ issued T) as XACQ_I.
 { rewrite sub_sb_in; eauto.
@@ -761,6 +736,20 @@ assert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ issued T ⊆₁ W_ex G).
   all: left; right.
   all: exists x; apply seq_eqv_r; split; [|split]; auto.
   eapply inclusion_step_cr; [reflexivity|]. by apply WF.(rmw_in_sb). }
+
+assert (dom_rel (rmw G ⨾ ⦗S⦘) ⊆₁ codom_rel (rf G)) as COMP_RMW_S.
+{ subst G. eapply COMP_RMW_S; eauto. }
+
+assert ((cert_rf G Gsc T S thread ⨾ rmw G) ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘ ⊆
+        rf Gf ⨾ rmw Gf) as RFRMW_IST_IN.
+{ rewrite IST_in_S. rewrite seqA.
+  rewrite cert_rmw_S_in_rf_rmw_S; auto.
+  rewrite sub_rf_in; eauto.
+  rewrite sub_rmw_in; eauto.
+  clear. basic_solver. }
+
+assert ((cert_rf G Gsc T S thread ⨾ rmw G) ⨾ ⦗issued T⦘ ⊆ rf Gf ⨾ rmw Gf) as RFRMW_IN.
+{ arewrite (issued T ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread). by rewrite <- seqA. }
 
 assert (ISTex_rf_I :
           (issued T ∪₁ S ∩₁ Tid_ thread) ∩₁ W_ex G ⊆₁ codom_rel (⦗issued T⦘ ⨾ rf G ⨾ rmw G)).

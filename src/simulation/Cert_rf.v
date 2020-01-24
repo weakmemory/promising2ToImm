@@ -1026,4 +1026,33 @@ Proof using All.
   apply sw_helper_S.
 Qed.
 
+Lemma cert_rmw_S_in_rf_rmw_S
+      (COMP_RMW_S : dom_rel (Grmw ⨾ ⦗S⦘) ⊆₁ codom_rel Grf) :
+  cert_rf ;; Grmw ;; <|S|> ≡ Grf ;; Grmw ;; <|S|>.
+Proof using All.
+  split.
+  2: { rewrite rfi_union_rfe. rewrite !seq_union_l.
+       unionL.
+       { rewrite Grfi_in_cert_rfi.
+         clear. hahn_frame_r. unfold cert_rfi. basic_solver. }
+       arewrite (Grfe ⨾ Grmw ⨾ ⦗S⦘ ⊆ Grfe ⨾ ⦗D⦘ ⨾ Grmw ⨾ ⦗S⦘).
+       { unfold Cert_D.D. clear. basic_solver 20. }
+       rewrite rfe_in_rf. seq_rewrite <- cert_rf_D.
+       clear. hahn_frame_r. unfold cert_rfi. basic_solver. }
+  arewrite (Grmw ⨾ ⦗S⦘ ⊆ <|codom_rel Grf|> ;; Grmw ⨾ ⦗S⦘) at 1
+    by (by apply dom_rel_helper).
+  rewrite rfi_union_rfe at 1. rewrite codom_union, id_union.
+  rewrite !seq_union_l, !seq_union_r. unionL.
+  2: { arewrite (⦗codom_rel Grfe⦘ ⨾ Grmw ⨾ ⦗S⦘ ⊆ ⦗D⦘ ⨾ Grmw ⨾ ⦗S⦘).
+       { unfold Cert_D.D. clear. basic_solver 20. }
+       seq_rewrite cert_rf_D. clear. basic_solver. }
+  arewrite (Grfi ⊆ cert_rf ∩ Grf).
+  2: { unfolder. ins. desf. eexists. splits; eauto.
+       assert (x0 = x); subst; auto.
+       eapply cert_rff; eauto. }
+  apply inclusion_inter_r.
+  2: by apply rfi_in_rf.
+  rewrite Grfi_in_cert_rfi. unfold cert_rfi. clear. basic_solver.
+Qed.
+
 End CertExec_rf.
