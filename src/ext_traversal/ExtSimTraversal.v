@@ -783,6 +783,11 @@ Proof using WF IMMCON.
     rewrite detour_in_sb.
     arewrite (sb ⨾ sb ⊆ sb) by (generalize (@sb_trans G); basic_solver). }
 
+  assert (dom_rel ((detour ∪ rfe) ⨾ rmw ⨾ ⦗reserved T ∪₁ eq e⦘) ⊆₁ issued (etc_TC T))
+    as DRFSBE.
+  { rewrite id_union, !seq_union_r, dom_union. unionL; [by apply ETCCOH|].
+      by rewrite WF.(rmw_in_sb). }
+
   constructor; unfold eissued, ecovered; simpls.
   { red. splits; simpls.
     { etransitivity.
@@ -835,7 +840,7 @@ Proof using WF IMMCON.
     rewrite rt_of_trans.
     all: generalize (@sb_trans G); auto.
     basic_solver 10. }
-  { admit. }
+  { rewrite DRFE_EMP. by unionR left. }
   rewrite !set_inter_union_l. unionL.
   { rewrite ETCCOH.(etc_S_W_ex_rfrmw_I). clear. basic_solver 10. }
   { rewrite <- ISSEQ.
@@ -859,7 +864,7 @@ Proof using WF IMMCON.
     apply dom_rel_helper.
     eapply rfrmw_I_in_I; eauto. }
   unfold dom_sb_S_rfrmw. arewrite (rfi ⊆ rf). basic_solver 10.
-Admitted.
+Qed.
 
 Lemma ext_sim_trav_step_to_step T T' thread
       (TS : ext_isim_trav_step thread T T') :
