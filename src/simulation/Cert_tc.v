@@ -503,10 +503,22 @@ Proof using All.
   { rewrite !seq_union_l, dom_union. unionL.
     2: { rewrite !dom_seq.
          rewrite cert_rfe_eq. eapply dom_cert_rfe_in_I with (G:=G); eauto. }
-    (* rewrite IST_in_S. *)
-    (* rewrite (dom_rel_helper COMP_RMW_S). *)
-    (* rewrite rfi_union_rfe, codom_union. *)
-    admit. }
+    rewrite IST_in_S.
+    rewrite (dom_rel_helper COMP_RMW_S).
+    rewrite rfi_union_rfe, codom_union, id_union.
+    rewrite !seq_union_l, !seq_union_r. rewrite dom_union.
+    unionL.
+    2: { rewrite <- dom_rel_eqv_dom_rel.
+         arewrite (dom_rel (⦗codom_rel Grfe⦘ ⨾ Grmw ⨾ ⦗S⦘) ⊆₁ D).
+         2: { rewrite <- dom_cert_detour_rfe_D.
+              clear. basic_solver 10. }
+         rewrite dom_eqv1. unfold Cert_D.D. by unionR right. }
+    unfold detour.
+    rewrite cert_rfe_eq. rewrite Grfi_in_cert_rfi; eauto.
+    unfold Cert_rf.cert_rfe, Cert_rf.cert_rfi.
+    unfolder. ins. desf.
+    exfalso. assert (z0 = x0); subst; auto.
+    eapply cert_rff with (G:=G); eauto. }
   transitivity (codom_rel (⦗I⦘ ⨾ cert_rf ⨾ Grmw ⨾ ⦗S⦘)).
   2: { clear. basic_solver 10. }
   rewrite cert_rmw_S_in_rf_rmw_S; auto.
