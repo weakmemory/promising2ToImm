@@ -236,6 +236,25 @@ Proof using WF IMMCON.
     arewrite (sb ;; sb ⊆ sb).
     { generalize (@sb_trans G). clear. basic_solver 10. }
     rewrite <- ct_end. apply ct_of_trans. apply sb_trans. }
+
+  assert (forall w,
+             dom_rel ((detour ∪ rfe) ⨾ rmw ⨾ ⦗dom_sb_S_rfrmw G T rfi (eq w)⦘) ≡₁ ∅)
+    as DRFE_EMP1.
+  { ins. split; [|clear; basic_solver].
+    unfold Execution.detour, Execution.rfi, Execution.rfe, dom_sb_S_rfrmw.
+    unfolder. ins. desf. 
+    all: assert (z1 = z) by (eapply WF.(wf_rmw_invf); eauto); subst.
+    { assert (z2 = z0); subst; eauto.
+      eapply WF.(wf_rff); eauto. }
+    assert (x = z0); subst; eauto.
+    eapply WF.(wf_rff); eauto. }
+
+  assert
+  (forall w,
+      dom_rel ((detour ∪ rfe) ⨾ rmw ⨾ ⦗reserved T ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)⦘) ≡₁
+      dom_rel ((detour ∪ rfe) ⨾ rmw ⨾ ⦗reserved T ∪₁ eq w⦘)) as DRFE_EMP.
+  { ins. rewrite id_union. rewrite !seq_union_r. rewrite dom_union.
+      by rewrite DRFE_EMP1, set_union_empty_r. }
   
   assert (forall w (EW : E w), 
              reserved T ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w) ⊆₁ E) as RED.
@@ -436,6 +455,13 @@ Proof using WF IMMCON.
         rewrite (dom_l WF.(wf_detourD)), !seqA.
         rewrite detour_in_sb.
         arewrite (sb ⨾ sb ⊆ sb) by (generalize (@sb_trans G); basic_solver). }
+      
+      assert (dom_rel ((detour ∪ rfe) ⨾ rmw ⨾
+                       ⦗reserved T ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)⦘) ⊆₁
+              issued (etc_TC T) ∪₁ eq w) as AAH.
+      { unionR left. rewrite DRFE_EMP.
+        rewrite id_union, !seq_union_r, dom_union.
+        unionL; [by apply ETCCOH|]. by rewrite WF.(rmw_in_sb). }
 
       assert (sb e w) as SBEW.
       { apply rmw_in_sb; auto. }
@@ -590,9 +616,6 @@ Proof using WF IMMCON.
           rewrite seqA. by apply RESRES. }
         { rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR1.
           rewrite dom_rel_eqv_dom_rel, seqA. by unionR left. }
-        (* { rewrite <- dom_rel_eqv_dom_rel. RR. *)
-        (*   rewrite dom_rel_eqv_dom_rel, seqA. by unionR left. } *)
-        { admit. }
         rewrite !set_inter_union_l. unionL.
         { rewrite ETCCOH.(etc_S_W_ex_rfrmw_I). clear. basic_solver 10. }
         { generalize RFRMW. clear. basic_solver 10. }
@@ -662,7 +685,6 @@ Proof using WF IMMCON.
         rewrite !seqA. by apply RESRES. }
       { rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR1.
         rewrite dom_rel_eqv_dom_rel, seqA. by unionR left. }
-      { admit. }
       rewrite !set_inter_union_l. unionL.
       { rewrite ETCCOH.(etc_S_W_ex_rfrmw_I). clear. basic_solver 10. }
       { generalize RFRMW. clear. basic_solver 10. }
