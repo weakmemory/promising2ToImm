@@ -49,7 +49,7 @@ Lemma cert_graph_init Gf sc T S PC f_to f_from thread
     ⟪ IMMCON : imm_consistent G' sc' ⟫ /\
     ⟪ NTID  : NTid_ thread ∩₁ G'.(acts_set) ⊆₁ covered T' ⟫ /\
     ⟪ SIMREL : simrel_thread G' sc' PC T' S' f_to f_from thread sim_certification ⟫.
-Proof using.
+Proof using All.
 assert (exists G, G = rstG Gf T S thread) by eauto; desc.
 
 assert (WF_SC: wf_sc Gf sc).
@@ -479,6 +479,24 @@ set (get_val (v: option value) :=  match v with | Some v => v | _ => 0 end).
 
 set (new_val := fun r => get_val (val G.(lab) (new_value r))).
 
+assert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ issued T ⊆₁ W_ex G).
+{ arewrite (S ∩₁ Tid_ thread \₁ issued T ⊆₁
+            W_ex Gf ∩₁ S ∩₁ Tid_ thread \₁ issued T).
+  { unfolder. ins. desf. splits; auto.
+    apply ETCCOH.(etc_S_I_in_W_ex). unfold eissued.
+    basic_solver. }
+  unfold W_ex.
+  rewrite (sub_rmw SUB).
+  subst.
+  unfolder. ins. desf.
+  eexists. splits; eauto.
+  all: eapply E_E0; eauto.
+  all: red.
+  all: left; right.
+  all: exists x; apply seq_eqv_r; split; [|split]; auto.
+  eapply inclusion_step_cr; [reflexivity|]. by apply WF.(rmw_in_sb). }
+
+
 exploit (@receptiveness_full thread state state'' new_val
                                new_rfi (E0 Gf T S thread \₁ D G T S thread)); auto.
 { split; [|basic_solver].
@@ -516,10 +534,8 @@ exploit (@receptiveness_full thread state state'' new_val
   2: { unfold sb in Y; unfolder in Y; desf. }
   destruct X; [subst; type_solver|]. 
   exfalso.
-  admit. }
-  (* eapply new_rf_hb; try edone. *)
-  (* hahn_rewrite <- (@sb_in_hb G). *)
-  (* basic_solver 12. *)
+  eapply Cert_coherence.hb_rf_irr with (G:=G); eauto.
+  apply sb_in_hb in H1; unfolder; basic_solver 12. }
 { unfold new_rfi. rewrite delta_rfE.
   subst G; rewrite E_E0; try edone.
   clear. basic_solver 10. }
@@ -743,23 +759,6 @@ assert (dom_rel (⦗W_ex G ∩₁ (is_xacq (lab G))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆
   rewrite sub_xacq; eauto.
   rewrite sub_W_ex_in; eauto.
   apply ETCCOH. }
-
-assert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ issued T ⊆₁ W_ex G).
-{ arewrite (S ∩₁ Tid_ thread \₁ issued T ⊆₁
-            W_ex Gf ∩₁ S ∩₁ Tid_ thread \₁ issued T).
-  { unfolder. ins. desf. splits; auto.
-    apply ETCCOH.(etc_S_I_in_W_ex). unfold eissued.
-    basic_solver. }
-  unfold W_ex.
-  rewrite (sub_rmw SUB).
-  subst.
-  unfolder. ins. desf.
-  eexists. splits; eauto.
-  all: eapply E_E0; eauto.
-  all: red.
-  all: left; right.
-  all: exists x; apply seq_eqv_r; split; [|split]; auto.
-  eapply inclusion_step_cr; [reflexivity|]. by apply WF.(rmw_in_sb). }
 
 assert (dom_rel (rmw G ⨾ ⦗S⦘) ⊆₁ codom_rel (rf G)) as COMP_RMW_S.
 { subst G. eapply COMP_RMW_S; eauto. }
@@ -1140,6 +1139,7 @@ eexists. red. splits.
 { apply STEPS'. }
 { intros HH. inv HH. }
 done.
-Admitted.
+Unshelve. clear; eapply (fun _ => Afence Orel).
+Qed.
 
 End Cert.

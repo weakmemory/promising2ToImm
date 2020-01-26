@@ -397,6 +397,77 @@ Proof using All.
   unfolder. intros HH; ins; desf. splits; auto. apply HH. by split.
 Qed.
 
+Lemma cert_detour_R_Acq' : 
+  dom_rel (Cdetour ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗Acq \₁ C⦘) ⊆₁ I.
+Proof using All.
+  unfold detour.
+  rewrite cert_sb.
+  arewrite ((Ccoe ⨾ Crfe) ∩ Gsb ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗Acq \₁ C⦘ ⊆
+            (Ccoe ⨾ Crfe ⨾ <| dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗Acq⦘)|>) ∩ Gsb⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗Acq \₁ C⦘).
+  { clear; basic_solver 21. }
+
+assert (AA: Crfe ⨾ ⦗dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗Acq⦘)⦘ ⊆ Grfe).
+{ 
+forward (eapply cert_rf_to_rmwrfi_Acq_in_Grf with (G:=G)); eauto.
+unfold rfe, Cert_rf.cert_rfe.
+basic_solver 21. }
+
+
+  rewrite AA.
+
+
+  rewrite (dom_rel_helper Grfe_E) at 1.
+  arewrite (Ccoe ⨾ ⦗I⦘ ⊆ Gcoe).
+{
+  erewrite I_in_cert_co_base with (G:=G).
+  forward (eapply cert_co_I with (G:=G)); eauto.
+  unfold coe. rewrite cert_sb. unfold CertExecution2.certG.
+  clear. simpls.
+  unfolder. intros HH; ins; desf. splits; auto. apply HH. by split. }
+
+rewrite (dom_r WF.(wf_rfiE)).
+rewrite (dom_r (@wf_sbE G)).
+rewrite AuxRel.seq_eqv_inter_rr.
+rewrite !seqA.
+arewrite (⦗E⦘ ⨾ (Grmw ⨾ Grfi ⨾ ⦗E⦘)＊ ⊆(Grmw ⨾ Grfi)＊  ⨾ ⦗E⦘).
+{ rewrite rtE. 
+rewrite <- !seqA.
+rewrite inclusion_ct_seq_eqv_r.
+basic_solver. }
+
+rewrite (dom_r WF.(wf_rfiD)).
+rewrite (dom_r WF.(wf_rfeD)).
+rewrite <- !seqA.
+rewrite seq_eqv_inter_lr.
+rewrite !seqA.
+arewrite (⦗R⦘ ⨾ (Grmw ⨾ Grfi ⨾ ⦗R⦘)＊ ⊆(Grmw ⨾ Grfi)＊  ⨾ ⦗R⦘).
+{ rewrite rtE. 
+rewrite <- !seqA.
+rewrite inclusion_ct_seq_eqv_r.
+basic_solver. }
+
+
+rewrite E_to_S at 1.
+generalize ETC_DR_R_ACQ_I.
+
+arewrite (⦗C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⨾ ⦗Acq \₁ C⦘ ⊆
+⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⨾ ⦗Acq⦘).
+basic_solver 12.
+
+arewrite (⦗R⦘ ⨾ ⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⊆
+⦗R⦘ ⨾ ⦗dom_rel (Gsb ⨾ ⦗S⦘)⦘).
+{ revert S_in_W; clear. unfolder; ins; desf; eauto 10.
+exfalso.
+specialize (H y0 H4).
+type_solver 12. }
+
+clear.
+
+unfold detour.
+basic_solver 21.
+Qed.
+
+
 Lemma cert_ar_int_CI : Car_int ⨾ ⦗dom_rel (Gar_int＊ ⨾ ⦗C ∪₁ I⦘)⦘ ⊆ Gar_int⁺.
 Proof using All.
   unfold ar_int at 1.

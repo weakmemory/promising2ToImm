@@ -459,22 +459,62 @@ Proof using All.
   { rewrite cert_F, cert_AcqRel, cert_sb, IST_in_S; eauto.
     rewrite <- F_in_C. rewrite wf_sbE. clear. basic_solver. }
   { rewrite cert_sb, cert_Acq, cert_R; eauto.
-  admit.
-(*    unfolder. intros x [y [z [DRF [[RZ ACQZ] [SB SS]]]]].
-    assert (exists w, rfe certG w z) as [w CRFE].
-    { destruct DRF as [DRF|]; eauto.
-      clear -DRF.
-      red in DRF. unfolder in DRF. desf.
-      eauto. }
-    set (AA:=CRFE).
-    apply cert_rfe in AA.
-    destruct AA as [RFE|NRFE].
-    2: { exfalso. eapply new_rfe_Acq.
-         apply seq_eqv_r. split; [|split]; eauto.
-         apply seq_eqv_l in NRFE. apply NRFE. }
-    apply seq_eqv_lr in RFE. destruct RFE as [IW [RFE DZ]].
-    eapply dom_cert_detour_rfe_D. basic_solver 10. *)
-    }
+
+
+rewrite seq_union_l, dom_union; unionL.
+2: by rewrite cert_rfe_eq, cert_rfe_alt; eauto; clear; basic_solver. 
+
+
+arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗C⦘ ∪ ⦗Acq \₁ C⦘) at 1.
+    { unfolder. ins. desf. destruct (classic (C y)); eauto. }
+
+rewrite seq_union_l.
+rewrite !seq_union_r, dom_union; unionL.
+{ 
+rewrite (wf_detourD); eauto.
+rewrite cert_W; eauto.
+arewrite_id ⦗CR⦘.
+rewrite rmw_in_sb, rfi_in_sb, detour_in_sb; eauto.
+
+rewrite cert_sb.
+generalize (@sb_trans G); ins; relsf.
+rewrite <- w_covered_issued at 2; eauto.
+seq_rewrite sb_covered; eauto.
+clear; basic_solver 12.
+}
+
+rewrite rtE, ct_end.
+seq_rewrite rt_seq_swap.
+rewrite !seqA.
+
+
+arewrite ((⦗fun _ : actid => True⦘ ∪ Grmw ⨾ (Crfi ⨾ Grmw)＊ ⨾ Crfi)
+     ⨾ ⦗Acq \₁ C⦘ ⊆ (⦗fun _ : actid => True⦘ ∪ Grmw ⨾ (Crfi ⨾ Grmw)＊ ⨾ Crfi ⨾ ⦗Acq⦘ ⨾ ⦗Acq \₁ C⦘)
+     ⨾ ⦗Acq \₁ C⦘).
+basic_solver 21.
+
+rewrite cert_rfi_eq.
+
+forward (eapply cert_rfi_to_Acq_in_Grfi with (G:=G)); eauto.
+intro AA; sin_rewrite AA; clear AA.
+
+
+forward (eapply cert_rfi_Grmw_rt_in_Grfi_Grmw with (G:=G)); eauto.
+intro AA; sin_rewrite AA; clear AA.
+
+    assert (BB: Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⊆ (Grmw ⨾ Grfi)^+).
+    { seq_rewrite <- rt_seq_swap.
+      rewrite !seqA.
+      remember (Grmw ⨾ Grfi) as Y.
+      apply ct_end. }
+
+rewrite BB; clear BB.
+
+rewrite <- rtE.
+
+forward (eapply cert_detour_R_Acq' with (G:=G)); eauto.
+basic_solver 12.
+}
   { rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S; eauto. }
   { unfold dom_sb_S_rfrmw. simpls.
     rewrite cert_sb, cert_W_ex, cert_R_ex; eauto.
@@ -527,6 +567,6 @@ Proof using All.
   apply set_subset_inter_r. split.
   2: { rewrite IST_in_S. clear. basic_solver. }
   rewrite ISTex_rf_I. by rewrite !seqA.
-Admitted.
+Qed.
 
 End CertExec_tc.

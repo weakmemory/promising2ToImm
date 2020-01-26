@@ -296,7 +296,7 @@ apply H6, A; unfolder; ins; desf; splits; eauto.
 Qed.
 
 Lemma hb_sc_irr : irreflexive (Ghb ⨾ sc^?).
-Proof using All.
+Proof using ACYC_EXT WF COH WF_SC.
 case_refl sc; [by apply hb_irr|].
 rewrite (wf_scD WF_SC); rotate 1.
 sin_rewrite (f_sc_hb_f_sc_in_ar WF).
@@ -307,7 +307,7 @@ by apply sc_in_ar.
 Qed.
 
 Lemma set_compl_D_helper : ⦗set_compl D⦘ ⨾ Ghb ⨾ (sc ⨾ Ghb)^? ⊆ Gsb.
-Proof using All.
+Proof using WF hb_sc_hb_de.
 rewrite <- hb_sc_hb_de.
 rewrite (dom_l WF.(wf_hbE)) at 1.
 rewrite !seqA.
@@ -316,13 +316,17 @@ forward (eapply I_in_D with (G:=G) (T:=T) (S:=S) (thread:=thread)); eauto.
 basic_solver 21.
 Qed.
 
+
 Lemma hb_rfe_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Crfe).
-Proof using All.
+Proof using hb_sc_hb_de WF_SC WF TCCOH_rst_new_T S_in_W S_I_in_W_ex ST_in_E
+IT_new_co Grfe_E CSC COH
+ACYC_EXT.
 rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
 relsf; unionL.
 { revert COH CSC; unfold coherence, coh_sc, eco.
-  ie_unfolder. basic_solver 21. }
-{ generalize new_rf_hb. basic_solver 12. }
+  ie_unfolder. clear; basic_solver 21. }
+{ forward (eapply new_rf_hb with (G:=G)); try edone. 
+  clear; basic_solver 12. }
 rotate 1.
 sin_rewrite set_compl_D_helper.
 rewrite AuxRel.immediate_in.
@@ -339,7 +343,24 @@ sin_rewrite WF.(transp_rmw_sb).
       revert COH. unfold coherence, coh_sc, eco, fr.
 rewrite sb_in_hb.
 generalize WF.(co_irr).
-      basic_solver 21.
+clear; basic_solver 21.
+Qed.
+
+Lemma hb_rf_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Crf).
+Proof using hb_sc_hb_de WF_SC WF TCCOH_rst_new_T S_in_W S_I_in_W_ex ST_in_E
+IT_new_co Grfe_E CSC COH
+ACYC_EXT.
+rewrite cert_rf_eq.
+rewrite cert_rfi_union_cert_rfe.
+relsf; unionL.
+{ arewrite (cert_rfi ⊆ Gsb).
+  rotate 2.
+rewrite sb_in_hb.
+generalize (@hb_trans G).
+generalize (hb_sc_irr).
+clear.
+ basic_solver 12. }
+apply hb_rfe_irr.
 Qed.
 
 Lemma hb_co_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cco).

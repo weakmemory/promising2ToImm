@@ -463,19 +463,20 @@ Proof. basic_solver 21. Qed.
 Lemma cert_rfe_alt : cert_rfe ≡ ⦗I⦘ ⨾ Grfe ⨾ ⦗D⦘ 
    ∪ ⦗I⦘ ⨾ (new_rf \ Gsb) ⨾ ⦗set_compl (dom_rel Grmw)⦘
    ∪ ⦗I⦘ ⨾ (immediate cert_co ⨾  Grmw⁻¹ \ Gsb) ⨾ ⦗set_compl D⦘.
-Proof using All.
+Proof using WF_SC WF TCCOH_rst_new_T S_in_W S_I_in_W_ex 
+  ST_in_E IT_new_co Grfe_E CSC COH ACYC_EXT.
   unfold Execution.rfe, cert_rfe, cert_rf.
-  split; [|basic_solver 21].
+  split; [|clear; basic_solver 21].
   rewrite !minus_union_l; unionL.
-  { generalize Grfe_E; ie_unfolder; basic_solver 21. }
+  { generalize Grfe_E; ie_unfolder; clear; basic_solver 21. }
   { rewrite wf_new_rfE at 1; try edone.
     arewrite (⦗E⦘ ⊆ ⦗E ∩₁ I⦘ ∪ ⦗E \₁ I⦘) at 1.
     { unfolder; ins; desf; tauto. }
     relsf; rewrite minus_union_l; unionL.
-    basic_solver 21.
+    clear; basic_solver 21.
     rewrite <- seqA.
     rewrite (non_I_new_rf); try edone.
-    basic_solver 21. }
+    clear; basic_solver 21. }
   unionR right.
   rewrite <- !seqA. rewrite minus_eqv_r.
   rewrite !seqA.
@@ -485,7 +486,7 @@ Proof using All.
   rewrite transp_seq, transp_eqv_rel.
   rewrite <- seqA, minus_eqv_r, !seqA.
   arewrite (⦗E⦘ ⨾ ⦗set_compl D⦘ ⊆ ⦗Tid_ thread⦘ ⨾ ⦗E⦘ ⨾ ⦗set_compl D⦘).
-  { generalize (@E_minus_D_in_tid G T S thread). basic_solver 21. }
+  { generalize (@E_minus_D_in_tid G T S thread). clear; basic_solver 21. }
   arewrite (cert_co ⊆ <| E ∩₁ W |> ;; cert_co).
   { rewrite wf_cert_coD at 1; try edone.
     rewrite wf_cert_coE at 1; try edone.
@@ -497,19 +498,22 @@ Proof using All.
   rewrite <- IT_new_co at 1.
   rewrite !id_union, !seq_union_l, !seq_eqv, !minus_union_l, !seq_union_l, !dom_union; unionL.
   { clear. basic_solver. }
-  2: basic_solver.
+  2: clear; basic_solver.
   rewrite wf_cert_coD at 1; try edone.
   rewrite WF.(wf_rmwD) at 1.
+forward (eapply transp_rmw_sb); try edone; intro AA.
+forward (eapply cert_co_irr); try edone; intro BB.
+forward (eapply cert_co_sb_irr); try edone; intro CC.
+clear - AA BB CC WF.
   unfolder; ins; desf; exfalso.
   assert (A: (y = z \/ Gsb y z) \/ Gsb z y).
   { eapply (@tid_n_init_sb G). basic_solver. }
   desf.
   { type_solver. }
   assert (B: z1 = z \/ Gsb z1 z).
-  { eapply transp_rmw_sb; basic_solver. }
-  desf.
-  { by eapply cert_co_irr; try edone. }
-  eapply cert_co_sb_irr; try edone; basic_solver.
+  { eapply AA; basic_solver. }
+  desf; eauto.
+  eapply CC. basic_solver.
 Qed.
 
 Lemma cert_rfe_D : cert_rfe ⨾ ⦗D⦘ ⊆ ⦗I⦘ ⨾ Grfe.
@@ -1054,5 +1058,19 @@ Proof using All.
   2: by apply rfi_in_rf.
   rewrite Grfi_in_cert_rfi. unfold cert_rfi. clear. basic_solver.
 Qed.
+
+(*
+Lemma cert_rf_sb: irreflexive (cert_rf ⨾ Ghb).
+Proof using WF WF_SC CSC COH ACYC_EXT.
+unfold cert_rf; relsf; unionL.
+{ revert COH; unfold coherence.
+rewrite rf_in_eco.
+unfold  rfe; clear.
+ basic_solver 12. }
+{ rewrite new_rf_in_furr.
+forward (eapply furr_hb_sc_hb_irr); try edone.
+basic_solver 12. }
+SearchAbout cert_co.
+Qed.*)
 
 End CertExec_rf.
