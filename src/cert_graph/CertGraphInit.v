@@ -13,6 +13,7 @@ From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution ProgToExecutionProperties.
+From imm Require Import Receptiveness.
 
 Require Import Cert_views.
 Require Import Cert_rf.
@@ -30,7 +31,6 @@ Require Import ExtTraversalConfig.
 Require Import CertExecution1.
 Require Import ImmProperties.
 Require Import ExtTraversalProperties.
-Require Import Receptiveness.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
