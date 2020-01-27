@@ -136,7 +136,7 @@ Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ th
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
-Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ;; Grmw ;; <|S|>) ⊆₁ I.
+Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ⨾ Grmw ⨾ ⦗S⦘) ⊆₁ I.
 Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 
@@ -144,7 +144,7 @@ Hypothesis F_in_C : E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
 
 Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 
-Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
+Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 
@@ -397,7 +397,7 @@ Qed.
 (******************************************************************************)
 
 Definition cert_rf := Grf ⨾ ⦗D⦘ ∪ new_rf ⨾ ⦗set_compl (dom_rel Grmw)⦘
-                          ∪ immediate cert_co ;; Grmw⁻¹ ⨾ ⦗set_compl D⦘.
+                          ∪ immediate cert_co ⨾ Grmw⁻¹ ⨾ ⦗set_compl D⦘.
 Definition cert_rfe := cert_rf \ Gsb.
 Definition cert_rfi := cert_rf ∩ Gsb.
 
@@ -457,7 +457,7 @@ Proof using IT_new_co ST_in_E S_in_W WF WF_SC.
 Qed.
 
 (* TODO: move to AuxRel *)
-Lemma minus_eqv_r {A: Type} (r r': relation A) (s : A -> Prop) : r ;; <| s |> \ r' ≡ (r \ r') ;; <| s |>.
+Lemma minus_eqv_r {A: Type} (r r': relation A) (s : A -> Prop) : r ⨾ ⦗ s ⦘ \ r' ≡ (r \ r') ⨾ ⦗ s ⦘.
 Proof. basic_solver 21. Qed.
 
 Lemma cert_rfe_alt : cert_rfe ≡ ⦗I⦘ ⨾ Grfe ⨾ ⦗D⦘ 
@@ -487,11 +487,11 @@ Proof using WF_SC WF TCCOH_rst_new_T S_in_W S_I_in_W_ex
   rewrite <- seqA, minus_eqv_r, !seqA.
   arewrite (⦗E⦘ ⨾ ⦗set_compl D⦘ ⊆ ⦗Tid_ thread⦘ ⨾ ⦗E⦘ ⨾ ⦗set_compl D⦘).
   { generalize (@E_minus_D_in_tid G T S thread). clear; basic_solver 21. }
-  arewrite (cert_co ⊆ <| E ∩₁ W |> ;; cert_co).
+  arewrite (cert_co ⊆ ⦗ E ∩₁ W ⦘ ⨾ cert_co).
   { rewrite wf_cert_coD at 1; try edone.
     rewrite wf_cert_coE at 1; try edone.
     clear; basic_solver. }
-  arewrite (⦗E ∩₁ W⦘ ⊆ ⦗E ∩₁ W⦘ ;; ⦗set_compl Init⦘ ∪ ⦗Init ∩₁ E⦘).
+  arewrite (⦗E ∩₁ W⦘ ⊆ ⦗E ∩₁ W⦘ ⨾ ⦗set_compl Init⦘ ∪ ⦗Init ∩₁ E⦘).
   { unfolder; ins; desf.
     destruct (classic (is_init y)); eauto. }
   rewrite init_issued; try edone.
@@ -530,7 +530,7 @@ Proof using WF WF_SC.
   all: clear; basic_solver 20.
 Qed.
 
-Lemma dom_rf_D_helper: Grf ⨾ ⦗D⦘ ≡ ⦗D⦘ ;; Grf ⨾ ⦗D⦘.
+Lemma dom_rf_D_helper: Grf ⨾ ⦗D⦘ ≡ ⦗D⦘ ⨾ Grf ⨾ ⦗D⦘.
 Proof using Grfe_E TCCOH WF.
   forward (eapply dom_rf_D with (T:=T) (S:=S) (thread:=thread)); try edone.
   basic_solver 12.
@@ -572,8 +572,8 @@ Proof using All.
   arewrite (Grfi ⨾ ⦗set_compl D⦘ ⊆ Gsb ∩ (Grfi ⨾ ⦗set_compl D⦘)).
   { clear; unfold rfi. basic_solver. }
   arewrite (⦗set_compl D⦘ ⊆ 
-            ⦗set_compl D⦘ ;; ⦗set_compl (dom_rel Grmw)⦘ ∪
-            ⦗set_compl D⦘ ;; ⦗dom_rel Grmw⦘).
+            ⦗set_compl D⦘ ⨾ ⦗set_compl (dom_rel Grmw)⦘ ∪
+            ⦗set_compl D⦘ ⨾ ⦗dom_rel Grmw⦘).
   { clear. unfolder. ins. desf. tauto. }
   rewrite !seq_union_r. rewrite inter_union_r. unionL.
   { sin_rewrite Grfi_nD_in_new_rf. 
@@ -597,7 +597,7 @@ Proof using All.
        clear. basic_solver. }
   unfolder. intros x y [[z [RFI [ND RMW]]] CCO].
   split; auto. ins.
-  assert ((Gco ;; <|cert_co_base G T|>) c y) as CC'.
+  assert ((Gco ⨾ ⦗cert_co_base G T⦘) c y) as CC'.
   { eapply cert_co_I; eauto. 
     unfold cert_co_base. unfold W_ex. basic_solver. }
   eapply atomicity_alt; eauto.
@@ -622,7 +622,7 @@ Proof using WF.
   basic_solver 21.
 Qed.
 
-Lemma cert_rf_in_furr : cert_rf ;; ⦗set_compl (dom_rel Grmw)⦘ ⊆ Gfurr.
+Lemma cert_rf_in_furr : cert_rf ⨾ ⦗set_compl (dom_rel Grmw)⦘ ⊆ Gfurr.
 Proof using WF.
   unfold cert_rf.
   rewrite new_rf_in_furr.
@@ -631,7 +631,7 @@ Proof using WF.
   exfalso; eauto.
 Qed.
 
-Lemma Grfe_in_inv_Gco_cr_cert_rf : Grfe ⊆ (Gco^{-1})^? ;; cert_rf.
+Lemma Grfe_in_inv_Gco_cr_cert_rf : Grfe ⊆ (Gco^{-1})^? ⨾ cert_rf.
 Proof using All.
   arewrite (Grfe ⊆ Grfe ⨾ ⦗D ∪₁ set_compl D⦘).
   { clear; unfolder; ins; desf; tauto. }
@@ -639,10 +639,10 @@ Proof using All.
   { arewrite (Grfe ⊆ Grf).
     rewrite <- cert_rf_D. 
     basic_solver. }
-  arewrite (⦗set_compl D⦘ ⊆ (⦗set_compl D⦘ ;; ⦗set_compl (dom_rel Grmw)⦘ ∪ ⦗set_compl D⦘ ;; ⦗(dom_rel Grmw)⦘)).
+  arewrite (⦗set_compl D⦘ ⊆ (⦗set_compl D⦘ ⨾ ⦗set_compl (dom_rel Grmw)⦘ ∪ ⦗set_compl D⦘ ⨾ ⦗(dom_rel Grmw)⦘)).
   { clear. unfolder. ins. desf. tauto. }
   rewrite !seq_union_r. unionL.
-  {   arewrite (Grfe ⨾ ⦗set_compl D⦘ ⨾ ⦗set_compl (dom_rel Grmw)⦘ ⊆ ((Gco ∪ Gco^{-1})^? ;; cert_rf) ∩ Grfe ⨾ ⦗set_compl (dom_rel Grmw)⦘).
+  {   arewrite (Grfe ⨾ ⦗set_compl D⦘ ⨾ ⦗set_compl (dom_rel Grmw)⦘ ⊆ ((Gco ∪ Gco^{-1})^? ⨾ cert_rf) ∩ Grfe ⨾ ⦗set_compl (dom_rel Grmw)⦘).
   { rewrite WF.(wf_rfeE).
     rewrite WF.(wf_rfeD).
     unfolder; ins; desf.
@@ -721,7 +721,7 @@ Proof using All.
   unfold fr in *; unfolder; splits; eauto 10.
 Qed.
 
-Lemma I_Grfe_in_inv_Gco_cr_cert_rf : Grfe ⊆ (cert_co ∩ Gco^{-1})^? ;; cert_rf.
+Lemma I_Grfe_in_inv_Gco_cr_cert_rf : Grfe ⊆ (cert_co ∩ Gco^{-1})^? ⨾ cert_rf.
 Proof using All.
   rewrite (dom_rel_helper Grfe_E).
   arewrite (Grfe ⊆ Grfe ⨾ ⦗D ∪₁ set_compl D⦘).
@@ -741,7 +741,7 @@ Proof using All.
   2: { basic_solver 21. }
 
   transitivity (fun _ _ : actid => False); [|basic_solver].
-  arewrite (⦗set_compl D⦘ ⊆ (⦗set_compl D⦘ ;; ⦗set_compl (dom_rel Grmw)⦘ ∪ ⦗set_compl D⦘ ;; ⦗(dom_rel Grmw)⦘)).
+  arewrite (⦗set_compl D⦘ ⊆ (⦗set_compl D⦘ ⨾ ⦗set_compl (dom_rel Grmw)⦘ ∪ ⦗set_compl D⦘ ⨾ ⦗(dom_rel Grmw)⦘)).
   { clear. unfolder. ins. desf. tauto. }
   rewrite !seq_union_r. unionL.
 
@@ -784,7 +784,7 @@ Proof using All.
   basic_solver 12.
 Qed.
 
-Lemma Grf_to_Acq_S_in_cert_rf : Grf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) |> ⊆ cert_rf.
+Lemma Grf_to_Acq_S_in_cert_rf : Grf ⨾ ⦗ dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⦘ ⊆ cert_rf.
 Proof using All.
   rewrite rfi_union_rfe at 1. rewrite seq_union_l. unionL.
   { rewrite Grfi_in_cert_rfi. arewrite (cert_rfi ⊆ cert_rf). clear. basic_solver. }
@@ -800,7 +800,7 @@ Proof using All.
   rewrite seq_union_l, !inter_union_l, !seq_union_l; unionL.
   { basic_solver. }
   transitivity (fun _ _ : actid => False); [|basic_solver].
-  arewrite (cert_co ∩ Gco⁻¹ ⊆ cert_co ∩ Gco⁻¹ ;; <|set_compl I|>).
+  arewrite (cert_co ∩ Gco⁻¹ ⊆ cert_co ∩ Gco⁻¹ ⨾ ⦗set_compl I⦘).
   { cut (codom_rel (cert_co ∩ Gco⁻¹) ⊆₁ set_compl I).
     basic_solver 21.
     rewrite cert_co_alt'; try edone. unfolder; ins; desf; eauto.
@@ -811,7 +811,7 @@ Proof using All.
   seq_rewrite <- seq_eqv_inter_lr.
   rewrite !seqA.
   arewrite (⦗E⦘ ⨾ ⦗set_compl I⦘ ⨾ cert_rf ⨾ ⦗set_compl D⦘ ⊆ ⦗set_compl I⦘ ⨾ Gsb).
-  { arewrite (⦗set_compl I⦘ ⊆ ⦗set_compl I⦘ ;; ⦗set_compl I⦘) by (clear; basic_solver).
+  { arewrite (⦗set_compl I⦘ ⊆ ⦗set_compl I⦘ ⨾ ⦗set_compl I⦘) by (clear; basic_solver).
     sin_rewrite non_I_cert_rf. clear. basic_solver. }
   rewrite coi_union_coe, transp_union, inter_union_r; relsf.
   rewrite inter_union_l; relsf.
@@ -820,7 +820,7 @@ Proof using All.
   rewrite (dom_l (@wf_sbE G)) at 1.
   arewrite (⦗set_compl I⦘ ⨾ ⦗E⦘ ⊆ ⦗set_compl Init⦘).
   { generalize init_issued; basic_solver 21. }
-  arewrite (⦗set_compl Init⦘ ⊆ ⦗set_compl Init⦘ ;; ⦗set_compl Init⦘).
+  arewrite (⦗set_compl Init⦘ ⊆ ⦗set_compl Init⦘ ⨾ ⦗set_compl Init⦘).
   { basic_solver. }
   arewrite (Gcoi ⊆ Gsb).
   rewrite ninit_sb_same_tid.
@@ -835,7 +835,7 @@ Proof using All.
   basic_solver 21.
 Qed.
 
-Lemma cert_rfi_to_Grfe_in_Gdetour : cert_rfi ;; <| codom_rel Grfe |> ⊆ Gdetour.
+Lemma cert_rfi_to_Grfe_in_Gdetour : cert_rfi ⨾ ⦗ codom_rel Grfe ⦘ ⊆ Gdetour.
 Proof using All.
   arewrite (Grfe ⊆ Grfe ∩ Grfe).
   rewrite I_Grfe_in_inv_Gco_cr_cert_rf at 1.
@@ -851,10 +851,10 @@ Proof using All.
   basic_solver.
 Qed.
 
-Lemma cert_rf_to_Acq_S_in_Grf : cert_rf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) |> ⊆ Grf.
+Lemma cert_rf_to_Acq_S_in_Grf : cert_rf ⨾ ⦗ dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⦘ ⊆ Grf.
 Proof using All.
   remember (dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘)) as X.
-  arewrite (cert_rf ⨾ ⦗X⦘ ⊆ cert_rf ⨾ <| codom_rel Grf |> ⨾ ⦗X⦘).
+  arewrite (cert_rf ⨾ ⦗X⦘ ⊆ cert_rf ⨾ ⦗ codom_rel Grf ⦘ ⨾ ⦗X⦘).
   { subst X.  rewrite (dom_l (@wf_sbE G)), !seqA.
     arewrite (⦗R ∩₁ Acq⦘ ⨾ ⦗E⦘ ⊆ ⦗E ∩₁ R ∩₁ Acq⦘) by basic_solver.
     generalize COMP_R_ACQ_SB.
@@ -866,7 +866,7 @@ Proof using All.
   apply seq_eqv_r. by splits.
 Qed.
 
-Lemma cert_rf_to_Acq_nC_in_Grf : cert_rf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗E∩₁R∩₁Acq \₁ C⦘) |> ⊆ Grf.
+Lemma cert_rf_to_Acq_nC_in_Grf : cert_rf ⨾ ⦗ dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E∩₁R∩₁Acq \₁ C⦘) ⦘ ⊆ Grf.
 Proof using All.
   arewrite (E∩₁R∩₁Acq \₁ C ⊆₁ R∩₁Acq ∩₁ dom_rel (Gsb ⨾ ⦗S⦘)).
   2: { rewrite id_inter. rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel.
@@ -876,7 +876,7 @@ Proof using All.
   clear. type_solver 20.
 Qed.
 
-Lemma cert_rf_to_rmwrfi_Acq_in_Grf : cert_rf ;; <| dom_rel ((Grmw ⨾ Grfi)^* ⨾ ⦗Acq⦘) |> ⊆ Grf.
+Lemma cert_rf_to_rmwrfi_Acq_in_Grf : cert_rf ⨾ ⦗ dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗Acq⦘) ⦘ ⊆ Grf.
 Proof using All.
 arewrite (⦗Acq⦘ ⊆ ⦗E∩₁R∩₁Acq \₁ C⦘ ∪ ⦗set_compl E ∪₁ set_compl R ∪₁ C⦘).
 { unfolder; ins; desf. clear. splits; eauto. 
@@ -944,7 +944,7 @@ Proof using All.
     ins. unfolder. ins. desf; splits; eauto.
     exfalso. apply S_in_W in H5. type_solver 10. }
   arewrite (Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⨾ ⦗dom_rel (Gsb ⨾ ⦗S⦘)⦘ ⨾ ⦗Acq⦘ ⊆
-            ⦗dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘)⦘ ;; Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi).
+            ⦗dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘)⦘ ⨾ Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi).
   2: { hahn_frame.
        unfold cert_rfi, rfi.
        generalize cert_rf_to_Acq_S_in_Grf. basic_solver 20. }
@@ -961,10 +961,10 @@ Lemma cert_rfi_Grmw_rt_in_Grfi_Grmw :
     (cert_rfi ⨾ Grmw)＊ ⨾ Grfi ⨾ ⦗Acq \₁ C⦘ ⊆
     (Grfi ⨾ Grmw)＊ ⨾ Grfi.
 Proof using All.
-  eapply rt_ind_left with (P:=fun r=> r ;; Grfi ;; ⦗Acq \₁ C⦘); eauto with hahn.
+  eapply rt_ind_left with (P:=fun r=> r ⨾ Grfi ⨾ ⦗Acq \₁ C⦘); eauto with hahn.
   { rewrite rtE. basic_solver 12. }
   intros k H.
-  arewrite (⦗Acq \₁ C⦘ ⊆ ⦗Acq \₁ C⦘ ;; ⦗Acq \₁ C⦘) by (clear; basic_solver).
+  arewrite (⦗Acq \₁ C⦘ ⊆ ⦗Acq \₁ C⦘ ⨾ ⦗Acq \₁ C⦘) by (clear; basic_solver).
   sin_rewrite H. rewrite !seqA.
   rewrite cert_rfi_Grmw_in_Grfi_Grmw.
   rewrite <- !seqA. rewrite <- ct_begin. by rewrite inclusion_t_rt.
@@ -1032,7 +1032,7 @@ Qed.
 
 Lemma cert_rmw_S_in_rf_rmw_S
       (COMP_RMW_S : dom_rel (Grmw ⨾ ⦗S⦘) ⊆₁ codom_rel Grf) :
-  cert_rf ;; Grmw ;; <|S|> ≡ Grf ;; Grmw ;; <|S|>.
+  cert_rf ⨾ Grmw ⨾ ⦗S⦘ ≡ Grf ⨾ Grmw ⨾ ⦗S⦘.
 Proof using All.
   split.
   2: { rewrite rfi_union_rfe. rewrite !seq_union_l.
@@ -1043,7 +1043,7 @@ Proof using All.
        { unfold Cert_D.D. clear. basic_solver 20. }
        rewrite rfe_in_rf. seq_rewrite <- cert_rf_D.
        clear. hahn_frame_r. unfold cert_rfi. basic_solver. }
-  arewrite (Grmw ⨾ ⦗S⦘ ⊆ <|codom_rel Grf|> ;; Grmw ⨾ ⦗S⦘) at 1
+  arewrite (Grmw ⨾ ⦗S⦘ ⊆ ⦗codom_rel Grf⦘ ⨾ Grmw ⨾ ⦗S⦘) at 1
     by (by apply dom_rel_helper).
   rewrite rfi_union_rfe at 1. rewrite codom_union, id_union.
   rewrite !seq_union_l, !seq_union_r. unionL.

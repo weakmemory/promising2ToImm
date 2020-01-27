@@ -128,7 +128,7 @@ Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ th
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
-Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ;; Grmw ;; <|S|>) ⊆₁ I.
+Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ⨾ Grmw ⨾ ⦗S⦘) ⊆₁ I.
 Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 
@@ -136,7 +136,7 @@ Hypothesis F_in_C : E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
 
 Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 
-Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
+Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 (* Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf. *)
 
@@ -299,7 +299,7 @@ COMP_ACQ.
   rewrite set_inter_union_r. unionL.
   { rewrite <- C_in_D. clear. basic_solver. }
   rewrite <- dom_eqv1.
-  arewrite (⦗S⦘ ⊆ ⦗W⦘ ;; ⦗S⦘).
+  arewrite (⦗S⦘ ⊆ ⦗W⦘ ⨾ ⦗S⦘).
   { rewrite <- S_in_W. clear. basic_solver. }
   rewrite crE. rewrite seq_union_l, seq_union_r, dom_union. unionL.
   { type_solver. }
@@ -332,7 +332,7 @@ Proof using All.
     arewrite (Grfi ⊆ Gsb) at 1.
     rewrite WF.(ppo_in_sb) at 1.
     rewrite I_in_S.
-    arewrite (⦗S⦘ ⊆ ⦗S⦘ ;; ⦗W⦘) at 1.
+    arewrite (⦗S⦘ ⊆ ⦗S⦘ ⨾ ⦗W⦘) at 1.
     by generalize S_in_W; basic_solver.
     unfold rppo.
     generalize (@sb_trans G); basic_solver 21. }
@@ -341,7 +341,7 @@ Proof using All.
     rewrite WF.(data_in_sb) at 1.
     rewrite WF.(rmw_in_sb) at 1.
     rewrite WF.(rppo_in_sb) at 1.
-    arewrite (⦗S⦘ ⊆ ⦗S⦘ ;; ⦗W⦘) at 1.
+    arewrite (⦗S⦘ ⊆ ⦗S⦘ ⨾ ⦗W⦘) at 1.
     by generalize S_in_W; basic_solver.
     unfold rppo.
     arewrite ((Gsb ∪ Gsb ∪ Gsb)＊ ⊆ Gsb^?).
@@ -626,9 +626,9 @@ Proof using All.
   generalize RELCOV. clear. basic_solver 10.
 Qed.
 
-Lemma dom_ar_int_D : dom_rel (Gar_int^+ ⨾ ⦗I⦘) ⊆₁ D ∪₁ R ∩₁ Acq.
+Lemma dom_ar_int_D : dom_rel (Gar_int⁺ ⨾ ⦗I⦘) ⊆₁ D ∪₁ R ∩₁ Acq.
 Proof using All.
-  arewrite (Gar_int^+ ⊆ <|R ∪₁ W ∪₁ F ∩₁ Acq/Rel|> ;; Gar_int^+).
+  arewrite (Gar_int⁺ ⊆ ⦗R ∪₁ W ∪₁ F ∩₁ Acq/Rel⦘ ⨾ Gar_int⁺).
   { admit. }
   rewrite !id_union, !seq_union_l, !dom_union. unionL.
   3: { rewrite WF.(ar_int_in_sb). rewrite ct_of_trans; [|by apply sb_trans].
@@ -639,7 +639,7 @@ Proof using All.
   { clear. unfolder. ins. tauto. }
   rewrite !id_union, !seq_union_l, !dom_union. unionL.
   { clear. basic_solver. }
-  arewrite (Gar_int ⊆ Gar_int ;; <|R ∪₁ W|> ∪ Gar_int ;; <|F∩₁ Acq/Rel|>).
+  arewrite (Gar_int ⊆ Gar_int ⨾ ⦗R ∪₁ W⦘ ∪ Gar_int ⨾ ⦗F∩₁ Acq/Rel⦘).
   { admit. } (* clear. type_solver. } *)
   rewrite path_ut_first. rewrite seq_union_l, seq_union_r, dom_union.
   unionL.
@@ -653,7 +653,7 @@ Proof using All.
   unionL.
   { rewrite ct_end. rewrite issuedW; eauto. clear. type_solver. }
   arewrite (Gar_int ⨾ ⦗R⦘ ∪ Gar_int ⨾ ⦗W⦘ ⊆ Gar_int).
-  arewrite (⦗W⦘ ⨾ Gar_int＊ ⨾ ⦗I⦘ ⊆ ⦗I⦘ ;; ⦗W⦘ ⨾ Gar_int＊ ⨾ ⦗I⦘).
+  arewrite (⦗W⦘ ⨾ Gar_int＊ ⨾ ⦗I⦘ ⊆ ⦗I⦘ ⨾ ⦗W⦘ ⨾ Gar_int＊ ⨾ ⦗I⦘).
   { apply dom_rel_helper.
     rewrite ar_int_in_ar. eby apply ar_rt_I_in_I. }
   rewrite <- !seqA. do 3 rewrite dom_seq. rewrite !seqA.
@@ -670,7 +670,7 @@ Proof using All.
   unfold bob, fwbob. clear. type_solver 10.
 Admitted.
 
-Lemma dom_ar_int_rt_CI_D : dom_rel (Gar_int^* ⨾ ⦗C ∪₁ I⦘) ⊆₁ D ∪₁ R ∩₁ Acq.
+Lemma dom_ar_int_rt_CI_D : dom_rel (Gar_int＊ ⨾ ⦗C ∪₁ I⦘) ⊆₁ D ∪₁ R ∩₁ Acq.
 Proof using All.
   rewrite id_union, seq_union_r, dom_union. unionL.
   2: { rewrite rtE. generalize I_in_D, dom_ar_int_D. clear.

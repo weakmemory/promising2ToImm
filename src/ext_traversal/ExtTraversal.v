@@ -186,7 +186,7 @@ Lemma dom_sb_new_reserved e :
            dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw)⦘) ≡₁
   dom_rel (sb ⨾ ⦗reserved T ∪₁ eq e⦘).
 Proof using WF ETCCOH.
-  assert (sb ≡ <| fun _ => True |> ;; sb) as AA by basic_solver.
+  assert (sb ≡ ⦗ fun _ => True ⦘ ⨾ sb) as AA by basic_solver.
   rewrite AA at 1 3.
   rewrite !seqA. by apply dom_r_sb_new_reserved.
 Qed.
@@ -692,9 +692,9 @@ Proof using WF.
   unfold dom_sb_S_rfrmw.
   arewrite (rfi ⊆ sb).
   rewrite WF.(rmw_in_sb).
-  arewrite (sb ;; sb ⊆ sb).
+  arewrite (sb ⨾ sb ⊆ sb).
   { generalize (@sb_trans G). basic_solver. }
-  arewrite (<|eq w|> ⊆ <|eq w|> ;; <| set_compl is_init |>).
+  arewrite (⦗eq w⦘ ⊆ ⦗eq w⦘ ⨾ ⦗ set_compl is_init ⦘).
   { basic_solver. }
   rewrite ninit_sb_same_tid.
   basic_solver.

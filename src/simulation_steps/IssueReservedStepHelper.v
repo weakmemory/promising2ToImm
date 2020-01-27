@@ -173,9 +173,9 @@ Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
             Memory.add memory_cancel locw (f_from w) (f_to w)
                        (Message.full valw (Some rel')) memory_add ⟫ /\
 
-        << INHAB : Memory.inhabited memory_add >> /\
-        << RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add >> /\
-        << RELVCLOS : Memory.closed_view rel' memory_add >> /\
+        ⟪ INHAB : Memory.inhabited memory_add ⟫ /\
+        ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add ⟫ /\
+        ⟪ RELVCLOS : Memory.closed_view rel' memory_add ⟫ /\
 
         ⟪ FCOH : f_to_coherent G S' f_to f_from ⟫ /\
 
@@ -186,7 +186,7 @@ Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
                                (Message.full valw (Some rel')) promises'
             else promises' = promises_add ⟫ /\
 
-        << NEW_PROM_IN_MEM : Memory.le promises' memory_add >> /\
+        ⟪ NEW_PROM_IN_MEM : Memory.le promises' memory_add ⟫ /\
 
         ⟪ HELPER :
             sim_mem_helper
@@ -478,7 +478,7 @@ Proof using All.
       exfalso.
       assert (E b) as EB by (eapply issuedE; eauto).
       assert (W b) as WB by (eapply issuedW; eauto).
-      assert ((<|E|> ;; same_tid ;; <|E|>) w b) as ST.
+      assert ((⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘) w b) as ST.
       { apply seq_eqv_lr. by splits. }
       apply tid_sb in ST. destruct ST as [[[|ST]|ST]|[AI BI]]; subst; auto.
       3: { apply NCOVBB. eapply init_covered; eauto. by split. }
@@ -539,7 +539,7 @@ Proof using All.
   { eapply issuedE; eauto. }
   assert (W b) as WB.
   { eapply issuedW; eauto. }
-  assert ((<|E|> ;; same_tid ;; <|E|>) b w) as HH.
+  assert ((⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘) b w) as HH.
   { apply seq_eqv_lr. splits; auto. }
   apply tid_sb in HH. destruct HH as [[[HH|HH]|HH]|[AA BB]]; subst; auto.
   3: { apply NCOV. eapply init_covered; eauto. by split. }
@@ -573,10 +573,10 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
   let f_to'    := upd (upd f_to w n_to) wnext (f_to w) in
   let f_from'  := upd f_from wnext n_to in
 
-  << REQ_TO : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e >> /\
-  << REQ_FROM : forall e  (SE : S e) (NEQ : e <> w), f_from' e = f_from e >> /\
-  << ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e >> /\
-  << ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e >> /\
+  ⟪ REQ_TO : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e ⟫ /\
+  ⟪ REQ_FROM : forall e  (SE : S e) (NEQ : e <> w), f_from' e = f_from e ⟫ /\
+  ⟪ ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
+  ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
 
   exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC w locw p_rel /\
     let rel'' :=
@@ -598,9 +598,9 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
           Memory.split memory locw (f_from' w) (f_to' w) (f_to' wnext)
                        (Message.full valw (Some rel')) Message.reserve memory_split ⟫ /\
 
-      << INHAB : Memory.inhabited memory_split >> /\
-      << RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_split >> /\
-      << RELVCLOS : Memory.closed_view rel' memory_split >> /\
+      ⟪ INHAB : Memory.inhabited memory_split ⟫ /\
+      ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_split ⟫ /\
+      ⟪ RELVCLOS : Memory.closed_view rel' memory_split ⟫ /\
 
       ⟪ FCOH : f_to_coherent G S' f_to' f_from' ⟫ /\
 
@@ -623,7 +623,7 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
                                (Message.full valw (Some rel')) promises'
             else promises' = promises_split ⟫ /\
 
-        << NEW_PROM_IN_MEM : Memory.le promises' memory_split >> /\
+        ⟪ NEW_PROM_IN_MEM : Memory.le promises' memory_split ⟫ /\
 
         let tview' := if is_rel lab w
                       then TView.write_tview
@@ -1042,7 +1042,7 @@ Proof using All.
     exfalso.
     assert (E b) as EB by (eapply issuedE; eauto).
     assert (W b) as WB by (eapply issuedW; eauto).
-    assert ((<|E|> ;; same_tid ;; <|E|>) w b) as ST.
+    assert ((⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘) w b) as ST.
     { apply seq_eqv_lr. by splits. }
     apply tid_sb in ST. destruct ST as [[[|ST]|ST]|[AI BI]]; subst; auto.
     { assert (issuable G sc T b) as IB by (eapply issued_in_issuable; eauto).
@@ -1141,7 +1141,7 @@ Proof using All.
   { eapply issuedE; eauto. }
   assert (W b) as WB.
   { eapply issuedW; eauto. }
-  assert ((<|E|> ;; same_tid ;; <|E|>) b w) as HH.
+  assert ((⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘) b w) as HH.
   { apply seq_eqv_lr. splits; auto. }
   apply tid_sb in HH. destruct HH as [[[HH|HH]|HH]|[AA BB]]; subst; auto.
   2: { apply NCOVB. eapply dom_W_Rel_sb_loc_I_in_C; eauto.

@@ -921,7 +921,7 @@ Proof.
   intros HH. by split; red; ins; apply HH.
 Qed.
 
-Lemma minus_eqv_r : r ;; <| s |> \ r' ≡ (r \ r') ;; <| s |>.
+Lemma minus_eqv_r : r ⨾ ⦗ s ⦘ \ r' ≡ (r \ r') ⨾ ⦗ s ⦘.
 Proof.
 basic_solver 21.
 Qed.

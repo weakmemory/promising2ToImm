@@ -423,7 +423,7 @@ assert (dom_rel
 
 set (delta_rf :=
        (new_rf G Gsc T S thread) ⨾ ⦗set_compl (dom_rel G.(rmw))⦘ ∪
-       immediate (cert_co G T thread) ;; G.(rmw)⁻¹ ⨾ ⦗set_compl (D G T S thread)⦘).
+       immediate (cert_co G T thread) ⨾ G.(rmw)⁻¹ ⨾ ⦗set_compl (D G T S thread)⦘).
 set (new_rfi := ⦗  Tid_ thread ⦘ ⨾ delta_rf ⨾ ⦗ Tid_ thread ⦘).
 set (new_rfe := ⦗ NTid_ thread ⦘ ⨾ delta_rf ⨾ ⦗ Tid_ thread ⦘).
 
@@ -431,17 +431,17 @@ assert (delta_rf ⊆ cert_rf G Gsc T S thread) as DELTA_RF_CERT.
 { unfold delta_rf, cert_rf; clear. basic_solver 20. }
 
 assert (delta_rf ≡
-        <|acts_set G|> ;; delta_rf ;; <|acts_set G \₁ D G T S thread|>)
+        ⦗acts_set G⦘ ⨾ delta_rf ⨾ ⦗acts_set G \₁ D G T S thread⦘)
   as delta_rfE.
 { apply dom_helper_3.
-  arewrite (delta_rf ⊆ <|acts_set G|> ;; delta_rf ;; <|acts_set G|>).
+  arewrite (delta_rf ⊆ ⦗acts_set G⦘ ⨾ delta_rf ⨾ ⦗acts_set G⦘).
   { apply dom_helper_3.
     rewrite DELTA_RF_CERT. rewrite cert_rfE; eauto.
     clear. basic_solver. }
   subst delta_rf. rewrite wf_new_rfE; auto.
   clear. basic_solver 30. }
 
-assert (delta_rf ≡ <|is_w G.(lab)|> ;; delta_rf ;; <|is_r G.(lab)|>)
+assert (delta_rf ≡ ⦗is_w G.(lab)⦘ ⨾ delta_rf ⨾ ⦗is_r G.(lab)⦘)
   as delta_rfD.
 { apply dom_helper_3.
   rewrite DELTA_RF_CERT. rewrite cert_rfD; auto. clear. basic_solver 10. }
@@ -1075,7 +1075,7 @@ all: eauto.
     assert (G.(rmw) z b).
     apply rmw_G_rmw_Gf; basic_solver 12.
     exists z; splits; [|done].
-    cut ((cert_rf G Gsc T S thread ;; <|D G T S thread|>) p z).
+    cut ((cert_rf G Gsc T S thread ⨾ ⦗D G T S thread⦘) p z).
     { clear. basic_solver. }
     apply cert_rf_D; auto. apply seq_eqv_r. split; auto.
     { subst G. unfold rstG. unfold restrict. ins.

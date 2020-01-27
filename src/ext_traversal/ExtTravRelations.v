@@ -84,7 +84,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 (** **   *)
 (******************************************************************************)
 
-Definition rppo := (ctrl ∪ addr ⨾ sb^? ∪ rmw_dep ;; sb
+Definition rppo := (ctrl ∪ addr ⨾ sb^? ∪ rmw_dep ⨾ sb
                          ∪ ⦗R_ex⦘ ⨾ sb) ⨾ ⦗ W ⦘.
 
 Lemma wf_rppoE : rppo ≡ ⦗E⦘ ⨾ rppo ⨾ ⦗E⦘.
@@ -139,7 +139,7 @@ Proof using WF.
   rewrite (dom_l WF.(wf_addrD)) at 1.
   (* rewrite (dom_l WF.(wf_rmwD)) at 1. rewrite R_ex_in_R at 1. *)
   rewrite (dom_l WF.(wf_rmw_depD)) at 1.
-  arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ;; ⦗R_ex⦘).
+  arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ⨾ ⦗R_ex⦘).
   { type_solver. }
   rewrite <- !seq_union_r.
   hahn_frame.
@@ -227,7 +227,7 @@ End RPPO.
 
 Lemma sub_rppo_in G G' sc sc'
       (SUB : sub_execution G G' sc sc')
-      (RMWCLOS : codom_rel (<|G'.(acts_set)|> ;; G.(rmw)) ⊆₁ G'.(acts_set)) :
+      (RMWCLOS : codom_rel (⦗G'.(acts_set)⦘ ⨾ G.(rmw)) ⊆₁ G'.(acts_set)) :
   rppo G' ⊆ rppo G.
 Proof using.
   unfold rppo.

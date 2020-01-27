@@ -98,7 +98,7 @@ Lemma same_thread_modify_for_step thread x y
 Proof using. ins. inv STEP; simpls. by rewrite IdentMap.add_add_eq. Qed.
 
 Lemma same_thread_modify_for_steps thread x y
-      (STEP : (plain_step MachineEvent.silent thread)^* x y) :
+      (STEP : (plain_step MachineEvent.silent thread)＊ x y) :
   forall tt, IdentMap.add thread tt y.(Configuration.threads) =
              IdentMap.add thread tt x.(Configuration.threads).
 Proof using.
@@ -108,7 +108,7 @@ Proof using.
 Qed.
 
 Lemma plain_step_seq_plain_step_in_plain_step thread :
-  plain_step MachineEvent.silent thread ;; plain_step MachineEvent.silent thread ⊆
+  plain_step MachineEvent.silent thread ⨾ plain_step MachineEvent.silent thread ⊆
              plain_step MachineEvent.silent thread.
 Proof using.
   intros x z [y [AA BB]].
@@ -146,7 +146,7 @@ Lemma same_other_threads_step thread label PC PC'
 Proof using. destruct PCSTEP. simpls. rewrite IdentMap.gso; auto. Qed.
 
 Lemma same_other_threads_steps thread label PC PC' 
-      (PCSTEPS : (plain_step label thread)^+ PC PC')
+      (PCSTEPS : (plain_step label thread)⁺ PC PC')
       thread' (TNEQ : thread' <> thread) langst local :
   IdentMap.find thread' PC .(Configuration.threads) = Some (langst , local) <->
   IdentMap.find thread' PC'.(Configuration.threads) = Some (langst, local).
@@ -169,7 +169,7 @@ Lemma simrel_thread_local_step thread PC PC' T S T' S' label f_to f_from
       (SOT    : forall thread' (TNEQ : thread' <> thread) langst local,
           IdentMap.find thread' PC .(Configuration.threads) = Some (langst, local) <->
           IdentMap.find thread' PC'.(Configuration.threads) = Some (langst, local))
-      (PCSTEP : (plain_step label thread)^+ PC PC')
+      (PCSTEP : (plain_step label thread)⁺ PC PC')
       (CLOSED_PRES :
          closedness_preserved PC.(Configuration.memory) PC'.(Configuration.memory))
       (MSG_PRES :
@@ -339,7 +339,7 @@ Lemma full_simrel_step thread PC PC' T S T' S' label f_to f_from
       (SOT    : forall thread' (TNEQ : thread' <> thread) langst local,
           IdentMap.find thread' PC .(Configuration.threads) = Some (langst, local) <->
           IdentMap.find thread' PC'.(Configuration.threads) = Some (langst, local))
-      (PCSTEP : (plain_step label thread)^+ PC PC')
+      (PCSTEP : (plain_step label thread)⁺ PC PC')
       (CLOSED_PRES :
          closedness_preserved PC.(Configuration.memory) PC'.(Configuration.memory))
       (MSG_PRES :

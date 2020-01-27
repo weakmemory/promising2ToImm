@@ -96,7 +96,7 @@ Lemma plain_sim_step thread PC T S f_to f_from T' S' smode
       (TCSTEP : ext_isim_trav_step G sc thread (mkETC T S) (mkETC T' S'))
       (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : (plain_step MachineEvent.silent thread)^* PC PC' ⟫ /\
+      ⟪ PSTEP : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
       ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
       ⟪ SIMREL :
           smode = sim_normal -> simrel G sc PC T S f_to f_from ->

@@ -541,10 +541,10 @@ Proof using WF ETCCOH.
 Qed.
 
 Lemma rfe_rmwrfi_rt_Acq_E :
-  dom_rel (Frfe ;; (Frmw ;; Frfi)^* ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
+  dom_rel (Frfe ⨾ (Frmw ⨾ Frfi)＊ ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
 Proof using WF ETCCOH.
   clear RELCOV.
-  arewrite (Frfe ⨾ (Frmw ⨾ Frfi)＊ ⊆ (Frfe ⨾ (Frmw ⨾ Frfi)＊) ;; <|R|>).
+  arewrite (Frfe ⨾ (Frmw ⨾ Frfi)＊ ⊆ (Frfe ⨾ (Frmw ⨾ Frfi)＊) ⨾ ⦗R⦘).
   { apply AuxRel2.codom_rel_helper.
     rewrite (dom_r WF.(wf_rfiD)), (dom_r WF.(wf_rfeD)).
     rewrite rtE. rewrite <- !seqA.
@@ -586,7 +586,7 @@ Proof using WF ETCCOH.
 Qed.
 
 Lemma rfe_Grmwrfi_rt_Acq_E :
-  dom_rel (Frfe ;; (Grmw ;; Grfi)^* ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
+  dom_rel (Frfe ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
 Proof using WF ETCCOH.
   rewrite (sub_rfi_in SUB).
   rewrite (sub_rmw_in SUB).
@@ -1185,13 +1185,13 @@ Proof using All.
   rewrite (sub_rmw_in SUB).
   rewrite (sub_Acq SUB).
   arewrite (NTid_ thread ∩₁ I ⊆₁ I) by basic_solver. 
-  arewrite (Frmw ⨾ (Frfi ⨾ Frmw)＊ ⊆ Frmw ⨾ (Frfi ⨾ Frmw)＊ ;; <|FW_ex|>).
+  arewrite (Frmw ⨾ (Frfi ⨾ Frmw)＊ ⊆ Frmw ⨾ (Frfi ⨾ Frmw)＊ ⨾ ⦗FW_ex⦘).
   { rewrite <- !seqA. apply codom_rel_helper.
     rewrite rmw_W_ex. rewrite rtE. rewrite <- !seqA.
     rewrite inclusion_ct_seq_eqv_r. basic_solver. }
-  arewrite (⦗FW_ex⦘ ⊆ ⦗FW⦘ ;; ⦗FW_ex⦘).
+  arewrite (⦗FW_ex⦘ ⊆ ⦗FW⦘ ⨾ ⦗FW_ex⦘).
   { generalize WF.(W_ex_in_W). basic_solver. }
-  arewrite (Frmw ⨾ (Frfi ⨾ Frmw)＊ ;; ⦗W⦘ ⊆ Fppo).
+  arewrite (Frmw ⨾ (Frfi ⨾ Frmw)＊ ⨾ ⦗W⦘ ⊆ Fppo).
   { rewrite (dom_l WF.(wf_rmwD)) at 1.
     rewrite seqA. unfold ppo. hahn_frame.
     rewrite ct_begin. apply seq_mori; [eauto with hahn|].
@@ -1218,7 +1218,7 @@ Proof using All.
   unfold sw.
   rewrite crE, !seq_union_l, !seq_union_r, seq_id_l, !seqA.
   unionL.
-  2: { arewrite (Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ⊆ <|C|> ;; Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘).
+  2: { arewrite (Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ⊆ ⦗C⦘ ⨾ Gsb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘).
        { apply dom_rel_helper. rewrite (dom_r (@wf_sbE rstG)), !seqA.
          rewrite <- !id_inter.
          arewrite (E ∩₁ (F ∩₁ Acq) ⊆₁ E ∩₁ F ∩₁ Acq/Rel) by mode_solver.

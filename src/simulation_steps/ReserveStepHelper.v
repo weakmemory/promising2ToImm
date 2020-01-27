@@ -253,7 +253,7 @@ Proof using All.
   { ins. eapply sc_view_f_issued with (f_to:=f_to); eauto. }
   { eapply Memory.add_closed_timemap; eauto. }
   { apply Memory.promise_add; eauto; ins.
-    assert (codom_rel (<|issued T|> ;; rf ;; rmw) w) as [b HH].
+    assert (codom_rel (⦗issued T⦘ ⨾ rf ⨾ rmw) w) as [b HH].
     { eapply etc_S_W_ex_rfrmw_I with (T:=mkETC T (S ∪₁ eq w)).
       { apply TSTEP. }
       split; [by right|].

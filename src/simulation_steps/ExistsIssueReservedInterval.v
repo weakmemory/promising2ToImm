@@ -342,7 +342,7 @@ Qed.
 Lemma le_cur_f_to_wprev w locw wprev
       (WNISS : ~ issued T w)
       (SW : S w)
-      (PRMWE : (rf ;; rmw) wprev w)
+      (PRMWE : (rf ⨾ rmw) wprev w)
       (LOC : loc lab w = Some locw)
       (WTID : thread = tid w) :
   let promises := local.(Local.promises) in
@@ -433,7 +433,7 @@ Qed.
 Lemma le_p_rel_f_to_wprev w locw wprev p_rel
       (WNISS : ~ issued T w)
       (SW : S w)
-      (PRMWE : (rf ;; rmw) wprev w)
+      (PRMWE : (rf ⨾ rmw) wprev w)
       (LOC : loc lab w = Some locw)
       (WTID : thread = tid w)
       (PRELSPEC : rfrmw_prev_rel w locw p_rel) :
@@ -532,7 +532,7 @@ Lemma exists_time_interval_for_issue_reserved_no_next
     in
     let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
                            (View.singleton_ur locw (f_to w))) in
-    << RELWFEQ : View.pln rel' = View.rlx rel' >> /\
+    ⟪ RELWFEQ : View.pln rel' = View.rlx rel' ⟫ /\
     ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to w) ⟫ /\
     ⟪ REL_VIEW_LE : Time.le (View.rlx rel' locw) (f_to w) ⟫ /\
 
@@ -553,9 +553,9 @@ Lemma exists_time_interval_for_issue_reserved_no_next
             Memory.add memory_cancel locw (f_from w) (f_to w)
                        (Message.full valw (Some rel')) memory_add ⟫ /\
 
-        << INHAB : Memory.inhabited memory_add >> /\
-        << RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add >> /\
-        << RELVCLOS : Memory.closed_view rel' memory_add >> /\
+        ⟪ INHAB : Memory.inhabited memory_add ⟫ /\
+        ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add ⟫ /\
+        ⟪ RELVCLOS : Memory.closed_view rel' memory_add ⟫ /\
 
         ⟪ FCOH : f_to_coherent G S' f_to f_from ⟫ /\
 
@@ -846,7 +846,7 @@ Lemma exists_time_interval_for_issue_reserved_with_next
     in
     let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
                            (View.singleton_ur locw (f_to' w))) in
-    << RELWFEQ : View.pln rel' = View.rlx rel' >> /\
+    ⟪ RELWFEQ : View.pln rel' = View.rlx rel' ⟫ /\
     ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
     ⟪ REL_VIEW_LE : Time.le (View.rlx rel'  locw) (f_to' w) ⟫ /\
 
@@ -858,9 +858,9 @@ Lemma exists_time_interval_for_issue_reserved_with_next
           Memory.split memory locw (f_from' w) (f_to' w) (f_to' wnext)
                        (Message.full valw (Some rel')) Message.reserve memory_split ⟫ /\
 
-      << INHAB : Memory.inhabited memory_split >> /\
-      << RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_split >> /\
-      << RELVCLOS : Memory.closed_view rel' memory_split >> /\
+      ⟪ INHAB : Memory.inhabited memory_split ⟫ /\
+      ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_split ⟫ /\
+      ⟪ RELVCLOS : Memory.closed_view rel' memory_split ⟫ /\
 
       ⟪ FCOH : f_to_coherent G S' f_to' f_from' ⟫ /\
 

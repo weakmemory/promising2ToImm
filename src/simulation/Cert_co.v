@@ -269,7 +269,7 @@ Lemma cert_co_for_split :
   ⦗set_compl (GW_ex ∪₁ (I ∪₁ S ∩₁ Tid_ thread))⦘ ⨾ (immediate cert_co) ⊆ Gsb.
 Proof using WF S_in_W S_I_in_W_ex ST_in_E IT_new_co COH.
   arewrite (immediate cert_co ⊆
-            <|cert_co_base ∪₁ set_compl cert_co_base|> ;; immediate cert_co).
+            ⦗cert_co_base ∪₁ set_compl cert_co_base⦘ ⨾ immediate cert_co).
   { rewrite AuxRel.set_compl_union_id. unfold set_full. by rewrite seq_id_l. }
   rewrite id_union, seq_union_l, seq_union_r. unionL.
   2: { rewrite cert_co_for_split_helper. clear. basic_solver. }
@@ -353,14 +353,14 @@ Proof using WF S_in_W ST_in_E S IT_new_co.
   exfalso. by apply ICOXZ with (c:=y).
 Qed.
 
-Lemma cert_co_sb_irr : irreflexive (cert_co ;; Gsb).
+Lemma cert_co_sb_irr : irreflexive (cert_co ⨾ Gsb).
 Proof using WF COH TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co.
   rewrite cert_co_alt at 1.
   relsf; unionL.
   1-2: rewrite co_in_eco, sb_in_hb; 
        revert COH; unfold coherence; basic_solver 21.
   rewrite !seqA.
-  arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘ ⊆ ⦗Tid_ thread⦘ ;; ⦗set_compl Init⦘).
+  arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘ ⊆ ⦗Tid_ thread⦘ ⨾ ⦗set_compl Init⦘).
   { unfold cert_co_base. 
     generalize (init_issued WF TCCOH).
     basic_solver 21. }
@@ -399,7 +399,7 @@ eapply tot_ex.
 unfold is_init in *; desf.
 Qed.
 
-Lemma transp_cert_co_imm_cert_co : (immediate cert_co)⁻¹ ;; cert_co  ⊆ cert_co^?.
+Lemma transp_cert_co_imm_cert_co : (immediate cert_co)⁻¹ ⨾ cert_co  ⊆ cert_co^?.
 Proof using WF S_in_W ST_in_E S IT_new_co.
 rewrite wf_cert_coE at 2.
 rewrite wf_cert_coD at 2.
@@ -420,7 +420,7 @@ unfolder; splits; eauto.
 congruence.
 Qed.
 
-Lemma transp_cert_co_imm_cert_co' : cert_co⁻¹ ;; immediate cert_co  ⊆ cert_co⁻¹^?.
+Lemma transp_cert_co_imm_cert_co' : cert_co⁻¹ ⨾ immediate cert_co  ⊆ cert_co⁻¹^?.
 Proof using WF S_in_W ST_in_E S IT_new_co.
 apply inclusion_transpE.
 rewrite transp_seq, transp_cr.

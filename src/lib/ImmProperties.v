@@ -167,7 +167,7 @@ Proof using WF.
   exfalso. by apply ICOXZ with (c:=y).
 Qed.
 
-Lemma wf_immcoPtf P : functional (immediate (<|P|> ;; co))⁻¹.
+Lemma wf_immcoPtf P : functional (immediate (⦗P⦘ ⨾ co))⁻¹.
 Proof using WF.
   intros x y z ICOXY ICOXZ. red in ICOXY. red in ICOXZ.
   assert (co y x /\ P y) as [COXY PY].
@@ -297,8 +297,8 @@ Proof using WF.
 Qed.
 
 Lemma rfrmwP_in_immPco P P'
-    (DRES : dom_rel (rf ;; rmw ;; <|P'|>) ⊆₁ P) :
-  rf ;; rmw ;; <|P'|> ⊆ immediate (⦗P⦘ ⨾ co).
+    (DRES : dom_rel (rf ⨾ rmw ⨾ ⦗P'⦘) ⊆₁ P) :
+  rf ⨾ rmw ⨾ ⦗P'⦘ ⊆ immediate (⦗P⦘ ⨾ co).
 Proof using WF CON.
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply CON. }
@@ -325,7 +325,7 @@ Proof using WF.
 Qed.
 
 Lemma rfrmw_in_eco (SPL : sc_per_loc G) (COMP : complete G) :
-  rf ;; rmw ⊆ eco.
+  rf ⨾ rmw ⊆ eco.
 Proof using WF.
   rewrite rf_in_eco. rewrite rmw_in_fr; auto.
   rewrite fr_in_eco.
@@ -333,7 +333,7 @@ Proof using WF.
 Qed.
 
 Lemma rfrmw_sb_irr : 
-  irreflexive (rf ;; rmw ;; sb).
+  irreflexive (rf ⨾ rmw ⨾ sb).
 Proof using WF CON.
   arewrite (rf ⨾ rmw ⊆ eco).
   { apply rfrmw_in_eco; auto.
@@ -386,7 +386,7 @@ Proof using WF.
 Qed.
 
 Lemma ppo_helper : ppo ⊆
- ⦗R⦘ ⨾ (data ∪ ctrl ∪ addr ⨾ sb^? ∪ rfi ∪ rmw ∪ rmw_dep ⨾ sb^?)^* ⨾  
+ ⦗R⦘ ⨾ (data ∪ ctrl ∪ addr ⨾ sb^? ∪ rfi ∪ rmw ∪ rmw_dep ⨾ sb^?)＊ ⨾  
    (⦗R_ex⦘ ⨾ sb)^?⨾ ⦗W⦘.
 Proof using WF.
 unfold imm_s_ppo.ppo.
@@ -406,7 +406,7 @@ arewrite_id ⦗R_ex⦘ at 2.
 generalize (@sb_trans G); ins; relsf.
 Qed.
 
-Lemma rmwrf_ct_Acq_in_ar_rfrmw_ct : (rmw ⨾ rf)⁺ ⨾ ⦗Acq⦘ ⊆ (ar G sc ∪ rf ;; rmw)⁺.
+Lemma rmwrf_ct_Acq_in_ar_rfrmw_ct : (rmw ⨾ rf)⁺ ⨾ ⦗Acq⦘ ⊆ (ar G sc ∪ rf ⨾ rmw)⁺.
 Proof using WF.
   rewrite rmw_W_ex at 1. rewrite !seqA.
   rewrite clos_trans_rotl, !seqA.
@@ -425,7 +425,7 @@ Proof using WF.
   apply ct_ct.
 Qed.
 
-Lemma rmwrf_rt_Acq_in_ar_rfrmw_rt : (rmw ⨾ rf)^* ⨾ ⦗Acq⦘ ⊆ (ar G sc ∪ rf ;; rmw)^*.
+Lemma rmwrf_rt_Acq_in_ar_rfrmw_rt : (rmw ⨾ rf)＊ ⨾ ⦗Acq⦘ ⊆ (ar G sc ∪ rf ⨾ rmw)＊.
 Proof using WF.
   rewrite !rtE, seq_union_l. rewrite rmwrf_ct_Acq_in_ar_rfrmw_ct. basic_solver.
 Qed.

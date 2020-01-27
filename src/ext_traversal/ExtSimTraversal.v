@@ -233,7 +233,7 @@ Proof using WF IMMCON.
   assert ((rmw ⨾ rfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⊆ sb) as RMWRFI_ACQ_SB.
   { arewrite_id ⦗R ∩₁ Acq⦘. rewrite seq_id_l.
     arewrite (rfi ⊆ sb). rewrite WF.(rmw_in_sb).
-    arewrite (sb ;; sb ⊆ sb).
+    arewrite (sb ⨾ sb ⊆ sb).
     { generalize (@sb_trans G). clear. basic_solver 10. }
     rewrite <- ct_end. apply ct_of_trans. apply sb_trans. }
 
@@ -262,8 +262,8 @@ Proof using WF IMMCON.
     generalize EW. clear. basic_solver. }
 
   assert (forall w,
-             dom_rel (sb ;; <|reserved T ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)|>) ≡₁
-             dom_rel (sb ;; <|reserved T ∪₁ eq w|>)) as RR.
+             dom_rel (sb ⨾ ⦗reserved T ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)⦘) ≡₁
+             dom_rel (sb ⨾ ⦗reserved T ∪₁ eq w⦘)) as RR.
   { ins. split; [|basic_solver 10].
     rewrite !id_union, !seq_union_r, !dom_union.
     unionL.
@@ -272,14 +272,14 @@ Proof using WF IMMCON.
     clear. basic_solver 10. }
 
   assert (forall w, 
-             dom_rel (rppo G ;; <|reserved T ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)|>) ≡₁
-             dom_rel (rppo G ;; <|reserved T ∪₁ eq w|>)) as RR1.
+             dom_rel (rppo G ⨾ ⦗reserved T ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)⦘) ≡₁
+             dom_rel (rppo G ⨾ ⦗reserved T ∪₁ eq w⦘)) as RR1.
   { split; [|basic_solver 10].
     rewrite !id_union, !seq_union_r, !dom_union.
     unionL.
     1,2: basic_solver.
     unfold dom_sb_S_rfrmw. generalize WF.(rppo_sb_in_rppo).
-    arewrite (⦗reserved T⦘ ⊆ ⦗W⦘ ;; ⦗reserved T⦘) at 1.
+    arewrite (⦗reserved T⦘ ⊆ ⦗W⦘ ⨾ ⦗reserved T⦘) at 1.
     { generalize (reservedW WF ETCCOH). clear. basic_solver. }
     clear. basic_solver 10. }
 
@@ -313,13 +313,13 @@ Proof using WF IMMCON.
     split; [|clear; basic_solver].
     rewrite !seqA.
     arewrite_id ⦗W_ex⦘. rewrite seq_id_l.
-    arewrite (⦗reserved T⦘ ⊆ ⦗W⦘ ;; ⦗reserved T⦘).
+    arewrite (⦗reserved T⦘ ⊆ ⦗W⦘ ⨾ ⦗reserved T⦘).
     { generalize (reservedW WF ETCCOH). basic_solver. }
     rewrite WF.(rmw_in_sb).
-    arewrite (sb ;; sb ⊆ sb).
+    arewrite (sb ⨾ sb ⊆ sb).
     { generalize (@sb_trans G). clear. basic_solver. }
     sin_rewrite R_ex_sb_W_in_rppo.
-    arewrite (rfe ⨾ rppo G ⨾ ⦗reserved T⦘ ⊆ <|eissued T|> ;; rfe ⨾ rppo G ⨾ ⦗reserved T⦘).
+    arewrite (rfe ⨾ rppo G ⨾ ⦗reserved T⦘ ⊆ ⦗eissued T⦘ ⨾ rfe ⨾ rppo G ⨾ ⦗reserved T⦘).
     2: { generalize NISS. clear. basic_solver. }
     apply dom_rel_helper_in.
     eapply dom_rfe_rppo_S_in_I; eauto. }
@@ -511,7 +511,7 @@ Proof using WF IMMCON.
         eexists. apply seq_eqv_r. split; eauto.
         apply COVEQ. by right. }
 
-      assert (dom_sb_S_rfrmw G (mkETC (etc_TC T) (reserved T ∪₁ eq w)) (rf ;; <|R_ex|>)
+      assert (dom_sb_S_rfrmw G (mkETC (etc_TC T) (reserved T ∪₁ eq w)) (rf ⨾ ⦗R_ex⦘)
                              (issued (etc_TC T)) ⊆₁ reserved T ∪₁ eq w) as DD.
       { unfold dom_sb_S_rfrmw. simpls.
         rewrite id_union, !seq_union_r, dom_union.
@@ -844,7 +844,7 @@ Proof using WF IMMCON.
   rewrite !set_inter_union_l. unionL.
   { rewrite ETCCOH.(etc_S_W_ex_rfrmw_I). clear. basic_solver 10. }
   { rewrite <- ISSEQ.
-    arewrite (eq e ∩₁ W_ex ⊆₁ codom_rel (rf ⨾ rmw ;; <|eissued T'|>)).
+    arewrite (eq e ∩₁ W_ex ⊆₁ codom_rel (rf ⨾ rmw ⨾ ⦗eissued T'⦘)).
     { intros x [AA [e' WEX]]; subst.
       rename e' into e. rename x into w.
       cdes IMMCON. red in Comp. specialize (Comp e).

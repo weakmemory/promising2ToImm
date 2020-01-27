@@ -93,9 +93,9 @@ Lemma f_to_coherent_add_S_middle memory local w wprev wnext n_to n_from
                  ⟪ PRFRMW : (rf ⨾ rmw) wprev w ⟫) \/
                 (n_from = Time.middle (f_to wprev) n_to /\
                  ⟪ NPRFRMW : ~ (rf ⨾ rmw) wprev w ⟫)) :
-  << FCOH' : f_to_coherent G (S ∪₁ eq w) (upd f_to w n_to) (upd f_from w n_from) >> /\
-  << INTLE : Interval.le (n_from, n_to) (f_to wprev, f_from wnext) >> /\
-  << NFROMTOLT : Time.lt n_from n_to >>.
+  ⟪ FCOH' : f_to_coherent G (S ∪₁ eq w) (upd f_to w n_to) (upd f_from w n_from) ⟫ /\
+  ⟪ INTLE : Interval.le (n_from, n_to) (f_to wprev, f_from wnext) ⟫ /\
+  ⟪ NFROMTOLT : Time.lt n_from n_to ⟫.
 Proof using WF IMMCON ETCCOH FCOH.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   assert (S ⊆₁ E) as SinE by apply ETCCOH.
@@ -234,13 +234,13 @@ Lemma f_to_coherent_add_S_after locw memory local w wprev n_from
                  ⟪ PRFRMW : (rf ⨾ rmw) wprev w ⟫) \/
                 (n_from = Time.incr (Memory.max_ts locw memory) /\
                  ⟪ NPRFRMW : ~ (rf ⨾ rmw) wprev w ⟫)) :
-  (* << FCOH' : *)
+  (* ⟪ FCOH' : *)
     f_to_coherent
       G (S ∪₁ eq w)
       (upd f_to w (Time.incr (Time.incr (Memory.max_ts locw memory))))
       (upd f_from w n_from).
-(* >> /\ *)
-(*   << NFROMTOLT : Time.lt n_from n_to >>. *)
+(* ⟫ /\ *)
+(*   ⟪ NFROMTOLT : Time.lt n_from n_to ⟫. *)
 Proof using WF IMMCON ETCCOH FCOH.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   assert (S ⊆₁ E) as SinE by apply ETCCOH.

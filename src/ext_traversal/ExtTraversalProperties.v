@@ -179,7 +179,7 @@ Qed.
 (*   (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊)⁺ ⨾ sb^? ⨾ ⦗S⦘ ⊆  *)
 (*   ⦗I⦘ ⨾ (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊)⁺ ⨾ sb^? ⨾ ⦗S⦘. *)
 (* Proof using WF ETCCOH. *)
-(*   apply ct_ind_left with (P:= fun r => r ⨾ sb^? ;; ⦗S⦘). *)
+(*   apply ct_ind_left with (P:= fun r => r ⨾ sb^? ⨾ ⦗S⦘). *)
 (*   { by eauto with hahn. } *)
 (*   { rewrite !seqA. *)
 (*     cut (dom_rel (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊ ⨾  sb^? ⨾ ⦗S⦘)  ⊆₁ I). *)
@@ -239,10 +239,10 @@ arewrite (rmw ⨾ rfi ⨾ (rmw ⨾ rfi)＊ ⊆ (rmw ⨾ rfi)＊).
   basic_solver 21. }
 rewrite (dom_r WF.(wf_rfeD)), !seqA.
 rewrite (dom_r WF.(wf_rfiD)).
-arewrite (⦗R⦘ ⨾ (rmw ⨾ rfi ⨾ ⦗R⦘)＊ ⊆ (rmw ⨾ rfi)＊ ;; ⦗R⦘).
+arewrite (⦗R⦘ ⨾ (rmw ⨾ rfi ⨾ ⦗R⦘)＊ ⊆ (rmw ⨾ rfi)＊ ⨾ ⦗R⦘).
 { rewrite !rtE, <- !seqA, inclusion_ct_seq_eqv_r.
   basic_solver. }
-arewrite (⦗S⦘ ⊆ ⦗S⦘ ;; ⦗W⦘).
+arewrite (⦗S⦘ ⊆ ⦗S⦘ ⨾ ⦗W⦘).
 { forward (eapply reservedW); eauto.
   basic_solver. }
 arewrite (⦗R⦘ ⨾ ⦗Acq⦘ ⨾ sb^? ⨾ ⦗S⦘ ⨾ ⦗W⦘ ⊆ ⦗R⦘ ⨾ ⦗Acq⦘ ⨾ sb ⨾ ⦗S⦘).

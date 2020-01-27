@@ -88,7 +88,7 @@ Lemma cert_sim_step G sc thread PC T T' f_to f_from smode
       (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
       (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T) :
     exists PC' f_to' f_from',
-      ⟪ PSTEP : (plain_step MachineEvent.silent thread)^* PC PC' ⟫ /\
+      ⟪ PSTEP : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
       ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread smode ⟫.
 Proof using.
   destruct T as [T S].

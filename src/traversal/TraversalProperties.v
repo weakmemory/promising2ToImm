@@ -109,7 +109,7 @@ Proof using WF TCCOH.
 Qed.
 
 Lemma I_rfrmw_issuable :
-  rf ⨾ rmw ⨾ ⦗issuable G sc T⦘ ≡ <|issued T|> ⨾ rf ⨾ rmw ⨾ ⦗issuable G sc T⦘.
+  rf ⨾ rmw ⨾ ⦗issuable G sc T⦘ ≡ ⦗issued T⦘ ⨾ rf ⨾ rmw ⨾ ⦗issuable G sc T⦘.
 Proof using WF TCCOH. apply dom_rel_helper. by apply dom_rfrmw_issuable_in_I. Qed.
 
 Lemma issuable_W_ex_in_codom_I_rfrmw :

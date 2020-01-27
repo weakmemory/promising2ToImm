@@ -95,7 +95,7 @@ Lemma issue_rlx_reserved_step_no_next PC T S f_to f_from thread w smode
   let T' := mkTC (covered T) (issued T ∪₁ eq w) in
   let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists PC',
-    ⟪ PCSTEP : (plain_step MachineEvent.silent thread)^+ PC PC' ⟫ /\
+    ⟪ PCSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
     ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread smode ⟫ /\
     ⟪ SIMREL :
         smode = sim_normal -> simrel G sc PC T S f_to f_from ->
@@ -219,7 +219,7 @@ Lemma issue_rlx_reserved_step_with_next PC T S f_to f_from thread w wnext smode
   let T' := mkTC (covered T) (issued T ∪₁ eq w) in
   let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists f_to' f_from' PC',
-    ⟪ PCSTEP : (plain_step MachineEvent.silent thread)^+ PC PC' ⟫ /\
+    ⟪ PCSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
     ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
     ⟪ SIMREL :
         smode = sim_normal -> simrel G sc PC T S f_to f_from ->

@@ -145,7 +145,7 @@ Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ th
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
-Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ;; Grmw ;; <|S|>) ⊆₁ I.
+Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ⨾ Grmw ⨾ ⦗S⦘) ⊆₁ I.
 Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 Hypothesis W_ex_sb_I : dom_rel (⦗GW_ex_acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
@@ -154,7 +154,7 @@ Hypothesis F_in_C : E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
 
 Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 
-Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
+Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 
@@ -285,14 +285,14 @@ Proof using All.
   destruct TCCOH1.
 
   assert (dom_rel ((⦗GW_ex⦘ ⨾ Grfi ⨾ ⦗R ∩₁ Acq⦘) ⨾ (Cppo ∪ bob certG) ⨾ ⦗I⦘) ⊆₁ I) as BB.
-  { arewrite (⦗I⦘ ⊆ ⦗D⦘ ;; ⦗I⦘).
+  { arewrite (⦗I⦘ ⊆ ⦗D⦘ ⨾ ⦗I⦘).
     { generalize I_in_D. clear. basic_solver. }
     arewrite ((Cppo ∪ bob certG) ⨾ ⦗D⦘ ⊆ Gar_int).
     { rewrite seq_union_l. unionL.
       2: { rewrite cert_bob; eauto. rewrite bob_in_ar_int. clear. basic_solver. }
       rewrite <- ppo_in_ar_int.
       eapply cert_ppo_D; eauto. }
-    arewrite (⦗GW_ex⦘ ⊆ ⦗W⦘ ;; ⦗GW_ex⦘).
+    arewrite (⦗GW_ex⦘ ⊆ ⦗W⦘ ⨾ ⦗GW_ex⦘).
     { generalize WF.(W_ex_in_W). clear. basic_solver. }
     arewrite (⦗GW_ex⦘ ⨾ Grfi ⨾ ⦗R ∩₁ Acq⦘ ⊆ Gar_int).
     arewrite (Gar_int ⨾ Gar_int ⊆ Gar_int⁺).
@@ -312,7 +312,7 @@ Proof using All.
   { ins; rewrite cert_fwbob; edone. }
   { rewrite cert_W_ex, cert_R, cert_Acq; eauto.
     arewrite (⦗GW_ex⦘ ⨾ Crfi ⨾ ⦗R ∩₁ Acq⦘ ⊆ ⦗GW_ex⦘ ⨾ Grfi ⨾ ⦗R ∩₁ Acq⦘).
-    { arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗Acq⦘ ;; ⦗R ∩₁ Acq⦘).
+    { arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗Acq⦘ ⨾ ⦗R ∩₁ Acq⦘).
       { clear. basic_solver. }
       arewrite (Crfi ⨾ ⦗Acq⦘ ⊆ Grfi); try done.
       rewrite cert_rfi_eq. eapply cert_rfi_to_Acq_in_Grfi; eauto. }
@@ -502,7 +502,7 @@ intro AA; sin_rewrite AA; clear AA.
 forward (eapply cert_rfi_Grmw_rt_in_Grfi_Grmw with (G:=G)); eauto.
 intro AA; sin_rewrite AA; clear AA.
 
-    assert (BB: Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⊆ (Grmw ⨾ Grfi)^+).
+    assert (BB: Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⊆ (Grmw ⨾ Grfi)⁺).
     { seq_rewrite <- rt_seq_swap.
       rewrite !seqA.
       remember (Grmw ⨾ Grfi) as Y.

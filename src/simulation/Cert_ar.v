@@ -142,7 +142,7 @@ Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ th
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
-Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ;; Grmw ;; <|S|>) ⊆₁ I.
+Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ⨾ Grmw ⨾ ⦗S⦘) ⊆₁ I.
 Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 
@@ -150,7 +150,7 @@ Hypothesis F_in_C : E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
 
 Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 
-Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
+Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 
@@ -276,7 +276,7 @@ unionL.
 unfold ppo; ins.
 
 
-arewrite ((⦗GR_ex⦘ ⨾ Gsb)^? ⨾ ⦗W⦘ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ;; (⦗GR_ex⦘ ⨾ Gsb)^? ⨾ ⦗W⦘).
+arewrite ((⦗GR_ex⦘ ⨾ Gsb)^? ⨾ ⦗W⦘ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (⦗GR_ex⦘ ⨾ Gsb)^? ⨾ ⦗W⦘).
 { rewrite crE, !seq_union_l, !seqA.
   forward (eapply dom_R_ex_sb_D with (G:=G)); try edone.
   clear; basic_solver 12. }
@@ -403,7 +403,7 @@ Proof using All.
   unfold detour.
   rewrite cert_sb.
   arewrite ((Ccoe ⨾ Crfe) ∩ Gsb ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗Acq \₁ C⦘ ⊆
-            (Ccoe ⨾ Crfe ⨾ <| dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗Acq⦘)|>) ∩ Gsb⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗Acq \₁ C⦘).
+            (Ccoe ⨾ Crfe ⨾ ⦗ dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗Acq⦘)⦘) ∩ Gsb⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗Acq \₁ C⦘).
   { clear; basic_solver 21. }
 
 assert (AA: Crfe ⨾ ⦗dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗Acq⦘)⦘ ⊆ Grfe).
@@ -504,9 +504,9 @@ Qed.
 
 Lemma cert_ar_int_ct_CI : Car_int⁺ ⨾ ⦗ C ∪₁ I ⦘ ⊆ Gar_int⁺.
 Proof using All.
-  arewrite (C ∪₁ I ⊆₁ dom_rel (Gar_int^* ;; ⦗ C ∪₁ I ⦘)).
+  arewrite (C ∪₁ I ⊆₁ dom_rel (Gar_int＊ ⨾ ⦗ C ∪₁ I ⦘)).
   { rewrite rtE. clear. basic_solver 10. }
-  apply ct_ind_left with (P:= fun r => r ⨾ ⦗dom_rel (Gar_int^* ;; ⦗ C ∪₁ I ⦘)⦘); auto.
+  apply ct_ind_left with (P:= fun r => r ⨾ ⦗dom_rel (Gar_int＊ ⨾ ⦗ C ∪₁ I ⦘)⦘); auto.
   { by auto with hahn. }
   { apply cert_ar_int_CI. }
   intros k H; rewrite !seqA.

@@ -792,7 +792,7 @@ Section Properties.
   Lemma dom_detour_rmwrfi_rfe_acq_sb_issuable :
     dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issuable T⦘) ⊆₁ issued T.
   Proof using WF.
-    arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗Acq⦘ ;; ⦗R ∩₁ Acq⦘) by basic_solver.
+    arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗Acq⦘ ⨾ ⦗R ∩₁ Acq⦘) by basic_solver.
     arewrite (rfi ⊆ rf).
     sin_rewrite (@rmwrf_rt_Acq_in_ar_rfrmw_rt G WF sc); auto.
     rewrite (dom_l WF.(wf_detourD)).
@@ -866,7 +866,7 @@ Section Properties.
     arewrite (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊ ⨾ ⦗issued T⦘ ⊆
                   ⦗issued T⦘ ⨾ rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊ ⨾ ⦗issued T⦘).
     { apply dom_rel_helper.
-      arewrite (rmw ⨾ (rfi ⨾ rmw)＊ ⊆ ar^*).
+      arewrite (rmw ⨾ (rfi ⨾ rmw)＊ ⊆ ar＊).
       { arewrite (rfi ⊆ rf).
         rewrite WF.(rmw_in_ppo) at 1. rewrite ppo_in_ar.
         rewrite rtE at 1. rewrite seq_union_r, seq_id_r.

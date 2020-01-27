@@ -111,7 +111,7 @@ Lemma issue_rel_reserved_step_no_next PC T (S : actid -> Prop) f_to f_from threa
   let T' := mkTC (covered T ∪₁ eq r ∪₁ eq w) (issued T ∪₁ eq w) in
   let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists PC',
-    ⟪ PCSTEP : (plain_step MachineEvent.silent thread)^+ PC PC' ⟫ /\
+    ⟪ PCSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
     ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread smode ⟫ /\
     ⟪ SIMREL :
         smode = sim_normal -> simrel G sc PC T S f_to f_from ->

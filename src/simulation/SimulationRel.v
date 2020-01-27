@@ -167,7 +167,7 @@ Definition reserved_time smode memory :=
   | sim_certification => 
     (* During certification *)
     (⟪ FOR_SPLIT : ⦗ set_compl (W_ex ∪₁ S) ⦘ ⨾ (immediate co) ⊆ sb ⟫ /\
-     ⟪ RMW_BEF_S : W_ex ⊆₁ dom_rel (sb^? ;; <| S |>) ⟫)
+     ⟪ RMW_BEF_S : W_ex ⊆₁ dom_rel (sb^? ⨾ ⦗ S ⦘) ⟫)
   end.
 
 Definition simrel_common

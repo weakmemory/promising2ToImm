@@ -143,7 +143,7 @@ Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ th
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
-Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ;; Grmw ;; <|S|>) ⊆₁ I.
+Hypothesis RMW_S : dom_rel ((Gdetour ∪ Grfe) ⨾ Grmw ⨾ ⦗S⦘) ⊆₁ I.
 Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 
@@ -151,7 +151,7 @@ Hypothesis F_in_C : E ∩₁ F ∩₁ Acq/Rel ⊆₁ C.
 
 Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 
-Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)^* ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
+Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 
@@ -259,7 +259,7 @@ Proof using All.
   rewrite (cert_hb); eauto.
   rewrite !seqA.
   arewrite (Crelease ⨾ ⦗I⦘ ≡ Grelease ⨾ ⦗I⦘).
-  { arewrite (⦗I⦘ ≡ ⦗D⦘ ;; ⦗I⦘).
+  { arewrite (⦗I⦘ ≡ ⦗D⦘ ⨾ ⦗I⦘).
     { generalize I_in_D. clear. basic_solver. }
     arewrite (Crelease ⨾ ⦗D⦘ ≡ Grelease ⨾ ⦗D⦘).
     { apply Crelease_D_eq_Grelease_D; eauto. }
@@ -275,12 +275,12 @@ Proof using All.
   arewrite (⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗C⦘) at 5 by basic_solver.
   split; unionL; try basic_solver.
   { rewrite C_in_D with (G:=G) (T:=T) (S:=S) (thread:= thread) at 1.
-    arewrite (Crf ⨾ ⦗D⦘ ⊆ Grf ;; <| D |>).
+    arewrite (Crf ⨾ ⦗D⦘ ⊆ Grf ⨾ ⦗ D ⦘).
     { apply cert_rf_D; auto. } 
     clear. basic_solver. }
   2: done.
   rewrite C_in_D with (G:=G) (T:=T) (S:=S) (thread:= thread) at 1.
-  arewrite (Grf ⨾ ⦗D⦘ ⊆ Crf ;; <| D |>).
+  arewrite (Grf ⨾ ⦗D⦘ ⊆ Crf ⨾ ⦗ D ⦘).
   { by apply cert_rf_D. }
   clear. basic_solver.
 Qed.
@@ -319,7 +319,7 @@ Proof using All.
   generalize C_in_D; basic_solver.
   basic_solver. 
   rewrite !crE; relsf. 
-  arewrite (Crf ⨾ ⦗D⦘ ≡ Grf ;; <| D |>).
+  arewrite (Crf ⨾ ⦗D⦘ ≡ Grf ⨾ ⦗ D ⦘).
   { apply cert_rf_D; basic_solver. }
   clear. basic_solver.
 Qed.
@@ -358,7 +358,7 @@ Proof using All.
   generalize C_in_D; basic_solver.
   basic_solver. 
   rewrite !crE; relsf. 
-  arewrite (Crf ⨾ ⦗D⦘ ≡ Grf ;; <| D |>).
+  arewrite (Crf ⨾ ⦗D⦘ ≡ Grf ⨾ ⦗ D ⦘).
   { apply cert_rf_D; basic_solver. }
   basic_solver.
 Qed.
@@ -384,11 +384,11 @@ Proof using All.
       basic_solver. }
     rewrite !crE; relsf.
     rewrite !seqA.
-    arewrite (Crf ⨾ ⦗D⦘ ≡ Grf ;; <| D |>) by (by apply cert_rf_D).
+    arewrite (Crf ⨾ ⦗D⦘ ≡ Grf ⨾ ⦗ D ⦘) by (by apply cert_rf_D).
     apply union_more; [done|].
     rewrite seq_eqvC at 1 2.
     seq_rewrite rf_covered; eauto. rewrite !seqA.
-    arewrite (⦗I⦘ ≡ ⦗D⦘ ;; ⦗I⦘).
+    arewrite (⦗I⦘ ≡ ⦗D⦘ ⨾ ⦗I⦘).
     { generalize I_in_D. clear. basic_solver. }
     arewrite (Crelease ⨾ ⦗D⦘ ≡ Grelease ⨾ ⦗D⦘).
     { apply Crelease_D_eq_Grelease_D; eauto. }
@@ -412,7 +412,7 @@ Proof using All.
   generalize C_in_D; basic_solver.
   basic_solver. 
   rewrite !crE; relsf. 
-  arewrite (Crf ⨾ ⦗D⦘ ≡ Grf ;; <| D |>).
+  arewrite (Crf ⨾ ⦗D⦘ ≡ Grf ⨾ ⦗ D ⦘).
   { apply cert_rf_D; basic_solver. }
   basic_solver.
 Qed.
