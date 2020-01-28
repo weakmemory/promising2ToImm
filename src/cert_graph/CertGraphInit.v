@@ -404,7 +404,7 @@ assert (RMW_S : dom_rel ((detour G ∪ rfe G) ⨾ rmw G ⨾ ⦗S⦘) ⊆₁ issu
 { rewrite sub_detour_in; eauto.
   rewrite sub_rfe_in; eauto.
   rewrite sub_rmw_in; eauto.
-  apply ETCCOH. }
+  eapply etc_rmw_S with (T:=mkETC T S); eauto. }
 assert (D_RMW_S : dom_rel (detour G ⨾ rmw G ⨾ ⦗S⦘) ⊆₁ issued T).
 { rewrite <- RMW_S. clear. basic_solver 10. }
 

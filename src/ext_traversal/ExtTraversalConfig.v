@@ -106,7 +106,7 @@ Record etc_coherent (T : ext_trav_config) :=
   etc_W_ex_sb_I      : dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
   etc_sb_S           : dom_sb_S_rfrmw T (rf ⨾ ⦗R_ex⦘) (eissued T) ⊆₁ reserved T;
   etc_rppo_S         : dom_rel ((detour ∪ rfe) ⨾ (data ∪ rfi ∪ rmw)＊ ⨾ rppo ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
-  etc_rmw_S         : dom_rel ((detour ∪ rfe) ⨾ rmw ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
+  etc_d_rmw_S         : dom_rel (detour ⨾ rmw ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
   etc_S_W_ex_rfrmw_I : reserved T ∩₁ W_ex ⊆₁ codom_rel (⦗eissued T⦘ ⨾ rf ⨾ rmw);
  }.
 
@@ -115,6 +115,18 @@ Section Props.
 Variable WF : Wf G.
 Variable T : ext_trav_config.
 Variable ETCCOH : etc_coherent T.
+
+Lemma etc_rmw_S : dom_rel ((detour ∪ rfe) ⨾ rmw ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T.
+Proof using WF ETCCOH.
+  rewrite !seq_union_l, dom_union. unionL; [by apply ETCCOH|].
+  rewrite rmw_W_ex, !seqA. rewrite <- id_inter. rewrite set_interC.
+  rewrite etc_S_W_ex_rfrmw_I; auto. rewrite rfe_in_rf.
+  remember (rf ;; rmw) as X.
+  arewrite (rf ;; rmw ⊆ X) by subst.
+  unfolder. ins. desf.
+  assert (x = z); subst; auto.
+  eapply wf_rfrmwf; eauto.
+Qed.
 
 Lemma eissuedW : eissued T ⊆₁ W.
 Proof using ETCCOH. unfold eissued. eapply issuedW. apply ETCCOH. Qed.

@@ -458,7 +458,7 @@ Proof using WF IMMCON ETCCOH.
   1-4: by unionL; [by apply ETCCOH|].
   unionL; [by apply ETCCOH|].
   rewrite WF.(rmw_in_ppo).
-  rewrite EQEISS. by apply dom_detour_rfe_ppo_issuable.
+  rewrite EQEISS. arewrite (detour ⊆ detour ∪ rfe). by apply dom_detour_rfe_ppo_issuable.
 Qed.
 
 Lemma exists_ext_trav_step e (N_FIN : next G (ecovered T) e) :
