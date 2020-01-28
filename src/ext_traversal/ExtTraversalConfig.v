@@ -105,6 +105,8 @@ Record etc_coherent (T : ext_trav_config) :=
   etc_dr_R_acq_I     : dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
   etc_W_ex_sb_I      : dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ eissued T ;
   etc_sb_S           : dom_sb_S_rfrmw T (rf ⨾ ⦗R_ex⦘) (eissued T) ⊆₁ reserved T;
+  (* TODO: uncomment the next property for handling FADDs. *)
+  (* etc_sb_Acq_S       : dom_rel ((rmw ⨾ rfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eissued T⦘ ⨾ rf ⨾ rmw); *)
   etc_rppo_S         : dom_rel ((detour ∪ rfe) ⨾ (data ∪ rfi ∪ rmw)＊ ⨾ rppo ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
   etc_d_rmw_S         : dom_rel (detour ⨾ rmw ⨾ ⦗ reserved T ⦘) ⊆₁ eissued T;
   etc_S_W_ex_rfrmw_I : reserved T ∩₁ W_ex ⊆₁ codom_rel (⦗eissued T⦘ ⨾ rf ⨾ rmw);
