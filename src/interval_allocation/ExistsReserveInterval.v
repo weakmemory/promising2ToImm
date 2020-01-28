@@ -272,7 +272,7 @@ Proof using WF IMMCON ETCCOH FCOH.
                Interval.disjoint (f_from' w, f_to' w) (from, to)) as DISJOINT.
     { ins. unfold f_to', f_from'; rewrite !upds.
       apply Interval.le_disjoint with (b:= (f_to wprev,f_from wnext)); auto.
-      2: { eapply f_to_coherent_add_S_middle; eauto. }
+      2: { eapply f_to_coherent_add_S_middle with (S:=S); eauto. }
       eapply co_S_memory_disjoint; eauto. }
 
     edestruct (@Memory.add_exists (Local.promises local) locw (f_from' w) (f_to' w) Message.reserve)
@@ -281,14 +281,14 @@ Proof using WF IMMCON ETCCOH FCOH.
     { ins. eapply DISJOINT.
       eapply PROM_IN_MEM; eauto. }
     { unfold f_from', f_to'. rewrite !upds.
-      eapply f_to_coherent_add_S_middle; eauto. }
+      eapply f_to_coherent_add_S_middle with (S:=S); eauto. }
 
     edestruct (@Memory.add_exists PC.(Configuration.memory) locw (f_from' w) (f_to' w) Message.reserve)
       as [memory' MADD].
     3: by apply Message.wf_reserve.
     { apply DISJOINT. }
     { unfold f_from', f_to'. rewrite !upds.
-      eapply f_to_coherent_add_S_middle; eauto. }
+      eapply f_to_coherent_add_S_middle with (S:=S); eauto. }
     
     assert (f_to_coherent G (S ∪₁ eq w) f_to' f_from') as FCOH_NEW.
     { unfold f_to', f_from'.
