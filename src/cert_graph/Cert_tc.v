@@ -434,7 +434,7 @@ Lemma ETCCOH_cert
       (ST_in_W_ex : S ∩₁ Tid_ thread \₁ I ⊆₁ GW_ex)
       (ISTex_rf_I : (I ∪₁ S ∩₁ Tid_ thread) ∩₁ GW_ex ⊆₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ Grmw))
       (DOM_SB_S_rf_I :
-         dom_rel (⦗GW_ex⦘ ⨾ Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ∩₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ ⦗GR_ex⦘ ⨾ Grmw)
+         dom_rel (Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ∩₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ ⦗GR_ex⦘ ⨾ Grmw)
                  ⊆₁ I ∪₁ S ∩₁ Tid_ thread) :
   etc_coherent certG sc (mkETC (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I)
                                (I ∪₁ S ∩₁ Tid_ thread)).
@@ -517,7 +517,7 @@ basic_solver 12.
 }
   { rewrite cert_W_ex, cert_xacq, cert_sb, IST_in_S; eauto. }
   { unfold dom_sb_S_rfrmw. simpls.
-    rewrite cert_sb, cert_W_ex, cert_R_ex; eauto.
+    rewrite cert_sb, cert_R_ex; eauto.
     rewrite !seqA.
     arewrite (cert_rf ⨾ ⦗GR_ex⦘ ⨾ Grmw ⊆ Grf ⨾ ⦗GR_ex⦘ ⨾ Grmw); auto.
     arewrite (⦗GR_ex⦘ ⊆ ⦗GR_ex⦘ ⨾ ⦗GR_ex⦘) at 1.
@@ -540,10 +540,7 @@ basic_solver 12.
     rewrite <- !seqA.
     do 4 rewrite AuxRel.dom_seq.
     apply dom_cert_detour_rfe_D. }
-  { rewrite !seq_union_l, dom_union. unionL.
-    2: { rewrite !dom_seq.
-         rewrite cert_rfe_eq. eapply dom_cert_rfe_in_I with (G:=G); eauto. }
-    rewrite IST_in_S.
+  { rewrite IST_in_S.
     rewrite (dom_rel_helper COMP_RMW_S).
     rewrite rfi_union_rfe, codom_union, id_union.
     rewrite !seq_union_l, !seq_union_r. rewrite dom_union.

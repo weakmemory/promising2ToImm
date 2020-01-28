@@ -805,38 +805,37 @@ assert (ISTex_rf_I :
   { right. exists x. apply seq_eqv_r. split; [|split]; auto. }
   exfalso. apply NTID. apply DD. }
 assert (DOM_SB_S_rf_I :
-          dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘)
+          dom_rel (sb G ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘)
                   ∩₁ codom_rel (⦗issued T⦘ ⨾ rf G ⨾ ⦗R_ex G.(lab)⦘ ⨾ rmw G) ⊆₁
                   issued T ∪₁ S ∩₁ Tid_ thread).
-{ arewrite (⦗W_ex G⦘ ⊆ ⦗acts_set G⦘ ⨾ ⦗W_ex G⦘).
-  { generalize WF_G.(W_ex_in_E). clear. basic_solver. }
-  arewrite (⦗W_ex G⦘ ⊆ ⦗is_w G.(lab)⦘ ⨾ ⦗W_ex G⦘).
-  { generalize WF_G.(W_ex_in_W). clear. basic_solver. }
-  do 2 rewrite dom_eqv1. do 2 rewrite set_interA.
-rewrite sub_W_ex_in; eauto.
+{ rewrite rmw_W_ex. rewrite (dom_r WF_G.(wf_rmwE)).
+  rewrite <- !seqA. rewrite !codom_eqv1.
+  rewrite !seqA.
 
   arewrite (R_ex G.(lab) ⊆₁ R_ex Gf.(lab)).
   { subst G. unfold rstG, restrict. simpls. }
 
-rewrite sub_rf_in; eauto.
-rewrite sub_rmw_in; eauto.
-rewrite sub_sb_in; eauto.
-  arewrite (dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁
-            dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ∩₁
-            dom_rel (⦗W_ex Gf⦘ ⨾ sb Gf ⨾ ⦗S⦘)).
+  rewrite sub_rf_in; eauto.
+  rewrite sub_rmw_in; eauto.
+  rewrite sub_sb_in; eauto.
+  arewrite (dom_rel (sb Gf ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ⊆₁
+                    dom_rel (sb Gf ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘) ∩₁
+                    dom_rel (sb Gf ⨾ ⦗S⦘)).
   { generalize IST_in_S. clear. basic_solver 10. }
-  rewrite set_interA.
+  rewrite <- !set_interA. rewrite set_interC with (s':=W_ex G).
+  rewrite <- !set_interA. rewrite set_interC with (s':=acts_set G).
+  rewrite !set_interA.
 
-forward (eapply ETCCOH.(etc_sb_S)); intro AA1.
-unfold dom_sb_S_rfrmw in AA1.
-simpl in AA1.
-unfold eissued in AA1; simpl in AA1.
-rewrite !seqA in AA1.
-rewrite AA1.
+  forward (eapply ETCCOH.(etc_sb_S)); intro AA1.
+  unfold dom_sb_S_rfrmw in AA1.
+  simpl in AA1.
+  unfold eissued in AA1; simpl in AA1.
+  rewrite !seqA in AA1.
+  rewrite AA1.
+  rewrite <- !set_interA. rewrite WF_G.(W_ex_in_W).
 
   simpls.
-  rewrite <- set_interA.
-  intros x [HH [AA SX]].
+  intros x [[HH AA] SX].
   destruct (classic (issued T x)) as [|NISS]; [by left|].
   destruct (classic (Tid_ thread x)) as [|NTID]; [by right; split|].
   exfalso.

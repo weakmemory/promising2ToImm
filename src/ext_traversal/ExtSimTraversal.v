@@ -243,8 +243,8 @@ Proof using WF IMMCON.
   { ins. split; [|clear; basic_solver].
     unfold Execution.detour, Execution.rfi, Execution.rfe, dom_sb_S_rfrmw.
     unfolder. ins. desf. 
-    all: assert (z1 = z) by (eapply WF.(wf_rmw_invf); eauto); subst.
-    { assert (z2 = z0); subst; eauto.
+    all: assert (z2 = z) by (eapply WF.(wf_rmw_invf); eauto); subst.
+    { assert (z3 = z0); subst; eauto.
       eapply WF.(wf_rff); eauto. }
     assert (x = z0); subst; eauto.
     eapply WF.(wf_rff); eauto. }
@@ -285,14 +285,18 @@ Proof using WF IMMCON.
 
   assert (forall e (NISS : ~ eissued T e)
                  (WSBW : dom_rel (⦗W⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁ issued (etc_TC T)),
-             dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T ∪₁ eq e⦘) ∩₁
+             dom_rel (sb ⨾ ⦗reserved T ∪₁ eq e⦘) ∩₁
              codom_rel (⦗issued (etc_TC T) ∪₁ eq e⦘ ⨾ rf ⨾ ⦗R_ex⦘ ⨾ rmw) ⊆₁
              reserved T ∪₁ eq e ∪₁ dom_sb_S_rfrmw G T rfi (eq e))
     as RESRES.
   { ins. rewrite id_union, !seq_union_r, dom_union.
     rewrite set_inter_union_l.
     unionL.
-    2: { rewrite WF.(W_ex_in_W), WSBW. rewrite ETCCOH.(etc_I_in_S). basic_solver. }
+    2: { rewrite (dom_r WF.(wf_rmwD)).
+         rewrite <- !seqA. rewrite codom_eqv1.
+         rewrite <- !set_interA. rewrite set_interC with (s':=W).
+         rewrite <- !set_interA. rewrite <- dom_eqv1.
+         rewrite WSBW. rewrite ETCCOH.(etc_I_in_S). basic_solver. }
     rewrite id_union, !seq_union_l, codom_union.
     rewrite set_inter_union_r.
     unionL.
@@ -307,12 +311,11 @@ Proof using WF IMMCON.
     unionL.
     { arewrite_id ⦗R_ex⦘. by rewrite seq_id_l. }
     rewrite set_interC.
-    arewrite (codom_rel (⦗eq e⦘ ⨾ rfe ⨾ ⦗R_ex⦘ ⨾ rmw) ∩₁ dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗reserved T⦘) ⊆₁ ∅).
+    arewrite (codom_rel (⦗eq e⦘ ⨾ rfe ⨾ ⦗R_ex⦘ ⨾ rmw) ∩₁ dom_rel (sb ⨾ ⦗reserved T⦘) ⊆₁ ∅).
     2: basic_solver.
     apply seq_codom_dom_inter_iff.
     split; [|clear; basic_solver].
     rewrite !seqA.
-    arewrite_id ⦗W_ex⦘. rewrite seq_id_l.
     arewrite (⦗reserved T⦘ ⊆ ⦗W⦘ ⨾ ⦗reserved T⦘).
     { generalize (reservedW WF ETCCOH). basic_solver. }
     rewrite WF.(rmw_in_sb).
@@ -448,20 +451,21 @@ Proof using WF IMMCON.
         unfolder. ins. desf.
         eexists. splits; eauto.
         eapply COVEQ. apply SBW. basic_solver 10. }
-      
-      assert (dom_rel ((detour ∪ rfe) ⨾ sb ⨾ ⦗eq w⦘) ⊆₁ issued (etc_TC T)) as AA.
-      { rewrite !seq_union_l, dom_union. unionL.
-        2: by arewrite (rfe ⊆ rf).
-        rewrite (dom_l WF.(wf_detourD)), !seqA.
+
+      assert (dom_rel (detour ⨾ sb ⨾ ⦗eq w⦘) ⊆₁ issued (etc_TC T)) as AA'.
+      { rewrite (dom_l WF.(wf_detourD)), !seqA.
         rewrite detour_in_sb.
         arewrite (sb ⨾ sb ⊆ sb) by (generalize (@sb_trans G); basic_solver). }
+      
+      assert (dom_rel ((detour ∪ rfe) ⨾ sb ⨾ ⦗eq w⦘) ⊆₁ issued (etc_TC T)) as AA.
+      { rewrite !seq_union_l, dom_union. unionL; auto. by arewrite (rfe ⊆ rf). }
       
       assert (dom_rel ((detour ∪ rfe) ⨾ rmw ⨾
                        ⦗reserved T ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)⦘) ⊆₁
               issued (etc_TC T) ∪₁ eq w) as AAH.
       { unionR left. rewrite DRFE_EMP.
         rewrite id_union, !seq_union_r, dom_union.
-        unionL; [by apply ETCCOH|]. by rewrite WF.(rmw_in_sb). }
+        unionL; [eby eapply etc_rmw_S|]. by rewrite WF.(rmw_in_sb). }
 
       assert (sb e w) as SBEW.
       { apply rmw_in_sb; auto. }
@@ -518,8 +522,11 @@ Proof using WF IMMCON.
         rewrite set_inter_union_l.
         rewrite ETCCOH.(etc_sb_S).
         unionL; [basic_solver|].
-        rewrite WF.(W_ex_in_W). rewrite WSBW. rewrite ETCCOH.(etc_I_in_S).
-        basic_solver. }
+        rewrite (dom_r WF.(wf_rmwD)).
+        rewrite <- !seqA. rewrite codom_eqv1.
+        rewrite <- !set_interA. rewrite set_interC with (s':=W).
+        rewrite <- !set_interA. rewrite <- dom_eqv1.
+        rewrite WSBW. rewrite ETCCOH.(etc_I_in_S). basic_solver. }
 
       destruct (classic (reserved T w)) as [RES|NRES].
       2: { eexists. red. eexists.
@@ -612,10 +619,10 @@ Proof using WF IMMCON.
         { do 2 rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR.
           rewrite dom_rel_eqv_dom_rel, !seqA. by unionR left. }
         { unfold dom_sb_S_rfrmw. simpls.
-          rewrite dom_eqv1; rewrite RR. rewrite <- dom_eqv1.
-          rewrite seqA. by apply RESRES. }
+          rewrite RR. rewrite seqA. by apply RESRES. }
         { rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR1.
           rewrite dom_rel_eqv_dom_rel, seqA. by unionR left. }
+        { by arewrite (detour ⊆ detour ∪ rfe). }
         rewrite !set_inter_union_l. unionL.
         { rewrite ETCCOH.(etc_S_W_ex_rfrmw_I). clear. basic_solver 10. }
         { generalize RFRMW. clear. basic_solver 10. }
@@ -681,10 +688,10 @@ Proof using WF IMMCON.
       { do 2 rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR.
         rewrite dom_rel_eqv_dom_rel, !seqA. by unionR left. }
       { unfold dom_sb_S_rfrmw. simpls.
-        rewrite dom_eqv1; rewrite RR. rewrite <- dom_eqv1.
-        rewrite !seqA. by apply RESRES. }
+        rewrite RR. rewrite !seqA. by apply RESRES. }
       { rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR1.
         rewrite dom_rel_eqv_dom_rel, seqA. by unionR left. }
+      { by arewrite (detour ⊆ detour ∪ rfe). }
       rewrite !set_inter_union_l. unionL.
       { rewrite ETCCOH.(etc_S_W_ex_rfrmw_I). clear. basic_solver 10. }
       { generalize RFRMW. clear. basic_solver 10. }
@@ -785,7 +792,9 @@ Proof using WF IMMCON.
 
   assert (dom_rel ((detour ∪ rfe) ⨾ rmw ⨾ ⦗reserved T ∪₁ eq e⦘) ⊆₁ issued (etc_TC T))
     as DRFSBE.
-  { rewrite id_union, !seq_union_r, dom_union. unionL; [by apply ETCCOH|].
+  { rewrite id_union, !seq_union_r, dom_union.
+    unionL.
+    { eby eapply etc_rmw_S. }
       by rewrite WF.(rmw_in_sb). }
 
   constructor; unfold eissued, ecovered; simpls.
@@ -827,8 +836,7 @@ Proof using WF IMMCON.
     rewrite id_union, !seq_union_r, dom_union; unionL; [by apply ETCCOH|].
     arewrite (W_ex_acq ⊆₁ W); auto. rewrite WF.(W_ex_in_W); basic_solver. }
   { unfold dom_sb_S_rfrmw. simpls.
-    rewrite dom_eqv1; rewrite RR. rewrite <- dom_eqv1.
-    rewrite !seqA. by apply RESRES. }
+    rewrite RR. rewrite !seqA. by apply RESRES. }
   { rewrite <- seqA. rewrite <- dom_rel_eqv_dom_rel, RR1.
     rewrite dom_rel_eqv_dom_rel, seqA.
     unionR left.
@@ -840,7 +848,7 @@ Proof using WF IMMCON.
     rewrite rt_of_trans.
     all: generalize (@sb_trans G); auto.
     basic_solver 10. }
-  { rewrite DRFE_EMP. by unionR left. }
+  { arewrite (detour ⊆ detour ∪ rfe). rewrite DRFE_EMP. by unionR left. }
   rewrite !set_inter_union_l. unionL.
   { rewrite ETCCOH.(etc_S_W_ex_rfrmw_I). clear. basic_solver 10. }
   { rewrite <- ISSEQ.
