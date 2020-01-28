@@ -27,6 +27,7 @@ Require Import ExtTraversalProperties.
 Require Import FtoCoherent.
 Require Import SimulationRelProperties.
 Require Import ExistsIssueReservedInterval.
+Require Import IntervalHelper.
 
 Set Implicit Arguments.
 
@@ -144,7 +145,7 @@ Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
   let covered' := if Rel w then covered T ∪₁ eq w else covered T in
   let T'       := mkTC covered' (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
-  exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC w locw p_rel /\
+  exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC.(Configuration.memory) w locw p_rel /\
     let rel'' :=
         if is_rel lab w
         then (TView.cur (Local.tview local))
@@ -578,7 +579,7 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
   ⟪ ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
   ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
 
-  exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC w locw p_rel /\
+  exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC.(Configuration.memory) w locw p_rel /\
     let rel'' :=
         if is_rel lab w
         then (TView.cur (Local.tview local))
