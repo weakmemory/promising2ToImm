@@ -251,4 +251,103 @@ generalize (ETCCOH.(etc_dr_R_acq_I)).
 basic_solver 21.
 Qed.
 
+Lemma co_next_to_imm_co_next w locw
+      (LOC : loc w = Some locw)
+      (WNEXT : exists wnext, (co ⨾ ⦗ S ⦘) w wnext) :
+  exists wnext vnext,
+    << NCOIMM   : immediate (co ⨾ ⦗ S ⦘) w wnext >> /\
+    << ISSNEXT : S wnext >>  /\
+    << CONEXT  : co w wnext >>  /\
+    << ENEXT   : E wnext >>  /\
+    << WNEXT   : W wnext >>  /\
+    << LOCNEXT : Loc_ locw wnext >>  /\
+    << VNEXT   : val wnext = Some vnext >> /\
+    << NEQNEXT : wnext <> w >>.
+Proof using WF ETCCOH.
+  assert (exists wnext, immediate (co ⨾ ⦗ S ⦘) w wnext) as [wnext NIMMCO].
+  { desc; eapply clos_trans_immediate2 in WNEXT.
+    apply ct_begin in WNEXT; unfold seq in *; desc; eauto.
+    generalize (co_trans WF); unfold transitive; basic_solver 21.
+    generalize (co_irr WF); basic_solver 21.
+    unfolder; ins; desc; hahn_rewrite (dom_r (wf_coE WF)) in REL.
+    unfolder in REL; desc; eauto. }
+  clear WNEXT.
+  assert (S wnext /\ co w wnext) as [ISSNEXT CONEXT].
+  { destruct NIMMCO as [AA _]. by destruct_seq_r AA as BB. }
+  assert (E wnext) as ENEXT.
+  { by apply ETCCOH.(etc_S_in_E). }
+  assert (W wnext) as WNEXT.
+  { by apply (reservedW WF ETCCOH). }
+  assert (Loc_ locw wnext) as LOCNEXT.
+  { apply WF.(wf_col) in CONEXT. by rewrite <- CONEXT. }
+  assert (exists vnext, val wnext = Some vnext) as [vnext VNEXT].
+  { unfold Events.val, is_w in *. desf.
+    all: eexists; eauto. }
+  exists wnext, vnext. splits; eauto.
+  intros H; subst. by apply WF.(co_irr) in CONEXT.
+Qed.
+
+Lemma co_prev_to_imm_co_prev w locw
+      (EW    : E w)
+      (WW    : W w)
+      (WNCOV : ~ ecovered T w)
+      (LOC   : loc w = Some locw) :
+  exists wprev vprev,
+    << PCOIMM   : immediate (⦗ S ⦘ ⨾ co) wprev w >> /\
+    << ISSPREV : S wprev >>  /\
+    << COPREV  : co wprev w >>  /\
+    << EPREV   : E wprev >>  /\
+    << WPREV   : W wprev >>  /\
+    << LOCPREV : Loc_ locw wprev >>  /\
+    << VPREV   : val wprev = Some vprev >> /\
+    << NEQPREV : wprev <> w >>.
+Proof using WF IMMCON ETCCOH.
+  assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
+  assert (~ is_init w) as WNINIT.
+  { intros HH. apply WNCOV. eapply init_covered; eauto. by split. }
+  assert (exists wprev, immediate (⦗ S ⦘ ⨾ co) wprev w) as [wprev PIMMCO].
+  { assert ((⦗ S ⦘ ⨾ co) (InitEvent locw) w) as WPREV.
+    { assert (W (InitEvent locw)) as WI.
+      { by apply init_w. }
+      assert (E (InitEvent locw)) as EI.
+      { apply wf_init; auto. by exists w; split. }
+      assert (eissued T (InitEvent locw)) as II.
+      { apply (init_issued WF TCCOH). by split. }
+      assert (S (InitEvent locw)) as IS.
+      { by apply ETCCOH.(etc_I_in_S). }
+      assert (InitEvent locw <> w) as NEQ.
+      { intros H; subst. desf. }
+      assert (loc (InitEvent locw) = Some locw) as LI.
+      { unfold Events.loc. by rewrite WF.(wf_init_lab). }
+      apply seq_eqv_l; split; auto.
+      edestruct WF.(wf_co_total).
+      3: by apply NEQ.
+      1,2: split; [split|]; auto.
+      { by rewrite LOC. }
+      { done. }
+      exfalso. cdes IMMCON. eapply Cint.
+      eexists; split.
+      2: { apply r_step. by apply Execution_eco.co_in_eco; apply H. }
+      apply sb_in_hb. apply init_ninit_sb; auto. }
+    desc; eapply clos_trans_immediate2 in WPREV.
+    apply ct_end in WPREV; unfold seq in *; desc; eauto.
+    generalize (co_trans WF); unfold transitive; basic_solver 21.
+    generalize (co_irr WF); basic_solver 21.
+    unfolder; ins; desc; hahn_rewrite (dom_r (wf_coE WF)) in REL0.
+    unfolder in REL0; desc; eauto. }
+  assert (S wprev /\ co wprev w) as [ISSPREV COPREV].
+  { destruct PIMMCO as [AA _]. by destruct_seq_l AA as BB. }
+  assert (E wprev) as EPREV.
+  { by apply ETCCOH.(etc_S_in_E). }
+  assert (W wprev) as WPREV.
+  { by apply (reservedW WF ETCCOH). }
+  assert (Loc_ locw wprev) as LOCPREV.
+  { apply WF.(wf_col) in COPREV. by rewrite COPREV. }
+  assert (exists vprev, val wprev = Some vprev) as [vprev VPREV].
+  { unfold Events.val, is_w in *. desf.
+    all: eexists; eauto. }
+  exists wprev, vprev. splits; eauto.
+  intros H; subst. by apply WF.(co_irr) in COPREV.
+Qed.
+
 End ExtTraversalProperties.
