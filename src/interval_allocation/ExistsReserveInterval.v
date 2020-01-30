@@ -114,12 +114,20 @@ Proof using WF IMMCON ETCCOH FCOH.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   assert (etc_coherent G sc (mkETC T (S ∪₁ eq w))) as ETCCOH' by apply TSTEP.
 
+  assert (S ⊆₁ E ∩₁ W) as SEW.
+  { apply set_subset_inter_r. split; [by apply ETCCOH|].
+    apply (reservedW WF ETCCOH). }
+  assert (issued T ⊆₁ S) as IE by apply ETCCOH.
+
   assert (W w) as WW.
   { eapply ext_itrav_step_reserveW with (T := mkETC T S); eauto. }
 
   assert (E w) as EW.
   { eapply ext_itrav_stepE with (T := mkETC T S); eauto. }
   
+  assert (exists valw, val lab w = Some valw) as [valw WVAL].
+  { by apply is_w_val. }
+
   assert (~ covered T w) as WNCOV.
   { eapply ext_itrav_step_nC with (T := mkETC T S); eauto. }
 
