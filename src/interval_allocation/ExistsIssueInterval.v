@@ -87,6 +87,8 @@ Variable local : Local.t.
 
 Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread.
 Hypothesis INHAB : Memory.inhabited PC.(Configuration.memory).
+Hypothesis PLN_RLX_EQ : pln_rlx_eq local.(Local.tview).
+Hypothesis MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory).
 
 Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
       (ISSUABLE : issuable G sc T w)
@@ -107,7 +109,6 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
          sim_res_mem G T S f_to f_from (tid w) local (Configuration.memory PC))
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local PC.(Configuration.memory))
-      (MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory))
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local)) :
   let promises := local.(Local.promises) in
   let memory   := PC.(Configuration.memory) in
@@ -276,7 +277,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
     { subst. apply Time.bot_spec. }
 
     assert (View.pln rel'' = View.rlx rel'') as RELPLN''.
-    { admit. }
+    { subst rel''. destruct (Rel w); apply PLN_RLX_EQ. }
 
     assert (Message.wf (Message.full valw (Some rel'))) as WFREL'.
     { do 3 constructor.
@@ -330,7 +331,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
            erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
       apply Memory.join_closed_timemap.
       2: { subst. simpls. by apply Memory.closed_timemap_bot. }
-      admit. }
+      eapply Memory.add_closed_timemap; eauto.
+      subst rel''. destruct (Rel w); apply MEM_CLOSE. }
 
     splits; eauto; subst rel'0; subst rel''0. 
     { unfold View.join, TimeMap.join; ins. 
