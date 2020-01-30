@@ -250,48 +250,44 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
       { reflexivity. }
       subst. eapply rel_le_cur; eauto. }
 
-    assert (Time.lt (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LT.
-    { eapply TimeFacts.le_lt_lt; [by apply GG|].
-      eapply TimeFacts.le_lt_lt; [|by apply PREVNLT].
-      eapply le_cur_f_to_wprev; eauto. }
+    (* assert (Time.lt (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LT. *)
+    (* { eapply TimeFacts.le_lt_lt; [by apply GG|]. *)
+    (* } *)
+    
+    assert (p_rel = None) as PRELNN.
+    { desc.
+      destruct PRELSPEC0; desc; auto.
+      exfalso.
+      generalize INRMW NWEX. clear. unfold Execution.W_ex. basic_solver. }
+    assert (Message.wf (Message.full valw p_rel)) as WFMSG.
+    { subst. constructor. apply View.opt_wf_none. }
 
     set (rel' := View.join (View.join rel'' (View.unwrap p_rel))
-                           (View.singleton_ur locw (f_to w))).
-    assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to wprev)) as PREL_LE'.
-    { eapply le_p_rel_f_to_wprev; eauto. }
-    assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to w)) as PREL_LE.
-    { desc.
-      destruct PRELSPEC0; desc.
-      { rewrite PREL. apply Time.bot_spec. }
-      assert (p = wprev); subst.
-      { eapply wf_rfrmwf; eauto. }
-      apply Time.le_lteq. left.
-      eapply TimeFacts.le_lt_lt.
-      2: by apply PREVNLT.
-      done. }
+                           (View.singleton_ur locw (f_to' w))).
+    assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to' w)) as PREL_LE.
+    { subst. apply Time.bot_spec. }
 
-    assert (Time.le (View.rlx rel' locw) (f_to w)) as REL_VIEW_LE.
-    { unfold rel'.
-      unfold View.join, TimeMap.join. simpls.
-      unfold TimeMap.singleton, LocFun.add.
-      rewrite Loc.eq_dec_eq.
-      apply Time.join_spec; [|reflexivity].
-      apply Time.join_spec; auto.
-      apply Time.le_lteq; auto. }
+    (* assert (Time.le (View.rlx rel' locw) (f_to w)) as REL_VIEW_LE. *)
+    (* { unfold rel'. *)
+    (*   unfold View.join, TimeMap.join. simpls. *)
+    (*   unfold TimeMap.singleton, LocFun.add. *)
+    (*   rewrite Loc.eq_dec_eq. *)
+    (*   apply Time.join_spec; [|reflexivity]. *)
+    (*   apply Time.join_spec; auto. *)
+    (*   apply Time.le_lteq; auto. } *)
 
     edestruct (@Memory.add_exists (Local.promises local) locw (f_from' w) (f_to' w)
                                   (Message.full valw p_rel))
-      as [promises' PADD].
+      as [promises' PADD]; eauto.
     { ins. eapply DISJOINT.
       eapply PROM_IN_MEM; eauto. }
     { unfold f_from', f_to'. rewrite !upds.
       eapply f_to_coherent_add_S_middle with (S:=S); eauto. }
-    {
 
-    edestruct (@Memory.add_exists PC.(Configuration.memory) locw (f_from' w) (f_to' w) Message.reserve)
-      as [memory' MADD].
-    3: by apply Message.wf_reserve.
-    { apply DISJOINT. }
+    edestruct (@Memory.add_exists PC.(Configuration.memory)
+                                  locw (f_from' w) (f_to' w)
+                                  (Message.full valw p_rel))
+      as [memory' MADD]; eauto.
     { unfold f_from', f_to'. rewrite !upds.
       eapply f_to_coherent_add_S_middle with (S:=S); eauto. }
     
@@ -300,7 +296,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
       eapply f_to_coherent_add_S_middle; eauto. }
 
     assert (reserved_time
-              G T (S ∪₁ eq w) (upd f_to w n_to) (upd f_from w n_from)
+              G (mkTC (covered T) (issued T ∪₁ eq w))
+              (S ∪₁ eq w) (upd f_to w n_to) (upd f_from w n_from)
               sim_normal memory') as RST.
     { eapply reserved_time_add_S_middle; eauto. }
     
