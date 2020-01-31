@@ -645,7 +645,8 @@ Proof using WF IMMCON ETCCOH FCOH.
 Qed.
 
 Lemma f_to_coherent_add_S_after locw w wprev n_from
-      (SMODE : smode = sim_normal)
+      (* TODO: fix it after taking into account capped messages. *)
+      (SMODE : smode = sim_normal \/ ~ W_ex w)
       (TID : tid w = thread)
       (WLOC : loc lab w = Some locw)
       (NSW : ~ S w)
@@ -737,12 +738,15 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_MEM SIM_RES_MEM.
   { (* TODO: extract some reasoning *)
     destruct NFROM as [[EQ HH]|[EQ NWPREV]]; subst; unnw.
     2: { exfalso.
+         clear SMODE.
          assert (x = wprev); desf.
          eapply wf_immcoPtf; eauto; red.
          eapply rfrmwP_in_immPco with (P':=eq y); eauto.
          apply seqA. basic_solver. }
-    cdes RESERVED_TIME.
-    eapply no_next_S_max_ts; eauto. }
+    desf.
+    { cdes RESERVED_TIME.
+      eapply no_next_S_max_ts; eauto. }
+    exfalso. generalize SMODE, RFRMW. unfold Execution.W_ex. clear. basic_solver. }
 
   all: exfalso; eapply rfrmw_in_im_co in RFRMW; eauto.
   { eapply NCO. eexists; apply seq_eqv_r; split; eauto.
@@ -966,7 +970,11 @@ Proof using WF IMMCON FCOH RESERVED_TIME.
   all: apply seq_eqv_r; split; auto.
 Qed.
 
-Lemma reserved_time_add_S_after locw memory' w wprev n_from v
+Lemma reserved_time_add_S_after locw memory' w wprev n_from T' msg v rel
+      (* TODO: fix it after taking into account capped messages. *)
+      (SMODE : smode = sim_normal \/ ~ W_ex w)
+      (SEW : S ⊆₁ E ∩₁ W)
+      (IS  : issued T ⊆₁ S)
       (TID : tid w = thread)
       (WLOC : loc lab w = Some locw)
       (WVAL : val lab w = Some v)
@@ -977,37 +985,33 @@ Lemma reserved_time_add_S_after locw memory' w wprev n_from v
                  ⟪ PRFRMW : (rf ⨾ rmw) wprev w ⟫) \/
                 (n_from = Time.incr (Memory.max_ts locw memory) /\
                  ⟪ NPRFRMW : ~ (rf ⨾ rmw) wprev w ⟫))
+      (TMSG : T' = T /\ msg = Message.reserve \/
+              T' = mkTC (covered T) (issued T ∪₁ eq w) /\ msg = Message.full v rel)
       (MADD :
         Memory.add memory locw
                    ((upd f_from w n_from) w)
                    ((upd f_to w (Time.incr (Time.incr (Memory.max_ts locw memory)))) w)
-                   Message.reserve memory') :     
+                   msg memory') :     
   reserved_time
-    G T (S ∪₁ eq w) (upd f_to w (Time.incr (Time.incr (Memory.max_ts locw memory))))
+    G T' (S ∪₁ eq w) (upd f_to w (Time.incr (Time.incr (Memory.max_ts locw memory))))
     (upd f_from w n_from)
     smode memory'.
 Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM.
   clear SIM_TVIEW.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
-
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
 
-  assert (S ⊆₁ E ∩₁ W) as SEW.
-  { generalize ETCCOH.(etc_S_in_E). generalize (reservedW WF ETCCOH). basic_solver. }
-
   assert (~ issued T w) as NIW.
-  { intros II. apply NSW. by apply ETCCOH.(etc_I_in_S). }
+  { intros II. apply NSW. by apply IS. }
 
   set (f_to':= upd f_to w (Time.incr (Time.incr (Memory.max_ts locw memory)))).
   set (f_from':= upd f_from w n_from).
 
   assert (S wprev /\ co wprev w) as [ISSPREV COPREV].
   { destruct PIMMCO as [H _]. apply seq_eqv_l in H; desf. }
-  assert (E wprev) as EPREV.
-  { by apply ETCCOH.(etc_S_in_E). }
-  assert (W wprev) as WPREV.
-  { by apply (reservedW WF ETCCOH). }
+  assert (E wprev /\ W wprev) as [EPREV WPREV].
+  { by apply SEW. }
 
   assert (~ is_init w) as WNINIT.
   { apply no_co_to_init in COPREV; auto. by destruct_seq_r COPREV as AA. }
@@ -1023,13 +1027,15 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM.
        apply AuxRel.set_compl_mori. red. basic_solver. }
 
   (* TODO: Extract to a separate lemma. *)
-  assert (half_message_to_event G T (S ∪₁ eq w) f_to' f_from' memory') as HMTE.
+  assert (half_message_to_event G T' (S ∪₁ eq w) f_to' f_from' memory') as HMTE.
   { red; ins. erewrite Memory.add_o in MSG; eauto.
     destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[EQ1 EQ2]|NEQ].
     { simpls; subst.
       rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in MSG.
       inv MSG.
-      clear MSG. exists w. splits; auto. by right. }
+      clear MSG. exists w. splits; auto.
+      { by right. }
+      desf. }
     rewrite loc_ts_eq_dec_neq in MSG; simpls; auto.
     apply HMEM in MSG. desc.
     assert (b <> w) as BNEQ.
@@ -1037,6 +1043,8 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM.
     exists b.
     splits; eauto.
     { by left. }
+    { destruct TMSG; desc; subst; auto. ins.
+      intros [HH|HH]; auto. }
     1,2: by unfold f_from', f_to'; rewrite updo. }
   splits; auto.
   { eapply message_to_event_add_S; eauto. }
@@ -1058,7 +1066,9 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM.
       assert (f_to x = f_to wprev) as FF.
       2: { eapply f_to_eq with (I:=S) in FF; eauto; desf. }
       rewrite FT. symmetry.
-      eapply no_next_S_max_ts; eauto. }
+      destruct SMODE as [|HH].
+      { eapply no_next_S_max_ts; eauto. }
+      exfalso. generalize BB HH. unfold Execution.W_ex. clear. basic_solver. }
     exfalso. eapply Time.lt_strorder.
     eapply TimeFacts.le_lt_lt.
     2: by apply DenseOrder.incr_spec.
@@ -1076,7 +1086,6 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM.
        rewrite <- WLOC. symmetry. by apply WF.(wf_col). }
   apply FCOH; auto.
   apply no_co_to_init in CO; auto. by destruct_seq_r CO as AA.
-Unshelve. repeat constructor. 
 Qed.
 
 End Aux.
