@@ -203,6 +203,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
       { apply ETCCOH. }
       { apply (reservedW WF ETCCOH). }
       exists w. split; auto. apply seq_eqv_l. by split. }
+
+    assert (~ (rf ⨾ rmw) w wnext) as NRFRMWNEXT.
+    { intros AA. apply NSW. eapply (dom_rf_rmw_S WF ETCCOH).
+      exists wnext. apply seqA. apply seq_eqv_r. by split. }
+
+    assert (Time.le (f_to wprev) (f_from wnext)) as FFLE by (by apply FCOH).
     
     destruct smode eqn:SMODE.
     2: { admit. }
@@ -213,15 +219,11 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
       apply TFRMW in HH; auto.
       eapply rfrmw_in_im_co in HH; eauto.
         by eapply HH; [apply COPREV|]. }
-    assert (Time.le (f_to wprev) (f_from wnext)) as FFLE by (by apply FCOH).
+
     assert (Time.lt (f_to wprev) (f_from wnext)) as FFLT.
     { clear -FFLE FFNEQ. apply Time.le_lteq in FFLE. desf. }
 
     cdes RESERVED_TIME. desc.
-    assert (~ (rf ⨾ rmw) w wnext) as NRFRMWNEXT.
-    { intros AA. apply NSW. eapply (dom_rf_rmw_S WF ETCCOH).
-      exists wnext. apply seqA. apply seq_eqv_r. by split. }
-    
     set (n_to := Time.middle (f_to wprev) (f_from wnext)).
     set (f_to' := upd f_to w n_to).
     exists f_to'.
