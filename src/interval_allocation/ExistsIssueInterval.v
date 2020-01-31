@@ -261,9 +261,40 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
       subst. eapply rel_le_cur; eauto. }
 
     assert (Time.lt (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LT.
-    { admit. }
-    (* { eapply TimeFacts.le_lt_lt; [by apply GG|]. *)
-    (* } *)
+    { eapply TimeFacts.le_lt_lt; eauto.
+      eapply TimeFacts.le_lt_lt.
+      2: by apply PREVNLT.
+      unfold f_to'. rewrite updo; auto.
+      cdes SIM_TVIEW. cdes CUR.
+      eapply max_value_leS with (w:=w).
+      9: by apply CUR0.
+      all: eauto.
+      { intros HH. apply WNISS. eapply t_cur_covered; eauto. }
+      { unfold t_cur, c_cur, CombRelations.urr.
+        rewrite !seqA. rewrite dom_eqv1.
+          by intros x [[_ YY]]. }
+      { rewrite <- ETCCOH.(etc_I_in_S). apply t_cur_covered; eauto. }
+      split; [|basic_solver].
+      intros x y QQ. apply seq_eqv_l in QQ. destruct QQ as [QQ' QQ]; subst.
+      apply seq_eqv_r in QQ. destruct QQ as [COXY TCUR].
+      red in TCUR. destruct TCUR as [z CCUR]. red in CCUR.
+      hahn_rewrite <- seqA in CCUR.
+      apply seq_eqv_r in CCUR. destruct CCUR as [URR COVZ].
+      apply seq_eqv_r in URR. destruct URR as [URR II].
+      eapply eco_urr_irr with (sc:=sc); eauto.
+      1-3: by apply IMMCON.
+      exists y. split.
+      { apply co_in_eco. apply COXY. }
+      apply urr_hb. exists z. split; eauto.
+      right. apply sb_in_hb.
+      assert (E z) as EZ.
+      { apply TCCOH in COVZ. apply COVZ. }
+      destruct II as [TIDZ|INITZ].
+      2: by apply init_ninit_sb; auto.
+      destruct (@same_thread G x z) as [[|SB]|SB]; auto.
+      { desf. }
+      exfalso. apply WNCOV. apply TCCOH in COVZ.
+      apply COVZ. eexists. apply seq_eqv_r; eauto. }
 
     assert (Time.le (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LE.
     { apply Time.le_lteq. eauto. }
