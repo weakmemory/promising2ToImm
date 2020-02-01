@@ -226,14 +226,16 @@ Proof using WF S_in_W ST_in_E IT_new_co.
   all: apply WF.
 Qed.
 
-Lemma cert_co_for_split_helper : ⦗set_compl cert_co_base⦘ ⨾ (immediate cert_co) ⊆ Gsb.
+Lemma cert_co_for_split_helper :
+  ⦗set_compl cert_co_base⦘ ⨾ (immediate (cert_co ⨾ ⦗S⦘)) ⊆ Gsb.
 Proof using WF S_in_W ST_in_E IT_new_co S_I_in_W_ex COH.
   unfold cert_co.
   red; intros x y H.
   assert (A: (E ∩₁ W ∩₁ Tid_ thread) y).
-  { apply (co_for_split IST_new_co (wf_coE WF) (wf_coD WF)).
-    red. eauto. }
-  unfolder in H; desf.
+  { admit. }
+    (* apply (co_for_split IST_new_co (wf_coE WF) (wf_coD WF)). *)
+    (* red. eauto. } *)
+  unfolder in H; desc.
   assert (B: (E ∩₁ W) x).
   { hahn_rewrite (wf_new_coE IST_new_co (wf_coE WF)) in H0.
     hahn_rewrite (wf_new_coD IST_new_co (wf_coD WF)) in H0.
@@ -254,8 +256,8 @@ Proof using WF S_in_W ST_in_E IT_new_co S_I_in_W_ex COH.
   { desf.
     exfalso.
     unfolder in D; desf.
-    destruct A0.
-    { rewrite H2 in D0. eapply (co_irr WF); edone. }
+    destruct A0; subst.
+    { eapply (co_irr WF); edone. }
     eapply COH.
     hahn_rewrite <- (@sb_in_hb G).
     hahn_rewrite <- (@co_in_eco G).
@@ -263,13 +265,13 @@ Proof using WF S_in_W ST_in_E IT_new_co S_I_in_W_ex COH.
     basic_solver. }
   hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in D.
   unfolder in D. apply D.
-Qed.
+Admitted.
 
 Lemma cert_co_for_split :
-  ⦗set_compl (GW_ex ∪₁ (I ∪₁ S ∩₁ Tid_ thread))⦘ ⨾ (immediate cert_co) ⊆ Gsb.
+  ⦗set_compl (GW_ex ∪₁ (I ∪₁ S ∩₁ Tid_ thread))⦘ ⨾ immediate (cert_co ⨾ ⦗S⦘) ⊆ Gsb.
 Proof using WF S_in_W S_I_in_W_ex ST_in_E IT_new_co COH.
-  arewrite (immediate cert_co ⊆
-            ⦗cert_co_base ∪₁ set_compl cert_co_base⦘ ⨾ immediate cert_co).
+  arewrite (immediate (cert_co ⨾ ⦗S⦘) ⊆
+            ⦗cert_co_base ∪₁ set_compl cert_co_base⦘ ⨾ immediate (cert_co ⨾ ⦗S⦘)).
   { rewrite AuxRel.set_compl_union_id. unfold set_full. by rewrite seq_id_l. }
   rewrite id_union, seq_union_l, seq_union_r. unionL.
   2: { rewrite cert_co_for_split_helper. clear. basic_solver. }
