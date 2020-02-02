@@ -103,7 +103,7 @@ Notation "'C'" := (covered T).
 
 Variable thread : BinNums.positive.
 
-Notation "'cert_co'" := (cert_co G T thread).
+Notation "'cert_co'" := (cert_co G T S thread).
 
 Notation "'D'" := (D G T S thread).
 
@@ -464,7 +464,7 @@ Lemma cert_rfe_alt : cert_rfe ≡ ⦗I⦘ ⨾ Grfe ⨾ ⦗D⦘
    ∪ ⦗I⦘ ⨾ (new_rf \ Gsb) ⨾ ⦗set_compl (dom_rel Grmw)⦘
    ∪ ⦗I⦘ ⨾ (immediate cert_co ⨾  Grmw⁻¹ \ Gsb) ⨾ ⦗set_compl D⦘.
 Proof using WF_SC WF TCCOH_rst_new_T S_in_W S_I_in_W_ex 
-  ST_in_E IT_new_co Grfe_E CSC COH ACYC_EXT.
+  ST_in_E IT_new_co Grfe_E CSC COH ACYC_EXT I_in_S.
   unfold Execution.rfe, cert_rfe, cert_rf.
   split; [|clear; basic_solver 21].
   rewrite !minus_union_l; unionL.
@@ -595,15 +595,67 @@ Proof using All.
        rewrite WF.(rfi_rmw_in_sb_loc).
        forward (eapply cert_co_sb_irr with (T:=T)); eauto.
        clear. basic_solver. }
+  (* TODO: potentially, fix w/ dom_rel rmw ⊆ R_ex for now. *)
   unfolder. intros x y [[z [RFI [ND RMW]]] CCO].
   split; auto. ins.
-  assert ((Gco ⨾ ⦗cert_co_base G T⦘) c y) as CC'.
-  { eapply cert_co_I; eauto. 
-    unfold cert_co_base. unfold W_ex. basic_solver. }
   eapply atomicity_alt; eauto.
   split; eauto.
+  edestruct imm_cert_co_inv_exists with (x:=y) (T:=T) as [cimm HH]; eauto.
+  { admit. }
+  destruct (classic (cimm = c)) as [|CNEQ]; subst.
+  { exists c. split; auto.
+    { exists x. split; [by apply RFI|].
+      eapply cert_co_alt in R1; eauto.
+      unfolder in R1. desf.
+      exfalso. apply ND.
+      red. do 2 left; right. (* TODO: introduce a selector. *)
+      basic_solver 10. }
+    eapply cert_co_alt in R2; eauto.
+    unfolder in R2. desf.
+    eapply cert_co_alt in R1; eauto.
+    unfolder in R1. desf.
+    { exfalso.
+      assert (Gco y c) as COYC.
+      { admit. }
+      eapply cert_co_alt in R0; eauto.
+      unfolder in R0. desf.
+      (* TODO: continue from here. *)
+
+    destruct (classic (cert_co_base T S (tid y) x)) as [CC|CC].
+    { assert (Gco x c) as COXC.
+      { admit. }
+
+    admit. } (* generalize CC'. clear. basic_solver. } *)
+
+  exists cimm.
+  split; auto.
+  { exists x. split; [by apply RFI|].
+    eapply cert_co_alt in R1; eauto.
+    unfolder in R1. desf.
+    exfalso. apply ND.
+    red. do 2 left; right. (* TODO: introduce a selector. *)
+    basic_solver 10.
+
   exists c. split.
-  2: { generalize CC'. clear. basic_solver. }
+  2: { (* assert ((Gco ⨾ ⦗cert_co_base T S thread⦘) c y) as CC'. *)
+       (* { eapply cert_co_I; eauto. *)
+       (*   unfold cert_co_base. apply seq_eqv_r. split; auto. *)
+       (*   basic_solver. } *)
+    eapply cert_co_alt in R2; eauto.
+    unfolder in R2. desf.
+    eapply cert_co_alt in R1; eauto.
+    unfolder in R1. desf.
+    { exfalso.
+      assert (Gco y c) as COYC.
+      { admit. }
+      eapply cert_co_alt in R0; eauto.
+      unfolder in R0. desf.
+
+    destruct (classic (cert_co_base T S (tid y) x)) as [CC|CC].
+    { assert (Gco x c) as COXC.
+      { admit. }
+
+    admit. } (* generalize CC'. clear. basic_solver. } *)
   exists x. split; [by apply RFI|].
   eapply cert_co_alt in R1; eauto.
   unfolder in R1. desf.

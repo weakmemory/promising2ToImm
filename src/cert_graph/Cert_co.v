@@ -119,15 +119,14 @@ Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 
-Definition cert_co_base := I ∪₁ W_ex G.
-Lemma cert_co_base_alt : cert_co_base ≡₁ I ∪₁ W_ex G ∩₁ Tid_ thread.
+Definition cert_co_base := I ∪₁ S ∩₁ Tid_ thread.
+Lemma cert_co_base_alt : cert_co_base ≡₁ I ∪₁ S ∩₁ Tid_ thread.
 Proof using WF IT_new_co.
   clear -WF IT_new_co.
   unfold cert_co_base.
   split; [|basic_solver].
   unionL; [basic_solver|].
-  rewrite WF.(W_ex_eq_EW_W_ex) at 1.
-  rewrite <- IT_new_co. basic_solver.
+  basic_solver.
 Qed.
 
 Lemma I_in_cert_co_base : I ⊆₁ cert_co_base.
@@ -135,21 +134,25 @@ Proof using. unfold cert_co_base. basic_solver. Qed.
 
 Lemma IST_in_cert_co_base : I ∪₁ S ∩₁ Tid_ thread ⊆₁ cert_co_base.
 Proof using S_I_in_W_ex.
-  rewrite AuxRel.set_subset_union_minus with (s:=S ∩₁ Tid_ thread) (s':=I).
-  rewrite S_I_in_W_ex.
   unfold cert_co_base. clear. basic_solver.
 Qed.
 
-Lemma W_ex_in_cert_co_base : GW_ex ⊆₁ cert_co_base.
-Proof using. unfold cert_co_base. clear. basic_solver. Qed.
+(* Lemma W_ex_in_cert_co_base : GW_ex ⊆₁ cert_co_base. *)
+(* Proof using. unfold cert_co_base. clear. basic_solver. Qed. *)
 
 Definition cert_co := new_co G cert_co_base (E ∩₁ W ∩₁ Tid_ thread).
 
 Lemma IST_new_co : cert_co_base ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
 Proof using WF S_in_W ST_in_E IT_new_co.
+  clear S_I_in_W_ex.
   rewrite <- IT_new_co at 2.
   rewrite cert_co_base_alt.
-  rewrite WF.(W_ex_eq_EW_W_ex) at 1.
+  split; [|basic_solver].
+  unionL.
+  1,3: basic_solver.
+  arewrite (S ∩₁ Tid_ thread ⊆₁ (S ∩₁ Tid_ thread) ∩₁ (Tid_ thread ∩₁ W)).
+  { generalize S_in_W. basic_solver. }
+  rewrite ST_in_E.
   clear. basic_solver.
 Qed.
 
@@ -226,15 +229,13 @@ Proof using WF S_in_W ST_in_E IT_new_co.
   all: apply WF.
 Qed.
 
-Lemma cert_co_for_split_helper :
-  ⦗set_compl cert_co_base⦘ ⨾ (immediate (cert_co ⨾ ⦗S⦘)) ⊆ Gsb.
+Lemma cert_co_for_split_helper : ⦗set_compl cert_co_base⦘ ⨾ (immediate cert_co) ⊆ Gsb.
 Proof using WF S_in_W ST_in_E IT_new_co S_I_in_W_ex COH.
   unfold cert_co.
   red; intros x y H.
   assert (A: (E ∩₁ W ∩₁ Tid_ thread) y).
-  { admit. }
-    (* apply (co_for_split IST_new_co (wf_coE WF) (wf_coD WF)). *)
-    (* red. eauto. } *)
+  { apply (co_for_split IST_new_co (wf_coE WF) (wf_coD WF)).
+    red. eauto. }
   unfolder in H; desc.
   assert (B: (E ∩₁ W) x).
   { hahn_rewrite (wf_new_coE IST_new_co (wf_coE WF)) in H0.
@@ -256,7 +257,7 @@ Proof using WF S_in_W ST_in_E IT_new_co S_I_in_W_ex COH.
   { desf.
     exfalso.
     unfolder in D; desf.
-    destruct A0; subst.
+    destruct A0; try subst y.
     { eapply (co_irr WF); edone. }
     eapply COH.
     hahn_rewrite <- (@sb_in_hb G).
@@ -265,19 +266,19 @@ Proof using WF S_in_W ST_in_E IT_new_co S_I_in_W_ex COH.
     basic_solver. }
   hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in D.
   unfolder in D. apply D.
-Admitted.
+Qed.
 
 Lemma cert_co_for_split :
-  ⦗set_compl (GW_ex ∪₁ (I ∪₁ S ∩₁ Tid_ thread))⦘ ⨾ immediate (cert_co ⨾ ⦗S⦘) ⊆ Gsb.
+  ⦗set_compl (I ∪₁ S ∩₁ Tid_ thread)⦘ ⨾ immediate cert_co ⊆ Gsb.
 Proof using WF S_in_W S_I_in_W_ex ST_in_E IT_new_co COH.
-  arewrite (immediate (cert_co ⨾ ⦗S⦘) ⊆
-            ⦗cert_co_base ∪₁ set_compl cert_co_base⦘ ⨾ immediate (cert_co ⨾ ⦗S⦘)).
+  arewrite (immediate cert_co ⊆
+            ⦗cert_co_base ∪₁ set_compl cert_co_base⦘ ⨾ immediate cert_co).
   { rewrite AuxRel.set_compl_union_id. unfold set_full. by rewrite seq_id_l. }
   rewrite id_union, seq_union_l, seq_union_r. unionL.
   2: { rewrite cert_co_for_split_helper. clear. basic_solver. }
   rewrite <- seqA. rewrite <- id_inter.
   rewrite set_interC. rewrite <- set_minusE.
-  arewrite (cert_co_base \₁ (GW_ex ∪₁ (I ∪₁ S ∩₁ Tid_ thread)) ⊆₁ ∅).
+  arewrite (cert_co_base \₁ (I ∪₁ S ∩₁ Tid_ thread) ⊆₁ ∅).
   2: clear; basic_solver.
   unfold cert_co_base. clear. basic_solver.
 Qed.
@@ -290,10 +291,13 @@ Proof using WF TCCOH S_in_W ST_in_E S IT_new_co.
   arewrite (I ∩₁ NTid_ thread ≡₁ cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread).
   { rewrite cert_co_base_alt.
     split.
-    2: { rewrite WF.(W_ex_eq_EW_W_ex), TCCOH.(I_eq_EW_I) at 1.
+    2: { rewrite TCCOH.(I_eq_EW_I) at 1.
          rewrite set_minus_union_l. unionL.
-         2: { clear. intros x [HH BB]. exfalso. apply BB.
-              generalize HH. basic_solver. }
+         2: { clear -S_in_W ST_in_E.
+              intros x [HH BB]. exfalso. apply BB.
+              split; [split|]; try apply HH.
+              { by apply ST_in_E. }
+              apply S_in_W. apply HH. }
          clear. intros x [HH BB]. split; [by apply HH|].
          generalize HH, BB. basic_solver 10. }
     clear. intros x [HH BB]. split; [basic_solver|].
@@ -356,7 +360,7 @@ Proof using WF S_in_W ST_in_E S IT_new_co.
 Qed.
 
 Lemma cert_co_sb_irr : irreflexive (cert_co ⨾ Gsb).
-Proof using WF COH TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co.
+Proof using WF COH TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co I_in_S.
   rewrite cert_co_alt at 1.
   relsf; unionL.
   1-2: rewrite co_in_eco, sb_in_hb; 
@@ -371,7 +375,7 @@ Proof using WF COH TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co.
 Qed.
 
 Lemma imm_cert_co_inv_exists : E ∩₁ W ∩₁ set_compl Init ⊆₁ codom_rel (immediate cert_co).
-Proof using WF TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co COH.
+Proof using WF TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co COH I_in_S.
 unfolder; ins.
 ins; eapply fsupp_immediate_pred.
 { eapply fsupp_mon; [| eapply fsupp_cross].
