@@ -132,7 +132,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            exists promises' memory',
              ⟪ PADD :
                  Memory.add local.(Local.promises) locw (f_from' w) (f_to' w)
-                                                   (Message.full valw (Some rel')) promises' ⟫ /\
+                            (Message.full valw (Some rel')) promises' ⟫ /\
              ⟪ MADD :
                  Memory.add memory locw (f_from' w) (f_to' w)
                             (Message.full valw (Some rel')) memory' ⟫ /\
@@ -213,7 +213,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
 
              ⟪ RESERVED_TIME :
                  reserved_time G T' S' f_to' f_from' smode memory' ⟫ ⟫).
-Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
+Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   assert (S ⊆₁ E ∩₁ W) as SEW.
   { apply set_subset_inter_r. split; [by apply ETCCOH|].
@@ -535,6 +535,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
       eapply Memory.split_closed_timemap; eauto.
       subst rel''. destruct (Rel w); apply MEM_CLOSE. }
 
+    (* TODO: make a lemma. Exact copy of the proof below. *)
     assert (Time.lt (View.rlx rel'' locw) n_to)
       as LTNTO.
     { eapply TimeFacts.le_lt_lt.
@@ -545,33 +546,36 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
         subst thread. eapply rel_le_cur; eauto. }
       etransitivity; [by apply VV|].
       cdes SIM_TVIEW. cdes CUR.
-      admit. }
-      (* eapply max_value_leS with (w:=w) (S:=S); eauto. *)
-      (* { unfold t_cur, c_cur, CombRelations.urr. *)
-      (*   rewrite !seqA. rewrite dom_eqv1. *)
-      (*     by intros x [[_ YY]]. } *)
-      (* { apply t_cur_covered; eauto. } *)
-      (* split; [|basic_solver]. *)
-      (* intros x y QQ. apply seq_eqv_l in QQ. destruct QQ as [QQ' QQ]; subst. *)
-      (* apply seq_eqv_r in QQ. destruct QQ as [COXY TCUR]. *)
-      (* red in TCUR. destruct TCUR as [z CCUR]. red in CCUR. *)
-      (* hahn_rewrite <- seqA in CCUR. *)
-      (* apply seq_eqv_r in CCUR. destruct CCUR as [URR COVZ]. *)
-      (* apply seq_eqv_r in URR. destruct URR as [URR II]. *)
-      (* eapply eco_urr_irr with (sc:=sc); eauto. *)
-      (* 1-3: by apply IMMCON. *)
-      (* exists y. split. *)
-      (* { apply co_in_eco. apply COXY. } *)
-      (* apply urr_hb. exists z. split; eauto. *)
-      (* right. apply sb_in_hb. *)
-      (* assert (E z) as EZ. *)
-      (* { apply TCCOH in COVZ. apply COVZ. } *)
-      (* destruct II as [TIDZ|INITZ]. *)
-      (* 2: by apply init_ninit_sb; auto. *)
-      (* destruct (@same_thread G x z) as [[|SB]|SB]; auto. *)
-      (* { desf. } *)
-      (* exfalso. apply WNCOV. apply TCCOH in COVZ. *)
-      (* apply COVZ. eexists. apply seq_eqv_r; eauto. } *)
+      eapply max_value_leS with (w:=w).
+      9: by apply CUR0.
+      all: eauto.
+      { intros HH. apply WNISS. eapply t_cur_covered; eauto. }
+      { unfold t_cur, c_cur, CombRelations.urr.
+        rewrite !seqA. rewrite dom_eqv1.
+          by intros x [[_ YY]]. }
+      { rewrite <- ETCCOH.(etc_I_in_S). apply t_cur_covered; eauto. }
+      split; [|basic_solver].
+      intros x y QQ. apply seq_eqv_l in QQ. destruct QQ as [QQ' QQ]; subst.
+      apply seq_eqv_r in QQ. destruct QQ as [COXY TCUR].
+      red in TCUR. destruct TCUR as [z CCUR]. red in CCUR.
+      hahn_rewrite <- seqA in CCUR.
+      apply seq_eqv_r in CCUR. destruct CCUR as [URR COVZ].
+      apply seq_eqv_r in URR. destruct URR as [URR II].
+      eapply eco_urr_irr with (sc:=sc); eauto.
+      1-3: by apply IMMCON.
+      exists y. split.
+      { apply co_in_eco. apply COXY. }
+      apply urr_hb. exists z. split; eauto.
+      right. apply sb_in_hb.
+      assert (E z) as EZ.
+      { apply TCCOH in COVZ. apply COVZ. }
+      destruct II as [TIDZ|INITZ].
+      2: by apply init_ninit_sb; auto.
+      destruct (@same_thread G x z) as [[|SB]|SB]; auto.
+      { desf. }
+      exfalso. apply WNCOV. apply TCCOH in COVZ.
+      apply COVZ. eexists. apply seq_eqv_r; eauto. }
+
     splits; eauto.
     { by rewrite upds, updo, upds. }
     { by rewrite upds. }
@@ -662,6 +666,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
       { reflexivity. }
       subst. eapply rel_le_cur; eauto. }
 
+    (* TODO: make a lemma. Exact copy of the proof above. *)
     assert (Time.lt (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LT.
     { eapply TimeFacts.le_lt_lt; eauto.
       eapply TimeFacts.le_lt_lt.
@@ -854,9 +859,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
   assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to' w)) as PREL_LE.
   { subst. apply Time.bot_spec. }
 
-  assert (View.pln rel'' = View.rlx rel'') as RELPLN''.
-  { subst rel''. destruct (Rel w); apply PLN_RLX_EQ. }
-
   assert (Message.wf (Message.full valw (Some rel'))) as WFREL'.
   { do 3 constructor.
     subst rel'. subst. simpls. rewrite RELPLN''. reflexivity. }
@@ -939,6 +941,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
   { apply same_tc. }
   split; [rewrite NONEXT|]; eauto with hahn.
   clear. basic_solver 10.
-Admitted.
+Qed.
 
 End Aux.
