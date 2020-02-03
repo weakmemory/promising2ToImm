@@ -1,7 +1,7 @@
 Require Import Setoid PArith.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
-From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration.
+From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration Local.
 
 From imm Require Import Events.
 From imm Require Import Execution.
@@ -358,18 +358,22 @@ Proof using REQ_TO REQ_FROM.
   exists b. splits; auto. by left.
 Qed.
 
-Lemma reserved_to_message threads thread memory
-      (SIMMEM    : sim_mem     G sc T f_to f_from threads thread memory)
-      (SIMRESMEM : sim_res_mem G T  S f_to f_from threads thread memory) :
+Lemma reserved_to_message thread local memory
+      (SIMMEM    : sim_mem     G sc T f_to f_from thread local memory)
+      (SIMRESMEM : sim_res_mem G T  S f_to f_from thread local memory) :
   forall l b (RESB: S b) (LOC: Loc_ l b),
-    exists msg, Memory.get l (f_to b) memory = Some (f_from b, msg).
+    exists msg,
+      Memory.get l (f_to b) memory = Some (f_from b, msg) /\
+      (tid b = thread ->
+       ~ covered T b ->
+       Memory.get l (f_to b) local.(Local.promises) = Some (f_from b, msg)).
 Proof using TCCOH.
   ins. destruct (classic (issued T b)) as [AA|AA].
-  2: { eexists. by apply SIMRESMEM. }
+  2: { eexists. split; ins; apply SIMRESMEM; auto. }
   assert (exists v, val lab b = Some v) as [v BB].
   { apply is_w_val. eapply issuedW; eauto. }
   edestruct SIMMEM as [msg CC]; eauto.
-  simpls. desf. eauto.
+  simpls. desf. eexists. splits; eauto. ins. by apply CC1.
 Qed.
 
 Lemma memory_to_event memory
