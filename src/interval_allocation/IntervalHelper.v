@@ -163,7 +163,9 @@ Lemma sim_helper_issue w locw valw f_to' f_from' (S' : actid -> Prop) p_rel
       (SW : S' w)
       (IS : issued T ⊆₁ S')
       (FCOH' : f_to_coherent G S' f_to' f_from')
-      (PREL : rfrmw_prev_rel w locw p_rel) :
+      (PREL : rfrmw_prev_rel w locw p_rel)
+      (SIM_MEM' : ~ W_ex w \/
+                  sim_mem G sc T f_to f_from thread local memory) :
   sim_mem_helper
     G sc f_to' w (f_from' w) valw
     (View.join (View.join (if is_rel lab w
@@ -171,7 +173,8 @@ Lemma sim_helper_issue w locw valw f_to' f_from' (S' : actid -> Prop) p_rel
                            else (TView.rel (Local.tview local) locw))
                           p_rel.(View.unwrap))
                (View.singleton_ur locw (f_to' w))).
-Proof using WF IMMCON RELCOV ETCCOH SIM_MEM SIM_RES_MEM SIM_TVIEW.
+Proof using WF IMMCON RELCOV ETCCOH SIM_TVIEW.
+  clear SIM_MEM SIM_RES_MEM.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   assert (~ is_init w) as NINIT.
   { intros HH. apply WNCOV. eapply init_covered; eauto. by split. }
@@ -295,7 +298,9 @@ Proof using WF IMMCON RELCOV ETCCOH SIM_MEM SIM_RES_MEM SIM_TVIEW.
     simpls. unfold TimeMap.bot.
     rewrite time_join_bot_r.
     apply JJ. }
-  edestruct SIM_MEM as [p_rel' H]; simpls; desc.
+  destruct SIM_MEM' as [AA|SIM_MEM'].
+  { exfalso. apply AA. red. generalize INRMW. clear. basic_solver. }
+  edestruct SIM_MEM' as [p_rel' H]; simpls; desc.
   { apply ISSP. }
   all: eauto.
   assert (dom_rel (msg_rel l ⨾ (rf ⨾ rmw) ⨾ ⦗eq w⦘) ≡₁

@@ -594,56 +594,24 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
     { constructor; auto.
       unfold View.join. simpls. rewrite RELPLN''.
       subst p_rel. simpls. }
-    { red. rewrite upds. splits; eauto.
-      red. ins. admit. }
-    (* { rewrite upds. cdes SIM_TVIEW. clear ACQ REL. *)
-    (*   apply Time.join_spec. *)
-    (*   2: { unfold TimeMap.singleton, LocFun.add. *)
-    (*        rewrite Loc.eq_dec_eq. apply DenseOrder_le_PreOrder. } *)
-    (*   apply Time.le_lteq. left. *)
-    (*   apply TimeFacts.join_spec_lt; auto. *)
-    (*   eapply TimeFacts.le_lt_lt. *)
-    (*   2: by apply LEWPNTO. *)
-    (*   destruct PREL0; desc. *)
-    (*   { subst. simpls. apply Time.bot_spec. } *)
-    (*   eapply max_value_leS with (w:=w); eauto. *)
-    (*   { intros x [HH|HH]. *)
-    (*     2: by desf. *)
-    (*     unfold CombRelations.msg_rel, CombRelations.urr in HH. *)
-    (*     hahn_rewrite seqA in HH. apply seq_eqv_l in HH. apply HH. } *)
-    (*   { intros x [HH|HH]. *)
-    (*     2: by desf. *)
-    (*     eapply msg_rel_issued; eauto. *)
-    (*     exists p. apply seq_eqv_r. split; eauto. } *)
-    (*   split; [|basic_solver]. *)
-    (*   intros x y QQ. apply seq_eqv_l in QQ. destruct QQ as [QQ' QQ]; subst. *)
-    (*   apply seq_eqv_r in QQ. destruct QQ as [COXY [MSG|[MSG EQ]]]. *)
-    (*   2: { subst. eapply WF.(co_irr). eapply WF.(co_trans). *)
-    (*        { apply COXY. } *)
-    (*        eapply rfrmw_in_im_co in INRMW; eauto. apply INRMW. } *)
-    (*   assert (msg_rel locw ⨾ (rf ⨾ rmw) ⊆ msg_rel locw) as YY. *)
-    (*   { unfold CombRelations.msg_rel, imm_s_hb.release, rs.  *)
-    (*     rewrite !seqA. by rewrite rt_unit. } *)
-    (*   assert (msg_rel locw y x) as MSGYX. *)
-    (*   { apply YY. eexists. eauto. } *)
-    (*   unfold CombRelations.msg_rel in MSGYX. *)
-    (*   destruct MSGYX as [z [URR RELES]]. *)
-    (*   eapply release_co_urr_irr; eauto. *)
-    (*   1-4: by apply IMMCON. *)
-    (*   eexists; split; [|eexists; split]; eauto. } *)
-    (* { ins. rewrite updo; auto. by intros HH; subst. } *)
-    (* { ins. destruct ISS as [ISS NEQ]. *)
-    (*   rewrite updo. *)
-    (*   2: by intros HH; subst. *)
-    (*   rewrite updo; auto. } *)
-    (* { etransitivity; eauto. *)
-    (*   arewrite (set_compl (issued T ∪₁ eq w) ⊆₁ set_compl (issued T)); [|done]. *)
-    (*   basic_solver. } *)
-    (* { etransitivity; eauto. *)
-    (*   basic_solver. } *)
-    (* destruct (Rel w); simpls. *)
-    (* apply SIM_HELPER; auto. by ins; rewrite updo; auto; intros H; subst. } *)
-    admit. }
+    { arewrite (View.singleton_ur locw n_to =
+                View.singleton_ur locw ((upd f_to w n_to) w)).
+      { by rewrite upds. }
+      arewrite (f_from wnext = (upd (upd f_from wnext n_to) w (f_from wnext)) w).
+      { by rewrite upds. }
+      eapply sim_helper_issue with (G:=G) (w:=w) (locw:=locw) (valw:=valw)
+                                   (S':=S ∪₁ eq w); eauto.
+      { transitivity (fun _ : actid => False); [|clear; basic_solver].
+        generalize NWEX. unfold Execution.W_ex. clear. basic_solver 10. }
+      { ins. rewrite updo; auto. intros HH. subst. eauto. }
+      { clear. basic_solver. }
+      rewrite IE. clear. basic_solver. }
+    
+    red. split; unnw.
+    { etransitivity.
+      2: by apply FOR_SPLIT.
+      hahn_frame_r. clear. basic_solver 10. }
+    rewrite RMW_BEF_S. clear. basic_solver 10. }
 
     assert (f_to wprev <> f_from wnext) as FFNEQ.
     { intros HH.
