@@ -410,7 +410,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            2: by rewrite upds.
            exfalso. apply WNISS. eapply dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
            exists y. 
-           (* apply NRFRMW. *)
            apply seqA. apply seq_eqv_r. by split. }
     
     edestruct (@Memory.split_exists (Local.promises local) locw
@@ -422,20 +421,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
                                     (f_from wnext) n_to (f_to wnext)
                                     (Message.full valw (Some rel')) wnextmsg)
            as [memory' MSPLIT]; eauto.
-
-    (* assert (issued T wnext) as NEXTISS. *)
-    (* { destruct NIMMCO as [HH _]. apply seq_eqv_r in HH; desf. } *)
-    (* assert (~ Rel w) as NREL. *)
-    (* { intros WREL. apply WNISS. *)
-    (*   eapply w_covered_issued; eauto. split; auto. *)
-    (*   apply TCCOH in NEXTISS. destruct NEXTISS as [[[_ NN] _] _]. *)
-    (*   apply NN. exists wnext. apply seq_eqv_r; split; auto. *)
-    (*   red. left; left; right. apply seq_eqv_l; split; [by split|]. *)
-    (*   apply seq_eqv_r; split; auto. split; auto. *)
-    (*   red. by rewrite LOC. } *)
-
-    (* assert (vnext = valwnext); subst. *)
-    (* { rewrite VALWNEXT in VNEXT. inv VNEXT. } *)
 
     exists wnext, wnextmsg.
     exists (upd f_to w n_to).
