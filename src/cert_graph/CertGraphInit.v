@@ -423,7 +423,7 @@ assert (dom_rel
 
 set (delta_rf :=
        (new_rf G Gsc T S thread) ⨾ ⦗set_compl (dom_rel G.(rmw))⦘ ∪
-       immediate (cert_co G T thread) ⨾ G.(rmw)⁻¹ ⨾ ⦗set_compl (D G T S thread)⦘).
+       immediate (cert_co G T S thread) ⨾ G.(rmw)⁻¹ ⨾ ⦗set_compl (D G T S thread)⦘).
 set (new_rfi := ⦗  Tid_ thread ⦘ ⨾ delta_rf ⨾ ⦗ Tid_ thread ⦘).
 set (new_rfe := ⦗ NTid_ thread ⦘ ⨾ delta_rf ⨾ ⦗ Tid_ thread ⦘).
 
@@ -883,9 +883,9 @@ red. splits.
     { intros x HH AA. apply FCOH; auto. }
     { ins. apply FCOH.
       1,2: by apply IST_in_S.
-      assert ((cert_co G T thread ⨾ ⦗cert_co_base G T⦘) x y) as HH.
-      { apply seq_eqv_r. split; auto.
-        eapply IST_in_cert_co_base; eauto. }
+      assert ((cert_co G T S thread ⨾ ⦗cert_co_base T S thread⦘) x y) as HH.
+      { apply seq_eqv_r. split; auto. }
+      (*   eapply IST_in_cert_co_base; eauto. } *)
       eapply cert_co_I in HH; eauto.
       apply seq_eqv_r in HH. destruct HH as [HH _].
       eapply (sub_co SUB) in HH.
@@ -903,9 +903,7 @@ red. splits.
     erewrite E_F_Sc_in_C; eauto.
     basic_solver. }
   splits.
-  { subst G.
-    rewrite cert_sb, cert_W_ex.
-    eapply cert_co_for_split; eauto. }
+  { subst G. rewrite cert_sb. eapply cert_co_for_split; eauto. }
   subst G. unfold W_ex. rewrite cert_sb. unfold certG. simpls.
   rewrite <- seqA, codom_eqv1.
   arewrite (codom_rel (⦗E0 Gf T S thread⦘ ⨾ rmw Gf) ⊆₁ is_w Gf.(lab)).

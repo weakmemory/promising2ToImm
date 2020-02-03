@@ -105,7 +105,7 @@ Notation "'C'" := (covered T).
 
 Variable thread : BinNums.positive.
 
-Notation "'cert_co'" := (cert_co G T thread).
+Notation "'cert_co'" := (cert_co G T S thread).
 
 Notation "'D'" := (D G T S thread).
 
@@ -262,82 +262,83 @@ Proof using All.
   rewrite !transp_union.
   arewrite (new_rf ⊆ new_rf ⨾ ⦗ E \₁ D ⦘).
   { rewrite wf_new_rfE; eauto. basic_solver. }
+Admitted.
 
-  rewrite !transp_seq, !transp_eqv_rel, !seqA.
-  relsf. unionL; rewrite !seqA.
-  {   arewrite ((cert_co \ Gsb) ⨾ ⦗GW_ex⦘ ⊆
-            (cert_co ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘).
-  { cut (new_co G (cert_co_base G T) (E ∩₁ W ∩₁ Tid_ thread) ⨾ ⦗GW_ex⦘ ⊆ Gco).
-    { basic_solver 21. }
-    rewrite W_ex_in_cert_co_base.
-    erewrite new_co_I; try apply WF.
-    clear. basic_solver.
-    eapply IST_new_co; eauto. }
+(*   rewrite !transp_seq, !transp_eqv_rel, !seqA. *)
+(*   relsf. unionL; rewrite !seqA. *)
+(*   {   arewrite ((cert_co \ Gsb) ⨾ ⦗GW_ex⦘ ⊆ *)
+(*             (cert_co ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘). *)
+(*   { cut (new_co G (cert_co_base T S thread) (E ∩₁ W ∩₁ Tid_ thread) ⨾ ⦗GW_ex⦘ ⊆ Gco). *)
+(*     { basic_solver 21. } *)
+(*     rewrite W_ex_in_cert_co_base. *)
+(*     erewrite new_co_I; try apply WF. *)
+(*     clear. basic_solver. *)
+(*     eapply IST_new_co; eauto. } *)
 
-  unfold Cert_co.cert_co.
-  erewrite new_co_in at 1; try apply WF.
-  2: eapply IST_new_co; eauto.
-  relsf; unionL.
+(*   unfold Cert_co.cert_co. *)
+(*   erewrite new_co_in at 1; try apply WF. *)
+(*   2: eapply IST_new_co; eauto. *)
+(*   relsf; unionL. *)
 
-  1,2: generalize (co_trans WF); revert AT'; unfold fr; basic_solver 12.
+(*   1,2: generalize (co_trans WF); revert AT'; unfold fr; basic_solver 12. *)
 
-  assert (cert_co_base G T \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN.
-  { rewrite cert_co_base_alt; eauto.
-    rewrite I_eq_EW_I at 1; eauto.
-    rewrite W_ex_eq_EW_W_ex at 1; eauto.
-    intros x [[AA|AA] BB].
-    { split; [by apply AA|].
-      intros HH. apply BB. split; auto. by apply AA. }
-    exfalso. apply BB. generalize AA. clear. basic_solver. }
+(*   assert (cert_co_base G T \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN. *)
+(*   { rewrite cert_co_base_alt; eauto. *)
+(*     rewrite I_eq_EW_I at 1; eauto. *)
+(*     rewrite W_ex_eq_EW_W_ex at 1; eauto. *)
+(*     intros x [[AA|AA] BB]. *)
+(*     { split; [by apply AA|]. *)
+(*       intros HH. apply BB. split; auto. by apply AA. } *)
+(*     exfalso. apply BB. generalize AA. clear. basic_solver. } *)
 
-  remember (new_co G (cert_co_base G T) (E ∩₁ W ∩₁ Tid_ thread)) as new.
-  rewrite !seqA.
-  arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base G T⦘
-              ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘ ⊆
-            ⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base G T⦘
-              ⨾ new ⨾ ⦗GW_ex \₁ E ∩₁ W ∩₁ Tid_ thread⦘).
-  { unfolder; ins; desf; splits; eauto.
-    intros [[EY WY] TT].
-    eapply same_thread in TT; desf; eauto.
-    2: { hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H3.
-         unfolder in H3; desf. }
-    destruct TT; desf; try subst z2; eauto.
-    { apply co_irr in H3; auto. }
-    eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone. }
+(*   remember (new_co G (cert_co_base G T) (E ∩₁ W ∩₁ Tid_ thread)) as new. *)
+(*   rewrite !seqA. *)
+(*   arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base G T⦘ *)
+(*               ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘ ⊆ *)
+(*             ⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base G T⦘ *)
+(*               ⨾ new ⨾ ⦗GW_ex \₁ E ∩₁ W ∩₁ Tid_ thread⦘). *)
+(*   { unfolder; ins; desf; splits; eauto. *)
+(*     intros [[EY WY] TT]. *)
+(*     eapply same_thread in TT; desf; eauto. *)
+(*     2: { hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H3. *)
+(*          unfolder in H3; desf. } *)
+(*     destruct TT; desf; try subst z2; eauto. *)
+(*     { apply co_irr in H3; auto. } *)
+(*     eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone. } *)
 
-  rewrite W_ex_in_cert_co_base.
-  subst new.
+(*   rewrite W_ex_in_cert_co_base. *)
+(*   subst new. *)
 
-  rewrite (inter_inclusion
-             (@T_I_new_co_I_T G (cert_co_base G T)
-                              (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
+(*   rewrite (inter_inclusion *)
+(*              (@T_I_new_co_I_T G (cert_co_base G T) *)
+(*                               (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))). *)
 
-  rewrite (inter_eq (wf_rfD WF)), (inter_eq (wf_rfE WF)),
-  (inter_inclusion (wf_rfl WF)), (inter_inclusion (wf_rmwl WF)),
-  (inter_inclusion (wf_col WF)).
-  unfolder; ins; desc. subst z0 z3.
-  assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence).
-  assert (K: Gco z4 z1 \/ Gco z1 z4).
-  { eapply WF; try basic_solver 2.
-    intro; subst z1; eauto. }
-  destruct K.
-  2: revert AT'; unfold fr; basic_solver 12.
-  eapply (@new_co_irr _  (cert_co_base G T)); try apply WF.
-  eapply IST_new_co; eauto.
-  eapply (@new_co_trans _  (cert_co_base G T)); try apply WF.
-  eapply IST_new_co; eauto.
+(*   rewrite (inter_eq (wf_rfD WF)), (inter_eq (wf_rfE WF)), *)
+(*   (inter_inclusion (wf_rfl WF)), (inter_inclusion (wf_rmwl WF)), *)
+(*   (inter_inclusion (wf_col WF)). *)
+(*   unfolder; ins; desc. subst z0 z3. *)
+(*   assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence). *)
+(*   assert (K: Gco z4 z1 \/ Gco z1 z4). *)
+(*   { eapply WF; try basic_solver 2. *)
+(*     intro; subst z1; eauto. } *)
+(*   destruct K. *)
+(*   2: revert AT'; unfold fr; basic_solver 12. *)
+(*   eapply (@new_co_irr _  (cert_co_base G T)); try apply WF. *)
+(*   eapply IST_new_co; eauto. *)
+(*   eapply (@new_co_trans _  (cert_co_base G T)); try apply WF. *)
+(*   eapply IST_new_co; eauto. *)
   
-  apply H3.
-  apply new_co_helper; [apply WF| apply WF| basic_solver 12].
+(*   apply H3. *)
+(*   apply new_co_helper; [apply WF| apply WF| basic_solver 12]. *)
 
- }
-  { basic_solver. }
-  arewrite (Grmw⁻¹ ⨾ ⦗set_compl D⦘ ⨾ Grmw ⊆ ⦗fun _ => True⦘).
-  2: basic_solver.
-  arewrite_id  ⦗set_compl D⦘.
-  rels.
-  apply functional_alt.
-  apply WF.(wf_rmwf).
-Qed.
+(*  } *)
+(*   { basic_solver. } *)
+(*   arewrite (Grmw⁻¹ ⨾ ⦗set_compl D⦘ ⨾ Grmw ⊆ ⦗fun _ => True⦘). *)
+(*   2: basic_solver. *)
+(*   arewrite_id  ⦗set_compl D⦘. *)
+(*   rels. *)
+(*   apply functional_alt. *)
+(*   apply WF.(wf_rmwf). *)
+(* Qed. *)
 
 End CertExec_at.
