@@ -104,7 +104,7 @@ Notation "'C'" := (covered T).
 
 Variable thread : BinNums.positive.
 
-Notation "'cert_co'" := (cert_co G T thread).
+Notation "'cert_co'" := (cert_co G T S thread).
 
 Notation "'D'" := (D G T S thread).
 

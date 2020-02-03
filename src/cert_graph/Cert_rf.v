@@ -619,50 +619,52 @@ Proof using All.
       { admit. }
       eapply cert_co_alt in R0; eauto.
       unfolder in R0. desf.
-      (* TODO: continue from here. *)
+Admitted.
 
-    destruct (classic (cert_co_base T S (tid y) x)) as [CC|CC].
-    { assert (Gco x c) as COXC.
-      { admit. }
+(*       (* TODO: continue from here. *) *)
 
-    admit. } (* generalize CC'. clear. basic_solver. } *)
+(*     destruct (classic (cert_co_base T S (tid y) x)) as [CC|CC]. *)
+(*     { assert (Gco x c) as COXC. *)
+(*       { admit. } *)
 
-  exists cimm.
-  split; auto.
-  { exists x. split; [by apply RFI|].
-    eapply cert_co_alt in R1; eauto.
-    unfolder in R1. desf.
-    exfalso. apply ND.
-    red. do 2 left; right. (* TODO: introduce a selector. *)
-    basic_solver 10.
+(*     admit. } (* generalize CC'. clear. basic_solver. } *) *)
 
-  exists c. split.
-  2: { (* assert ((Gco ⨾ ⦗cert_co_base T S thread⦘) c y) as CC'. *)
-       (* { eapply cert_co_I; eauto. *)
-       (*   unfold cert_co_base. apply seq_eqv_r. split; auto. *)
-       (*   basic_solver. } *)
-    eapply cert_co_alt in R2; eauto.
-    unfolder in R2. desf.
-    eapply cert_co_alt in R1; eauto.
-    unfolder in R1. desf.
-    { exfalso.
-      assert (Gco y c) as COYC.
-      { admit. }
-      eapply cert_co_alt in R0; eauto.
-      unfolder in R0. desf.
+(*   exists cimm. *)
+(*   split; auto. *)
+(*   { exists x. split; [by apply RFI|]. *)
+(*     eapply cert_co_alt in R1; eauto. *)
+(*     unfolder in R1. desf. *)
+(*     exfalso. apply ND. *)
+(*     red. do 2 left; right. (* TODO: introduce a selector. *) *)
+(*     basic_solver 10. *)
 
-    destruct (classic (cert_co_base T S (tid y) x)) as [CC|CC].
-    { assert (Gco x c) as COXC.
-      { admit. }
+(*   exists c. split. *)
+(*   2: { (* assert ((Gco ⨾ ⦗cert_co_base T S thread⦘) c y) as CC'. *) *)
+(*        (* { eapply cert_co_I; eauto. *) *)
+(*        (*   unfold cert_co_base. apply seq_eqv_r. split; auto. *) *)
+(*        (*   basic_solver. } *) *)
+(*     eapply cert_co_alt in R2; eauto. *)
+(*     unfolder in R2. desf. *)
+(*     eapply cert_co_alt in R1; eauto. *)
+(*     unfolder in R1. desf. *)
+(*     { exfalso. *)
+(*       assert (Gco y c) as COYC. *)
+(*       { admit. } *)
+(*       eapply cert_co_alt in R0; eauto. *)
+(*       unfolder in R0. desf. *)
 
-    admit. } (* generalize CC'. clear. basic_solver. } *)
-  exists x. split; [by apply RFI|].
-  eapply cert_co_alt in R1; eauto.
-  unfolder in R1. desf.
-  exfalso. apply ND.
-  red. do 2 left; right. (* TODO: introduce a selector. *)
-  basic_solver 10.
-Qed.
+(*     destruct (classic (cert_co_base T S (tid y) x)) as [CC|CC]. *)
+(*     { assert (Gco x c) as COXC. *)
+(*       { admit. } *)
+
+(*     admit. } (* generalize CC'. clear. basic_solver. } *) *)
+(*   exists x. split; [by apply RFI|]. *)
+(*   eapply cert_co_alt in R1; eauto. *)
+(*   unfolder in R1. desf. *)
+(*   exfalso. apply ND. *)
+(*   red. do 2 left; right. (* TODO: introduce a selector. *) *)
+(*   basic_solver 10. *)
+(* Qed. *)
 
 (* TODO: move to CombRelations.v *)
 Lemma rf_in_furr : Grf ⊆ Gfurr.
@@ -767,11 +769,12 @@ Proof using All.
   { apply AuxRel.immediate_in in AA.
     forward (eapply cert_co_I); eauto.
     unfolder; ins; desf; eapply H4; splits; eauto.
-    red; right; red; basic_solver. }
+    admit. }
+    (* red; right; red; basic_solver. } *)
   eapply atomicity_alt; eauto.
   by eapply coherence_sc_per_loc; eauto.
   unfold fr in *; unfolder; splits; eauto 10.
-Qed.
+Admitted.
 
 Lemma I_Grfe_in_inv_Gco_cr_cert_rf : Grfe ⊆ (cert_co ∩ Gco^{-1})^? ⨾ cert_rf.
 Proof using All.
@@ -816,10 +819,10 @@ Proof using All.
   rewrite <- !seqA.
   rewrite transp_cert_co_imm_cert_co'; eauto.
   rewrite !seqA.
-  rewrite I_in_cert_co_base with (G:=G); eauto.
+  rewrite I_in_cert_co_base with (T:=T) (S:=S) (thread:=thread); eauto.
   seq_rewrite <- seq_eqv_inter_ll.
 
-  arewrite (⦗cert_co_base G T⦘ ⨾ (cert_co⁻¹)^? ⊆ Gco⁻¹^?).
+  arewrite (⦗cert_co_base T S thread⦘ ⨾ (cert_co⁻¹)^? ⊆ Gco⁻¹^?).
   { forward (eapply cert_co_I); eauto.
     clear. unfolder; ins; desf; eauto.
     right; eapply H; eauto. }
@@ -1052,7 +1055,7 @@ Proof using All.
   assert (E w) as EW.
   { hahn_rewrite (wf_rfE WF) in A; unfolder in A; desf. }
   exists z; split; eauto.
-  cut ((co G ⨾ ⦗cert_co_base G T⦘) w z).
+  cut ((co G ⨾ ⦗cert_co_base T S thread⦘) w z).
   { basic_solver. }
   eapply new_co_I; try eapply IST_new_co; try apply WF; eauto.
   unfolder; splits; eauto.

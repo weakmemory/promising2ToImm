@@ -368,7 +368,7 @@ Proof using All.
   rewrite <- seq_eqv_inter_lr, !seqA.
   rewrite cert_rfe_eq.
   rewrite cert_rfe_D; auto.
-  rewrite I_in_cert_co_base with (G:=G).
+  rewrite I_in_cert_co_base with (T:=T) (S:=S) (thread:=thread).
   seq_rewrite <- seq_eqv_minus_lr.
   ins; rewrite cert_co_I; try edone.
   clear. basic_solver 21.
@@ -390,8 +390,8 @@ Proof using All.
   rewrite (dom_rel_helper Grfe_E) at 1.
   arewrite (Ccoe ⨾ ⦗I⦘ ⊆ Gcoe).
   2: done.
-  erewrite I_in_cert_co_base with (G:=G).
-  forward (eapply cert_co_I with (G:=G)); eauto.
+  erewrite I_in_cert_co_base with (T:=T) (S:=S) (thread:=thread).
+  forward (eapply cert_co_I with (G:=G) (T:=T) (S:=S) (thread:=thread)); eauto.
   unfold coe. rewrite cert_sb. unfold CertExecution2.certG.
   clear. simpls.
   unfolder. intros HH; ins; desf. splits; auto. apply HH. by split.
@@ -418,9 +418,8 @@ basic_solver 21. }
 
   rewrite (dom_rel_helper Grfe_E) at 1.
   arewrite (Ccoe ⨾ ⦗I⦘ ⊆ Gcoe).
-{
-  erewrite I_in_cert_co_base with (G:=G).
-  forward (eapply cert_co_I with (G:=G)); eauto.
+{ erewrite I_in_cert_co_base with (T:=T) (S:=S) (thread:=thread).
+  forward (eapply cert_co_I with (G:=G) (T:=T) (S:=S) (thread:=thread)); eauto.
   unfold coe. rewrite cert_sb. unfold CertExecution2.certG.
   clear. simpls.
   unfolder. intros HH; ins; desf. splits; auto. apply HH. by split. }
@@ -522,7 +521,7 @@ Proof using All.
 Qed.
 
 Lemma cert_ar_int_I : Car_int⁺ ⨾ ⦗ C ∪₁ I ⦘ ⊆ ⦗ D ∪₁ R ∩₁ Acq ⦘ ⨾ Gar_int⁺.
-Proof.
+Proof using All.
   arewrite (⦗ C ∪₁ I ⦘ ⊆ ⦗ C ∪₁ I ⦘ ⨾ ⦗ C ∪₁ I ⦘).
   { clear. basic_solver. }
   rewrite <- !seqA.

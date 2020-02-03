@@ -106,7 +106,7 @@ Notation "'C'" := (covered T).
 
 Variable thread : BinNums.positive.
 
-Notation "'cert_co'" := (cert_co G T thread).
+Notation "'cert_co'" := (cert_co G T S thread).
 
 Notation "'D'" := (D G T S thread).
 
@@ -331,20 +331,21 @@ rotate 1.
 sin_rewrite set_compl_D_helper.
 rewrite AuxRel.immediate_in.
     arewrite (cert_co ⨾ Grmw⁻¹ \ Gsb ⊆ cert_co ⨾ Grmw⁻¹).
-rewrite rmw_W_ex, transp_seq, transp_eqv_rel, W_ex_in_cert_co_base.
-forward (eapply cert_co_I with (G:=G)); eauto; intro AA.
-sin_rewrite AA.
-arewrite_id ⦗cert_co_base G T⦘; rels.
+Admitted.
+(* rewrite rmw_W_ex, transp_seq, transp_eqv_rel, W_ex_in_cert_co_base. *)
+(* forward (eapply cert_co_I with (G:=G)); eauto; intro AA. *)
+(* sin_rewrite AA. *)
+(* arewrite_id ⦗cert_co_base G T⦘; rels. *)
 
-rotate 1.
-sin_rewrite WF.(transp_rmw_sb).
+(* rotate 1. *)
+(* sin_rewrite WF.(transp_rmw_sb). *)
 
 
-      revert COH. unfold coherence, coh_sc, eco, fr.
-rewrite sb_in_hb.
-generalize WF.(co_irr).
-clear; basic_solver 21.
-Qed.
+(*       revert COH. unfold coherence, coh_sc, eco, fr. *)
+(* rewrite sb_in_hb. *)
+(* generalize WF.(co_irr). *)
+(* clear; basic_solver 21. *)
+(* Qed. *)
 
 Lemma hb_rf_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Crf).
 Proof using hb_sc_hb_de WF_SC WF TCCOH_rst_new_T S_in_W S_I_in_W_ex ST_in_E
@@ -394,8 +395,8 @@ rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
 relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E).
       unfold CertExecution2.certG; ins; rewrite !seqA.
-      rewrite (I_in_cert_co_base G T) at 1.
-      arewrite (cert_co ⨾ ⦗cert_co_base G T⦘ ⊆ co G ⨾ ⦗cert_co_base G T⦘).
+      rewrite (I_in_cert_co_base T S thread) at 1.
+      arewrite (cert_co ⨾ ⦗cert_co_base T S thread⦘ ⊆ co G ⨾ ⦗cert_co_base T S thread⦘).
       eby eapply cert_co_I.
       revert COH CSC. unfold coherence, coh_sc, eco.
       ie_unfolder. basic_solver 21. }
@@ -416,20 +417,21 @@ relsf; unionL.
     arewrite (Cco ⨾ ⦗I⦘ ⨾ cert_co ⊆ cert_co).
     { forward (eapply cert_co_trans with (G:=G)); eauto.
       basic_solver. }
-rewrite rmw_W_ex, transp_seq, transp_eqv_rel, W_ex_in_cert_co_base.
-forward (eapply cert_co_I with (G:=G)); eauto; intro AA.
-sin_rewrite AA.
-arewrite_id ⦗cert_co_base G T⦘; rels.
+Admitted.
+(* rewrite rmw_W_ex, transp_seq, transp_eqv_rel, W_ex_in_cert_co_base. *)
+(* forward (eapply cert_co_I with (G:=G)); eauto; intro AA. *)
+(* sin_rewrite AA. *)
+(* arewrite_id ⦗cert_co_base G T⦘; rels. *)
 
-rotate 1.
-sin_rewrite WF.(transp_rmw_sb).
+(* rotate 1. *)
+(* sin_rewrite WF.(transp_rmw_sb). *)
 
 
-      revert COH. unfold coherence, coh_sc, eco, fr.
-rewrite sb_in_hb.
-generalize WF.(co_irr).
-      basic_solver 21.
-Qed.
+(*       revert COH. unfold coherence, coh_sc, eco, fr. *)
+(* rewrite sb_in_hb. *)
+(* generalize WF.(co_irr). *)
+(*       basic_solver 21. *)
+(* Qed. *)
 
 Lemma hb_co_rfe_irr' : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Cco^? ⨾ Crfe).
 Proof using All.
@@ -491,8 +493,8 @@ rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto. relsf; unionL.
   { unfold fr. unfold CertExecution2.certG. ins. unfold Cert_rf.cert_rf.
     rewrite !transp_union, transp_seq; relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E), !seqA.
-      rewrite (I_in_cert_co_base G T) at 1.
-      arewrite (cert_co ⨾ ⦗cert_co_base G T⦘ ⊆ co G ⨾ ⦗cert_co_base G T⦘).
+      rewrite (I_in_cert_co_base T S thread) at 1.
+      arewrite (cert_co ⨾ ⦗cert_co_base T S thread⦘ ⊆ co G ⨾ ⦗cert_co_base T S thread⦘).
       eby eapply cert_co_I.
       revert COH CSC. unfold coherence, coh_sc, eco, fr. ie_unfolder.
       basic_solver 21. }
@@ -508,7 +510,7 @@ rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto. relsf; unionL.
     arewrite (cert_co^? ⨾ ⦗I⦘ ⊆ Gco^? ⨾ ⦗I⦘).
     { cut (cert_co ⨾ ⦗I⦘ ⊆ Gco).
 basic_solver.
-      rewrite (I_in_cert_co_base G T) at 1.
+      rewrite (I_in_cert_co_base T S thread) at 1.
 
       forward (eapply cert_co_I with (G:=G)); eauto; intro AA.
 rewrite AA; basic_solver. }
