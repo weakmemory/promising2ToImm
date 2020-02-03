@@ -535,7 +535,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
       eapply Memory.split_closed_timemap; eauto.
       subst rel''. destruct (Rel w); apply MEM_CLOSE. }
 
-    (* Time.lt (View.rlx rel'' locw) n_to *)
     assert (Time.lt (View.rlx rel'' locw) n_to)
       as LTNTO.
     { eapply TimeFacts.le_lt_lt.
@@ -592,7 +591,9 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW.
     splits; auto.
     all: try (rewrite upds; (try rewrite (fun x y => updo x y NEQNEXT));
       (try rewrite upds); auto).
-    { constructor; auto. admit. }
+    { constructor; auto.
+      unfold View.join. simpls. rewrite RELPLN''.
+      subst p_rel. simpls. }
     { red. rewrite upds. splits; eauto.
       red. ins. admit. }
     (* { rewrite upds. cdes SIM_TVIEW. clear ACQ REL. *)
