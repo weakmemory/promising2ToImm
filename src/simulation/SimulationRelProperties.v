@@ -601,4 +601,67 @@ Proof.
   all: eauto.
 Qed.
 
+
+Lemma le_msg_rel_f_to_wprev w wprev locw PC lang state
+  (EW : E w)
+  (WNCOV : ~ covered T w)
+  (WNISS : ~ issued T w)
+  (LOC : loc lab w = Some locw)
+  (local : Local.t)
+  (SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) (tid w))
+  (TID : IdentMap.find (tid w) PC.(Configuration.threads) =
+         Some (existT (fun lang : language => Language.state lang) lang state, local))
+  (PCOIMM : immediate (⦗S⦘ ⨾ co) wprev w) :
+  let rel :=
+      if is_rel lab w
+      then (TView.cur (Local.tview local))
+      else (TView.rel (Local.tview local) locw)
+  in
+  Time.le (View.rlx rel locw) (f_to wprev).
+Proof using WF IMMCON RELCOV TCCOH ETCCOH FCOH.
+  assert (WNINIT : ~ is_init w).
+  { intros HH. apply WNCOV. eapply init_covered; eauto. by split. }
+  
+  set (rel :=
+         if Rel w
+         then TView.cur (Local.tview local)
+         else TView.rel (Local.tview local) locw).
+
+  assert (Time.le (View.rlx rel locw)
+                  (View.rlx (TView.cur (Local.tview local)) locw)) as VV.
+  { subst rel. destruct (Rel w); [reflexivity|].
+    eapply rel_le_cur; eauto. }
+  etransitivity; [by apply VV|].
+  cdes SIM_TVIEW. cdes CUR.
+  eapply max_value_leS with (w:=w).
+  4: by apply CUR0.
+  all: eauto.
+  { intros HH. apply WNISS. eapply t_cur_covered; eauto. }
+  { unfold t_cur, c_cur, CombRelations.urr.
+    rewrite !seqA. rewrite dom_eqv1.
+      by intros x [[_ YY]]. }
+  { rewrite <- ETCCOH.(etc_I_in_S). apply t_cur_covered; eauto. }
+  split; [|basic_solver].
+  intros x y QQ. apply seq_eqv_l in QQ. destruct QQ as [QQ' QQ]; subst.
+  apply seq_eqv_r in QQ. destruct QQ as [COXY TCUR].
+  red in TCUR. destruct TCUR as [z CCUR]. red in CCUR.
+  hahn_rewrite <- seqA in CCUR.
+  apply seq_eqv_r in CCUR. destruct CCUR as [URR COVZ].
+  apply seq_eqv_r in URR. destruct URR as [URR II].
+  eapply eco_urr_irr with (sc:=sc); eauto.
+  1-3: by apply IMMCON.
+  exists y. split.
+  { apply co_in_eco. apply COXY. }
+  apply urr_hb. exists z. split; eauto.
+  right. apply sb_in_hb.
+  assert (E z) as EZ.
+  { apply TCCOH in COVZ. apply COVZ. }
+  destruct II as [TIDZ|INITZ].
+  2: by apply init_ninit_sb; auto.
+  destruct (@same_thread G x z) as [[|SB]|SB]; auto.
+  { desf. }
+  exfalso. apply WNCOV. apply TCCOH in COVZ.
+  apply COVZ. eexists. apply seq_eqv_r; eauto.
+Qed.
+
 End SimRelProps.

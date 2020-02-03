@@ -281,68 +281,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          assert (set_compl (W_ex ∪₁ S) w) as WNRMWS.
          { intros [|]; eauto. }
 
-         (* TODO: introduce a lemma *)
          assert (sb w wnext) as SBNEXT.
-         { clear -WF WW NSW FOR_SPLIT NCOIMM ISSNEXT CONEXT. simpls. desc.
-           apply clos_trans_of_transitiveD; [apply sb_trans|].
-           apply (inclusion_t_t FOR_SPLIT).
-           eapply ct_imm1 in CONEXT.
-           2: by apply WF.(co_irr).
-           2: by apply WF.(co_trans).
-           2: by intros x [y H']; apply WF.(wf_coE) in H'; apply seq_eqv_l in H'; desf; eauto.
-           apply t_rt_step in CONEXT. destruct CONEXT as [z [IMMS IMM]].
-           apply t_rt_step. exists z; split; [|apply seq_eqv_l; split; [|done]].
-           { apply rtE in IMMS. destruct IMMS as [IMMS|IMMS].
-             { red in IMMS; desf. apply rt_refl. }
-             assert (immediate (co ⨾ ⦗S⦘) z wnext) as IMM'.
-             { red; split; [apply seq_eqv_r; split; auto|].
-               { apply clos_trans_immediate1; auto.
-                 eapply WF.(co_trans). }
-               ins. eapply NCOIMM; [|by apply R2].
-               apply seq_eqv_r in R1; destruct R1 as [R1 R3].
-               apply seq_eqv_r; split; auto.
-               eapply WF.(co_trans); [|by apply R1].
-               apply clos_trans_immediate1; auto.
-               eapply WF.(co_trans). }
-             clear IMM.
-             induction IMMS.
-             { apply rt_step. apply seq_eqv_l; split; auto. }
-             assert (co y wnext) as YNEXT.
-             { apply clos_trans_immediate1; auto.
-               eapply WF.(co_trans).
-               eapply transitive_ct; [by apply IMMS2|].
-               eapply clos_trans_immediate2.
-               { apply WF.(co_trans). }
-               { apply WF.(co_irr). }
-               { red; ins. apply WF.(wf_coE) in REL.
-                 apply seq_eqv_l in REL; destruct REL as [_ REL].
-                 apply seq_eqv_r in REL. apply REL. }
-               destruct IMM' as [II _].
-               apply seq_eqv_r in II; apply II. }
-             assert (immediate (co ⨾ ⦗S⦘) y wnext) as YNEXTIMM.
-             { red; split; [by apply seq_eqv_r; split|].
-               ins. eapply NCOIMM; [|by apply R2].
-               apply seq_eqv_r in R1; destruct R1 as [R1 R3].
-               apply seq_eqv_r; split; auto.
-               eapply WF.(co_trans); [|by apply R1].
-               apply clos_trans_immediate1; auto.
-               eapply WF.(co_trans). }
-             eapply rt_trans.
-             { by apply IHIMMS1. }
-             apply IHIMMS2; auto.
-             { apply WF.(wf_coD) in YNEXT.
-               apply seq_eqv_l in YNEXT; desf. }
-             intros NISS. eapply NCOIMM; apply seq_eqv_r; split; auto.
-             2: by apply NISS.
-             2: done.
-             apply clos_trans_immediate1; auto.
-               by apply WF.(co_trans). }
-           intros HH. apply rtE in IMMS; destruct IMMS as [IMSS|IMMS].
-           { red in IMSS; desf. }
-           eapply NCOIMM; apply seq_eqv_r; split; auto.
-           2: by apply HH.
-           all: apply clos_trans_immediate1; auto.
-           all: apply WF.(co_trans). }
+         { eapply nS_imm_co_in_sb with (S:=S); eauto. }
 
          assert (tid wnext = tid w) as TIDNEXT.
          { apply sb_tid_init in SBNEXT. destruct SBNEXT as [H|H]; desf. }
@@ -535,46 +475,11 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       eapply Memory.split_closed_timemap; eauto.
       subst rel''. destruct (Rel w); apply MEM_CLOSE. }
 
-    (* TODO: make a lemma. Exact copy of the proof below. *)
-    assert (Time.lt (View.rlx rel'' locw) n_to)
-      as LTNTO.
-    { eapply TimeFacts.le_lt_lt.
+    assert (Time.lt (View.rlx rel'' locw) n_to) as LTNTO.
+    { simpls.
+      eapply TimeFacts.le_lt_lt.
       2: by apply LEWPNTO.
-      assert (Time.le (View.rlx rel'' locw)
-                      (View.rlx (TView.cur (Local.tview local)) locw)) as VV.
-      { subst rel''. destruct (Rel w); [reflexivity|].
-        subst thread. eapply rel_le_cur; eauto. }
-      etransitivity; [by apply VV|].
-      cdes SIM_TVIEW. cdes CUR.
-      eapply max_value_leS with (w:=w).
-      9: by apply CUR0.
-      all: eauto.
-      { intros HH. apply WNISS. eapply t_cur_covered; eauto. }
-      { unfold t_cur, c_cur, CombRelations.urr.
-        rewrite !seqA. rewrite dom_eqv1.
-          by intros x [[_ YY]]. }
-      { rewrite <- ETCCOH.(etc_I_in_S). apply t_cur_covered; eauto. }
-      split; [|basic_solver].
-      intros x y QQ. apply seq_eqv_l in QQ. destruct QQ as [QQ' QQ]; subst.
-      apply seq_eqv_r in QQ. destruct QQ as [COXY TCUR].
-      red in TCUR. destruct TCUR as [z CCUR]. red in CCUR.
-      hahn_rewrite <- seqA in CCUR.
-      apply seq_eqv_r in CCUR. destruct CCUR as [URR COVZ].
-      apply seq_eqv_r in URR. destruct URR as [URR II].
-      eapply eco_urr_irr with (sc:=sc); eauto.
-      1-3: by apply IMMCON.
-      exists y. split.
-      { apply co_in_eco. apply COXY. }
-      apply urr_hb. exists z. split; eauto.
-      right. apply sb_in_hb.
-      assert (E z) as EZ.
-      { apply TCCOH in COVZ. apply COVZ. }
-      destruct II as [TIDZ|INITZ].
-      2: by apply init_ninit_sb; auto.
-      destruct (@same_thread G x z) as [[|SB]|SB]; auto.
-      { desf. }
-      exfalso. apply WNCOV. apply TCCOH in COVZ.
-      apply COVZ. eexists. apply seq_eqv_r; eauto. }
+      eapply le_msg_rel_f_to_wprev; eauto. by subst thread. }
 
     splits; eauto.
     { by rewrite upds, updo, upds. }
@@ -666,42 +571,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       { reflexivity. }
       subst. eapply rel_le_cur; eauto. }
 
-    (* TODO: make a lemma. Exact copy of the proof above. *)
     assert (Time.lt (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LT.
-    { eapply TimeFacts.le_lt_lt; eauto.
-      eapply TimeFacts.le_lt_lt.
-      2: by apply PREVNLT.
-      unfold f_to'. rewrite updo; auto.
-      cdes SIM_TVIEW. cdes CUR.
-      eapply max_value_leS with (w:=w).
-      9: by apply CUR0.
-      all: eauto.
-      { intros HH. apply WNISS. eapply t_cur_covered; eauto. }
-      { unfold t_cur, c_cur, CombRelations.urr.
-        rewrite !seqA. rewrite dom_eqv1.
-          by intros x [[_ YY]]. }
-      { rewrite <- ETCCOH.(etc_I_in_S). apply t_cur_covered; eauto. }
-      split; [|basic_solver].
-      intros x y QQ. apply seq_eqv_l in QQ. destruct QQ as [QQ' QQ]; subst.
-      apply seq_eqv_r in QQ. destruct QQ as [COXY TCUR].
-      red in TCUR. destruct TCUR as [z CCUR]. red in CCUR.
-      hahn_rewrite <- seqA in CCUR.
-      apply seq_eqv_r in CCUR. destruct CCUR as [URR COVZ].
-      apply seq_eqv_r in URR. destruct URR as [URR II].
-      eapply eco_urr_irr with (sc:=sc); eauto.
-      1-3: by apply IMMCON.
-      exists y. split.
-      { apply co_in_eco. apply COXY. }
-      apply urr_hb. exists z. split; eauto.
-      right. apply sb_in_hb.
-      assert (E z) as EZ.
-      { apply TCCOH in COVZ. apply COVZ. }
-      destruct II as [TIDZ|INITZ].
-      2: by apply init_ninit_sb; auto.
-      destruct (@same_thread G x z) as [[|SB]|SB]; auto.
-      { desf. }
-      exfalso. apply WNCOV. apply TCCOH in COVZ.
-      apply COVZ. eexists. apply seq_eqv_r; eauto. }
+    { unfold f_to'. rewrite upds.
+      eapply TimeFacts.le_lt_lt; [|by apply LTNTO].
+      eapply le_msg_rel_f_to_wprev; eauto. by subst thread. }
 
     assert (Time.le (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LE.
     { apply Time.le_lteq. eauto. }

@@ -430,4 +430,75 @@ Proof using WF.
   rewrite !rtE, seq_union_l. rewrite rmwrf_ct_Acq_in_ar_rfrmw_ct. basic_solver.
 Qed.
 
+Lemma nS_imm_co_in_sb (S : actid -> Prop) w wnext
+      (WW : is_w lab w)
+      (NSW : ~ S w)
+      (NCOIMM : immediate (co ⨾ ⦗S⦘) w wnext)
+      (ISSNEXT : S wnext)
+      (CONEXT : co w wnext)
+      (FOR_SPLIT : ⦗set_compl S⦘ ⨾ immediate co ⊆ sb) :
+  sb w wnext.
+Proof using WF.
+  clear -WF WW NSW FOR_SPLIT NCOIMM ISSNEXT CONEXT. simpls. desc.
+  apply clos_trans_of_transitiveD; [apply sb_trans|].
+  apply (inclusion_t_t FOR_SPLIT).
+  eapply ct_imm1 in CONEXT.
+  2: by apply WF.(co_irr).
+  2: by apply WF.(co_trans).
+  2: by intros x [y H']; apply WF.(wf_coE) in H'; apply seq_eqv_l in H'; desf; eauto.
+  apply t_rt_step in CONEXT. destruct CONEXT as [z [IMMS IMM]].
+  apply t_rt_step. exists z; split; [|apply seq_eqv_l; split; [|done]].
+  { apply rtE in IMMS. destruct IMMS as [IMMS|IMMS].
+    { red in IMMS; desf. apply rt_refl. }
+    assert (immediate (co ⨾ ⦗S⦘) z wnext) as IMM'.
+    { red; split; [apply seq_eqv_r; split; auto|].
+      { apply clos_trans_immediate1; auto.
+        eapply WF.(co_trans). }
+      ins. eapply NCOIMM; [|by apply R2].
+      apply seq_eqv_r in R1; destruct R1 as [R1 R3].
+      apply seq_eqv_r; split; auto.
+      eapply WF.(co_trans); [|by apply R1].
+      apply clos_trans_immediate1; auto.
+      eapply WF.(co_trans). }
+    clear IMM.
+    induction IMMS.
+    { apply rt_step. apply seq_eqv_l; split; auto. }
+    assert (co y wnext) as YNEXT.
+    { apply clos_trans_immediate1; auto.
+      eapply WF.(co_trans).
+      eapply transitive_ct; [by apply IMMS2|].
+      eapply clos_trans_immediate2.
+      { apply WF.(co_trans). }
+      { apply WF.(co_irr). }
+      { red; ins. apply WF.(wf_coE) in REL.
+        apply seq_eqv_l in REL; destruct REL as [_ REL].
+        apply seq_eqv_r in REL. apply REL. }
+      destruct IMM' as [II _].
+      apply seq_eqv_r in II; apply II. }
+    assert (immediate (co ⨾ ⦗S⦘) y wnext) as YNEXTIMM.
+    { red; split; [by apply seq_eqv_r; split|].
+      ins. eapply NCOIMM; [|by apply R2].
+      apply seq_eqv_r in R1; destruct R1 as [R1 R3].
+      apply seq_eqv_r; split; auto.
+      eapply WF.(co_trans); [|by apply R1].
+      apply clos_trans_immediate1; auto.
+      eapply WF.(co_trans). }
+    eapply rt_trans.
+    { by apply IHIMMS1. }
+    apply IHIMMS2; auto.
+    { apply WF.(wf_coD) in YNEXT.
+      apply seq_eqv_l in YNEXT; desf. }
+    intros NISS. eapply NCOIMM; apply seq_eqv_r; split; auto.
+    2: by apply NISS.
+    2: done.
+    apply clos_trans_immediate1; auto.
+      by apply WF.(co_trans). }
+  intros HH. apply rtE in IMMS; destruct IMMS as [IMSS|IMMS].
+  { red in IMSS; desf. }
+  eapply NCOIMM; apply seq_eqv_r; split; auto.
+  2: by apply HH.
+  all: apply clos_trans_immediate1; auto.
+  all: apply WF.(co_trans).
+Qed.
+
 End ImmProperties.
