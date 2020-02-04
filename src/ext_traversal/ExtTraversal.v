@@ -738,4 +738,9 @@ Proof using.
   unfold dom_sb_S_rfrmw. rewrite rmw_W_ex. basic_solver.
 Qed.
 
+Lemma dom_sb_S_rfrmwD T rrf P : dom_sb_S_rfrmw G T rrf P ⊆₁ W.
+Proof using WF.
+  rewrite dom_sb_S_rfrmw_in_W_ex. by apply W_ex_in_W.
+Qed.
+
 End ExtTraversalConfig.
