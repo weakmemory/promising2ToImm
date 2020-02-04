@@ -328,184 +328,103 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
          assert (f_to_coherent G (S ∪₁ eq w) (upd f_to w n_to)
                                (upd (upd f_from wnext n_to) w (f_from wnext))) as FCOH_NEW.
-         (* TODO: introduce a lemma *)
-         { red; splits; ins.
-           { rewrite updo.
-             { by apply FCOH. }
-             intros HH; subst. by destruct H. }
-           { rewrite updo.
-             rewrite updo.
-             { by apply FCOH. }
-             all: intros HH; subst.
-             { apply NCOVNEXT. by apply TCCOH. }
-             destruct H; desf. } 
-           { destruct H as [H|]; subst.
-             2: by rewrite !upds.
-             rewrite updo.
-             2: by intros HH; subst.
-             destruct (classic (wnext = x)) as [|NEQ]; subst;
-               [rewrite upds | rewrite updo; auto];
-               rewrite updo; auto.
-               by apply FCOH.
-                 by intros HH; subst. }
-           { assert (x <> y) as HXY.
-             { by intros HH; subst; apply WF.(co_irr) in H1. }
-             destruct H as [H|]; destruct H0 as [H0|]; subst.
-             all: try (rewrite !upds).
-             { rewrite updo; [|by intros HH; subst].
-               rewrite updo; [|by intros HH; subst].
-               destruct (classic (wnext = y)) as [|NEQ]; subst;
-                 [rewrite upds | rewrite updo; auto].
-               { etransitivity; eauto.
-                 2: by apply Time.le_lteq; left; eauto.
-                   by apply FCOH. }
-                 by apply FCOH. }
-             { rewrite updo; auto.
-               apply FCOH; auto.
-               eapply WF.(co_trans); eauto. }
-             { rewrite updo; auto.
-               destruct (classic (wnext = y)) as [|NEQ]; subst;
-                 [by rewrite upds; apply DenseOrder_le_PreOrder | rewrite updo; auto].
-               etransitivity.
-               { apply Time.le_lteq; left. apply LLTON. }
-               apply FCOH; auto.
-               eapply tot_ex.
-               { by eapply WF. }
-               { unfolder; splits; eauto.
-                 hahn_rewrite (dom_r (wf_coE WF)) in H1; unfolder in H1; basic_solver 12.
-                 hahn_rewrite (dom_r (wf_coD WF)) in H1; unfolder in H1; basic_solver 12. }
-               { unfolder; splits; eauto.
-                 hahn_rewrite (wf_col WF) in H1; unfold same_loc in *; congruence. }
-               { unfold immediate in NCOIMM; desc; intro; eapply NCOIMM0; basic_solver 21. }
-                 by intro; subst. }
-               by apply WF.(co_irr) in H1. }
-           destruct H as [H|]; subst.
-           { assert (x <> w) as NXW.
-             { intros YY. desf. }
-             rewrite updo; auto.
-             destruct H0 as [H0|]; subst.
-             2: { exfalso. generalize H1, NWEX. unfold Execution.W_ex. clear. basic_solver. }
-             assert (y <> w) as NXY.
-             { intros YY. desf. }
-             rewrite updo; auto.
-             assert (y <> wnext) as NYN.
-             2: { rewrite updo; auto. by apply FCOH. }
-             intros UU; subst.
-             assert (loc lab x = Some locw) as XLOC.
-             { rewrite <- LOCNEXT. by apply WF.(wf_rfrmwl). }
-             edestruct WF.(wf_co_total) with (a:=w) (b:=x) as [CO|CO]; auto.
-             1,2: split; [split|]; auto.
-             { by apply ETCCOH.(etc_S_in_E). }
-             { by apply (reservedW WF ETCCOH). }
-             { by rewrite XLOC. }
-             { eapply NCOIMM.
-               all: apply seq_eqv_r; split; eauto.
-               eapply rfrmw_in_im_co; eauto. }
-             eapply rfrmw_in_im_co in H1; eauto. eapply H1; eauto. }
-           rewrite upds. rewrite updo.
-           2: { intros HH; subst. eapply wf_rfrmw_irr; eauto. }
-           destruct H0 as [H0|]; subst.
-           2: { exfalso. eapply wf_rfrmw_irr; eauto. }
-           assert (y = wnext); subst.
-           2: by rewrite upds.
-           exfalso. apply WNISS. eapply dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
-           exists y. 
-           apply seqA. apply seq_eqv_r. by split. }
+         { eapply f_to_coherent_split; eauto. }
     
-    edestruct (@Memory.split_exists (Local.promises local) locw
-                                    (f_from wnext) n_to (f_to wnext)
-                                    (Message.full valw (Some rel')) wnextmsg)
+         edestruct (@Memory.split_exists (Local.promises local) locw
+                                         (f_from wnext) n_to (f_to wnext)
+                                         (Message.full valw (Some rel')) wnextmsg)
            as [promises' PSPLIT]; eauto.
 
-    edestruct (@Memory.split_exists PC.(Configuration.memory) locw
-                                    (f_from wnext) n_to (f_to wnext)
-                                    (Message.full valw (Some rel')) wnextmsg)
+         edestruct (@Memory.split_exists
+                      PC.(Configuration.memory)
+                           locw (f_from wnext) n_to (f_to wnext)
+                           (Message.full valw (Some rel')) wnextmsg)
            as [memory' MSPLIT]; eauto.
 
-    exists wnext, wnextmsg.
-    exists (upd f_to w n_to).
-    exists (upd (upd f_from wnext n_to) w (f_from wnext)).
+         exists wnext, wnextmsg.
+         exists (upd f_to w n_to).
+         exists (upd (upd f_from wnext n_to) w (f_from wnext)).
 
-    assert (Time.le (f_to wprev) (f_from wnext)) as LEWPWTO.
-    { destruct (classic (is_init wprev)) as [WPINIT|WPNINIT].
-      2: by apply FCOH; eauto.
-      assert (f_to wprev = tid_init) as HH.
-      { apply FCOH. by split. }
-      rewrite HH. apply Time.bot_spec. }
+         assert (Time.le (f_to wprev) (f_from wnext)) as LEWPWTO.
+         { destruct (classic (is_init wprev)) as [WPINIT|WPNINIT].
+           2: by apply FCOH; eauto.
+           assert (f_to wprev = tid_init) as HH.
+           { apply FCOH. by split. }
+           rewrite HH. apply Time.bot_spec. }
 
-    assert (Time.lt (f_to wprev) n_to) as LEWPNTO.
-    { eapply TimeFacts.le_lt_lt; [by apply LEWPWTO|].
-      unfold n_to.
-      apply Time.middle_spec. by apply FCOH. }
+         assert (Time.lt (f_to wprev) n_to) as LEWPNTO.
+         { eapply TimeFacts.le_lt_lt; [by apply LEWPWTO|].
+           unfold n_to.
+           apply Time.middle_spec. by apply FCOH. }
 
-    assert (DenseOrder.lt tid_init n_to) as NTOBOT.
-    { unfold n_to.
-      eapply TimeFacts.le_lt_lt; eauto.
-      apply Time.bot_spec. }
-    
-    assert (Memory.inhabited memory') as INHAB'.
-    { eapply Memory.split_inhabited; eauto. }
+         assert (DenseOrder.lt tid_init n_to) as NTOBOT.
+         { unfold n_to.
+           eapply TimeFacts.le_lt_lt; eauto.
+           apply Time.bot_spec. }
+         
+         assert (Memory.inhabited memory') as INHAB'.
+         { eapply Memory.split_inhabited; eauto. }
 
-    assert (Memory.closed_timemap
-              (View.rlx
-                 (View.join (View.join rel'' (View.unwrap p_rel))
-                            (View.singleton_ur locw n_to)))
-              memory') as CLOSTM.
-    { unfold View.join; ins.
-      apply Memory.join_closed_timemap.
-      2: { eapply Memory.singleton_closed_timemap; eauto.
-           erewrite Memory.split_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
-      apply Memory.join_closed_timemap.
-      2: { subst. simpls. by apply Memory.closed_timemap_bot. }
-      eapply Memory.split_closed_timemap; eauto.
-      subst rel''. destruct (Rel w); apply MEM_CLOSE. }
+         assert (Memory.closed_timemap
+                   (View.rlx
+                      (View.join (View.join rel'' (View.unwrap p_rel))
+                                 (View.singleton_ur locw n_to)))
+                   memory') as CLOSTM.
+         { unfold View.join; ins.
+           apply Memory.join_closed_timemap.
+           2: { eapply Memory.singleton_closed_timemap; eauto.
+                erewrite Memory.split_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
+           apply Memory.join_closed_timemap.
+           2: { subst. simpls. by apply Memory.closed_timemap_bot. }
+           eapply Memory.split_closed_timemap; eauto.
+           subst rel''. destruct (Rel w); apply MEM_CLOSE. }
 
-    assert (Time.lt (View.rlx rel'' locw) n_to) as LTNTO.
-    { simpls.
-      eapply TimeFacts.le_lt_lt.
-      2: by apply LEWPNTO.
-      eapply le_msg_rel_f_to_wprev; eauto. by subst thread. }
+         assert (Time.lt (View.rlx rel'' locw) n_to) as LTNTO.
+         { simpls.
+           eapply TimeFacts.le_lt_lt.
+           2: by apply LEWPNTO.
+           eapply le_msg_rel_f_to_wprev; eauto. by subst thread. }
 
-    splits; eauto.
-    { by rewrite upds, updo, upds. }
-    { by rewrite upds. }
-    { subst p_rel; simpls. by rewrite RELPLN''. }
-    { by rewrite upds. }
-    { rewrite upds. subst p_rel; simpls.
-      unfold TimeMap.join, TimeMap.singleton, LocFun.add, TimeMap.bot.
-      rewrite Loc.eq_dec_eq.
-      apply Time.join_spec; [|reflexivity].
-      apply Time.join_spec.
-      { apply Time.le_lteq. eauto. }
-      apply Time.bot_spec. }
-    { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
-      rewrite NONEXT. clear. basic_solver. }
+         splits; eauto.
+         { by rewrite upds, updo, upds. }
+         { by rewrite upds. }
+         { subst p_rel; simpls. by rewrite RELPLN''. }
+         { by rewrite upds. }
+         { rewrite upds. subst p_rel; simpls.
+           unfold TimeMap.join, TimeMap.singleton, LocFun.add, TimeMap.bot.
+           rewrite Loc.eq_dec_eq.
+           apply Time.join_spec; [|reflexivity].
+           apply Time.join_spec.
+           { apply Time.le_lteq. eauto. }
+           apply Time.bot_spec. }
+         { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
+           rewrite NONEXT. clear. basic_solver. }
 
-    exists promises'; exists memory'. unfold rel', rel'' in *.
-    splits; auto.
-    all: try (rewrite upds; (try rewrite (fun x y => updo x y NEQNEXT));
-      (try rewrite upds); auto).
-    { constructor; auto.
-      unfold View.join. simpls. rewrite RELPLN''.
-      subst p_rel. simpls. }
-    { arewrite (View.singleton_ur locw n_to =
-                View.singleton_ur locw ((upd f_to w n_to) w)).
-      { by rewrite upds. }
-      arewrite (f_from wnext = (upd (upd f_from wnext n_to) w (f_from wnext)) w).
-      { by rewrite upds. }
-      eapply sim_helper_issue with (G:=G) (w:=w) (locw:=locw) (valw:=valw)
-                                   (S':=S ∪₁ eq w); eauto.
-      { transitivity (fun _ : actid => False); [|clear; basic_solver].
-        generalize NWEX. unfold Execution.W_ex. clear. basic_solver 10. }
-      { ins. rewrite updo; auto. intros HH. subst. eauto. }
-      { clear. basic_solver. }
-      rewrite IE. clear. basic_solver. }
-    
-    red. split; unnw.
-    { etransitivity.
-      2: by apply FOR_SPLIT.
-      hahn_frame_r. clear. basic_solver 10. }
-    rewrite RMW_BEF_S. clear. basic_solver 10. }
+         exists promises'; exists memory'. unfold rel', rel'' in *.
+         splits; auto.
+         all: try (rewrite upds; (try rewrite (fun x y => updo x y NEQNEXT));
+                   (try rewrite upds); auto).
+         { constructor; auto.
+           unfold View.join. simpls. rewrite RELPLN''.
+           subst p_rel. simpls. }
+         { arewrite (View.singleton_ur locw n_to =
+                     View.singleton_ur locw ((upd f_to w n_to) w)).
+           { by rewrite upds. }
+           arewrite (f_from wnext = (upd (upd f_from wnext n_to) w (f_from wnext)) w).
+           { by rewrite upds. }
+           eapply sim_helper_issue with (G:=G) (w:=w) (locw:=locw) (valw:=valw)
+                                        (S':=S ∪₁ eq w); eauto.
+           { transitivity (fun _ : actid => False); [|clear; basic_solver].
+             generalize NWEX. unfold Execution.W_ex. clear. basic_solver 10. }
+           { ins. rewrite updo; auto. intros HH. subst. eauto. }
+           { clear. basic_solver. }
+           rewrite IE. clear. basic_solver. }
+         
+         red. split; unnw.
+         { etransitivity.
+           2: by apply FOR_SPLIT.
+           hahn_frame_r. clear. basic_solver 10. }
+         rewrite RMW_BEF_S. clear. basic_solver 10. }
 
     assert (f_to wprev <> f_from wnext) as FFNEQ.
     { intros HH.

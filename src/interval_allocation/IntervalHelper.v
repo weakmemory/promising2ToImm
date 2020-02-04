@@ -759,6 +759,118 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_MEM SIM_RES_MEM.
   eapply WF.(co_irr). apply RFRMW.
 Qed.
 
+Lemma f_to_coherent_split w wnext locw n_to
+      (NWEX : ~ W_ex w)
+      (EW : E w)
+      (WW : W w)
+      (LOC : loc lab w = Some locw)
+      (NSW : ~ S w)
+      (NCOIMM : immediate (co ⨾ ⦗S⦘) w wnext)
+      (NCOVNEXT : ~ covered T wnext)
+      (LLFROMN : Time.lt (f_from wnext) n_to)
+      (LLTON : Time.lt n_to (f_to wnext)) :
+  f_to_coherent G (S ∪₁ eq w) (upd f_to w n_to)
+                (upd (upd f_from wnext n_to) w (f_from wnext)).
+Proof using WF IMMCON ETCCOH FCOH.
+  assert (TCCOH : tc_coherent G sc T) by apply ETCCOH.
+  assert (WNISS : ~ issued T w).
+  { intros HH. apply NSW. by apply ETCCOH.(etc_I_in_S). }
+  assert (WNINIT : ~ is_init w).
+  { intros HH. apply WNISS. eapply init_issued; eauto. by split. }
+  assert (co w wnext /\ S wnext) as [CONEXT ISSNEXT].
+  { destruct NCOIMM as [HH]. apply seq_eqv_r in HH. apply HH. }
+  assert (E wnext /\ W wnext) as [ENEXT WNEXT].
+  { apply (dom_r WF.(wf_coE)) in CONEXT. destruct_seq_r CONEXT as AA.
+    apply (dom_r WF.(wf_coD)) in CONEXT. destruct_seq_r CONEXT as BB.
+      by split. }
+  assert (NEQNEXT : wnext <> w).
+  { intros HH. subst. eapply WF.(co_irr); eauto. }
+  assert (LOCNEXT : loc lab wnext = Some locw).
+  { rewrite <- LOC. symmetry. by apply WF.(wf_col). }
+
+  red; splits; ins.
+  { rewrite updo.
+    { by apply FCOH. }
+    intros HH; subst. by destruct H. }
+  { rewrite updo.
+    rewrite updo.
+    { by apply FCOH. }
+    all: intros HH; subst.
+    { apply NCOVNEXT. by apply TCCOH. }
+    destruct H; desf. } 
+  { destruct H as [H|]; subst.
+    2: by rewrite !upds.
+    rewrite updo.
+    2: by intros HH; subst.
+    destruct (classic (wnext = x)) as [|NEQ]; subst;
+      [rewrite upds | rewrite updo; auto];
+      rewrite updo; auto; try by intros HH; subst.
+      by apply FCOH. }
+  { assert (x <> y) as HXY.
+    { by intros HH; subst; apply WF.(co_irr) in H1. }
+    destruct H as [H|]; destruct H0 as [H0|]; subst.
+    all: try (rewrite !upds).
+    { rewrite updo; [|by intros HH; subst].
+      rewrite updo; [|by intros HH; subst].
+      destruct (classic (wnext = y)) as [|NEQ]; subst;
+        [rewrite upds | rewrite updo; auto].
+      { etransitivity; eauto.
+        2: by apply Time.le_lteq; left; eauto.
+          by apply FCOH. }
+        by apply FCOH. }
+    { rewrite updo; auto.
+      apply FCOH; auto.
+      eapply WF.(co_trans); eauto. }
+    { rewrite updo; auto.
+      destruct (classic (wnext = y)) as [|NEQ]; subst;
+        [by rewrite upds; apply DenseOrder_le_PreOrder | rewrite updo; auto].
+      etransitivity.
+      { apply Time.le_lteq; left. apply LLTON. }
+      apply FCOH; auto.
+      eapply tot_ex.
+      { by eapply WF. }
+      { unfolder; splits; eauto.
+        hahn_rewrite (dom_r (wf_coE WF)) in H1; unfolder in H1; basic_solver 12.
+        hahn_rewrite (dom_r (wf_coD WF)) in H1; unfolder in H1; basic_solver 12. }
+      { unfolder; splits; eauto.
+        hahn_rewrite (wf_col WF) in H1; unfold same_loc in *; congruence. }
+      { unfold immediate in NCOIMM; desc; intro; eapply NCOIMM0; basic_solver 21. }
+        by intro; subst. }
+      by apply WF.(co_irr) in H1. }
+  destruct H as [H|]; subst.
+  { assert (x <> w) as NXW.
+    { intros YY. desf. }
+    rewrite updo; auto.
+    destruct H0 as [H0|]; subst.
+    2: { exfalso. generalize H1, NWEX. unfold Execution.W_ex. clear. basic_solver. }
+    assert (y <> w) as NXY.
+    { intros YY. desf. }
+    rewrite updo; auto.
+    assert (y <> wnext) as NYN.
+    2: { rewrite updo; auto. by apply FCOH. }
+    intros UU; subst.
+    assert (loc lab x = Some locw) as XLOC.
+    { rewrite <- LOCNEXT. by apply WF.(wf_rfrmwl). }
+    edestruct WF.(wf_co_total) with (a:=w) (b:=x) as [CO|CO]; auto.
+    1,2: split; [split|]; auto.
+    { by apply ETCCOH.(etc_S_in_E). }
+    { by apply (reservedW WF ETCCOH). }
+    { by rewrite XLOC. }
+    { eapply NCOIMM.
+      all: apply seq_eqv_r; split; eauto.
+      eapply rfrmw_in_im_co; eauto. }
+    eapply rfrmw_in_im_co in H1; eauto. eapply H1; eauto. }
+  rewrite upds. rewrite updo.
+  2: { intros HH; subst. eapply wf_rfrmw_irr; eauto. }
+  destruct H0 as [H0|]; subst.
+  2: { exfalso. eapply wf_rfrmw_irr; eauto. }
+  assert (y = wnext); subst.
+  2: by rewrite upds.
+  exfalso. apply WNISS. eapply dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
+  exists y. 
+  apply seqA. apply seq_eqv_r. by split.
+Qed.
+
 Lemma message_to_event_add_S l w memory' n_to n_from T' msg v rel
       (EW : E w)
       (LOC : loc lab w = Some l)
