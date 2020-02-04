@@ -90,11 +90,11 @@ Hypothesis INHAB : Memory.inhabited PC.(Configuration.memory).
 Hypothesis PLN_RLX_EQ : pln_rlx_eq local.(Local.tview).
 Hypothesis MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory).
 
-Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
+Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
       (ISSUABLE : issuable G sc T w)
       (WNISS : ~ issued T w)
       (NWEX : ~ W_ex w)
-      (NONEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ ∅)
+      (WNEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) wnext)
       (LOC : loc lab w = Some locw)
       (VAL : val lab w = Some valw)
       (WTID : thread = tid w)
@@ -129,13 +129,22 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
            ⟪ REL_VIEW_LE : Time.le (View.rlx rel'  locw) (f_to' w) ⟫ /\
 
-           exists promises' memory',
+           exists promises_add memory_add promises' memory',
              ⟪ PADD :
-                 Memory.add local.(Local.promises) locw (f_from' w) (f_to' w)
-                            (Message.full valw (Some rel')) promises' ⟫ /\
+                 Memory.add local.(Local.promises) locw (f_from' w) (f_to' wnext)
+                            Message.reserve promises_add ⟫ /\
              ⟪ MADD :
-                 Memory.add memory locw (f_from' w) (f_to' w)
-                            (Message.full valw (Some rel')) memory' ⟫ /\
+                 Memory.add memory locw (f_from' w) (f_to' wnext)
+                            Message.reserve memory_add ⟫ /\
+
+             ⟪ PSPLIT :
+                 Memory.split promises_add locw (f_from' w) (f_to' w) (f_to' wnext)
+                              (Message.full valw (Some rel')) Message.reserve
+                              promises' ⟫ /\
+             ⟪ MSPLIT :
+                 Memory.split memory_add locw (f_from' w) (f_to' w) (f_to' wnext)
+                              (Message.full valw (Some rel')) Message.reserve
+                              memory' ⟫ /\
 
              ⟪ INHAB : Memory.inhabited memory' ⟫ /\
              ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory' ⟫ /\
@@ -171,7 +180,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ SAME_LOC : Loc_ locw ws ⟫ /\
            ⟪ COWW : co w ws ⟫ /\
 
-           ⟪ FEQ1 : f_to' w = f_from' ws ⟫ /\
+           ⟪ FEQ1 : f_to' wnext = f_from' ws ⟫ /\
            ⟪ FEQ2 : f_from' w = f_from ws ⟫ /\
 
            ⟪ WSPROM : Memory.get locw (f_to ws) (Local.promises local) =
@@ -184,17 +193,28 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ REL_VIEW_LE : Time.le (View.rlx rel'  locw) (f_to' w) ⟫ /\
            ⟪ FCOH : f_to_coherent G S' f_to' f_from' ⟫ /\
 
-           exists promises' memory',
-             ⟪ PADD :
+           exists promises_split memory_split promises' memory',
+             ⟪ PSPLIT :
                  Memory.split (Local.promises local)
-                              locw (f_from' w) (f_to' w) (f_to' ws)
+                              locw (f_from' w) (f_to' wnext) (f_to' ws)
+                              (Message.full valw (Some rel')) wsmsg
+                              promises_split ⟫ /\
+             ⟪ MSPLIT :
+                 Memory.split memory locw (f_from' w) (f_to' wnext) (f_to' ws)
+                              (Message.full valw (Some rel')) wsmsg
+                              memory_split ⟫ /\
+
+             ⟪ PADD :
+                 Memory.split promises' 
+                              locw (f_from' w) (f_to' w) (f_to' wnext)
                               (Message.full valw (Some rel'))
-                              wsmsg
+                              Message.reserve 
                               promises' ⟫ /\
              ⟪ MADD :
-                 Memory.split memory locw (f_from' w) (f_to' w) (f_to' ws)
+                 Memory.split memory_split
+                              locw (f_from' w) (f_to' w) (f_to' wnext)
                               (Message.full valw (Some rel'))
-                              wsmsg
+                              Message.reserve 
                               memory' ⟫ /\
 
              ⟪ INHAB : Memory.inhabited memory' ⟫ /\
@@ -232,6 +252,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
   assert ((E ∩₁ W ∩₁ Loc_ locw) w) as WEW.
   { split; [split|]; auto. }
+  (* TODO: continue from here. *)
 
   destruct langst as [lang state].
 
