@@ -252,42 +252,15 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   assert (~ is_init w) as WNINIT.
   { intros HH. apply WNCOV. eapply init_covered; eauto. by split. }
 
-  assert (sb w wnext) as SBWWNEXT.
-  { (* TODO: make a lemma*)
-    destruct WNEXT as [_ AA].
-    clear -AA WF.
-    generalize (@sb_trans G), (@rfi_in_sb G), WF.(rmw_in_sb), AA.
-    basic_solver. }
-  assert (W wnext) as WWNEXT.
-  { eapply dom_sb_S_rfrmwD; eauto. }
-  assert (E wnext) as EWNEXT.
-  { eapply dom_sb_S_rfrmwE; eauto. }
-  assert (~ covered T wnext) as WNEXTCOV.
-  { intros HH. apply WNCOV. eapply dom_sb_covered; eauto.
-    basic_solver 10. }
-  assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
-  { (* TODO: make a lemma *)
-    destruct WNEXT as [_ [y AA]]. destruct_seq_l AA as BB; subst.
-    generalize AA. unfold Execution.rfi. clear. basic_solver. }
-  assert (co w wnext) as COWWNEXT.
-  { (* TODO: make a lemma *)
-    apply rf_rmw_in_co; auto. }
-  assert (~ S wnext) as NSWNEXT.
-  { intros HH. apply WNISS.
-    (* TODO: make a lemma *)
-    eapply dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
-    exists wnext. apply seqA. apply seq_eqv_r. split; auto. }
-  assert (~ is_init wnext) as WNEXTINIT.
-  { intros HH. apply WNEXTCOV. eapply init_covered; eauto. by split. }
-
-  assert (loc lab wnext = Some locw) as WNEXTLOC.
-  { rewrite <- LOC. symmetry. by apply WF.(wf_col). }
+  forward (eapply dom_sb_S_rfrmw_single_props with (w:=w) (wnext:=wnext)); eauto.
+  intros HH. desc.
+  assert (w <> wnext) as WNEXTNEQ.
+  { intros HH. subst. eapply WF.(co_irr); eauto. }
 
   assert ((E ∩₁ W ∩₁ Loc_ locw) w) as WEW.
   { split; [split|]; auto. }
   assert ((E ∩₁ W ∩₁ Loc_ locw) wnext) as WEWNEXT.
   { split; [split|]; auto. }
-  (* TODO: continue from here. *)
 
   destruct langst as [lang state].
 
@@ -340,6 +313,9 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          assert (sb w wconext) as SBNEXT.
          { eapply nS_imm_co_in_sb with (S:=S); eauto. }
 
+         assert (w <> wconext /\ wnext <> wconext) as [WCONEXTNEQ WNEXTCONEQ].
+         { by split; intros HH; subst. }
+
          assert (tid wconext = tid w) as TIDNEXT.
          { apply sb_tid_init in SBNEXT. destruct SBNEXT as [H|H]; desf. }
          assert (~ covered T wconext) as NCOVNEXT.
@@ -353,26 +329,27 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
                  Some (f_from wconext, wconextmsg)) as WCONEXTPROM.
          { apply WCONEXTPROM'; auto. }
 
-         set (nn_to := Time.middle (f_from wconext) (f_to wconext)).
-         set ( n_to := Time.middle (f_from wconext) nn_to).
-
          assert (~ is_init wconext) as NINITWCONEXT.
          { apply no_co_to_init in CONEXT; auto.
-           2: { apply coherence_sc_per_loc. apply IMMCON. }
            apply seq_eqv_r in CONEXT. desf. }
+
+         set (nn_to := Time.middle (f_from wconext) (f_to wconext)).
+         set ( n_to := Time.middle (f_from wconext) nn_to).
+         assert (Time.lt n_to nn_to) as LTNNTO.
+         { unfold n_to, nn_to. do 2 apply Time.middle_spec. by apply FCOH. }
 
          assert (Time.lt (f_from wconext) (f_to wconext)) as LLWCONEXT.
          { by apply FCOH. }
          assert (Time.lt (f_from wconext) n_to) as LLFROMN.
          { unfold n_to, nn_to. by do 2 apply DenseOrder.middle_spec. }
+         assert (Time.lt nn_to (f_to wconext)) as LLTONN.
+         { unfold nn_to. by apply DenseOrder.middle_spec. }
          assert (Time.lt n_to (f_to wconext)) as LLTON.
-         { unfold n_to, nn_to.
-           etransitivity.
-           { by do 2 apply DenseOrder.middle_spec. }
-             by apply DenseOrder.middle_spec. }
+         { etransitivity; [|by apply LLTONN].
+           unfold n_to, nn_to. by do 2 apply DenseOrder.middle_spec. }
 
          set (f_to'   := upd (upd f_to w n_to) wnext nn_to).
-         set (f_from' := upd (upd (upd f_to w (f_from wconext)) wnext n_to) wconext nn_to).
+         set (f_from' := upd (upd (upd f_from w (f_from wconext)) wnext n_to) wconext nn_to).
 
          set (rel' := View.join
                         (View.join rel'' p_rel.(View.unwrap))
@@ -397,51 +374,67 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            { rewrite !updo.
              { by apply FCOH. }
              all: intros HH; subst; by destruct H. }
-           { rewrite updo.
-             rewrite updo.
-             { by apply FCOH. }
-             all: intros HH; subst.
-             { apply NCOVNEXT. by apply TCCOH. }
-             destruct H; desf. } 
-           { destruct H as [H|]; subst.
-             2: by rewrite !upds.
-             rewrite updo.
-             2: by intros HH; subst.
-             destruct (classic (wnext = x)) as [|NEQ]; subst;
-               [rewrite upds | rewrite updo; auto];
-               rewrite updo; auto; try by intros HH; subst.
+           { do 3 (rewrite updo; [|by intros HH; subst; destruct H]).
+               by apply FCOH. }
+           { destruct H as [[H|]|H]; subst.
+             3: { assert (x = wnext); subst.
+                  { eapply dom_sb_S_rfrmwf; eauto. }
+                  rewrite upds.
+                  rewrite updo; auto; rewrite upds; auto. }
+             2: by do 3 (rewrite updo; auto; try rewrite upds).
+             rewrite updo with (a:=wnext); [|by intros HH; subst].
+             rewrite updo with (a:=w); [|by intros HH; subst].
+             destruct (classic (wconext = x)) as [|NEQ]; subst;
+               [by rewrite upds | rewrite updo; auto].
+             do 2 (rewrite updo; auto; try by intros HH; subst).
                by apply FCOH. }
            { assert (x <> y) as HXY.
              { by intros HH; subst; apply WF.(co_irr) in H1. }
-             destruct H as [H|]; destruct H0 as [H0|]; subst.
+             destruct H as [[H|]|H]; destruct H0 as [[H0|]|H0]; subst.
              all: try (rewrite !upds).
-             { rewrite updo; [|by intros HH; subst].
-               rewrite updo; [|by intros HH; subst].
-               destruct (classic (wnext = y)) as [|NEQ]; subst;
+             all: try repeat (rewrite updo; [|by intros HH; subst]).
+             all: try (rewrite !upds).
+             all: try by
+                 match goal with 
+                 | H : ?X <> ?X |- _ => exfalso; apply H
+                 end.
+             { destruct (classic (y = wconext)) as [|NEQ]; subst;
                  [rewrite upds | rewrite updo; auto].
-               { etransitivity; eauto.
-                 2: by apply Time.le_lteq; left; eauto.
-                   by apply FCOH. }
+               { apply Time.le_lteq; left.
+                 transitivity n_to; auto.
+                 unfold n_to.
+                 transitivity (f_from wconext); auto.
+               }
+               do 2 (rewrite updo; [|by intros HH; subst]).
                  by apply FCOH. }
-             { rewrite updo; auto.
-               apply FCOH; auto.
-               eapply WF.(co_trans); eauto. }
-             { rewrite updo; auto.
-               destruct (classic (wnext = y)) as [|NEQ]; subst;
-                 [by rewrite upds; apply DenseOrder_le_PreOrder | rewrite updo; auto].
-               etransitivity.
-               { apply Time.le_lteq; left. apply LLTON. }
-               apply FCOH; auto.
-               eapply tot_ex.
-               { by eapply WF. }
-               { unfolder; splits; eauto.
-                 hahn_rewrite (dom_r (wf_coE WF)) in H1; unfolder in H1; basic_solver 12.
-                 hahn_rewrite (dom_r (wf_coD WF)) in H1; unfolder in H1; basic_solver 12. }
-               { unfolder; splits; eauto.
-                 hahn_rewrite (wf_col WF) in H1; unfold same_loc in *; congruence. }
-               { unfold immediate in NCOIMM; desc; intro; eapply NCOIMM0; basic_solver 21. }
-                 by intro; subst. }
-               by apply WF.(co_irr) in H1. }
+
+             (* { rewrite updo; [|by intros HH; subst]. *)
+             (*   rewrite updo; [|by intros HH; subst]. *)
+             (*   destruct (classic (wnext = y)) as [|NEQ]; subst; *)
+             (*     [rewrite upds | rewrite updo; auto]. *)
+             (*   { etransitivity; eauto. *)
+             (*     2: by apply Time.le_lteq; left; eauto. *)
+             (*       by apply FCOH. } *)
+             (*     by apply FCOH. } *)
+             (* { rewrite updo; auto. *)
+             (*   apply FCOH; auto. *)
+             (*   eapply WF.(co_trans); eauto. } *)
+             (* { rewrite updo; auto. *)
+             (*   destruct (classic (wnext = y)) as [|NEQ]; subst; *)
+             (*     [by rewrite upds; apply DenseOrder_le_PreOrder | rewrite updo; auto]. *)
+             (*   etransitivity. *)
+             (*   { apply Time.le_lteq; left. apply LLTON. } *)
+             (*   apply FCOH; auto. *)
+             (*   eapply tot_ex. *)
+             (*   { by eapply WF. } *)
+             (*   { unfolder; splits; eauto. *)
+             (*     hahn_rewrite (dom_r (wf_coE WF)) in H1; unfolder in H1; basic_solver 12. *)
+             (*     hahn_rewrite (dom_r (wf_coD WF)) in H1; unfolder in H1; basic_solver 12. } *)
+             (*   { unfolder; splits; eauto. *)
+             (*     hahn_rewrite (wf_col WF) in H1; unfold same_loc in *; congruence. } *)
+             (*   { unfold immediate in NCOIMM; desc; intro; eapply NCOIMM0; basic_solver 21. } *)
+             (*     by intro; subst. } *)
+             (*   by apply WF.(co_irr) in H1. } *)
            destruct H as [H|]; subst.
            { assert (x <> w) as NXW.
              { intros YY. desf. }
