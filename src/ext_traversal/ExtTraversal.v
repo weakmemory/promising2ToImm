@@ -701,46 +701,4 @@ Proof using WF.
   basic_solver.
 Qed.
 
-(* TODO: move to a more appropriate place. *)
-Lemma wf_rfirmwsf : functional (rfi ⨾ rmw).
-Proof using WF IMMCON. arewrite (rfi ⊆ rf). eapply wf_rfrmwsf; eauto. Qed.
-
-(* TODO: move to a more appropriate place. *)
-Lemma wf_rfirmwf : functional (rfi ⨾ rmw)⁻¹.
-Proof using WF. arewrite (rfi ⊆ rf). eapply wf_rfrmwf; eauto. Qed.
-
-Lemma dom_sb_S_rfrmwf T w wn1 wn2
-      (DD1 : dom_sb_S_rfrmw G T rfi (eq w) wn1)
-      (DD2 : dom_sb_S_rfrmw G T rfi (eq w) wn2) :
-  wn1 = wn2.
-Proof using WF IMMCON.
-  generalize wf_rfirmwsf, DD1, DD2. 
-  unfold dom_sb_S_rfrmw.
-  basic_solver 10.
-Qed.
-  
-Lemma dom_sb_S_rfrmw_single T w wn
-      (DD : dom_sb_S_rfrmw G T rfi (eq w) wn) :
-  dom_sb_S_rfrmw G T rfi (eq w) ≡₁ eq wn.
-Proof using WF IMMCON.
-  split.
-  2: generalize DD; basic_solver.
-  intros x HH. eapply dom_sb_S_rfrmwf; eauto.
-Qed.
-
-Lemma dom_sb_S_rfrmwE T rrf P : dom_sb_S_rfrmw G T rrf P ⊆₁ E.
-Proof using WF.
-  unfold dom_sb_S_rfrmw. rewrite WF.(wf_rmwE). basic_solver.
-Qed.
-
-Lemma dom_sb_S_rfrmw_in_W_ex T rrf P : dom_sb_S_rfrmw G T rrf P ⊆₁ W_ex.
-Proof using.
-  unfold dom_sb_S_rfrmw. rewrite rmw_W_ex. basic_solver.
-Qed.
-
-Lemma dom_sb_S_rfrmwD T rrf P : dom_sb_S_rfrmw G T rrf P ⊆₁ W.
-Proof using WF.
-  rewrite dom_sb_S_rfrmw_in_W_ex. by apply W_ex_in_W.
-Qed.
-
 End ExtTraversalConfig.

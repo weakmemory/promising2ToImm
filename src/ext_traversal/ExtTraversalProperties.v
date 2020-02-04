@@ -350,4 +350,91 @@ Proof using WF IMMCON ETCCOH.
   intros H; subst. by apply WF.(co_irr) in COPREV.
 Qed.
 
+Lemma dom_sb_S_rfrmwf w wn1 wn2
+      (DD1 : dom_sb_S_rfrmw G T rfi (eq w) wn1)
+      (DD2 : dom_sb_S_rfrmw G T rfi (eq w) wn2) :
+  wn1 = wn2.
+Proof using WF IMMCON.
+  generalize wf_rfirmwsf, DD1, DD2. 
+  unfold dom_sb_S_rfrmw.
+  basic_solver 10.
+Qed.
+  
+Lemma dom_sb_S_rfrmw_single w wn
+      (DD : dom_sb_S_rfrmw G T rfi (eq w) wn) :
+  dom_sb_S_rfrmw G T rfi (eq w) ≡₁ eq wn.
+Proof using WF IMMCON.
+  split.
+  2: generalize DD; basic_solver.
+  intros x HH. eapply dom_sb_S_rfrmwf; eauto.
+Qed.
+
+Lemma dom_sb_S_rfrmwE rrf P : dom_sb_S_rfrmw G T rrf P ⊆₁ E.
+Proof using WF.
+  unfold dom_sb_S_rfrmw. rewrite WF.(wf_rmwE). basic_solver.
+Qed.
+
+Lemma dom_sb_S_rfrmw_in_W_ex rrf P : dom_sb_S_rfrmw G T rrf P ⊆₁ W_ex.
+Proof using.
+  unfold dom_sb_S_rfrmw. rewrite rmw_W_ex. basic_solver.
+Qed.
+
+Lemma dom_sb_S_rfrmwD rrf P : dom_sb_S_rfrmw G T rrf P ⊆₁ W.
+Proof using WF.
+  rewrite dom_sb_S_rfrmw_in_W_ex. by apply W_ex_in_W.
+Qed.
+
+Section SingleDomSbSRfRmw.
+Variables w wnext : actid.
+Hypothesis WNEXT : dom_sb_S_rfrmw G T rfi (eq w) wnext.
+
+Lemma dom_sb_S_rfrmw_single_props locw
+      (WNISS : ~ eissued T w)
+      (WNCOV : ~ ecovered T w)
+      (WLOC : loc w = Some locw) :
+  << SBWWNEXT : sb w wnext >> /\
+  << EWNEXT : E wnext >> /\
+  << WWNEXT : W wnext >> /\
+  << WNEXTCOV : ~ ecovered T wnext >> /\
+  << RFRMWNEXT : (rf ⨾ rmw) w wnext >> /\
+  << COWWNEXT : co w wnext >> /\
+  << NSWNEXT : ~ reserved T wnext >> /\
+  << WNEXTINIT : ~ is_init wnext >> /\
+  << WNEXTLOC : loc wnext = Some locw >>.
+Proof using WF IMMCON ETCCOH WNEXT.
+  assert (sc_per_loc G) as SPL. 
+  { apply coherence_sc_per_loc. apply IMMCON. }
+  assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
+  assert (sb w wnext) as SBWWNEXT.
+  { destruct WNEXT as [_ AA].
+    clear -AA WF.
+    generalize (@sb_trans G), (@rfi_in_sb G), WF.(rmw_in_sb), AA.
+    basic_solver. }
+  assert (W wnext) as WWNEXT.
+  { eapply dom_sb_S_rfrmwD; eauto. }
+  assert (E wnext) as EWNEXT.
+  { eapply dom_sb_S_rfrmwE; eauto. }
+  assert (~ ecovered T wnext) as WNEXTCOV.
+  { intros HH. apply WNCOV. eapply dom_sb_covered; eauto.
+    basic_solver 10. }
+  assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
+  { destruct WNEXT as [_ [y AA]]. destruct_seq_l AA as BB; subst.
+    generalize AA. unfold Execution.rfi. clear. basic_solver. }
+  assert (co w wnext) as COWWNEXT.
+  { apply rf_rmw_in_co; auto. }
+  assert (~ reserved T wnext) as NSWNEXT.
+  { intros HH. apply WNISS.
+    eapply dom_rf_rmw_S_in_I; eauto.
+    exists wnext. apply seqA. apply seq_eqv_r. split; auto. }
+  assert (~ is_init wnext) as WNEXTINIT.
+  { intros HH. apply WNEXTCOV. eapply init_covered; eauto. by split. }
+
+  assert (loc wnext = Some locw) as WNEXTLOC.
+  { rewrite <- WLOC. symmetry. by apply WF.(wf_col). }
+  
+  splits; auto.
+Qed.
+  
+End SingleDomSbSRfRmw.
+
 End ExtTraversalProperties.

@@ -501,4 +501,10 @@ Proof using WF.
   all: apply WF.(co_trans).
 Qed.
 
+Lemma wf_rfirmwsf : functional (rfi ⨾ rmw).
+Proof using WF CON. arewrite (rfi ⊆ rf). eapply wf_rfrmwsf; eauto. Qed.
+
+Lemma wf_rfirmwf : functional (rfi ⨾ rmw)⁻¹.
+Proof using WF. arewrite (rfi ⊆ rf). eapply wf_rfrmwf; eauto. Qed.
+
 End ImmProperties.
