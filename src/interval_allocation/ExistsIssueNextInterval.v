@@ -623,6 +623,13 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     { unfold f_to', f_from'.
         by repeat (repeat (rewrite updo; [|done]); rewrite upds). }
 
+    assert (Time.le nn_to (f_from wconext)) as LENNTOWCONEXT.
+    { unfold nn_to.
+      apply Time.le_lteq; left; apply Time.middle_spec; auto. }
+
+    assert (Time.le n_to (f_from wconext)) as LENTOWCONEXT.
+    { transitivity nn_to; auto. }
+
     assert (~ is_init wconext) as NINITWCONEXT.
     { apply no_co_to_init in CONEXT; auto.
       apply seq_eqv_r in CONEXT. desf. }
@@ -634,8 +641,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       rewrite updo; auto. rewrite upds.
       apply Interval.le_disjoint with (b:= (f_to wprev,f_from wconext)); auto.
       { eapply co_S_memory_disjoint; eauto. }
-      constructor; simpls.
-      apply Time.le_lteq. left. by apply Time.middle_spec. }
+      constructor; simpls. }
 
     assert (forall to from msg,
                Memory.get locw to (Configuration.memory PC) = Some (from, msg) ->
@@ -686,12 +692,101 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
                                   locw (f_from' wnext) (f_to' wnext)
                                   Message.reserve)
       as [memory' MADD2]; eauto; try constructor.
+
+    set (S':=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)).
+    assert (f_to_coherent G S' f_to' f_from') as FCOH_NEW.
+    (* TODO: make a lemma. *)
+    { unfold S', f_to', f_from'.
+      red; splits; ins.
+      { rewrite !updo.
+        { by apply FCOH. }
+        all: intros HH; subst; by destruct H. }
+      { do 2 (rewrite updo; [|by intros HH; subst; destruct H]).
+          by apply FCOH. }
+      { destruct H as [[H|]|H]; subst.
+        3: { assert (x = wnext); subst.
+             { eapply dom_sb_S_rfrmwf; eauto. }
+               by rewrite !upds. }
+        2: by do 2 (rewrite updo; auto; try rewrite upds).
+        repeat (rewrite updo with (a:=wnext); [|by intros HH; subst];
+                rewrite updo with (a:=w); [|by intros HH; subst]).
+          by apply FCOH. }
+      { assert (x <> y) as HXY.
+        { by intros HH; subst; apply WF.(co_irr) in H1. }
+        destruct H as [[H|]|H]; destruct H0 as [[H0|]|H0]; subst.
+        all: try (rewrite !upds).
+        all: try repeat (rewrite updo; [|by intros HH; subst]).
+        all: try by
+            match goal with 
+            | H : ?X <> ?X |- _ => exfalso; apply H
+            end.
+        all: try (assert (x = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst).
+        all: try (assert (y = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst).
+        all: try rewrite !upds.
+        all: try (rewrite updo; [|done]).
+        all: try (rewrite updo; [|by intros HH; subst]).
+        all: try rewrite !upds.
+        all: try (rewrite updo; [|by auto]).
+        all: try reflexivity.
+        all: try by
+            match goal with 
+            | H : co ?X ?X |- _ => exfalso; eapply WF.(co_irr); eauto
+            end.
+        { by apply FCOH. }
+        { assert (co^? x wprev) as [|COX]; subst; auto.
+          { eapply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
+            exists wnext. split; auto. 
+            apply seq_eqv_l. split; auto. eapply WF.(co_trans); eauto. }
+          transitivity (f_to wprev); auto.
+          apply Time.le_lteq; left. eapply f_to_co_mon; eauto. }
+        { assert (co^? x wprev) as [|COX]; subst; auto.
+          { eapply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
+            exists wnext. split; auto. 
+            apply seq_eqv_l. split; auto. }
+          { apply Time.le_lteq. eauto. }
+          transitivity (f_to wprev).
+          { apply Time.le_lteq; left. eapply f_to_co_mon; eauto. }
+          apply Time.le_lteq. eauto. }
+        { assert (co^? wconext y) as [|COX]; subst; eauto.
+          { eapply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
+            exists x. split; auto. 
+            apply seq_eqv_r. by split. }
+          transitivity (f_from wconext); auto.
+          apply Time.le_lteq; left. eapply f_from_co_mon; eauto. }
+        { rewrite updo; [|by intros HH; subst].
+          assert (co^? wconext y) as [|COX]; subst; eauto.
+          { eapply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
+            exists wnext. split; auto. 
+            apply seq_eqv_r. by split. }
+          transitivity (f_from wconext); auto.
+          apply Time.le_lteq; left. eapply f_from_co_mon; eauto. }
+        exfalso. eapply WF.(co_irr). eapply WF.(co_trans); eauto. }
+      destruct H0 as [[H0|]|H0]; subst.
+      3: { assert (y = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst.
+           assert (x = w) by (eapply wf_rfrmwf; eauto); subst.
+             by rewrite updo; auto; rewrite !upds. }
+      2: { exfalso. apply NWEX. red. generalize H1. clear. basic_solver. }
+      destruct H as [[H|]|H]; subst.
+      3: { assert (x = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst.
+           exfalso. apply NSWNEXT. eapply dom_rf_rmw_S with (T:=mkETC T S); eauto.
+           generalize H0 H1. clear. basic_solver 10. }
+      2: { exfalso. apply NSW. eapply dom_rf_rmw_S with (T:=mkETC T S); eauto.
+           generalize H0 H1. clear. basic_solver 10. }
+      do 2 (rewrite updo; [|by intros HH; subst]).
+      destruct (classic (y = wconext)) as [|NEQ]; subst.
+      2: { repeat (rewrite updo; [|by intros HH; subst]). by apply FCOH. }
+      exfalso. 
+      assert (co x wconext) as AA by (by apply rf_rmw_in_co).
+      apply NCOIMM with (c:=x); apply seq_eqv_r; split; auto.
+      edestruct WF.(wf_co_total) with (a:=w) (b:=x) as [|HH]; eauto.
+      { apply (dom_l WF.(wf_coE)) in AA. destruct_seq_l AA as CE.
+        apply (dom_l WF.(wf_coD)) in AA. destruct_seq_l AA as CD.
+        split; [split|]; auto. rewrite <- LOCNEXT. by apply WF.(wf_col). }
+      { by intros HH; subst. }
+      exfalso. eapply rf_rmw_in_coimm; eauto. }
+
     (* TODO: continue from here. *)
     
-    assert (f_to_coherent G (S ∪₁ eq w) f_to' f_from') as FCOH_NEW.
-    { unfold f_to', f_from'.
-      eapply f_to_coherent_add_S_middle; eauto. }
-
     assert (reserved_time
               G (mkTC (covered T) (issued T ∪₁ eq w))
               (S ∪₁ eq w) (upd f_to w n_to) (upd f_from w n_from)
