@@ -236,10 +236,13 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
 Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   assert (sc_per_loc G) as SPL. 
   { apply coherence_sc_per_loc. apply IMMCON. }
+  assert (rmw_atomicity G) as ATOM by apply IMMCON.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   assert (S ⊆₁ E ∩₁ W) as SEW.
   { apply set_subset_inter_r. split; [by apply ETCCOH|].
     apply (reservedW WF ETCCOH). }
+  assert (S ⊆₁ E /\ S ⊆₁ W) as [SE SW] by (split; rewrite SEW; clear; basic_solver).
+
   assert (issued T ⊆₁ S) as IE by apply ETCCOH.
   assert (W w) as WW.
   { eapply issuableW; eauto. }
@@ -285,17 +288,32 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
   edestruct co_prev_to_imm_co_prev with (w:=w) as [wprev]; eauto. desc.
 
+  assert (wprev <> wnext) as NEQCONEXTP by (by intros HH; subst).
+  assert (co wprev wnext) as WNEXTCOPREV.
+  { eapply WF.(co_trans) with (y:=w); eauto. }
+  assert (immediate (⦗S⦘ ⨾ co) wprev wnext) as PREVNEXTCOIMM.
+  (* TODO: make a lemma. *)
+  { split.
+    { apply seq_eqv_l. split; auto. }
+    ins.
+    destruct_seq_l R1 as AA. destruct_seq_l R2 as BB.
+    eapply PCOIMM with (c:=c); apply seq_eqv_l; split; auto.
+    edestruct WF.(wf_co_total) with (a:=c) (b:=w) as [|HH]; eauto.
+    { apply (dom_l WF.(wf_coE)) in R2. destruct_seq_l R2 as CE.
+      apply (dom_l WF.(wf_coD)) in R2. destruct_seq_l R2 as CD.
+      split; [split|]; auto. rewrite <- WNEXTLOC. by apply WF.(wf_col). }
+    { by intros HH; subst. }
+    exfalso. eapply rf_rmw_in_coimm; eauto. }
+
   destruct (classic (exists wconext, (co ⨾ ⦗ S ⦘) w wconext)) as [WCONEXT|WNONEXT]; [|left].
   { edestruct co_next_to_imm_co_next with (w:=w) as [wconext]; eauto. clear WCONEXT. desc.
     assert ((co ⨾ ⦗set_compl S⦘ ⨾ co) wprev wconext) as CONS.
     { exists w. split; auto. apply seq_eqv_l. by split. }
     assert (co wprev wconext) as COPN.
-    { eapply WF.(co_trans); eauto. }
+    { eapply WF.(co_trans) with (y:=w); eauto. }
 
     assert (immediate (⦗S⦘ ⨾ co ⨾ ⦗S⦘) wprev wconext) as COSIMM.
     { apply P_co_nP_co_P_imm; auto.
-      { apply ETCCOH. }
-      { apply (reservedW WF ETCCOH). }
       exists w. split; auto. apply seq_eqv_l. by split. }
 
     assert (~ (rf ⨾ rmw) w wconext) as NRFRMWCONEXT.
@@ -303,6 +321,21 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       exists wconext. apply seqA. apply seq_eqv_r. by split. }
 
     assert (Time.le (f_to wprev) (f_from wconext)) as FFLE by (by apply FCOH).
+    
+    assert (wconext <> wnext) as NEQCONEXT by (by intros HH; subst).
+    assert (co wnext wconext) as WNEXTCONEXT.
+    { edestruct WF.(wf_co_total) with (a:=wnext) (b:=wconext) as [|HH]; eauto.
+      { split; [split|]; eauto. }
+      exfalso. eapply rf_rmw_in_coimm; eauto. }
+
+    assert (NEXTCOIMM : immediate (co ⨾ ⦗S⦘) wnext wconext).
+    (* TODO: make a lemma. *)
+    { split.
+      { apply seq_eqv_r. by split. }
+      ins.
+      destruct_seq_r R1 as AA. destruct_seq_r R2 as BB.
+      eapply NCOIMM with (c:=c); apply seq_eqv_r; split; auto.
+      eapply WF.(co_trans) with (y:=wnext); auto. }
     
     destruct smode eqn:SMODE; [left|right].
     2: { splits; eauto.
@@ -347,6 +380,14 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          assert (Time.lt n_to (f_to wconext)) as LLTON.
          { etransitivity; [|by apply LLTONN].
            unfold n_to, nn_to. by do 2 apply DenseOrder.middle_spec. }
+
+         assert (Time.lt (f_to wprev) n_to) as LTPREVN.
+         { unfold n_to.
+           apply TimeFacts.le_lt_lt with (b:=f_from wconext).
+           { by apply FCOH. }
+           apply Time.middle_spec. etransitivity; eauto. }
+         assert (Time.le (f_to wprev) n_to) as LEPREVN.
+         { apply Time.le_lteq; eauto. }
 
          set (f_to'   := upd (upd f_to w n_to) wnext nn_to).
          set (f_from' := upd (upd (upd f_from w (f_from wconext)) wnext n_to) wconext nn_to).
@@ -398,43 +439,56 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
                  match goal with 
                  | H : ?X <> ?X |- _ => exfalso; apply H
                  end.
+             all: try (assert (x = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst).
+             all: try (assert (y = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst).
+             all: try rewrite !upds.
+             all: try (rewrite updo; [|done]).
+             all: try rewrite !upds.
+             all: try (rewrite updo; [|done]).
+             all: try rewrite !upds.
+             all: try reflexivity.
+             all: try by (Time.le_lteq; eauto).
+             all: try by
+                 match goal with 
+                 | H : co ?X ?X |- _ => exfalso; eapply WF.(co_irr); eauto
+                 end.
              { destruct (classic (y = wconext)) as [|NEQ]; subst;
                  [rewrite upds | rewrite updo; auto].
-               { apply Time.le_lteq; left.
-                 transitivity n_to; auto.
-                 unfold n_to.
-                 transitivity (f_from wconext); auto.
-               }
-               do 2 (rewrite updo; [|by intros HH; subst]).
+               2: { do 2 (rewrite updo; [|by intros HH; subst]).
+                      by apply FCOH. }
+               apply Time.le_lteq; left.
+               transitivity n_to; auto.
+               unfold n_to.
+               eapply TimeFacts.le_lt_lt with (b:=f_from wconext); auto.
                  by apply FCOH. }
+             { apply FCOH; auto. eapply WF.(co_trans); eauto. }
+             { assert (co^? x wprev) as [|COX]; subst; auto.
+               { eapply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
+                 exists wnext. split; auto. 
+                 apply seq_eqv_l. by split. }
+               transitivity (f_to wprev); auto.
+               apply Time.le_lteq; left. eapply f_to_co_mon; eauto. }
+             { destruct (classic (y = wconext)) as [|NEQ]; subst;
+                 [rewrite upds | rewrite updo; auto].
+               { apply Time.le_lteq; eauto. }
+               do 2 (rewrite updo; [|by intros HH; subst]).
+               assert (co^? wconext y) as [|COX]; subst; eauto.
+               { eapply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
+                 exists x. split; auto. 
+                 apply seq_eqv_r. by split. }
+               { desf. }
+               transitivity (f_to wconext); auto.
+               2: by apply FCOH.
+               apply Time.le_lteq; eauto. }
+             { destruct (classic (y = wconext)) as [|NEQ]; subst;
+                 [rewrite upds | rewrite updo; auto].
+               { reflexivity. }
+               do 2 (rewrite updo; [|by intros HH; subst]).
+               (* TODO: generalize to an assert and reuse. *)
+               admit. }
+             exfalso. eapply WF.(co_irr). eapply WF.(co_trans); eauto. }
+           (* TODO: continue from here. *)
 
-             (* { rewrite updo; [|by intros HH; subst]. *)
-             (*   rewrite updo; [|by intros HH; subst]. *)
-             (*   destruct (classic (wnext = y)) as [|NEQ]; subst; *)
-             (*     [rewrite upds | rewrite updo; auto]. *)
-             (*   { etransitivity; eauto. *)
-             (*     2: by apply Time.le_lteq; left; eauto. *)
-             (*       by apply FCOH. } *)
-             (*     by apply FCOH. } *)
-             (* { rewrite updo; auto. *)
-             (*   apply FCOH; auto. *)
-             (*   eapply WF.(co_trans); eauto. } *)
-             (* { rewrite updo; auto. *)
-             (*   destruct (classic (wnext = y)) as [|NEQ]; subst; *)
-             (*     [by rewrite upds; apply DenseOrder_le_PreOrder | rewrite updo; auto]. *)
-             (*   etransitivity. *)
-             (*   { apply Time.le_lteq; left. apply LLTON. } *)
-             (*   apply FCOH; auto. *)
-             (*   eapply tot_ex. *)
-             (*   { by eapply WF. } *)
-             (*   { unfolder; splits; eauto. *)
-             (*     hahn_rewrite (dom_r (wf_coE WF)) in H1; unfolder in H1; basic_solver 12. *)
-             (*     hahn_rewrite (dom_r (wf_coD WF)) in H1; unfolder in H1; basic_solver 12. } *)
-             (*   { unfolder; splits; eauto. *)
-             (*     hahn_rewrite (wf_col WF) in H1; unfold same_loc in *; congruence. } *)
-             (*   { unfold immediate in NCOIMM; desc; intro; eapply NCOIMM0; basic_solver 21. } *)
-             (*     by intro; subst. } *)
-             (*   by apply WF.(co_irr) in H1. } *)
            destruct H as [H|]; subst.
            { assert (x <> w) as NXW.
              { intros YY. desf. }
