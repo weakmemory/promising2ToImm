@@ -688,10 +688,18 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       rewrite (loc_ts_eq_dec_neq NEQ) in GET2.
       eapply DISJOINT''. eapply PROM_IN_MEM; eauto. }
 
-    edestruct (@Memory.add_exists (Configuration.memory PC)
+    edestruct (@Memory.add_exists memory_add 
                                   locw (f_from' wnext) (f_to' wnext)
                                   Message.reserve)
-      as [memory' MADD2]; eauto; try constructor.
+      as [memory' MADD2]; eauto; try by constructor.
+    { ins. erewrite Memory.add_o in GET2; eauto.
+      destruct (loc_ts_eq_dec (locw, to2) (locw, f_to' w)) as [|NEQ]; simpls; desc; subst.
+      { rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in GET2. inv GET2.
+        unfold f_to', f_from'.
+        repeat (rewrite !upds; repeat (rewrite updo; [|done])).
+        symmetry. apply Interval.disjoint_imm. }
+      rewrite (loc_ts_eq_dec_neq NEQ) in GET2.
+      eapply DISJOINT''. eauto. }
 
     set (S':=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)).
     assert (f_to_coherent G S' f_to' f_from') as FCOH_NEW.
