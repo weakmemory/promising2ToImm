@@ -843,6 +843,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       all: try rewrite !upds.
       all: intros HH; eauto.
       all: try by (exfalso; eauto).
+      (* TODO: Reuse FCOH_new proof. *)
       { admit. }
       { admit. }
       { admit. }
@@ -895,7 +896,9 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     rewrite IE. unfold S'. eauto with hahn. }
 
   set (ts := Memory.max_ts locw (Configuration.memory PC)).
-  set (f_to' := upd f_to w (Time.incr (Time.incr ts))).
+  set ( n_to := (Time.incr (Time.incr ts))).
+  set (nn_to := Time.incr n_to).
+  set (f_to' := upd (upd f_to w n_to) wnext nn_to).
   exists f_to'.
  
   set (A :=
@@ -915,23 +918,25 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   { destruct NFROM as [[N _]|[N _]]; subst; [|reflexivity].
     apply Time.le_lteq; left. apply DenseOrder.incr_spec. }
 
-  set (f_from' := upd f_from w n_from).
+  set (f_from' := upd (upd f_from w n_from) wnext n_to).
   exists f_from'.
 
-  assert (Time.lt (f_from' w) (f_to' w)) as NLT.
-  { unfold f_to', f_from', ts; rewrite !upds.
-    eapply TimeFacts.le_lt_lt.
-    { apply LENFROM_L. }
-    apply DenseOrder.incr_spec. }
-
-  assert (Time.lt n_from (Time.incr (Time.incr ts))) as NNLT.
+  assert (Time.lt n_from n_to) as NNLT.
   { eapply TimeFacts.le_lt_lt.
     2: by apply Time.incr_spec.
     done. }
+  assert (Time.lt n_to nn_to) as LTNNTO.
+  { unfold nn_to. apply Time.incr_spec. }
+
+  assert (Time.lt (f_from' w) (f_to' w)) as NLT.
+  { unfold f_to', f_from', ts. by repeat (rewrite updo; auto; rewrite upds). }
+
+  assert (Time.lt (f_from' wnext) (f_to' wnext)) as NLTNEXT.
+  { unfold f_to', f_from'. by rewrite !upds. }
 
   assert (Time.lt (View.rlx (TView.cur (Local.tview local)) locw) (f_to' w))
     as REL_VIEW_HELPER.
-  { unfold f_to', ts; rewrite upds.
+  { unfold f_to', ts. rewrite updo; auto. rewrite upds.
     etransitivity.
     2: by apply DenseOrder.incr_spec.
     eapply TimeFacts.le_lt_lt.
@@ -950,7 +955,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
              Memory.get locw to (Configuration.memory PC) =
              Some (from, msg) ->
              Interval.disjoint (f_from' w, f_to' w) (from, to)) as DISJOINT.
-  { unfold f_to', f_from', ts; rewrite !upds.
+  { unfold f_to', f_from', ts; repeat (rewrite updo; auto; rewrite upds).
     ins; red; ins. destruct LHS. destruct RHS.
     simpls.
     eapply Time.lt_strorder.
@@ -961,6 +966,21 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     etransitivity.
     { apply TO0. }
     unfold ts.
+    apply Memory.max_ts_spec in H. desf. }
+
+  assert (forall to from msg,
+             Memory.get locw to (Configuration.memory PC) =
+             Some (from, msg) ->
+             Interval.disjoint (f_from' wnext, f_to' wnext) (from, to)) as DISJOINT'.
+  { unfold f_to', f_from', ts. rewrite !upds.
+    ins; red; ins. destruct LHS. destruct RHS.
+    simpls.
+    eapply Time.lt_strorder.
+    etransitivity; [|by apply NNLT].
+    eapply TimeFacts.lt_le_lt with (b:=x); auto.
+    transitivity ts; auto.
+    unfold ts.
+    transitivity to; auto.
     apply Memory.max_ts_spec in H. desf. }
 
   set (rel' := View.join (View.join rel'' (View.unwrap p_rel))
@@ -975,18 +995,43 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   edestruct (@Memory.add_exists
                (Local.promises local) locw (f_from' w) (f_to' w)
                (Message.full valw (Some rel')))
-    as [promises' PADD]; auto.
+    as [promises_add PADD]; auto.
   { ins. eapply DISJOINT.
     eapply PROM_IN_MEM; eauto. }
 
   edestruct (@Memory.add_exists
                PC.(Configuration.memory) locw (f_from' w) (f_to' w)
                (Message.full valw (Some rel')))
-    as [memory' MADD]; auto.
+    as [memory_add MADD]; auto.
+
+  edestruct (@Memory.add_exists
+               promises_add locw (f_from' wnext) (f_to' wnext)
+               Message.reserve)
+    as [promises' PADD2]; auto; try by constructor.
+  { ins. erewrite Memory.add_o in GET2; eauto.
+    destruct (classic (to2 = f_to' w)); subst.
+    { rewrite loc_ts_eq_dec_eq in GET2. inv GET2.
+      unfold f_to', f_from'. rewrite !upds. repeat (rewrite updo; auto; rewrite upds).
+      symmetry. apply Interval.disjoint_imm. }
+    rewrite loc_ts_eq_dec_neq in GET2; eauto.
+    eapply DISJOINT'.
+    eapply PROM_IN_MEM; eauto. }
+
+  edestruct (@Memory.add_exists
+               memory_add locw (f_from' wnext) (f_to' wnext)
+               Message.reserve)
+    as [memory' MADD2]; auto; try by constructor.
+  { ins. erewrite Memory.add_o in GET2; eauto.
+    destruct (classic (to2 = f_to' w)); subst.
+    { rewrite loc_ts_eq_dec_eq in GET2. inv GET2.
+      unfold f_to', f_from'. rewrite !upds. repeat (rewrite updo; auto; rewrite upds).
+      symmetry. apply Interval.disjoint_imm. }
+    rewrite loc_ts_eq_dec_neq in GET2; eauto. }
 
   assert (Memory.inhabited memory') as INHAB'. 
-  { eapply Memory.add_inhabited; eauto. }
+  { do 2 (eapply Memory.add_inhabited; eauto). }
 
+  (* TODO: continue from here *)
   assert (n_from = Memory.max_ts locw (Configuration.memory PC) /\ (rf ⨾ rmw) wprev w \/
           n_from = Time.incr (Memory.max_ts locw (Configuration.memory PC)) /\
           ~ (rf ⨾ rmw) wprev w) as FCOH_HELPER.
