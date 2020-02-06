@@ -886,13 +886,13 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. reflexivity. }
     exists promises_add, memory_add, promises', memory'. splits; eauto.
     { constructor; auto. by rewrite RELPLN. }
-    (* TODO: continue from here. *)
-    subst. eapply sim_helper_issue with (S':=S ∪₁ eq w); eauto.
+    subst. eapply sim_helper_issue with (S':=S'); eauto.
     { transitivity (fun _ : actid => False); [|clear; basic_solver].
       generalize NWEX. unfold Execution.W_ex. clear; basic_solver. }
-    { ins. unfold f_to'. rewrite updo; auto. intros HH; subst. eauto. }
-    { by right. }
-    rewrite IE. eauto with hahn. }
+    { ins. unfold f_to'.
+      repeat (rewrite updo; [|by intros HH; subst; eauto]); auto. }
+    { red. unfolder. eauto. }
+    rewrite IE. unfold S'. eauto with hahn. }
 
   set (ts := Memory.max_ts locw (Configuration.memory PC)).
   set (f_to' := upd f_to w (Time.incr (Time.incr ts))).
