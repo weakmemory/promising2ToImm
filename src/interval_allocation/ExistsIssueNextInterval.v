@@ -700,6 +700,66 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       rewrite (loc_ts_eq_dec_neq NEQ) in GET2.
       eapply DISJOINT''. eauto. }
 
+    assert (n_from = Time.middle (f_to wprev) n_to) as FROM.
+    { destruct NFROM as [[_ BB]|]; desc; auto.
+      exfalso. apply NWEX. red. generalize BB. unfold B. clear. basic_solver. }
+
+    assert (forall x (SX : S x) (CO : co x w), 
+               Time.lt (f_to x) (Time.middle (f_to wprev) n_to)) as LTNSFROM.
+    { subst. ins.
+      assert (co^? x wprev) as COX; subst; auto.
+      { eapply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
+        exists wnext. split; auto. 
+        apply seq_eqv_l. split; auto. eapply WF.(co_trans); eauto. }
+      assert (Time.le (f_to x) (f_to wprev)) as LEA.
+      { destruct COX; subst; [reflexivity|].
+        apply Time.le_lteq; left. eapply f_to_co_mon; eauto. }
+      apply TimeFacts.le_lt_lt with (b:=f_to wprev); auto.
+        by apply Time.middle_spec. }
+
+    assert (forall x (SX : S x) (CO : co wnext x),
+               Time.le (f_from wconext) (f_from x)) as LENSFROMCONEXT.
+    { ins.
+      assert (co^? wconext x) as [|COX]; subst; eauto.
+      { eapply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
+        exists wnext. split; auto. 
+        apply seq_eqv_r. by split. }
+      { reflexivity. }
+      apply Time.le_lteq; left. eapply f_from_co_mon; eauto. }
+
+    assert (forall x (SX : S x) (CO : co x w), 
+               Time.lt (f_to x) n_to) as LTNSFROMN.
+    { ins. etransitivity.
+      { by apply LTNSFROM. }
+        by apply Time.middle_spec. }
+
+    assert (forall x (SX : S x) (CO : co x w), 
+               Time.le (f_to x) (Time.middle (f_to wprev) n_to)) as LENSFROM.
+    { ins. apply Time.le_lteq; left. by apply LTNSFROM. }
+
+    assert (forall x (SX : S x) (CO : co x w), f_to x <> n_from) as NSNFROM.
+    { subst. ins. intros HH.
+      apply Time.lt_strorder with (x:=f_to x).
+      rewrite HH at 2. by apply LTNSFROM. }
+    
+    assert (forall x (SX : S x), co x w <-> co x wnext) as COPREVEQ.
+    { ins. split; intros HH.
+      { eapply WF.(co_trans); eauto. }
+      assert (co^? x wprev) as [|COX]; subst; auto.
+      { eapply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
+        exists wnext. split; auto. 
+        apply seq_eqv_l. split; auto. }
+      eapply WF.(co_trans); eauto. }
+
+    assert (forall x (SX : S x), co w x <-> co wnext x) as CONEXTEQ.
+    { ins. split; intros HH.
+      2: { by eapply WF.(co_trans); [|by apply HH]. }
+      assert (co^? wconext x) as [|COX]; subst; eauto.
+      { eapply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
+        exists w. split; auto. 
+        apply seq_eqv_r. by split. }
+        by eapply WF.(co_trans); [|by apply COX]. }
+
     set (S':=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)).
     assert (f_to_coherent G S' f_to' f_from') as FCOH_NEW.
     (* TODO: make a lemma. *)
@@ -740,33 +800,11 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
             | H : co ?X ?X |- _ => exfalso; eapply WF.(co_irr); eauto
             end.
         { by apply FCOH. }
-        { assert (co^? x wprev) as [|COX]; subst; auto.
-          { eapply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
-            exists wnext. split; auto. 
-            apply seq_eqv_l. split; auto. eapply WF.(co_trans); eauto. }
-          transitivity (f_to wprev); auto.
-          apply Time.le_lteq; left. eapply f_to_co_mon; eauto. }
-        { assert (co^? x wprev) as [|COX]; subst; auto.
-          { eapply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
-            exists wnext. split; auto. 
-            apply seq_eqv_l. split; auto. }
-          { apply Time.le_lteq. eauto. }
-          transitivity (f_to wprev).
-          { apply Time.le_lteq; left. eapply f_to_co_mon; eauto. }
-          apply Time.le_lteq. eauto. }
-        { assert (co^? wconext y) as [|COX]; subst; eauto.
-          { eapply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
-            exists x. split; auto. 
-            apply seq_eqv_r. by split. }
-          transitivity (f_from wconext); auto.
-          apply Time.le_lteq; left. eapply f_from_co_mon; eauto. }
+        { by apply LENSFROM. }
+        { apply Time.le_lteq; left. apply LTNSFROMN; auto. by apply COPREVEQ. }
+        { etransitivity; [|apply LENSFROMCONEXT]; eauto. by apply CONEXTEQ. }
         { rewrite updo; [|by intros HH; subst].
-          assert (co^? wconext y) as [|COX]; subst; eauto.
-          { eapply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
-            exists wnext. split; auto. 
-            apply seq_eqv_r. by split. }
-          transitivity (f_from wconext); auto.
-          apply Time.le_lteq; left. eapply f_from_co_mon; eauto. }
+          etransitivity; [|apply LENSFROMCONEXT]; eauto. }
         exfalso. eapply WF.(co_irr). eapply WF.(co_trans); eauto. }
       destruct H0 as [[H0|]|H0]; subst.
       3: { assert (y = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst.
@@ -843,13 +881,22 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       all: try rewrite !upds.
       all: intros HH; eauto.
       all: try by (exfalso; eauto).
-      (* TODO: Reuse FCOH_new proof. *)
-      { admit. }
-      { admit. }
-      { admit. }
-      { exfalso. subst. eapply Time.lt_strorder; eauto. }
-      { admit. }
-      exfalso. subst. eapply Time.lt_strorder; eauto. }
+      { exfalso. eapply NSNFROM; eauto. }
+      { exfalso. eapply Time.lt_strorder with (x:=f_to x).
+        rewrite HH at 2. apply LTNSFROMN; auto. by apply COPREVEQ. }
+      { exfalso.
+        eapply Time.lt_strorder with (x:=f_from y).
+        eapply TimeFacts.lt_le_lt; [|apply LENSFROMCONEXT]; eauto.
+        2: by apply CONEXTEQ.
+        rewrite <- HH. by eapply TimeFacts.lt_le_lt; [|by apply LENNTOWCONEXT]. }
+      { exfalso. subst. by apply WF.(co_irr) with (x:=y). }
+      { exfalso.
+        eapply Time.lt_strorder with (x:=f_from y).
+        eapply TimeFacts.lt_le_lt; [|apply LENSFROMCONEXT]; eauto.
+        rewrite <- HH. unfold nn_to. by apply Time.middle_spec. }
+      exfalso.
+      eapply Time.lt_strorder with (x:=nn_to).
+      rewrite HH at 1. transitivity n_to; auto. }
 
     assert (Memory.inhabited memory') as INHAB'. 
     { do 2 (eapply Memory.add_inhabited; eauto). }
