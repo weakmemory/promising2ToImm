@@ -1093,6 +1093,13 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
   set (S':=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)).
   assert (S ⊆₁ S') as SINS by (unfold S'; eauto with hahn).
+  assert (S' ⊆₁ E ∩₁ W) as SEW'.
+  { subst S'. rewrite SEW at 1. unionL; eauto with hahn.
+    { unfolder. ins. desf. }
+    intros x HH.
+    assert (x = wnext); subst.
+    2: by split.
+    eapply dom_sb_S_rfrmwf; eauto. }
 
   assert (f_to_coherent G S' f_to' f_from') as FCOH_NEW.
   (* TODO: make a lemma. *)
@@ -1123,8 +1130,18 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       all: try repeat (rewrite updo; [|by intros HH; subst]).
       all: try reflexivity.
       { by apply FCOH. }
-      { admit. }
-      { admit. }
+      { etransitivity; [|by apply LENFROM_R].
+        edestruct reserved_to_message with (l:=locw) (b:=x)
+          as [wconextmsg [WCONEXTMEM WCONEXTPROM']]; eauto.
+        { rewrite <- LOC. by apply WF.(wf_col). }
+        subst ts. eapply Memory.max_ts_spec; eauto. }
+      { apply Time.le_lteq; left.
+        eapply TimeFacts.le_lt_lt; [|by apply NNLT].
+        etransitivity; [|by apply LENFROM_R].
+        edestruct reserved_to_message with (l:=locw) (b:=x)
+          as [wconextmsg [WCONEXTMEM WCONEXTPROM']]; eauto.
+        { rewrite <- WNEXTLOC. by apply WF.(wf_col). }
+        subst ts. eapply Memory.max_ts_spec; eauto. }
       { exfalso. eapply WNONEXT. eexists. apply seq_eqv_r. eauto. }
       { exfalso. eapply WNEXTNONEXT. eexists. apply seq_eqv_r. eauto. }
       { exfalso. eapply WF.(co_irr). eapply WF.(co_trans); eauto. }
@@ -1200,7 +1217,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     2: { eapply Memory.singleton_closed_timemap; eauto.
          erewrite Memory.add_o; eauto.
          rewrite loc_ts_eq_dec_neq.
-         2: { admit. }
+         2: { right. intros HH.
+              eapply f_to_eq with (I:=S') in HH; eauto.
+              { red. etransitivity; eauto. }
+              all: red; unfolder; eauto. }
          erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq. eauto. }
     apply Memory.join_closed_timemap.
     2: { subst. simpls. by apply Memory.closed_timemap_bot. }
