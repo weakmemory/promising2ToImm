@@ -1159,6 +1159,20 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          generalize H0 H1. clear. basic_solver 10. }
     repeat (rewrite updo; [|by intros HH; subst]). by apply FCOH. }
 
+  assert (NNEQ : nn_to <> n_to).
+  { intros HH. rewrite HH in LTNNTO. eapply Time.lt_strorder. apply LTNNTO. }
+
+  assert (n_from = Time.incr ts) as FROM.
+  { destruct NFROM as [[_ AA]|]; desc; auto. exfalso.
+    apply NWEX. red. generalize AA. unfold A. clear. basic_solver. }
+
+  assert (forall x (SX : S x) (XLOC : loc lab x = Some locw),
+             Time.le (f_to x) ts) as LESTS.
+  { ins. unfold ts.
+    edestruct reserved_to_message with (l:=locw) (b:=x)
+      as [wconextmsg [WCONEXTMEM WCONEXTPROM']]; eauto.
+    eapply Memory.max_ts_spec; eauto. }
+
   assert (reserved_time
             G (mkTC (covered T) (issued T ∪₁ eq w))
             S' f_to' f_from' smode memory') as RST.
@@ -1196,7 +1210,27 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       { unfolder. eauto. }
       { intros [|]; subst; eauto. }
       all: repeat (rewrite updo; [|by intros HH; subst; eauto]); auto. }
-    admit. }
+    intros x y [[AA|]|AA] [[BB|]|BB] CO; subst.
+    all: try (assert (x = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst).
+    all: try (assert (y = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst).
+    all: try rewrite !upds.
+    all: try repeat (rewrite updo; [|done]).
+    all: try repeat (rewrite updo; [|by intros HH; subst]).
+    all: try rewrite !upds.
+    all: try repeat (rewrite updo; [|by intros HH; subst]).
+    all: try rewrite !upds.
+    all: intros HH; eauto.
+    7: { exfalso; eauto. }
+    4: { exfalso; eapply WF.(co_irr); eauto. }
+    1,2: exfalso; eapply Time.lt_strorder with (x:=f_to x); rewrite HH at 2.
+    { eapply TimeFacts.le_lt_lt; [|by apply Time.incr_spec].
+      apply LESTS; auto. rewrite <- LOC. by apply WF.(wf_col). }
+    { eapply TimeFacts.le_lt_lt.
+      { apply LESTS; auto. rewrite <- WNEXTLOC. by apply WF.(wf_col). }
+      unfold n_to. etransitivity; apply Time.incr_spec. }
+    { exfalso. apply WNONEXT. eexists. apply seq_eqv_r. split; eauto. }
+    { exfalso. apply WNEXTNONEXT. eexists. apply seq_eqv_r. split; eauto. }
+    exfalso. eapply WF.(co_irr) with (x:=wnext). eapply WF.(co_trans); eauto. }
 
   assert (View.pln
             (View.join
