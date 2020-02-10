@@ -129,6 +129,9 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
            ⟪ REL_VIEW_LE : Time.le (View.rlx rel'  locw) (f_to' w) ⟫ /\
 
+           ⟪ REQ_TO : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e ⟫ /\
+           ⟪ ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
+
            exists promises' memory',
              ⟪ PADD :
                  Memory.add local.(Local.promises) locw (f_from' w) (f_to' w)
@@ -182,6 +185,10 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ RELWFEQ : View.pln rel' = View.rlx rel' ⟫ /\
            ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
            ⟪ REL_VIEW_LE : Time.le (View.rlx rel'  locw) (f_to' w) ⟫ /\
+
+           ⟪ REQ_TO : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e ⟫ /\
+           ⟪ ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
+
            ⟪ FCOH : f_to_coherent G S' f_to' f_from' ⟫ /\
 
            exists promises' memory',
@@ -397,6 +404,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            apply Time.join_spec.
            { apply Time.le_lteq. eauto. }
            apply Time.bot_spec. }
+         1-2: by ins; repeat (rewrite updo; [|by intros HH; subst]).
          { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
            rewrite NONEXT. clear. basic_solver. }
 
@@ -547,6 +555,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     { unfold View.join, TimeMap.join; ins. 
       repeat apply DenseOrder.join_spec; auto.
       unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. reflexivity. }
+    1,2: by subst f_to'; ins; rewrite updo; [|by intros HH; subst].
+
     do 2 eexists. splits; eauto.
     { constructor; auto. by rewrite RELPLN. }
     { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
@@ -704,6 +714,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   { unfold View.join, TimeMap.join; ins. 
     repeat apply DenseOrder.join_spec; auto.
     unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. reflexivity. }
+  1,2: by subst f_to'; ins; rewrite updo; [|by intros HH; subst].
+
   do 2 eexists. splits; eauto.
   { constructor; auto. by rewrite RELPLN. }
   { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
