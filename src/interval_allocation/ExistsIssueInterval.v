@@ -134,6 +134,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ REQ_FROM : forall e (SE : S e) (NEQ : e <> w), f_from' e = f_from e ⟫ /\
            ⟪ ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
            ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
+           << FTOWNBOT : f_to' w <> Time.bot >> /\
 
            << DISJOINT : forall to from msg
                (INMEM : Memory.get locw to (Configuration.memory PC) = Some (from, msg)),
@@ -569,6 +570,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       repeat apply DenseOrder.join_spec; auto.
       unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. reflexivity. }
     1-4: by unfold f_to', f_from'; ins; rewrite updo; [|by intros HH; subst].
+    { unfold f_to'. rewrite upds.
+      intros HH.
+      eapply Time.lt_strorder with (x:=n_to).
+      rewrite HH at 1.
+      eapply TimeFacts.le_lt_lt; [|edone].
+      apply Time.bot_spec. }
 
     do 2 eexists. splits; eauto.
     { constructor; auto. by rewrite RELPLN. }
@@ -727,6 +734,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     repeat apply DenseOrder.join_spec; auto.
     unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. reflexivity. }
   1-4: by unfold f_to', f_from'; ins; rewrite updo; [|by intros HH; subst].
+  { unfold f_to'. rewrite upds.
+    intros HH.
+    eapply Time.lt_strorder with (x:=Time.bot).
+    rewrite <- HH at 2.
+    eapply TimeFacts.le_lt_lt; [|edone].
+    apply Time.bot_spec. }
 
   do 2 eexists. splits; eauto.
   { constructor; auto. by rewrite RELPLN. }
