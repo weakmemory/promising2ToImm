@@ -116,6 +116,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists p_rel,
     rfrmw_prev_rel G sc T f_to f_from PC.(Configuration.memory) w locw p_rel /\
+    << SEW' : S' ⊆₁ E ∩₁ W >> /\
     (⟪ FOR_ISSUE :
          exists f_to' f_from',
            let rel'' :=
@@ -130,7 +131,13 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ REL_VIEW_LE : Time.le (View.rlx rel'  locw) (f_to' w) ⟫ /\
 
            ⟪ REQ_TO : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e ⟫ /\
-           ⟪ ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
+           ⟪ REQ_FROM : forall e (SE : S e) (NEQ : e <> w), f_from' e = f_from e ⟫ /\
+           ⟪ ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
+           ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
+
+           << DISJOINT : forall to from msg
+               (INMEM : Memory.get locw to (Configuration.memory PC) = Some (from, msg)),
+               Interval.disjoint (f_from' w, f_to' w) (from, to) >> /\
 
            exists promises' memory',
              ⟪ PADD :
@@ -237,6 +244,11 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   assert (~ is_init w) as WNINIT.
   { intros HH. apply WNCOV. eapply init_covered; eauto. by split. }
 
+  set (S':= S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)).
+  assert (SEW' : S' ⊆₁ E ∩₁ W).
+  { unfold S'. rewrite NONEXT. unionL; auto.
+    all: basic_solver. }
+
   assert ((E ∩₁ W ∩₁ Loc_ locw) w) as WEW.
   { split; [split|]; auto. }
 
@@ -262,6 +274,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   { subst rel''. destruct (Rel w); apply PLN_RLX_EQ. }
 
   edestruct co_prev_to_imm_co_prev with (w:=w) as [wprev]; eauto. desc.
+  split; auto.
 
   destruct (classic (exists wconext, (co ⨾ ⦗ S ⦘) w wconext)) as [WCONEXT|WNONEXT]; [|left].
   { edestruct co_next_to_imm_co_next with (w:=w) as [wconext]; eauto. clear WCONEXT. desc.
@@ -406,7 +419,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            apply Time.bot_spec. }
          1-2: by ins; repeat (rewrite updo; [|by intros HH; subst]).
          { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
-           rewrite NONEXT. clear. basic_solver. }
+           unfold S'. rewrite NONEXT. clear. basic_solver. }
 
          exists promises'; exists memory'. unfold rel', rel'' in *.
          splits; auto.
@@ -431,8 +444,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          red. split; unnw.
          { etransitivity.
            2: by apply FOR_SPLIT.
-           hahn_frame_r. clear. basic_solver 10. }
-         rewrite RMW_BEF_S. clear. basic_solver 10. }
+           hahn_frame_r. clear. subst S'. basic_solver 10. }
+         rewrite RMW_BEF_S. clear. subst S'. basic_solver 10. }
 
     assert (f_to wprev <> f_from wconext) as FFNEQ.
     { intros HH.
@@ -555,12 +568,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     { unfold View.join, TimeMap.join; ins. 
       repeat apply DenseOrder.join_spec; auto.
       unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. reflexivity. }
-    1,2: by subst f_to'; ins; rewrite updo; [|by intros HH; subst].
+    1-4: by unfold f_to', f_from'; ins; rewrite updo; [|by intros HH; subst].
 
     do 2 eexists. splits; eauto.
     { constructor; auto. by rewrite RELPLN. }
     { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
-      rewrite NONEXT. clear. basic_solver. }
+      subst S'. rewrite NONEXT. clear. basic_solver. }
     { subst. eapply sim_helper_issue with (S':=S ∪₁ eq w); eauto.
       { transitivity (fun _ : actid => False); [|clear; basic_solver].
         generalize NWEX. unfold Execution.W_ex. clear; basic_solver. }
@@ -569,7 +582,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       rewrite IE. eauto with hahn. }
     eapply reserved_time_more; (try by apply RST); auto.
     { apply same_tc. }
-    split; [rewrite NONEXT|]; eauto with hahn.
+    split; [subst S'; rewrite NONEXT|]; eauto with hahn.
     clear. basic_solver 10. }
 
   set (ts := Memory.max_ts locw (Configuration.memory PC)).
@@ -625,8 +638,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   { by apply Time.le_lteq; left. }
 
   assert (forall to from msg,
-             Memory.get locw to (Configuration.memory PC) =
-             Some (from, msg) ->
+             Memory.get locw to (Configuration.memory PC) = Some (from, msg) ->
              Interval.disjoint (f_from' w, f_to' w) (from, to)) as DISJOINT.
   { unfold f_to', f_from', ts; rewrite !upds.
     ins; red; ins. destruct LHS. destruct RHS.
@@ -714,12 +726,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   { unfold View.join, TimeMap.join; ins. 
     repeat apply DenseOrder.join_spec; auto.
     unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. reflexivity. }
-  1,2: by subst f_to'; ins; rewrite updo; [|by intros HH; subst].
+  1-4: by unfold f_to', f_from'; ins; rewrite updo; [|by intros HH; subst].
 
   do 2 eexists. splits; eauto.
   { constructor; auto. by rewrite RELPLN. }
   { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
-    rewrite NONEXT. clear. basic_solver. }
+    subst S'. rewrite NONEXT. clear. basic_solver. }
   { subst. eapply sim_helper_issue with (S':=S ∪₁ eq w); eauto.
     { transitivity (fun _ : actid => False); [|clear; basic_solver].
       generalize NWEX. unfold Execution.W_ex. clear; basic_solver. }
@@ -728,7 +740,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     rewrite IE. eauto with hahn. }
   eapply reserved_time_more; (try by apply RST); auto.
   { apply same_tc. }
-  split; [rewrite NONEXT|]; eauto with hahn.
+  split; [subst S'; rewrite NONEXT|]; eauto with hahn.
   clear. basic_solver 10.
 Qed.
 
