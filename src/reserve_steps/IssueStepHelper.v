@@ -222,17 +222,11 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
                               f_to' (S_tm G l covered') (LocFun.find l sc_view) ⟫ /\
                ⟪ CLOSED_SC : Memory.closed_timemap sc_view memory' ⟫ /\
 
-               (* TODO : fix *)
-               (* ⟪ MEM_CANCEL : *)
-               (*     Memory.promise (Local.promises local) *)
-               (*                    memory locw (f_from' w) (f_to' w) *)
-               (*                    (Message.full valw ) *)
-               (*                    promises_cancel memory_cancel Memory.op_kind_cancel ⟫ /\ *)
-
                ⟪ MEM_PROMISE :
+                   ~ Rel w ->
                    Memory.promise (Local.promises local) memory locw (f_from' w) (f_to' w)
                                   (Message.full valw (Some rel'))
-                                  promises_add memory' Memory.op_kind_add ⟫ /\
+                                  promises' memory' Memory.op_kind_add ⟫ /\
 
                ⟪ PROM_IN_MEM :
                    forall thread' langst local
@@ -445,11 +439,7 @@ Proof using All.
     intros a [HB|HB] HH AA.
     { eauto. }
     subst. clear -WW AA. type_solver. }
-  { constructor; auto.
-    { intros HH. inv HH. }
-    ins. inv MSG.
-    (* TODO: propagate the proof to ExistsIssueInterval.v? *)
-    admit. }
+  { intros HH. arewrite (promises'' = promises') by desf. by apply MEMPROM. }
   { ins.
     destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
     { subst. rewrite IdentMap.gss in TID0.
