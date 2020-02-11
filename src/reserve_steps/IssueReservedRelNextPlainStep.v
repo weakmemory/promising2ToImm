@@ -16,6 +16,7 @@ From imm Require Import AuxDef.
 Require Import TraversalConfig.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
+Require Import ExtTraversalProperties.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import ViewRelHelpers.

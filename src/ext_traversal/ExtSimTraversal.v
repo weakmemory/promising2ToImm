@@ -14,6 +14,7 @@ Require Import TraversalConfigAlt.
 Require Import Traversal.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
+Require Import ExtTraversalProperties.
 Require Import AuxRel AuxRel2.
 
 Set Implicit Arguments.
