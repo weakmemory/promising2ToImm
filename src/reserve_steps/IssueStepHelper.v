@@ -161,6 +161,12 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
            ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
            ⟪ REL_VIEW_LE : Time.le (View.rlx rel'  locw) (f_to' w) ⟫ /\
 
+           ⟪ REQ_TO : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e ⟫ /\
+           ⟪ REQ_FROM : forall e (SE : S e) (NEQ : e <> w), f_from' e = f_from e ⟫ /\
+           ⟪ ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
+           ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
+           << FTOWNBOT : f_to' w <> Time.bot >> /\
+
            exists promises_add memory',
              ⟪ PADD :
                  Memory.add local.(Local.promises) locw (f_from' w) (f_to' w)
@@ -223,10 +229,10 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
                (*                    (Message.full valw ) *)
                (*                    promises_cancel memory_cancel Memory.op_kind_cancel ⟫ /\ *)
 
-               (* ⟪ MEM_PROMISE : *)
-               (*     Memory.promise promises_cancel memory_cancel locw (f_from w) (f_to w) *)
-               (*                    (Message.full valw (Some rel')) *)
-               (*                    promises_add memory_add Memory.op_kind_add ⟫ /\ *)
+               ⟪ MEM_PROMISE :
+                   Memory.promise (Local.promises local) memory locw (f_from' w) (f_to' w)
+                                  (Message.full valw (Some rel'))
+                                  promises_add memory' Memory.op_kind_add ⟫ /\
 
                ⟪ PROM_IN_MEM :
                    forall thread' langst local
@@ -439,6 +445,11 @@ Proof using All.
     intros a [HB|HB] HH AA.
     { eauto. }
     subst. clear -WW AA. type_solver. }
+  { constructor; auto.
+    { intros HH. inv HH. }
+    ins. inv MSG.
+    (* TODO: propagate the proof to ExistsIssueInterval.v? *)
+    admit. }
   { ins.
     destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
     { subst. rewrite IdentMap.gss in TID0.

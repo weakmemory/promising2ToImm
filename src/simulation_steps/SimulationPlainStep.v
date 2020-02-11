@@ -38,6 +38,7 @@ Require Import ReadPlainStep.
 Require Import WriteRlxCovPlainStep.
 Require Import RMWRlxCovPlainStep.
 Require Import ReservePlainStep.
+Require Import IssuePlainStep.
 Require Import IssueReservedPlainStep.
 Require Import IssueReservedRelPlainStep.
 Require Import IssueReservedRelNextPlainStep.
@@ -140,6 +141,13 @@ Proof using WF CON.
            desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
       desc. edestruct issue_rlx_reserved_step_with_next; eauto.
       desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
+    destruct (classic (exists wnext, dom_sb_S_rfrmw G {| etc_TC := T; reserved := S |} rfi (eq w) wnext))
+      as [NEMP|EMP].
+    2: { edestruct issue_rlx_step_no_next; eauto.
+         { generalize EMP. clear. basic_solver. }
+         desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
+    (* desc. edestruct issue_rlx_step_with_next; eauto. *)
+    (* desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. } *)
     admit. }
 
   { (* Relaxed write covering *)
