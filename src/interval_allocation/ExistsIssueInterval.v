@@ -206,6 +206,12 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
 
            ⟪ FCOH : f_to_coherent G S' f_to' f_from' ⟫ /\
 
+           << NINTER :
+             forall thread' langst' local' (TNEQ : tid w <> thread')
+                    (TID' : IdentMap.find thread' (Configuration.threads PC) =
+                            Some (langst', local')),
+               Memory.get locw (f_to' w) (Local.promises local') = None >> /\
+
            exists promises' memory',
              ⟪ PADD :
                  Memory.split (Local.promises local)
@@ -218,6 +224,14 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                               (Message.full valw (Some rel'))
                               wsmsg
                               memory' ⟫ /\
+
+             << MEMPROM :
+               ~ Rel w ->
+               Memory.promise (Local.promises local) (Configuration.memory PC) locw 
+                              (f_from' w) (f_to' w) (Message.full valw (Some rel'))
+                              promises' memory'
+                              (Memory.op_kind_split (f_to' ws) wsmsg) >> /\
+
 
              ⟪ INHAB : Memory.inhabited memory' ⟫ /\
              ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory' ⟫ /\
@@ -424,19 +438,52 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            2: by apply LEWPNTO.
            eapply le_msg_rel_f_to_wprev; eauto. by subst thread. }
 
+         set (f_to' := upd f_to w n_to).
+         assert (forall thread' langst' local' (TNEQ : tid w <> thread')
+                        (TID' : IdentMap.find thread' (Configuration.threads PC) =
+                                Some (langst', local')),
+                    Memory.get locw (f_to' w) (Local.promises local') = None) as NINTER.
+         { ins.
+           destruct (Memory.get locw (f_to' w) (Local.promises local')) eqn:HH; auto.
+           exfalso. destruct p as [from]. 
+           eapply PROM_IN_MEM in HH; eauto.
+           edestruct Memory.get_disjoint as [AA|AA];
+             [by apply WCONEXTMEM|by apply HH | |]; desc; subst.
+           { eapply Time.lt_strorder with (x:=f_to wconext).
+             rewrite AA at 1. unfold f_to'. rewrite upds; auto. }
+           apply AA with (x:=f_to' w); constructor; simpls.
+           all: unfold f_to' in *; rewrite upds in *; try reflexivity; auto.
+           { apply Time.le_lteq. auto. }
+           apply Memory.get_ts in HH. desf. }
+
+         assert (Time.lt (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LT.
+         { unfold f_to'. rewrite upds.
+           eapply TimeFacts.le_lt_lt; [|by apply LTNTO].
+           reflexivity. }
+
+         assert (Time.le (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LE.
+         { apply Time.le_lteq. eauto. }
+         
+         assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to' w)) as PREL_LE.
+         { subst. apply Time.bot_spec. }
+
+         assert (Time.le (Time.join (View.rlx rel'' locw)
+                                    (View.rlx (View.unwrap p_rel) locw)) (f_to' w))
+           as FREL_VIEW_LE.
+         { apply Time.join_spec; auto. }
+
+         assert (Time.le (TimeMap.join (TimeMap.join (View.rlx rel'')
+                                                     (View.rlx (View.unwrap p_rel)))
+                                       (TimeMap.singleton locw (f_to' w)) locw) (f_to' w))
+           as FFREL_VIEW_LE.
+         { unfold TimeMap.join. apply Time.join_spec; auto.
+           unfold TimeMap.singleton, LocFun.add. desf. reflexivity. }
+
+         unfold f_to' in *.
          splits; eauto.
          { by rewrite upds, updo, upds. }
          { by rewrite upds. }
          { subst p_rel; simpls. by rewrite RELPLN''. }
-         { by rewrite upds. }
-         { (* TODO: make an assert. *)
-           rewrite upds. subst p_rel; simpls.
-           unfold TimeMap.join, TimeMap.singleton, LocFun.add, TimeMap.bot.
-           rewrite Loc.eq_dec_eq.
-           apply Time.join_spec; [|reflexivity].
-           apply Time.join_spec.
-           { apply Time.le_lteq. eauto. }
-           apply Time.bot_spec. }
          1-2: by ins; repeat (rewrite updo; [|by intros HH; subst]).
          { rewrite upds. unfold n_to. intros HH.
            eapply Time.lt_strorder with (x:=Time.bot).
@@ -450,6 +497,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          splits; auto.
          all: try (rewrite upds; (try rewrite (fun x y => updo x y NEQNEXT));
                    (try rewrite upds); auto).
+         { intros HH. rewrite upds in *.
+           constructor; eauto. }
          { constructor; auto.
            unfold View.join. simpls. rewrite RELPLN''.
            subst p_rel. simpls. }
