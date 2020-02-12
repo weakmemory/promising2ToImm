@@ -202,6 +202,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
 
            ⟪ REQ_TO : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e ⟫ /\
            ⟪ ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
+           << FTOWNBOT : f_to' w <> Time.bot >> /\
 
            ⟪ FCOH : f_to_coherent G S' f_to' f_from' ⟫ /\
 
@@ -437,6 +438,11 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            { apply Time.le_lteq. eauto. }
            apply Time.bot_spec. }
          1-2: by ins; repeat (rewrite updo; [|by intros HH; subst]).
+         { rewrite upds. unfold n_to. intros HH.
+           eapply Time.lt_strorder with (x:=Time.bot).
+           apply TimeFacts.le_lt_lt with (b:=f_from wconext).
+           { apply Time.bot_spec. }
+             by rewrite <- HH; apply Time.middle_spec. }
          { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
            unfold S'. rewrite NONEXT. clear. basic_solver. }
 
