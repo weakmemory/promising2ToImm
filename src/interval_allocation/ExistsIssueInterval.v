@@ -183,6 +183,8 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                                   (View.singleton_ur locw (f_to' w))) in
            ⟪ EWS    : E ws ⟫ /\
            ⟪ WSS    : S ws ⟫ /\
+           << WSISS : issued T ws >> /\
+           << WSMSG : exists wsv wsrel, wsmsg = Message.full wsv wsrel >> /\
            ⟪ WSNCOV : ~ covered T ws ⟫ /\
            ⟪ WSTID : tid ws = tid w ⟫ /\
 
@@ -197,6 +199,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                       Some (f_from ws, wsmsg)⟫ /\
            ⟪ WSMEM : Memory.get locw (f_to ws) memory =
                      Some (f_from ws, wsmsg)⟫ /\
+           
 
            ⟪ RELWFEQ : View.pln rel' = View.rlx rel' ⟫ /\
            ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
@@ -332,6 +335,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
     assert (Time.le (f_to wprev) (f_from wconext)) as FFLE by (by apply FCOH).
     
+    assert (issued T wconext) as WSISS.
+    { eapply codom_nS_imm_co_S_in_I with (T:=mkETC T S); eauto.
+      simpls. exists w. apply seq_eqv_l. by split. }
+    
     destruct smode eqn:SMODE; [left|right].
     2: { splits; eauto.
          cdes RESERVED_TIME.
@@ -348,8 +355,9 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            apply WNCOV. apply H.
            eexists. apply seq_eqv_r; split; eauto. }
 
-         edestruct reserved_to_message with (l:=locw) (b:=wconext)
-           as [wconextmsg [WCONEXTMEM WCONEXTPROM']]; eauto.
+         edestruct SIM_MEM with (l:=locw) (b:=wconext)
+           as [wconextmsgrel [WCONEXTMEM WCONEXTPROM']]; eauto.
+         set (wconextmsg:=Message.full vnext wconextmsgrel).
          assert (Memory.get locw (f_to wconext) (Local.promises local) =
                  Some (f_from wconext, wconextmsg)) as WCONEXTPROM.
          { apply WCONEXTPROM'; auto. }
@@ -485,6 +493,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
          unfold f_to' in *.
          splits; eauto.
+         { subst wconextmsg. eauto. }
          { by rewrite upds, updo, upds. }
          { by rewrite upds. }
          { subst p_rel; simpls. by rewrite RELPLN''. }

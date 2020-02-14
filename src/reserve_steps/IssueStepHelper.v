@@ -618,6 +618,23 @@ Proof using All.
              { red. by rewrite LOC. }
              { do 2 left. by apply ETCCOH.(etc_I_in_S). }
              clear. basic_solver. }
+           destruct (loc_ts_eq_dec (l, f_to' b) (locw, (f_to' ws))) as [EQ|NEQ']; simpls; desc; subst.
+           { assert (b = ws); subst.
+             { eapply f_to_eq; try apply FCOH0; eauto.
+               { red. by rewrite SAME_LOC. }
+               { do 2 left. by apply ETCCOH.(etc_I_in_S). }
+               basic_solver. }
+             splits; eauto.
+             { erewrite Memory.split_o; eauto.
+               rewrite loc_ts_eq_dec_neq; auto.
+               rewrite loc_ts_eq_dec_eq.
+               cdes HELPER0. cdes SIMMSG.
+auto.
+
+             admit. }
+
+           assert (b <> ws) as NWSNEQ.
+           { admit. }
            erewrite Memory.split_o with (mem2:=memory'); eauto.
            rewrite !loc_ts_eq_dec_neq; auto.
            splits; eauto.
@@ -628,8 +645,9 @@ Proof using All.
            { intros HH. apply BB. generalize HH. clear. basic_solver. }
            specialize (HH1 AA NCOVBB).
            desc. splits; auto.
-           { apply NOTNEWP; auto.
-             rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
+           { admit. }
+           (* { apply NOTNEWP; auto. *)
+           (*   rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. } *)
            eexists. splits; eauto.
            2: { destruct HH2 as [[CC DD]|CC]; [left|right].
                 { split; eauto. intros [y HH]. destruct_seq_l HH as OO.
@@ -670,6 +688,7 @@ Proof using All.
            apply NCOVB. apply IB. exists b. apply seq_eqv_r. split; auto.
            apply sb_from_w_rel_in_fwbob; auto. apply seq_eqv_lr. splits; auto.
            all: split; auto. red. by rewrite LOC. }
+
          assert (Some l = Some locw) as QQ.
          { by rewrite <- LOC0. }
          inv QQ.

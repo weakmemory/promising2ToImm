@@ -384,6 +384,48 @@ Proof using WF.
   rewrite dom_sb_S_rfrmw_in_W_ex. by apply W_ex_in_W.
 Qed.
 
+Lemma codom_nS_imm_co_S_in_I : codom_rel (<|set_compl S|> ;; immediate (co ;; <|S|>)) ⊆₁ I.
+Proof using WF ETCCOH IMMCON.
+  cdes IMMCON.
+  assert (sc_per_loc G) as SPL.
+  { by apply coherence_sc_per_loc. }
+
+  intros x [y HH].
+  apply seq_eqv_l in HH. destruct HH as [AA HH].
+  apply NNPP. intros II.
+  assert (S x /\ co y x) as [SX COYX].
+  { generalize HH. clear. basic_solver. }
+  assert (W_ex x) as WEX.
+  { apply ETCCOH. by split. }
+  edestruct W_ex_in_codom_rfrmw as [z RFRMW]; eauto.
+  assert (W x) as WX by (by apply W_ex_in_W).
+  edestruct is_w_loc as [l XLOC].
+  { apply WX. }
+  assert (loc y = Some l) as YLOC.
+  { rewrite <- XLOC. by apply WF.(wf_col). }
+  assert (co z x) as COZX.
+  { apply rf_rmw_in_co; eauto. }
+  assert (loc z = Some l) as ZLOC.
+  { rewrite <- XLOC. by apply WF.(wf_col). }
+  
+  assert (S z) as SZ.
+  { apply dom_rf_rmw_S. exists x. apply seqA. basic_solver. }
+  
+  destruct (classic (z = y)) as [|NEQ]; subst.
+  { by apply AA. }
+
+  apply (dom_l WF.(wf_coE)) in COZX. destruct_seq_l COZX as EZ.
+  apply (dom_l WF.(wf_coD)) in COZX. destruct_seq_l COZX as WZ.
+  apply (dom_l WF.(wf_coE)) in COYX. destruct_seq_l COYX as EY.
+  apply (dom_l WF.(wf_coD)) in COYX. destruct_seq_l COYX as WY.
+  
+  edestruct WF.(wf_co_total) with (a:=z) (b:=y) as [COZY|COYZ]; eauto.
+  1,2: by unfolder; splits; eauto.
+  { eapply rf_rmw_in_coimm; eauto. }
+  eapply HH with (c:=z).
+  all: by apply seq_eqv_r; split.
+Qed.
+
 Section SingleDomSbSRfRmw.
 Variables w wnext : actid.
 Hypothesis WNEXT : dom_sb_S_rfrmw G T rfi (eq w) wnext.
