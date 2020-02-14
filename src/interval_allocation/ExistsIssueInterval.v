@@ -173,7 +173,8 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                  reserved_time G T' S' f_to' f_from' smode memory' ⟫ ⟫ \/
      ⟪ FOR_SPLIT :
          ⟪ SMODE : smode = sim_certification ⟫ /\
-         exists ws wsmsg f_to' f_from',
+         exists ws wsv wsrel f_to' f_from',
+           let wsmsg := Message.full wsv wsrel in
            let rel'' :=
                if is_rel lab w
                then (TView.cur (Local.tview local))
@@ -184,9 +185,9 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ EWS    : E ws ⟫ /\
            ⟪ WSS    : S ws ⟫ /\
            << WSISS : issued T ws >> /\
-           << WSMSG : exists wsv wsrel, wsmsg = Message.full wsv wsrel >> /\
            ⟪ WSNCOV : ~ covered T ws ⟫ /\
            ⟪ WSTID : tid ws = tid w ⟫ /\
+           ⟪ WSVAL : val lab ws = Some wsv ⟫ /\
 
            ⟪ SBWW : sb w ws ⟫ /\
            ⟪ SAME_LOC : Loc_ locw ws ⟫ /\
@@ -406,7 +407,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
                            (Message.full valw (Some rel')) wconextmsg)
            as [memory' MSPLIT]; eauto.
 
-         exists wconext, wconextmsg.
+         exists wconext, vnext, wconextmsgrel.
          exists (upd f_to w n_to).
          exists (upd (upd f_from wconext n_to) w (f_from wconext)).
 
@@ -493,7 +494,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
          unfold f_to' in *.
          splits; eauto.
-         { subst wconextmsg. eauto. }
          { by rewrite upds, updo, upds. }
          { by rewrite upds. }
          { subst p_rel; simpls. by rewrite RELPLN''. }

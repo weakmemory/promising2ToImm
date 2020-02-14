@@ -391,6 +391,7 @@ Proof using All.
   edestruct exists_time_interval_for_issue_no_next as [p_rel [PREL [SEW' [HH|HH]]]]; eauto.
   2: { red in HH. desc. exists p_rel. splits; eauto.
        right. splits; eauto.
+       set (wsmsg := Message.full wsv wsrel).
        exists ws, wsmsg. exists f_to', f_from'. 
        splits; eauto.
        exists promises', memory'. splits; eauto.
@@ -530,13 +531,10 @@ Proof using All.
          destruct (loc_ts_eq_dec (l, to) (locw, f_to' ws)) as [[A' B']|LL'].
          { simpls; rewrite A' in *; rewrite B' in *.
            rewrite (loc_ts_eq_dec_eq locw (f_to' ws)) in PROM'.
-           assert (issued T ws) as WSISS.
-           { admit. }
            inv PROM'. exists ws. splits; eauto.
            { basic_solver. }
            { intros HH. desf. destruct HH as [HH|HH]; [eauto|by subst]. }
            red. splits; eauto.
-           { admit. }
            { left. eapply f_to_co_mon; eauto.
              all: basic_solver. }
            eapply sim_msg_f_issued; eauto.
@@ -572,10 +570,7 @@ Proof using All.
          destruct (loc_ts_eq_dec (l, to) (locw, f_to' ws)) as [[A' B']|LL'].
          { simpls; rewrite A' in *; rewrite B' in *.
            rewrite (loc_ts_eq_dec_eq locw (f_to' ws)) in PROM'.
-           inv PROM'. exists ws. splits; eauto.
-           { basic_solver. }
-           intros [HH|HH]; [|by subst].
-           admit. }
+           inv PROM'. }
          simpls. rewrite (loc_ts_eq_dec_neq LL') in PROM'.
          edestruct SIM_RES_PROM as [b H]; eauto; desc.
          exists b. splits; auto.
@@ -584,8 +579,7 @@ Proof using All.
          { rewrite REQ_FROM; auto. intros HH; subst.
            assert (Some l = Some locw) as BB.
            { rewrite <- LOC0. by rewrite <- SAME_LOC. }
-           inv BB. destruct LL' as [|LL']; [done|].
-           rewrite REQ_TO in LL'; auto. }
+           inv BB. }
          rewrite REQ_TO; auto. by intros HH; subst. }
        { ins.
          rewrite IdentMap.gso in TID'; auto.
