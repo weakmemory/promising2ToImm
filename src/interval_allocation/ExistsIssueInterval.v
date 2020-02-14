@@ -182,12 +182,14 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            in
            let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
                                   (View.singleton_ur locw (f_to' w))) in
-           ⟪ EWS    : E ws ⟫ /\
-           ⟪ WSS    : S ws ⟫ /\
-           << WSISS : issued T ws >> /\
-           ⟪ WSNCOV : ~ covered T ws ⟫ /\
-           ⟪ WSTID : tid ws = tid w ⟫ /\
-           ⟪ WSVAL : val lab ws = Some wsv ⟫ /\
+           ⟪ EWS     : E ws ⟫ /\
+           ⟪ WSS     : S ws ⟫ /\
+           << WSISS  : issued T ws >> /\
+           ⟪ WSNCOV  : ~ covered T ws ⟫ /\
+           ⟪ WSNINIT : ~ is_init ws ⟫ /\
+           ⟪ WSTID   : tid ws = tid w ⟫ /\
+           ⟪ WSVAL   : val lab ws = Some wsv ⟫ /\
+           << WSSMSG : sim_msg G sc f_to ws (View.unwrap wsrel) >> /\ 
 
            ⟪ SBWW : sb w ws ⟫ /\
            ⟪ SAME_LOC : Loc_ locw ws ⟫ /\
@@ -494,6 +496,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
          unfold f_to' in *.
          splits; eauto.
+         { apply WCONEXTPROM'. }
          { by rewrite upds, updo, upds. }
          { by rewrite upds. }
          { subst p_rel; simpls. by rewrite RELPLN''. }

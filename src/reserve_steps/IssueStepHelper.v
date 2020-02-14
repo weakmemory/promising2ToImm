@@ -397,6 +397,8 @@ Proof using All.
        exists promises', memory'. splits; eauto.
 
        assert (ws <> w) as WSNEQ by (by intros HH; subst).
+       assert (sim_msg G sc f_to' ws (View.unwrap wsrel)) as WSMSG'.
+       { eapply sim_msg_f_issued; eauto. }
 
        set (rel'' :=
               if is_rel lab w
@@ -535,10 +537,8 @@ Proof using All.
            { basic_solver. }
            { intros HH. desf. destruct HH as [HH|HH]; [eauto|by subst]. }
            red. splits; eauto.
-           { left. eapply f_to_co_mon; eauto.
-             all: basic_solver. }
-           eapply sim_msg_f_issued; eauto.
-           admit. }
+           left. eapply f_to_co_mon; eauto.
+           all: basic_solver. }
          simpls. rewrite (loc_ts_eq_dec_neq LL') in PROM'.
          edestruct SIM_PROM as [b H]; eauto; desc.
          exists b; splits; auto.
@@ -600,7 +600,6 @@ Proof using All.
          simpls; rewrite A' in *; rewrite B' in *.
          exfalso. rewrite REQ_TO in HH; auto.
          rewrite HH in WSPROM. inv WSPROM. }
-       (* TODO: continue from here. *)
        { red. ins.
          destruct ISSB as [ISSB|]; subst.
          { edestruct SIM_MEM as [rel_opt HH]; eauto. simpls. desc.
@@ -618,13 +617,18 @@ Proof using All.
                { red. by rewrite SAME_LOC. }
                { do 2 left. by apply ETCCOH.(etc_I_in_S). }
                basic_solver. }
+             rewrite INMEM in WSMEM. inv WSMEM.
              splits; eauto.
              { erewrite Memory.split_o; eauto.
                rewrite loc_ts_eq_dec_neq; auto.
-               rewrite loc_ts_eq_dec_eq.
-               cdes HELPER0. cdes SIMMSG.
-auto.
-
+               rewrite loc_ts_eq_dec_eq. by rewrite FEQ1. }
+             { red. splits; eauto. left. apply FCOH0; auto.
+               basic_solver. }
+             ins. destruct HH1 as [HH1 HH2]; auto.
+             (* TODO: continue from here. *)
+             (* split. *)
+             (* { admit. } *)
+             (* eexists. eauto. *)
              admit. }
 
            assert (b <> ws) as NWSNEQ.
