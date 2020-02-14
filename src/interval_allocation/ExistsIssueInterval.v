@@ -203,6 +203,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ REL_VIEW_LE : Time.le (View.rlx rel'  locw) (f_to' w) ⟫ /\
 
            ⟪ REQ_TO     : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e ⟫ /\
+           ⟪ REQ_FROM   : forall e (SE : S e) (NEQ : e <> ws), f_from' e = f_from e ⟫ /\
            ⟪ ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
            ⟪ ISSEQ_FROM : forall e (ISS: issued T e) (NEQ : e <> ws), f_from' e = f_from e ⟫ /\
            << FTOWNBOT : f_to' w <> Time.bot >> /\
@@ -487,7 +488,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          { by rewrite upds, updo, upds. }
          { by rewrite upds. }
          { subst p_rel; simpls. by rewrite RELPLN''. }
-         1-3: by ins; repeat (rewrite updo; [|by intros HH; subst]).
+         1-4: by ins; repeat (rewrite updo; [|by intros HH; subst]).
          { rewrite upds. unfold n_to. intros HH.
            eapply Time.lt_strorder with (x:=Time.bot).
            apply TimeFacts.le_lt_lt with (b:=f_from wconext).
