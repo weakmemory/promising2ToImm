@@ -259,7 +259,7 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
            in
            let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
                                   (View.singleton_ur locw (f_to' w))) in
-           ⟪ WSISS  : S ws ⟫ /\
+           ⟪ WSS    : S ws ⟫ /\
            ⟪ WSNCOV : ~ covered T ws ⟫ /\
 
            ⟪ SBWW : sb w ws ⟫ /\
@@ -497,32 +497,63 @@ Proof using All.
          { simpls; rewrite A in *; rewrite B in *; subst.
            exfalso. erewrite NINTER in LHS; eauto. inv LHS. }
          rewrite (loc_ts_eq_dec_neq LL).
-         eapply PROM_IN_MEM in LHS; eauto.
+         set (AA:=LHS).
+         eapply PROM_IN_MEM in AA; eauto.
          destruct (loc_ts_eq_dec (loc, to) (locw, f_to' ws)) as [[A B]|LL'].
          2: by rewrite (loc_ts_eq_dec_neq LL').
-         (* TODO: continue from here *)
-         admit. }
-         (* simpls; rewrite A in *; rewrite B in *; subst. *)
-         (* exfalso. erewrite NINTER in LHS; eauto. inv LHS. } *)
+         simpls; subst.
+         rewrite (loc_ts_eq_dec_eq locw (f_to' ws)).
+         rewrite REQ_TO in LHS; auto; [|by intros HH; subst].
+         rewrite REQ_TO in AA; auto; [|by intros HH; subst].
+         rewrite WSMEM in AA. inv AA.
+         exfalso.
+         edestruct PROM_DISJOINT with (local':=local0) as [BB|BB]; eauto.
+         2: { rewrite BB in LHS. inv LHS. }
+         rewrite WSPROM in BB. inv BB. }
        { simpls. red. ins.
          destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[A' B']|LL].
          { simpls; rewrite A' in *; rewrite B' in *.
            destruct (Rel w) eqn:RELB; subst.
            { erewrite Memory.remove_o in PROM; eauto.
              rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in PROM. inv PROM. }
-           erewrite Memory.add_o in PROM; eauto.
+           erewrite Memory.split_o in PROM; eauto.
            rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in PROM.
            inv PROM. exists w. splits; eauto. by right. }
-         eapply NOTNEWP in PROM; eauto.
+         simpls.
+         assert (PROM' :
+                   Memory.get l to promises' = Some (from, Message.full v rel)).
+         { destruct (Rel w) eqn:RELB; subst; auto. }
+         erewrite Memory.split_o in PROM'; eauto.
+         rewrite (loc_ts_eq_dec_neq LL) in PROM'.
+         destruct (loc_ts_eq_dec (l, to) (locw, f_to' ws)) as [[A' B']|LL'].
+         { simpls; rewrite A' in *; rewrite B' in *.
+           rewrite (loc_ts_eq_dec_eq locw (f_to' ws)) in PROM'.
+           assert (issued T ws) as WSISS.
+           { admit. }
+           inv PROM'. exists ws. splits; eauto.
+           { basic_solver. }
+           { intros HH. desf. destruct HH as [HH|HH]; [eauto|by subst]. }
+           red. splits; eauto.
+           { admit. }
+           { left. eapply f_to_co_mon; eauto.
+             all: basic_solver. }
+           eapply sim_msg_f_issued; eauto.
+           admit. }
+         simpls. rewrite (loc_ts_eq_dec_neq LL') in PROM'.
          edestruct SIM_PROM as [b H]; eauto; desc.
          exists b; splits; auto.
          { by left. }
          { assert (W b) as WB by (eapply issuedW; eauto).
            destruct (Rel w) eqn:RELB; auto.
            intros [HH|HH]; desf. }
-         { by rewrite ISSEQ_FROM. }
+         { rewrite ISSEQ_FROM; auto. intros HH. subst.
+           assert (Some l = Some locw) as BB.
+           { rewrite <- LOC0. by rewrite <- SAME_LOC. }
+           inv BB. destruct LL' as [|LL']; [done|].
+           rewrite ISSEQ_TO in LL'; auto. }
          { by rewrite ISSEQ_TO. }
          eapply sim_mem_helper_f_issued with (f_to:=f_to); eauto. }
+       (* TODO: continue from here. *)
        { simpls. red. ins.
          destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[A' B']|LL].
          { simpls; rewrite A' in *; rewrite B' in *.
