@@ -259,6 +259,7 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
            in
            let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
                                   (View.singleton_ur locw (f_to' w))) in
+           ⟪ NREL    : ~ Rel w ⟫ /\
            ⟪ WSS    : S ws ⟫ /\
            ⟪ WSNCOV : ~ covered T ws ⟫ /\
 
@@ -484,8 +485,7 @@ Proof using All.
          rewrite loc_ts_eq_dec_eq. by rewrite FEQ1. }
 
        assert (Memory.get locw (f_to' ws) promises'' =
-               Some (f_from' ws, Message.full wsv wsrel)) as WSMSGGET''.
-       { desf. erewrite Memory.remove_o; eauto. rewrite loc_ts_eq_dec_neq; eauto. }
+               Some (f_from' ws, Message.full wsv wsrel)) as WSMSGGET'' by desf.
 
        splits; eauto.
        { ins.
@@ -505,7 +505,7 @@ Proof using All.
          intros a [HB|HB] HH AA.
          { eauto. }
          subst. clear -WW AA. type_solver. }
-       { intros HH. arewrite (promises'' = promises') by desf. by apply MEMPROM. }
+       { intros HH. arewrite (promises'' = promises') by desf. }
        { ins.
          destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
          { subst. rewrite IdentMap.gss in TID0.
@@ -549,7 +549,7 @@ Proof using All.
            rewrite (loc_ts_eq_dec_eq locw (f_to' ws)) in PROM'.
            inv PROM'. exists ws. splits; eauto.
            { basic_solver. }
-           { intros HH. desf. destruct HH as [HH|HH]; [eauto|by subst]. }
+           { intros HH. desf. }
            red. splits; eauto.
            left. eapply f_to_co_mon; eauto.
            all: basic_solver. }
@@ -558,8 +558,7 @@ Proof using All.
          exists b; splits; auto.
          { by left. }
          { assert (W b) as WB by (eapply issuedW; eauto).
-           destruct (Rel w) eqn:RELB; auto.
-           intros [HH|HH]; desf. }
+           destruct (Rel w) eqn:RELB; auto. }
          { rewrite ISSEQ_FROM; auto. intros HH. subst.
            assert (Some l = Some locw) as BB.
            { rewrite <- LOC0. by rewrite <- SAME_LOC. }
@@ -638,6 +637,9 @@ Proof using All.
              ins. destruct HH1 as [HH1 HH2]; auto.
              split; auto.
              desc. exists p_rel0. split.
+             { rewrite ISSEQ_TO with (e:=ws); auto. desf. }
+             destruct HH0 as [AA|]; desc; [left; split; auto|right].
+             { admit. }
              (* TODO: continue from here. *)
              (* split. *)
              (* { admit. } *)

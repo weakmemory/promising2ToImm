@@ -182,6 +182,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            in
            let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
                                   (View.singleton_ur locw (f_to' w))) in
+           ⟪ NREL    : ~ Rel w ⟫ /\
            ⟪ EWS     : E ws ⟫ /\
            ⟪ WSS     : S ws ⟫ /\
            << WSISS  : issued T ws >> /\
@@ -236,7 +237,6 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                               memory' ⟫ /\
 
              << MEMPROM :
-               ~ Rel w ->
                Memory.promise (Local.promises local) (Configuration.memory PC) locw 
                               (f_from' w) (f_to' w) (Message.full valw (Some rel'))
                               promises' memory'
@@ -350,6 +350,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
          assert (sb w wconext) as SBNEXT.
          { eapply nS_imm_co_in_sb with (S:=S); eauto. }
+
+         assert (~ Rel w) as NREL.
+         { intros RR. apply WNCOV.
+           eapply dom_W_Rel_sb_loc_I_in_C; eauto.
+           exists wconext. unfolder. splits; eauto.
+           red. by rewrite LOC. }
 
          assert (tid wconext = tid w) as TIDNEXT.
          { apply sb_tid_init in SBNEXT. destruct SBNEXT as [H|H]; desf. }
@@ -513,8 +519,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          splits; auto.
          all: try (rewrite upds; (try rewrite (fun x y => updo x y NEQNEXT));
                    (try rewrite upds); auto).
-         { intros HH. rewrite upds in *.
-           constructor; eauto. }
+         { rewrite upds in *. constructor; eauto. }
          { constructor; auto.
            unfold View.join. simpls. rewrite RELPLN''.
            subst p_rel. simpls. }
