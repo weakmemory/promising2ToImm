@@ -473,6 +473,20 @@ Proof using All.
        { ins. destruct (Rel w); subst; [by desf|].
          erewrite Memory.split_o; eauto. by rewrite loc_ts_eq_dec_eq. }
 
+       assert (f_to' ws <> f_to' w) as WWSFTONEQ.
+       { intros HH. eapply f_to_eq in HH; eauto.
+         { red. by rewrite LOC. }
+         all: basic_solver. }
+
+       assert (Memory.get locw (f_to' ws) promises' =
+               Some (f_from' ws, Message.full wsv wsrel)) as WSMSGGET'.
+       { erewrite Memory.split_o; eauto. rewrite loc_ts_eq_dec_neq; eauto.
+         rewrite loc_ts_eq_dec_eq. by rewrite FEQ1. }
+
+       assert (Memory.get locw (f_to' ws) promises'' =
+               Some (f_from' ws, Message.full wsv wsrel)) as WSMSGGET''.
+       { desf. erewrite Memory.remove_o; eauto. rewrite loc_ts_eq_dec_neq; eauto. }
+
        splits; eauto.
        { ins.
          destruct (Ident.eq_dec (tid e) (tid w)) as [EQ|NEQ].
@@ -619,12 +633,11 @@ Proof using All.
                basic_solver. }
              rewrite INMEM in WSMEM. inv WSMEM.
              splits; eauto.
-             { erewrite Memory.split_o; eauto.
-               rewrite loc_ts_eq_dec_neq; auto.
-               rewrite loc_ts_eq_dec_eq. by rewrite FEQ1. }
              { red. splits; eauto. left. apply FCOH0; auto.
                basic_solver. }
              ins. destruct HH1 as [HH1 HH2]; auto.
+             split; auto.
+             desc. exists p_rel0. split.
              (* TODO: continue from here. *)
              (* split. *)
              (* { admit. } *)
