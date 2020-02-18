@@ -384,7 +384,8 @@ Proof using WF.
   rewrite dom_sb_S_rfrmw_in_W_ex. by apply W_ex_in_W.
 Qed.
 
-Lemma codom_nS_imm_co_S_in_I : codom_rel (<|set_compl S|> ;; immediate (co ;; <|S|>)) ⊆₁ I.
+Lemma codom_nS_imm_co_S_in_I :
+  codom_rel (<|set_compl S|> ;; immediate (co ;; <|S|>)) ⊆₁ I \₁ W_ex.
 Proof using WF ETCCOH IMMCON.
   cdes IMMCON.
   assert (sc_per_loc G) as SPL.
@@ -392,11 +393,11 @@ Proof using WF ETCCOH IMMCON.
 
   intros x [y HH].
   apply seq_eqv_l in HH. destruct HH as [AA HH].
-  apply NNPP. intros II.
   assert (S x /\ co y x) as [SX COYX].
   { generalize HH. clear. basic_solver. }
-  assert (W_ex x) as WEX.
-  { apply ETCCOH. by split. }
+  destruct (classic (W_ex x)) as [WEX|NWEX].
+  2: { split; auto. apply NNPP. intros II. apply NWEX. apply ETCCOH. by split. }
+  exfalso.
   edestruct W_ex_in_codom_rfrmw as [z RFRMW]; eauto.
   assert (W x) as WX by (by apply W_ex_in_W).
   edestruct is_w_loc as [l XLOC].

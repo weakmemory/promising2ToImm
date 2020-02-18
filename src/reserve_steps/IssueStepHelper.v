@@ -251,7 +251,7 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
      ⟫ \/
      ⟪ FOR_SPLIT :
          ⟪ SMODE : smode = sim_certification ⟫ /\
-         exists ws wsmsg f_to' f_from',
+         exists ws wsv wsrel f_to' f_from',
            let rel'' :=
                if is_rel lab w
                then (TView.cur (Local.tview local))
@@ -259,9 +259,17 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
            in
            let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
                                   (View.singleton_ur locw (f_to' w))) in
+           let wsmsg := Message.full wsv wsrel in
            ⟪ NREL    : ~ Rel w ⟫ /\
-           ⟪ WSS    : S ws ⟫ /\
-           ⟪ WSNCOV : ~ covered T ws ⟫ /\
+           ⟪ EWS     : E ws ⟫ /\
+           ⟪ WSS     : S ws ⟫ /\
+           << WSISS  : issued T ws >> /\
+           << NWEXWS : ~ W_ex ws >> /\
+           ⟪ WSNCOV  : ~ covered T ws ⟫ /\
+           ⟪ WSNINIT : ~ is_init ws ⟫ /\
+           ⟪ WSTID   : tid ws = tid w ⟫ /\
+           ⟪ WSVAL   : val lab ws = Some wsv ⟫ /\
+           << WSSMSG : sim_msg G sc f_to ws (View.unwrap wsrel) >> /\ 
 
            ⟪ SBWW : sb w ws ⟫ /\
            ⟪ SAME_LOC : Loc_ locw ws ⟫ /\
@@ -393,7 +401,7 @@ Proof using All.
   2: { red in HH. desc. exists p_rel. splits; eauto.
        right. splits; eauto.
        set (wsmsg := Message.full wsv wsrel).
-       exists ws, wsmsg. exists f_to', f_from'. 
+       exists ws, wsv, wsrel. exists f_to', f_from'. 
        splits; eauto.
        exists promises', memory'. splits; eauto.
 
@@ -639,15 +647,12 @@ Proof using All.
              desc. exists p_rel0. split.
              { rewrite ISSEQ_TO with (e:=ws); auto. desf. }
              destruct HH0 as [AA|]; desc; [left; split; auto|right].
-             { admit. }
-             (* TODO: continue from here. *)
-             (* split. *)
-             (* { admit. } *)
-             (* eexists. eauto. *)
-             admit. }
+             { intros HH. apply NWEXWS. red. generalize HH. clear. basic_solver. }
+             exfalso. apply NWEXWS. red. generalize H2. clear. basic_solver. }
 
            assert (b <> ws) as NWSNEQ.
-           { admit. }
+           { intros SUBST; subst.
+             destruct NEQ' as [AA|]; eauto. rewrite LOC0 in SAME_LOC. inv SAME_LOC. }
            erewrite Memory.split_o with (mem2:=memory'); eauto.
            rewrite !loc_ts_eq_dec_neq; auto.
            splits; eauto.
@@ -658,9 +663,11 @@ Proof using All.
            { intros HH. apply BB. generalize HH. clear. basic_solver. }
            specialize (HH1 AA NCOVBB).
            desc. splits; auto.
-           { admit. }
-           (* { apply NOTNEWP; auto. *)
-           (*   rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. } *)
+           { arewrite (promises'' = promises') by desf.
+             erewrite Memory.split_o; eauto.
+             repeat (rewrite loc_ts_eq_dec_neq; auto).
+             rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
+           (* TODO: continue from here. *)
            eexists. splits; eauto.
            2: { destruct HH2 as [[CC DD]|CC]; [left|right].
                 { split; eauto. intros [y HH]. destruct_seq_l HH as OO.

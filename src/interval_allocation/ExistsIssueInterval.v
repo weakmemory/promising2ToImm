@@ -186,6 +186,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ EWS     : E ws ⟫ /\
            ⟪ WSS     : S ws ⟫ /\
            << WSISS  : issued T ws >> /\
+           << NWEXWS : ~ W_ex ws >> /\
            ⟪ WSNCOV  : ~ covered T ws ⟫ /\
            ⟪ WSNINIT : ~ is_init ws ⟫ /\
            ⟪ WSTID   : tid ws = tid w ⟫ /\
@@ -338,7 +339,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
     assert (Time.le (f_to wprev) (f_from wconext)) as FFLE by (by apply FCOH).
     
-    assert (issued T wconext) as WSISS.
+    assert (issued T wconext /\ ~ W_ex wconext) as [WSISS NWEXCONEXT].
     { eapply codom_nS_imm_co_S_in_I with (T:=mkETC T S); eauto.
       simpls. exists w. apply seq_eqv_l. by split. }
     
