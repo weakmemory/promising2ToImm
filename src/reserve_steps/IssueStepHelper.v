@@ -193,6 +193,11 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
              ⟪ RESERVED_TIME :
                  reserved_time G T' S' f_to' f_from' smode memory' ⟫ /\
 
+             ⟪ MEM_PROMISE :
+                 Memory.promise (Local.promises local) memory locw (f_from' w) (f_to' w)
+                                (Message.full valw (Some rel'))
+                                promises_add memory' Memory.op_kind_add ⟫ /\
+
              exists promises',
                ⟪ PEQ :
                    if Rel w
@@ -221,12 +226,6 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
                             max_value
                               f_to' (S_tm G l covered') (LocFun.find l sc_view) ⟫ /\
                ⟪ CLOSED_SC : Memory.closed_timemap sc_view memory' ⟫ /\
-
-               ⟪ MEM_PROMISE :
-                   ~ Rel w ->
-                   Memory.promise (Local.promises local) memory locw (f_from' w) (f_to' w)
-                                  (Message.full valw (Some rel'))
-                                  promises' memory' Memory.op_kind_add ⟫ /\
 
                ⟪ PROM_IN_MEM :
                    forall thread' langst local
@@ -846,7 +845,6 @@ Proof using All.
     intros a [HB|HB] HH AA.
     { eauto. }
     subst. clear -WW AA. type_solver. }
-  { intros HH. arewrite (promises'' = promises') by desf. by apply MEMPROM. }
   { ins.
     destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
     { subst. rewrite IdentMap.gss in TID0.

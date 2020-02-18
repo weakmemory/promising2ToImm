@@ -149,7 +149,6 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                             (Message.full valw (Some rel')) memory' ⟫ /\
 
              ⟪ MEMPROM :
-               ~ Rel w ->
                Memory.promise (Local.promises local) (Configuration.memory PC) locw 
                               (f_from' w) (f_to' w) (Message.full valw (Some rel'))
                               promises' memory' Memory.op_kind_add ⟫ /\
