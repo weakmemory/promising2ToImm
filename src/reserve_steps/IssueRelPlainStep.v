@@ -238,6 +238,11 @@ Proof using WF CON.
   assert (Memory.le (Configuration.memory PC) memory') as LEMEM'.
   { eapply memory_add_le; eauto. }
 
+  
+  assert (Memory.get locw (f_to' w) memory' =
+          Some (f_from' w, Message.full valw (Some rel'))) as MEMGET.
+  { erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_eq. }
+
   cdes CON.
   exists f_to', f_from'. eexists.
   apply and_assoc. apply pair_app.
@@ -273,7 +278,6 @@ Proof using WF CON.
       { rewrite EQ. eexists.
         rewrite IdentMap.gss; eauto. }
       rewrite IdentMap.gso; auto. }
-    (* TODO: continue from here. *)
     { ins.
       destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
       { subst. rewrite IdentMap.gss in TID.
@@ -298,8 +302,7 @@ Proof using WF CON.
       { subst.
         unfold loc in LOC; unfold val in VAL; rewrite PARAMS in *; inv LOC.
         eexists (Some _); splits; eauto.
-        2: { intros _ H. by exfalso; apply H; right. }
-        erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_eq. }
+        intros _ H. by exfalso; apply H; right. }
       destruct ISSB as [ISSB|]; [|by subst].
       edestruct SIM_MEM as [rel]; eauto.
       simpls; desc.
@@ -312,7 +315,6 @@ Proof using WF CON.
       { by intros H; apply COVWB; left. }
       split.
       { by apply LELCL'. }
-      (* TODO: continue from here. *)
 
       (* TODO: generalize! *)
       assert (l = locw -> Time.lt (f_to' w) (f_to b)) as FGT.
@@ -336,50 +338,32 @@ Proof using WF CON.
         2: by do 2 left; apply TCCOH.(etc_I_in_S).
         clear. basic_solver. }
       desc. exists p_rel.
-      
-      destruct (loc_ts_eq_dec (l, f_to b) (locw, f_to' w)) as [[A B]|LNEQ].
-      { exfalso. simpls; subst; rewrite B in *.
-          by apply DenseOrder.lt_strorder in FGT. }
+      destruct (classic (l = locw)) as [|LL]; subst.
+      { exfalso. apply LELCL' in PROM.
+        apply NOWLOC in PROM; auto. inv PROM. }
+
       simpls.
-      (* TODO: continue from here. *)
-      rewrite (loc_ts_eq_dec_neq LNEQ).
-      splits; auto.
-      unfold LocFun.add.
-      destruct (classic (l = locw)) as [LL|LL].
-      2: by rewrite Loc.eq_dec_neq.
-      subst; rewrite Loc.eq_dec_eq.
-      destruct REL as [p_rel [REL HH]]; exists p_rel; splits.
-      2: by apply HH.
-      rewrite View.join_assoc.
-      rewrite (View.join_comm (View.unwrap p_rel)).
-      rewrite <- View.join_assoc.
-      rewrite (View.join_comm _ (View.singleton_ur locw (f_to b))).
-      rewrite (View.join_comm _ (View.singleton_ur locw (f_to w))).
-      rewrite <- View.join_assoc.
-      rewrite (@View.le_join_l (View.singleton_ur locw (f_to b))); auto.
-      { rewrite View.join_assoc. by rewrite View.join_comm. }
-      unfold View.singleton_ur, TimeMap.singleton, LocFun.add, LocFun.find, LocFun.init.
-      constructor; simpls; intros l.
-      all: destruct (Loc.eq_dec l locw).
-      2,4: by apply Time.bot_spec.
-      all: by apply Time.le_lteq; left; apply FGT. }
-    { red. ins. splits.
-      { by apply SIM_RES_MEM. }
-      ins. erewrite Memory.remove_o; eauto. desf.
-      2: by apply SIM_RES_MEM.
-      simpls. desf.
-      exfalso.
-      assert (b = w); desf.
-      eapply f_to_eq with (I:=S); eauto.
-      { generalize TCCOH.(etc_S_in_E), (reservedW WF TCCOH). basic_solver. }
-      red. by rewrite LOC. }
+      unfold LocFun.add. rewrite Loc.eq_dec_neq; auto.
+      split; auto.
+      destruct REL'0 as [AA|AA]; desc; [left|right].
+      { split; auto. intros HH.
+        unfolder in HH. desf.
+        { apply AA. basic_solver 10. }
+        exfalso.
+        enough (Some locw = Some l) as HH.
+        { inv HH. }
+        rewrite <- LOC, <- WLOC.
+        eapply WF.(wf_rfrmwl). eexists; eauto. }
+      exists p. splits; eauto.
+      { red; eauto. }
+      exists p_v. split; auto. rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
     { eapply sim_tview_write_step; eauto.
       { etransitivity; [by apply TCCOH|].
         intros x H; apply H. }
       { intros x y H. apply seq_eqv_r in H; destruct H as [H1 H2].
         apply TCCOH in H2. apply H2. eexists; apply seq_eqv_r; eauto. }
-      intros x y H. apply seq_eqv_r in H; destruct H as [H]; subst.
-      apply COV. eexists; apply seq_eqv_r; eauto. }
+      { eapply sim_tview_f_issued; eauto. }
+      unfolder. ins. desf. apply NEXT. basic_solver 10. }
     { cdes PLN_RLX_EQ. 
       unfold TView.write_tview.
       red; splits; simpls.
@@ -389,96 +373,25 @@ Proof using WF CON.
       1-2: reflexivity.
       all: unfold LocFun.add, LocFun.find, View.join; intros l.
       all: desf; simpls.
-      all: rewrite EQ_REL; reflexivity. }
-    { unfold TView.write_tview; simpls.
+      all: rewrite EQ_CUR; reflexivity. }
+    { assert (Memory.closed_timemap (View.rlx (TView.cur (Local.tview local))) memory')
+             as CURA.
+      { eapply Memory.add_closed_timemap; eauto. apply MEM_CLOSE. }
+      assert (Memory.closed_timemap (View.rlx (TView.acq (Local.tview local))) memory')
+             as ACQA.
+      { eapply Memory.add_closed_timemap; eauto. apply MEM_CLOSE. }
+      assert (Memory.closed_timemap (TimeMap.singleton locw (f_to' w)) memory') as SINA.
+      { eapply Memory.singleton_closed_timemap; eauto. }
+      unfold TView.write_tview; simpls.
       red; splits; simpls.
       all: desf; ins.
-      all: repeat (apply Memory.join_closed_timemap).
-      all: try apply MEM_CLOSE.
-      all: try by eapply Memory.singleton_closed_timemap; eauto.
-      all: unfold LocFun.add, LocFun.find; desf.
-      all: try by apply MEM_CLOSE.
-      all: apply Memory.join_closed_timemap.
-      all: try apply MEM_CLOSE.
-      all: by eapply Memory.singleton_closed_timemap; eauto. }
+      all: repeat (apply Memory.join_closed_timemap); auto.
+      unfold LocFun.add, LocFun.find; desf.
+      2: { eapply Memory.add_closed_timemap; eauto. apply MEM_CLOSE. }
+      apply Memory.join_closed_timemap; auto. }
     red. splits; eauto.
     ins. rewrite INDEX_NRMW; auto.
     apply sim_state_cover_event; auto. }
-  intros [PCSTEP SIMREL_THREAD']; split; auto.
-  intros SMODE SIMREL.
-  eapply full_simrel_step.
-  16: by apply SIMREL.
-  14: { ins. rewrite IdentMap.Facts.add_in_iff.
-        split; auto. intros [|]; auto; subst.
-        apply IdentMap.Facts.in_find_iff.
-          by rewrite LLH. }
-  13: by eapply msg_preserved_refl; eauto.
-  10: by eapply same_other_threads_step; eauto.
-  all: simpls; eauto.
-  rewrite coveredE; eauto.
-  2: by eapply issuedE; eauto.
-  all: basic_solver.
-Qed.
-
-Proof using WF CON.
-  cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
-  subst.
-  
-  assert (tc_coherent G sc T) as TCCOHs by apply TCCOH.
-
-  assert (~ issued T w) as NISSB.
-  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
-  assert (issuable G sc T w) as ISSUABLE.
-  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
-  assert (S ⊆₁ E ∩₁ W) as SEW.
-  { apply set_subset_inter_r. split; [by apply TCCOH|].
-    apply (reservedW WF TCCOH). }
-  assert (E w /\ W w) as [EW WW] by (by apply ISSUABLE).
-  assert (~ is_init w) as NINIT.
-  { intros AA. apply NISSB. eapply init_issued; eauto. by split. }
-
-  assert (exists locw, loc lab w = Some locw) as [locw WLOC] by (by apply is_w_loc).
-  assert (exists valw, val lab w = Some valw) as [valw WVAL] by (by apply is_w_val).
-  
-  assert (NSW : ~ S w).
-  { intros HH. apply NWEX. apply TCCOH. by split. }
-  
-  edestruct issue_step_helper_no_next as [p_rel]; eauto. simpls; desf.
-  set (rel'' := TView.cur (Local.tview local)).
-  set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
-                          (View.singleton_ur locw (f_to' w)))).
-
-  set (pe := ThreadEvent.write locw (f_from' w) (f_to' w) valw (Some rel')
-                               Ordering.acqrel).
-  
-  assert (Memory.closed_message (Message.full valw (Some rel')) memory') as CLOS_MSG.
-  { by do 2 constructor. }
-  
-  exists f_to', f_from'. eexists.
-  apply and_assoc. apply pair_app; unnw.
-  { split.
-    { eapply t_step.
-      set (pe' := MachineEvent.silent).
-      arewrite (pe' = ThreadEvent.get_machine_event pe) by simpls.
-      eapply plain_step_intro with (lang:=thread_lts (tid w)); eauto.
-      2: by unfold pe; clear; desf.
-      apply Thread.step_program.
-      constructor.
-      2: by simpls.
-      econstructor; eauto. }
-    destruct (is_rel lab w) eqn:RELB; [by desf|].
-    subst.
-    red; splits; red; splits; eauto; simpls.
-    all: try (rewrite IdentMap.add_add_eq; eauto).
-    { apply TSTEP. }
-    { generalize RELB RELCOV. clear. basic_solver. }
-    { eapply Memory.add_closed; eauto. }
-    simpls.
-    exists state; eexists.
-    rewrite IdentMap.gss.
-    splits; eauto.
-    { simpls. eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
-    eapply tview_closedness_preserved_add; eauto. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
   subst. desc. red.
@@ -492,13 +405,13 @@ Proof using WF CON.
   { apply SIMREL_THREAD'. }
   apply SIMREL in AA. cdes AA.
   eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
-  10: { simpls. eapply msg_preserved_add; eauto. }
-  9: { simpls. eapply closedness_preserved_add; eauto. }
-  8: by eapply same_other_threads_steps; eauto.
+  11: { simpls. eapply msg_preserved_add; eauto. }
+  10: { simpls. eapply closedness_preserved_add; eauto. }
+  9: by eapply same_other_threads_steps; eauto.
   all: simpls; eauto.
-  { eapply coveredE; eauto. }
+  { rewrite coveredE; eauto. generalize EW. clear. basic_solver. }
   { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
-  1-4: clear; basic_solver.
+  1-5: clear; basic_solver.
   { rewrite dom_sb_S_rfrmw_same_tid; auto. clear. basic_solver. }
   { ins.
     etransitivity; [|by symmetry; apply IdentMap.Facts.add_in_iff].
