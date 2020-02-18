@@ -39,10 +39,10 @@ Require Import WriteRlxCovPlainStep.
 Require Import RMWRlxCovPlainStep.
 Require Import ReservePlainStep.
 Require Import IssuePlainStep.
+Require Import IssueRelPlainStep.
 Require Import IssueReservedPlainStep.
 Require Import IssueReservedRelPlainStep.
 Require Import IssueReservedRelNextPlainStep.
-(* TODO: Require Import WritePlainStep. *)
 
 Set Implicit Arguments.
 
@@ -141,7 +141,7 @@ Proof using WF CON.
            desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
       desc. edestruct issue_rlx_reserved_step_with_next; eauto.
       desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
-    destruct (classic (exists wnext, dom_sb_S_rfrmw G {| etc_TC := T; reserved := S |} rfi (eq w) wnext))
+    destruct (classic (exists wnext, dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) wnext))
       as [NEMP|EMP].
     2: { edestruct issue_rlx_step_no_next; eauto.
          { generalize EMP. clear. basic_solver. }
@@ -161,24 +161,18 @@ Proof using WF CON.
     apply COVEQ. basic_solver. }
 
   { (* Release write covering *)
+    cdes TS1. desf; unfold eissued, ecovered in *; simpls.
+    3: { exfalso. apply NISS. apply ISSEQ. basic_solver. }
+    { exfalso. apply NCOV. apply COVEQ. basic_solver. }
+    destruct (classic (S w)) as [SW|NSW].
+    { exfalso. apply NRMW. apply TCCOH. by split. }
+
+    destruct (classic (exists wnext, dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) wnext))
+      as [NEMP|EMP].
+    2: { edestruct issue_rel_step_no_next; eauto.
+         { generalize EMP. clear. basic_solver. }
+         desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
     admit. }
-    (* cdes TS1. desf. *)
-    (* { exfalso. apply NISS. red in COV. *)
-    (*   destruct COV as [_ [[COV|COV]|COV]]. *)
-    (*   { apply COV. } *)
-    (*   all: type_solver. } *)
-    (* edestruct rel_write_step; eauto. *)
-    (* red. split; [split|]; auto. *)
-    (* { apply ISS. } *)
-    (* 2: { intros COV. apply NISS. eapply w_covered_issued; eauto. by split. } *)
-    (* red in ISS. *)
-    (* destruct ISS as [[[_ ISS] _] _]. red in ISS. *)
-    (* red. etransitivity. *)
-    (* 2: by apply ISS. *)
-    (* unfold fwbob. *)
-    (* arewrite (eq w ⊆₁ W ∩₁ Rel ∩₁ eq w). *)
-    (* basic_solver. *)
-    (* basic_solver 10. } *)
 
   { (* Relaxed RMW covering *)
     assert (R r) as RR.
