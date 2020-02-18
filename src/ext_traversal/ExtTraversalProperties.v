@@ -255,14 +255,14 @@ Lemma co_next_to_imm_co_next w locw
       (LOC : loc w = Some locw)
       (WNEXT : exists wnext, (co ⨾ ⦗ S ⦘) w wnext) :
   exists wnext vnext,
-    << NCOIMM   : immediate (co ⨾ ⦗ S ⦘) w wnext >> /\
-    << ISSNEXT : S wnext >>  /\
-    << CONEXT  : co w wnext >>  /\
-    << ENEXT   : E wnext >>  /\
-    << WNEXT   : W wnext >>  /\
-    << LOCNEXT : Loc_ locw wnext >>  /\
-    << VNEXT   : val wnext = Some vnext >> /\
-    << NEQNEXT : wnext <> w >>.
+    ⟪ NCOIMM   : immediate (co ⨾ ⦗ S ⦘) w wnext ⟫ /\
+    ⟪ ISSNEXT : S wnext ⟫  /\
+    ⟪ CONEXT  : co w wnext ⟫  /\
+    ⟪ ENEXT   : E wnext ⟫  /\
+    ⟪ WNEXT   : W wnext ⟫  /\
+    ⟪ LOCNEXT : Loc_ locw wnext ⟫  /\
+    ⟪ VNEXT   : val wnext = Some vnext ⟫ /\
+    ⟪ NEQNEXT : wnext <> w ⟫.
 Proof using WF ETCCOH.
   assert (exists wnext, immediate (co ⨾ ⦗ S ⦘) w wnext) as [wnext NIMMCO].
   { desc; eapply clos_trans_immediate2 in WNEXT.
@@ -293,14 +293,14 @@ Lemma co_prev_to_imm_co_prev w locw
       (WNCOV : ~ ecovered T w)
       (LOC   : loc w = Some locw) :
   exists wprev vprev,
-    << PCOIMM   : immediate (⦗ S ⦘ ⨾ co) wprev w >> /\
-    << ISSPREV : S wprev >>  /\
-    << COPREV  : co wprev w >>  /\
-    << EPREV   : E wprev >>  /\
-    << WPREV   : W wprev >>  /\
-    << LOCPREV : Loc_ locw wprev >>  /\
-    << VPREV   : val wprev = Some vprev >> /\
-    << NEQPREV : wprev <> w >>.
+    ⟪ PCOIMM   : immediate (⦗ S ⦘ ⨾ co) wprev w ⟫ /\
+    ⟪ ISSPREV : S wprev ⟫  /\
+    ⟪ COPREV  : co wprev w ⟫  /\
+    ⟪ EPREV   : E wprev ⟫  /\
+    ⟪ WPREV   : W wprev ⟫  /\
+    ⟪ LOCPREV : Loc_ locw wprev ⟫  /\
+    ⟪ VPREV   : val wprev = Some vprev ⟫ /\
+    ⟪ NEQPREV : wprev <> w ⟫.
 Proof using WF IMMCON ETCCOH.
   assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
   assert (~ is_init w) as WNINIT.
@@ -385,7 +385,7 @@ Proof using WF.
 Qed.
 
 Lemma codom_nS_imm_co_S_in_I :
-  codom_rel (<|set_compl S|> ;; immediate (co ;; <|S|>)) ⊆₁ I \₁ W_ex.
+  codom_rel (⦗set_compl S⦘ ⨾ immediate (co ⨾ ⦗S⦘)) ⊆₁ I \₁ W_ex.
 Proof using WF ETCCOH IMMCON.
   cdes IMMCON.
   assert (sc_per_loc G) as SPL.
@@ -435,15 +435,15 @@ Lemma dom_sb_S_rfrmw_single_props locw
       (WNISS : ~ eissued T w)
       (WNCOV : ~ ecovered T w)
       (WLOC : loc w = Some locw) :
-  << SBWWNEXT : sb w wnext >> /\
-  << EWNEXT : E wnext >> /\
-  << WWNEXT : W wnext >> /\
-  << WNEXTCOV : ~ ecovered T wnext >> /\
-  << RFRMWNEXT : (rf ⨾ rmw) w wnext >> /\
-  << COWWNEXT : co w wnext >> /\
-  << NSWNEXT : ~ reserved T wnext >> /\
-  << WNEXTINIT : ~ is_init wnext >> /\
-  << WNEXTLOC : loc wnext = Some locw >>.
+  ⟪ SBWWNEXT : sb w wnext ⟫ /\
+  ⟪ EWNEXT : E wnext ⟫ /\
+  ⟪ WWNEXT : W wnext ⟫ /\
+  ⟪ WNEXTCOV : ~ ecovered T wnext ⟫ /\
+  ⟪ RFRMWNEXT : (rf ⨾ rmw) w wnext ⟫ /\
+  ⟪ COWWNEXT : co w wnext ⟫ /\
+  ⟪ NSWNEXT : ~ reserved T wnext ⟫ /\
+  ⟪ WNEXTINIT : ~ is_init wnext ⟫ /\
+  ⟪ WNEXTLOC : loc wnext = Some locw ⟫.
 Proof using WF IMMCON ETCCOH WNEXT.
   assert (sc_per_loc G) as SPL. 
   { apply coherence_sc_per_loc. apply IMMCON. }

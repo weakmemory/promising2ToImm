@@ -123,8 +123,8 @@ Proof using WF ETCCOH.
   rewrite !seq_union_l, dom_union. unionL; [by apply ETCCOH|].
   rewrite rmw_W_ex, !seqA. rewrite <- id_inter. rewrite set_interC.
   rewrite etc_S_W_ex_rfrmw_I; auto. rewrite rfe_in_rf.
-  remember (rf ;; rmw) as X.
-  arewrite (rf ;; rmw ⊆ X) by subst.
+  remember (rf ⨾ rmw) as X.
+  arewrite (rf ⨾ rmw ⊆ X) by subst.
   unfolder. ins. desf.
   assert (x = z); subst; auto.
   eapply wf_rfrmwf; eauto.

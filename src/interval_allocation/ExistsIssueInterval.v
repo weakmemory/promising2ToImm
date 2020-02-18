@@ -116,7 +116,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists p_rel,
     rfrmw_prev_rel G sc T f_to f_from PC.(Configuration.memory) w locw p_rel /\
-    << SEW' : S' ⊆₁ E ∩₁ W >> /\
+    ⟪ SEW' : S' ⊆₁ E ∩₁ W ⟫ /\
     (⟪ FOR_ISSUE :
          exists f_to' f_from',
            let rel'' :=
@@ -134,11 +134,11 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ REQ_FROM : forall e (SE : S e) (NEQ : e <> w), f_from' e = f_from e ⟫ /\
            ⟪ ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
            ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
-           << FTOWNBOT : f_to' w <> Time.bot >> /\
+           ⟪ FTOWNBOT : f_to' w <> Time.bot ⟫ /\
 
-           << DISJOINT : forall to from msg
+           ⟪ DISJOINT : forall to from msg
                (INMEM : Memory.get locw to (Configuration.memory PC) = Some (from, msg)),
-               Interval.disjoint (f_from' w, f_to' w) (from, to) >> /\
+               Interval.disjoint (f_from' w, f_to' w) (from, to) ⟫ /\
 
            exists promises' memory',
              ⟪ PADD :
@@ -148,11 +148,11 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                  Memory.add memory locw (f_from' w) (f_to' w)
                             (Message.full valw (Some rel')) memory' ⟫ /\
 
-             << MEMPROM :
+             ⟪ MEMPROM :
                ~ Rel w ->
                Memory.promise (Local.promises local) (Configuration.memory PC) locw 
                               (f_from' w) (f_to' w) (Message.full valw (Some rel'))
-                              promises' memory' Memory.op_kind_add >> /\
+                              promises' memory' Memory.op_kind_add ⟫ /\
 
              ⟪ INHAB : Memory.inhabited memory' ⟫ /\
              ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory' ⟫ /\
@@ -185,13 +185,13 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ NREL    : ~ Rel w ⟫ /\
            ⟪ EWS     : E ws ⟫ /\
            ⟪ WSS     : S ws ⟫ /\
-           << WSISS  : issued T ws >> /\
-           << NWEXWS : ~ W_ex ws >> /\
+           ⟪ WSISS  : issued T ws ⟫ /\
+           ⟪ NWEXWS : ~ W_ex ws ⟫ /\
            ⟪ WSNCOV  : ~ covered T ws ⟫ /\
            ⟪ WSNINIT : ~ is_init ws ⟫ /\
            ⟪ WSTID   : tid ws = tid w ⟫ /\
            ⟪ WSVAL   : val lab ws = Some wsv ⟫ /\
-           << WSSMSG : sim_msg G sc f_to ws (View.unwrap wsrel) >> /\ 
+           ⟪ WSSMSG : sim_msg G sc f_to ws (View.unwrap wsrel) ⟫ /\ 
 
            ⟪ SBWW : sb w ws ⟫ /\
            ⟪ SAME_LOC : Loc_ locw ws ⟫ /\
@@ -214,15 +214,15 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
            ⟪ REQ_FROM   : forall e (SE : S e) (NEQ : e <> ws), f_from' e = f_from e ⟫ /\
            ⟪ ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
            ⟪ ISSEQ_FROM : forall e (ISS: issued T e) (NEQ : e <> ws), f_from' e = f_from e ⟫ /\
-           << FTOWNBOT : f_to' w <> Time.bot >> /\
+           ⟪ FTOWNBOT : f_to' w <> Time.bot ⟫ /\
 
            ⟪ FCOH : f_to_coherent G S' f_to' f_from' ⟫ /\
 
-           << NINTER :
+           ⟪ NINTER :
              forall thread' langst' local' (TNEQ : tid w <> thread')
                     (TID' : IdentMap.find thread' (Configuration.threads PC) =
                             Some (langst', local')),
-               Memory.get locw (f_to' w) (Local.promises local') = None >> /\
+               Memory.get locw (f_to' w) (Local.promises local') = None ⟫ /\
 
            exists promises' memory',
              ⟪ PADD :
@@ -237,11 +237,11 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                               wsmsg
                               memory' ⟫ /\
 
-             << MEMPROM :
+             ⟪ MEMPROM :
                Memory.promise (Local.promises local) (Configuration.memory PC) locw 
                               (f_from' w) (f_to' w) (Message.full valw (Some rel'))
                               promises' memory'
-                              (Memory.op_kind_split (f_to' ws) wsmsg) >> /\
+                              (Memory.op_kind_split (f_to' ws) wsmsg) ⟫ /\
 
 
              ⟪ INHAB : Memory.inhabited memory' ⟫ /\
@@ -688,10 +688,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       ins. inv MSG.
       (* TODO: introduce a lemma *)
       assert (exists wto,
-                 << SWTO   : S wto >> /\
-                 << WTOLOC : loc lab wto = Some locw >> /\
-                 << FWTO   : f_to   wto = to' >> /\
-                 << FWFROM : f_from wto = f_to' w >>).
+                 ⟪ SWTO   : S wto ⟫ /\
+                 ⟪ WTOLOC : loc lab wto = Some locw ⟫ /\
+                 ⟪ FWTO   : f_to   wto = to' ⟫ /\
+                 ⟪ FWFROM : f_from wto = f_to' w ⟫).
       { destruct msg'.
         { apply MEM in GET. desf. exists b. splits; eauto. }
         apply HMEM in GET. desf. exists b. splits; eauto. }

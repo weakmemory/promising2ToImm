@@ -165,7 +165,7 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
            ⟪ REQ_FROM : forall e (SE : S e) (NEQ : e <> w), f_from' e = f_from e ⟫ /\
            ⟪ ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
            ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
-           << FTOWNBOT : f_to' w <> Time.bot >> /\
+           ⟪ FTOWNBOT : f_to' w <> Time.bot ⟫ /\
 
            exists promises_add memory',
              ⟪ PADD :
@@ -263,13 +263,13 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
            ⟪ NREL    : ~ Rel w ⟫ /\
            ⟪ EWS     : E ws ⟫ /\
            ⟪ WSS     : S ws ⟫ /\
-           << WSISS  : issued T ws >> /\
-           << NWEXWS : ~ W_ex ws >> /\
+           ⟪ WSISS  : issued T ws ⟫ /\
+           ⟪ NWEXWS : ~ W_ex ws ⟫ /\
            ⟪ WSNCOV  : ~ covered T ws ⟫ /\
            ⟪ WSNINIT : ~ is_init ws ⟫ /\
            ⟪ WSTID   : tid ws = tid w ⟫ /\
            ⟪ WSVAL   : val lab ws = Some wsv ⟫ /\
-           << WSSMSG : sim_msg G sc f_to ws (View.unwrap wsrel) >> /\ 
+           ⟪ WSSMSG : sim_msg G sc f_to ws (View.unwrap wsrel) ⟫ /\ 
 
            ⟪ SBWW : sb w ws ⟫ /\
            ⟪ SAME_LOC : Loc_ locw ws ⟫ /\
@@ -290,9 +290,8 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
 
            ⟪ REQ_TO : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e ⟫ /\
            ⟪ ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
-           << FTOWNBOT : f_to' w <> Time.bot >> /\
+           ⟪ FTOWNBOT : f_to' w <> Time.bot ⟫ /\
 
-           (* TODO: fix *)
            exists promises_add memory',
              ⟪ PADD :
                  Memory.split (Local.promises local)
