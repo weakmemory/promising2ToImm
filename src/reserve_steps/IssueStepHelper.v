@@ -693,17 +693,11 @@ Proof using All.
          assert (Some l = Some locw) as QQ.
          { by rewrite <- LOC0. }
          inv QQ.
-         (* TODO: continue from here. *)
          eexists. splits; eauto.
-         { erewrite Memory.split_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
-         { apply HELPER. }
-         { apply RELWFEQ. }
-         { apply RELMCLOS. }
          intros _ NT.
          destruct (Rel b); desf.
-         { exfalso. apply NT. by right. }
          splits.
-         { erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
+         { erewrite Memory.split_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
          exists p_rel. splits; eauto. left.
          cdes PREL. destruct PREL1; desc.
          2: { exfalso. apply NWEX. red. generalize INRMW. clear. basic_solver. }
@@ -715,11 +709,13 @@ Proof using All.
        { red. ins.
          assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
          { generalize NISSB0. clear. basic_solver. }
+         assert (b <> ws) as BNEQ'.
+         { intros HH; subst. eauto. }
          destruct RESB as [[SB|]|HH]; subst.
          3: { exfalso. eapply NONEXT; eauto. }
          2: by desf.
          unnw.
-         erewrite Memory.add_o with (mem2:=memory'); eauto.
+         erewrite Memory.split_o with (mem2:=memory'); eauto.
          destruct (loc_ts_eq_dec (l, f_to' b) (locw, (f_to' w))) as [PEQ'|PNEQ];
            simpls; desc; subst.
          { exfalso. apply BNEQ.
@@ -727,38 +723,20 @@ Proof using All.
            { by rewrite LOC. }
            { by do 2 left. }
            clear. basic_solver. }
+         rewrite (loc_ts_eq_dec_neq PNEQ).
+         destruct (loc_ts_eq_dec (l, f_to' b) (locw, (f_to' ws))) as [PEQ''|PNEQ'];
+           simpls; desc; subst.
+         { exfalso. apply BNEQ'.
+           eapply f_to_eq with (f_to:=f_to'); eauto. red.
+           { by rewrite LOC0. }
+           all: by do 2 left. }
+         rewrite (loc_ts_eq_dec_neq PNEQ').
          edestruct SIM_RES_MEM with (b:=b); eauto; unnw.
-         rewrite !(loc_ts_eq_dec_neq PNEQ); auto.
          rewrite REQ_TO; auto. rewrite REQ_FROM; auto.
          splits; ins.
-         apply NOTNEWP; auto. rewrite <- REQ_TO; auto. }
-       intros WREL. red. ins. destruct msg; auto.
-       rewrite WREL in PEQ.
-       exfalso. 
-       erewrite Memory.remove_o in GET; eauto.
-       destruct (loc_ts_eq_dec (locw, t) (locw, f_to' w)) as [AA|NEQ]; simpls.
-       { desc; subst. rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in GET.
-         inv GET. }
-       rewrite (loc_ts_eq_dec_neq NEQ) in GET.
-       erewrite Memory.add_o in GET; eauto.
-       rewrite (loc_ts_eq_dec_neq NEQ) in GET.
-       eapply SIM_PROM in GET. desc; subst.
-       assert (E b) as EB.
-       { eapply issuedE; eauto. }
-       assert (W b) as WB.
-       { eapply issuedW; eauto. }
-       assert ((⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘) b w) as HH.
-       { apply seq_eqv_lr. splits; auto. }
-       apply tid_sb in HH. destruct HH as [[[HH|HH]|HH]|[AA BB]]; subst; auto.
-       2: { apply NCOVB. eapply dom_W_Rel_sb_loc_I_in_C; eauto.
-            exists b. apply seq_eqv_l. split; [by split|].
-            apply seqA.
-            do 2 (apply seq_eqv_r; split; auto).
-            split; auto. red. rewrite LOC. auto. }
-       apply NCOV. apply ISSUABLE. exists w. apply seq_eqv_r. split; auto.
-       apply sb_to_w_rel_in_fwbob. apply seq_eqv_r. 
-       do 2 (split; auto).
-       admit. }
+         apply NOTNEWP; auto.
+         all: rewrite <- REQ_TO; auto. }
+       intros WREL. exfalso. desf. }
   red in HH. desc. exists p_rel. splits; eauto.
   left. exists f_to', f_from'. splits; eauto.
   exists promises', memory'. splits; eauto.
@@ -1056,6 +1034,6 @@ Proof using All.
   apply NCOV. apply ISSUABLE. exists w. apply seq_eqv_r. split; auto.
   apply sb_to_w_rel_in_fwbob. apply seq_eqv_r. 
   do 2 (split; auto).
-Admitted.
+Qed.
 
 End IssueStepHelper.
