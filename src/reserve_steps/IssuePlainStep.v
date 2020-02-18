@@ -128,6 +128,7 @@ Proof using WF CON.
        set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
                                (View.singleton_ur locw (f_to' w)))).
 
+       set (wsmsg:=Message.full wsv wsrel).
        set (pe :=
               ThreadEvent.promise
                 locw (f_from' w) (f_to' w) (Message.full valw (Some rel'))
@@ -154,59 +155,17 @@ Proof using WF CON.
          all: try (rewrite IdentMap.add_add_eq; eauto).
          { apply TSTEP. }
          { generalize RELB RELCOV. clear. basic_solver. }
-         (* TODO: continue from here. *)
-         { eapply Memory.add_closed; eauto. }
+         { eapply Memory.split_closed; eauto. }
          simpls.
          exists state; eexists.
          rewrite IdentMap.gss.
          splits; eauto.
          { simpls. eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
-         eapply tview_closedness_preserved_add; eauto. }
+         eapply tview_closedness_preserved_split; eauto. }
        intros [PCSTEP SIMREL_THREAD']; split; auto.
        intros SMODE SIMREL.
        subst. desc. red.
-       splits; [by apply SIMREL_THREAD'|].
-       simpls. ins.
-       destruct (classic (thread = tid w)) as [|TNEQ]; subst.
-       { apply SIMREL_THREAD'. }
-       set (AA:=TP).
-       apply IdentMap.Facts.add_in_iff in AA.
-       destruct AA as [AA|AA]; subst; auto.
-       { apply SIMREL_THREAD'. }
-       apply SIMREL in AA. cdes AA.
-       eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
-       10: { simpls. eapply msg_preserved_add; eauto. }
-       9: { simpls. eapply closedness_preserved_add; eauto. }
-       8: by eapply same_other_threads_steps; eauto.
-       all: simpls; eauto.
-       { eapply coveredE; eauto. }
-       { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
-       1-4: clear; basic_solver.
-       { rewrite dom_sb_S_rfrmw_same_tid; auto. clear. basic_solver. }
-       { ins.
-         etransitivity; [|by symmetry; apply IdentMap.Facts.add_in_iff].
-         split.
-         { ins; eauto. }
-         intros [|HH]; subst; auto.
-         apply SIMREL_THREAD; auto. }
-       { apply IdentMap.Facts.add_in_iff in TP. destruct TP as [HH|]; auto; subst.
-         clear -TNEQ. desf. }
-       { eapply sim_prom_f_issued; eauto. }
-       { red. ins. apply SIM_RPROM0 in RES. desc.
-         assert (b <> w) as NBW.
-         { intros HH; subst. clear -TNEQ. desf. }
-         exists b. splits; auto.
-         { rewrite REQ_FROM; auto. }
-         rewrite REQ_TO; eauto. }
-       { eapply sim_mem_f_issued; eauto. }
-       { ins.
-         assert (b <> w) as BNW.
-         { intros HH. subst. clear -TNEQ. desf. }
-         rewrite REQ_TO; eauto.
-         rewrite REQ_FROM; eauto.
-         apply SIM_RES_MEM1; auto. }
-       eapply sim_tview_f_issued; eauto.
-       admit. }
+       inv SMODE. }
 
   set (rel'' := TView.rel (Local.tview local) locw).
   set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
@@ -289,6 +248,6 @@ Proof using WF CON.
     rewrite REQ_FROM; eauto.
     apply SIM_RES_MEM1; auto. }
   eapply sim_tview_f_issued; eauto.
-Admitted.
+Qed.
 
 End IssuePlainStep.
