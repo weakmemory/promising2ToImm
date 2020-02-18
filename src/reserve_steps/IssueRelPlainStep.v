@@ -230,6 +230,13 @@ Proof using WF CON.
       { eapply Memory.add_get0; eauto. }
       rewrite LHS' in LHS. inv LHS'. }
     erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_neq; eauto. }
+  assert (Memory.le promises' (Local.promises local)) as LELCL''.
+  { red. ins. erewrite Memory.remove_o in LHS; eauto.
+    desf; simpls; desc; subst.
+    erewrite Memory.add_o in LHS; eauto. rewrite loc_ts_eq_dec_neq in LHS; eauto. }
+
+  assert (Memory.le (Configuration.memory PC) memory') as LEMEM'.
+  { eapply memory_add_le; eauto. }
 
   cdes CON.
   exists f_to', f_from'. eexists.
@@ -271,60 +278,46 @@ Proof using WF CON.
       destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
       { subst. rewrite IdentMap.gss in TID.
         etransitivity.
-        2: by eapply PROM_IN_MEM; eauto.
-        inv TID; simpls. clear TID.
-        red; ins.
-        erewrite Memory.remove_o in LHS; eauto.
-        destruct (loc_ts_eq_dec (loc, to) (locw, f_to w)) as [|NEQ]; [by desf|].
-          by erewrite loc_ts_eq_dec_neq in LHS. }
+        2: by apply NEW_PROM_IN_MEM.
+        inv TID; simpls. }
       red; ins. rewrite IdentMap.gso in TID; auto.
-      eapply PROM_IN_MEM; eauto. }
+      apply LEMEM'. eapply PROM_IN_MEM; eauto. }
     { ins. etransitivity; [apply SC_COV|]; auto.
       basic_solver. }
-    { intros NFSC l.
-      eapply max_value_same_set.
-      { by apply SC_REQ. }
-      rewrite s_tm_union.
-      unfold CombRelations.S_tm.
-      split; unionL; try basic_solver 3.
-      rewrite (wf_S_tmrD); type_solver 21. }
+    { eapply Memory.add_closed; eauto. }
     rewrite IdentMap.gss.
  
     eexists; eexists; eexists; splits; eauto; simpls.
     { ins. rewrite IdentMap.gso in TID'; auto.
-      edestruct (PROM_DISJOINT thread') as [H|]; eauto.
-      left. erewrite Memory.remove_o; eauto. desf. }
-    { red; splits; simpls.
-      erewrite Memory.remove_o in PROM; eauto. 
-      destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [[EQ1 EQ2]|NEQ]; simpls; subst.
-      { rewrite (loc_ts_eq_dec_eq locw (f_to w)) in PROM.
-        inv PROM. }
-      rewrite (loc_ts_eq_dec_neq NEQ) in PROM.
-      edestruct SIM_PROM as [b H]; eauto; desc.
-      exists b; splits; auto.
-      intros [H|H]; [done|subst].
-      unfold loc in *; rewrite PARAMS in *; desf. }
-    { red; ins. apply SIM_RPROM.
-      erewrite Memory.remove_o in RES; eauto. desf. }
+      edestruct (PROM_DISJOINT thread') as [HH|]; eauto.
+      left. destruct (Memory.get loc to promises') eqn:AA; auto.
+      destruct p. eapply LELCL'' in AA. by rewrite HH in AA. }
     { red; ins.
       destruct (Ordering.le Ordering.acqrel (Event_imm_promise.wmod ordw)); vauto.
       destruct (classic (b = w)) as [|NEQ].
       { subst.
         unfold loc in LOC; unfold val in VAL; rewrite PARAMS in *; inv LOC.
-        eexists; splits; eauto.
-        intros _ H.
-          by exfalso; apply H; right. }
+        eexists (Some _); splits; eauto.
+        2: { intros _ H. by exfalso; apply H; right. }
+        erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_eq. }
+      destruct ISSB as [ISSB|]; [|by subst].
       edestruct SIM_MEM as [rel]; eauto.
       simpls; desc.
+      rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto.
       exists rel; splits; auto.
+      { eapply sim_mem_helper_f_issued; eauto. }
+      { eapply Memory.add_closed_timemap; eauto. }
       intros TT COVWB.
-      destruct H1 as [PROM REL]; auto; unnw.
+      destruct H1 as [PROM REL']; auto; unnw.
       { by intros H; apply COVWB; left. }
-      erewrite Memory.remove_o; eauto.
+      split.
+      { by apply LELCL'. }
+      (* TODO: continue from here. *)
 
       (* TODO: generalize! *)
-      assert (l = locw -> Time.lt (f_to w) (f_to b)) as FGT.
-      { ins; subst. eapply f_to_co_mon; eauto.
+      assert (l = locw -> Time.lt (f_to' w) (f_to b)) as FGT.
+      { ins; subst. rewrite <- ISSEQ_TO; auto.
+        eapply f_to_co_mon; eauto.
         assert (E b /\ W b) as [EB WB] by (by apply TCCOH).
         assert (co w b \/ co b w) as H; [|destruct H as [|H]; [done|exfalso]].
         { edestruct (@wf_co_total G WF (Some locw)); eauto.
@@ -340,12 +333,16 @@ Proof using WF CON.
         exfalso.
         apply COVWB; left.
         apply NEXT. eexists; apply seq_eqv_r; eauto.
-          by apply TCCOH.(etc_I_in_S). }
-
-      destruct (loc_ts_eq_dec (l, f_to b) (locw, f_to w)) as [[A B]|LNEQ].
+        2: by do 2 left; apply TCCOH.(etc_I_in_S).
+        clear. basic_solver. }
+      desc. exists p_rel.
+      
+      destruct (loc_ts_eq_dec (l, f_to b) (locw, f_to' w)) as [[A B]|LNEQ].
       { exfalso. simpls; subst; rewrite B in *.
           by apply DenseOrder.lt_strorder in FGT. }
-      simpls. rewrite (loc_ts_eq_dec_neq LNEQ).
+      simpls.
+      (* TODO: continue from here. *)
+      rewrite (loc_ts_eq_dec_neq LNEQ).
       splits; auto.
       unfold LocFun.add.
       destruct (classic (l = locw)) as [LL|LL].
