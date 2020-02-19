@@ -902,6 +902,7 @@ red. splits.
               (acts_set (rstG Gf T S thread))).
     erewrite E_F_Sc_in_C; eauto.
     basic_solver. }
+  { admit. }
   splits.
   { subst G. rewrite cert_sb. eapply cert_co_for_split; eauto. }
   subst G. unfold W_ex. rewrite cert_sb. unfold certG. simpls.
@@ -1137,6 +1138,6 @@ eexists. red. splits.
 { intros HH. inv HH. }
 done.
 Unshelve. clear; eapply (fun _ => Afence Orel).
-Qed.
+Admitted.
 
 End Cert.

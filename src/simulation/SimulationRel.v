@@ -196,6 +196,11 @@ Definition simrel_common
   ⟪ SC_REQ : smode = sim_normal -> 
          forall l,
          max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view) ⟫ /\
+  
+  (* TODO: To support RMWs (even FADDs) w/ ctrl dependency, we need to
+           get rid of WEXRES. 
+   *)
+  ⟪ WEXRES : smode = sim_certification -> W_ex ⊆₁ S ⟫ /\ 
 
   ⟪ RESERVED_TIME: reserved_time smode memory ⟫ /\
                     

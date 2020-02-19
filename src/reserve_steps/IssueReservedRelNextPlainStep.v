@@ -543,6 +543,7 @@ Proof using WF CON.
       { apply HH. by left. }
       { subst. clear -RREAD AA. type_solver. }
       subst. clear -WWRITE AA. type_solver. }
+    { ins. rewrite WEXRES; auto. eauto with hahn. }
     { eapply Memory.split_closed; eauto. }
     rewrite IdentMap.gss.
     eexists; eexists; eexists; splits; eauto; simpls.

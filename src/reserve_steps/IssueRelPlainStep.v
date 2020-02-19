@@ -288,6 +288,7 @@ Proof using WF CON.
       apply LEMEM'. eapply PROM_IN_MEM; eauto. }
     { ins. etransitivity; [apply SC_COV|]; auto.
       basic_solver. }
+    { ins. rewrite WEXRES; auto. eauto with hahn. }
     { eapply Memory.add_closed; eauto. }
     rewrite IdentMap.gss.
  
