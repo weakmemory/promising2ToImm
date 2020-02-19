@@ -279,6 +279,11 @@ Proof using All.
   assert (~ is_init w) as WNINIT.
   { intros HH. apply NCOVB. eapply init_covered; eauto. by split. }
 
+  forward (eapply dom_sb_S_rfrmw_single_props with (w:=w) (wnext:=wnext)); eauto.
+  intros HH. desc.
+  assert (w <> wnext) as WNEXTNEQ.
+  { intros HH. subst. eapply WF.(co_irr); eauto. }
+
   subst.
   edestruct exists_time_interval_for_issue_next as [p_rel [PREL HH]]; eauto.
   red in HH. desc. exists p_rel. splits; eauto.
@@ -297,7 +302,6 @@ Proof using All.
   set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
                           (View.singleton_ur locw (f_to' w)))).
 
-  (* TODO: continue from here. *)
   set (S':=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)).
   assert (S ⊆₁ S') as SINS by (unfold S'; eauto with hahn).
   assert (S' ⊆₁ E ∩₁ W) as SEW'.
@@ -310,6 +314,8 @@ Proof using All.
 
   assert (f_to' w <> f_to' wnext) as FTONEXTNEQ.
   { intros HH. eapply f_to_eq with (I:=S') in HH; eauto.
+    { red. by rewrite LOC. }
+    all: red; basic_solver. }
 
   assert (exists promises'',
              ⟪ PEQ :
@@ -328,26 +334,27 @@ Proof using All.
   exists promises''. simpls.
   
   assert (Memory.le promises' memory') as PP.
-  { eapply memory_le_add2; eauto. }
+  { eapply memory_le_add2. 2,3: by eauto.
+    eapply memory_le_add2; eauto. }
 
-  assert (forall thread' langst' local' (TNEQ : tid w <> thread')
-                 (TID' : IdentMap.find thread' (Configuration.threads PC) =
-                         Some (langst', local')),
-             Memory.get locw (f_to' w) (Local.promises local') = None) as NINTER.
-  (* TODO: Move to IssueInterval.v? *)
-  { ins.
-    destruct (Memory.get locw (f_to' w) (Local.promises local')) eqn:HH; auto.
-    exfalso. destruct p as [from]. 
-    eapply PROM_IN_MEM in HH; eauto.
-    set (AA := HH). apply Memory.get_ts in AA.
-    destruct AA as [|AA]; desc; eauto.
-    apply DISJOINT in HH.
-    apply HH with (x:=f_to' w); constructor; simpls; try reflexivity.
-    apply FCOH0; auto. clear. basic_solver. }
+  (* assert (forall thread' langst' local' (TNEQ : tid w <> thread') *)
+  (*                (TID' : IdentMap.find thread' (Configuration.threads PC) = *)
+  (*                        Some (langst', local')), *)
+  (*            Memory.get locw (f_to' w) (Local.promises local') = None) as NINTER. *)
+  (* (* TODO: Move to IssueInterval.v? *) *)
+  (* { ins. *)
+  (*   destruct (Memory.get locw (f_to' w) (Local.promises local')) eqn:HH; auto. *)
+  (*   exfalso. destruct p as [from].  *)
+  (*   eapply PROM_IN_MEM in HH; eauto. *)
+  (*   set (AA := HH). apply Memory.get_ts in AA. *)
+  (*   destruct AA as [|AA]; desc; eauto. *)
+  (*   apply DISJOINT in HH. *)
+  (*   apply HH with (x:=f_to' w); constructor; simpls; try reflexivity. *)
+  (*   apply FCOH0; auto. clear. basic_solver. } *)
 
   assert (forall tmap (MCLOS : Memory.closed_timemap tmap PC.(Configuration.memory)),
              Memory.closed_timemap tmap memory') as MADDCLOS.
-  { ins. eapply Memory.add_closed_timemap; eauto. }
+  { ins. repeat (eapply Memory.add_closed_timemap; eauto). }
   
   assert (Memory.le promises'' promises') as LEPADD.
   { destruct (Rel w) eqn:RELB; subst; [|reflexivity].
@@ -365,23 +372,24 @@ Proof using All.
   (*   rewrite loc_ts_eq_dec_neq; auto. } *)
 
   assert (forall l to from msg
-                 (NEQ : l <> locw \/ to <> f_to' w),
+                 (NEQ  : l <> locw \/ to <> f_to' w)
+                 (NEQ' : l <> locw \/ to <> f_to' wnext),
              Memory.get l to memory' = Some (from, msg) <->
              Memory.get l to PC.(Configuration.memory) = Some (from, msg))
     as NOTNEWM.
-  { ins. erewrite Memory.add_o; eauto.
-    rewrite loc_ts_eq_dec_neq; auto. }
+  { ins. repeat (erewrite Memory.add_o; eauto; rewrite loc_ts_eq_dec_neq; auto). }
 
   assert (forall l to from msg
-                 (NEQ : l <> locw \/ to <> f_to' w),
+                 (NEQ  : l <> locw \/ to <> f_to' w)
+                 (NEQ' : l <> locw \/ to <> f_to' wnext),
              Memory.get l to promises' = Some (from, msg) <->
              Memory.get l to local.(Local.promises) = Some (from, msg))
     as NOTNEWA.
-  { ins. erewrite Memory.add_o; eauto.
-    rewrite loc_ts_eq_dec_neq; auto. }
+  { ins. repeat (erewrite Memory.add_o; eauto; rewrite loc_ts_eq_dec_neq; auto). }
 
   assert (forall l to from msg
-                 (NEQ : l <> locw \/ to <> f_to' w),
+                 (NEQ  : l <> locw \/ to <> f_to' w)
+                 (NEQ' : l <> locw \/ to <> f_to' wnext),
              Memory.get l to promises'' = Some (from, msg) <->
              Memory.get l to local.(Local.promises) = Some (from, msg))
     as NOTNEWP.
@@ -393,6 +401,7 @@ Proof using All.
           Some (f_from' w, Message.full valw (Some rel')))
     as INP''.
   { ins. destruct (Rel w); subst; [by desf|].
+    erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_neq; eauto.
     erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_eq. }
 
   splits; eauto.
@@ -413,6 +422,7 @@ Proof using All.
     intros a [HB|HB] HH AA.
     { eauto. }
     subst. clear -WW AA. type_solver. }
+  (* TODO: continue from here. *)
   { ins.
     destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
     { subst. rewrite IdentMap.gss in TID0.
