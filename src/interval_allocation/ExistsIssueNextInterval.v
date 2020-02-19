@@ -130,6 +130,12 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
            ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
            ⟪ REL_VIEW_LE : Time.le (View.rlx rel'  locw) (f_to' w) ⟫ /\
 
+           ⟪ REQ_TO : forall e (SE : S e), f_to' e = f_to e ⟫ /\
+           ⟪ REQ_FROM : forall e (SE : S e), f_from' e = f_from e ⟫ /\
+           ⟪ ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
+           ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
+           ⟪ FTOWNBOT : f_to' w <> Time.bot ⟫ /\
+
            exists promises_add memory_add promises' memory',
              ⟪ PADD :
                  Memory.add local.(Local.promises) locw (f_from' w) (f_to' w)
@@ -576,7 +582,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     set ( n_to := Time.middle (f_to wprev) nn_to).
     set (f_to' := upd (upd f_to w n_to) wnext nn_to).
     exists f_to'.
-
+    
     set (B := (rf ⨾ rmw) wprev w).
     assert (exists n_from,
                ⟪ NFROM : (n_from = f_to wprev /\ B) \/
@@ -642,6 +648,18 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
     assert (Time.le n_to (f_from wconext)) as LENTOWCONEXT.
     { transitivity nn_to; auto. }
+
+    assert (REQ_TO : forall e (SE : S e), f_to' e = f_to e).
+    { ins. subst f_to'. by repeat (rewrite updo; [|by intros HH; subst]). }
+    assert (REQ_FROM : forall e (SE : S e), f_from' e = f_from e).
+    { ins. subst f_from'. by repeat (rewrite updo; [|by intros HH; subst]). }
+    assert (ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e).
+    { ins. subst f_to'. by repeat (rewrite updo; [|by intros HH; subst]). }
+    assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
+    { ins. subst f_from'. by repeat (rewrite updo; [|by intros HH; subst]). }
+    assert (FTOWNBOT : f_to' w <> Time.bot).
+    { intros HH. eapply Time.lt_strorder with (x:=f_to' w). rewrite HH at 1.
+      eapply TimeFacts.le_lt_lt; eauto. apply Time.bot_spec. }
 
     assert (~ is_init wconext) as NINITWCONEXT.
     { apply no_co_to_init in CONEXT; auto.
@@ -950,8 +968,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     subst. eapply sim_helper_issue with (S':=S'); eauto.
     { transitivity (fun _ : actid => False); [|clear; basic_solver].
       generalize NWEX. unfold Execution.W_ex. clear; basic_solver. }
-    { ins. unfold f_to'.
-      repeat (rewrite updo; [|by intros HH; subst; eauto]); auto. }
     { red. unfolder. eauto. }
     rewrite IE. unfold S'. eauto with hahn. }
 
@@ -1275,6 +1291,18 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     eapply Memory.add_closed_timemap; eauto.
     subst rel''. destruct (Rel w); apply MEM_CLOSE. }
 
+  assert (REQ_TO : forall e (SE : S e), f_to' e = f_to e).
+  { ins. subst f_to'. by repeat (rewrite updo; [|by intros HH; subst]). }
+  assert (REQ_FROM : forall e (SE : S e), f_from' e = f_from e).
+  { ins. subst f_from'. by repeat (rewrite updo; [|by intros HH; subst]). }
+  assert (ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e).
+  { ins. subst f_to'. by repeat (rewrite updo; [|by intros HH; subst]). }
+  assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
+  { ins. subst f_from'. by repeat (rewrite updo; [|by intros HH; subst]). }
+  assert (FTOWNBOT : f_to' w <> Time.bot).
+  { intros HH. eapply Time.lt_strorder with (x:=f_to' w). rewrite HH at 1.
+    eapply TimeFacts.le_lt_lt; eauto. apply Time.bot_spec. }
+
   splits; eauto; subst rel'0; subst rel''0.
   { unfold View.join, TimeMap.join; ins. 
     repeat apply DenseOrder.join_spec; auto.
@@ -1285,7 +1313,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   subst. eapply sim_helper_issue with (S':=S'); eauto.
   { transitivity (fun _ : actid => False); [|clear; basic_solver].
     generalize NWEX. unfold Execution.W_ex. clear; basic_solver. }
-  { ins. unfold f_to'. by repeat (rewrite updo; [|by intros HH; subst; eauto]). }
   { red. unfolder. eauto. }
   rewrite IE. eauto with hahn.
 Qed.

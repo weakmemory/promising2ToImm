@@ -442,6 +442,7 @@ Lemma dom_sb_S_rfrmw_single_props locw
   ⟪ RFRMWNEXT : (rf ⨾ rmw) w wnext ⟫ /\
   ⟪ COWWNEXT : co w wnext ⟫ /\
   ⟪ NSWNEXT : ~ reserved T wnext ⟫ /\
+  ⟪ NIWNEXT : ~ eissued T wnext ⟫ /\
   ⟪ WNEXTINIT : ~ is_init wnext ⟫ /\
   ⟪ WNEXTLOC : loc wnext = Some locw ⟫.
 Proof using WF IMMCON ETCCOH WNEXT.
@@ -469,6 +470,8 @@ Proof using WF IMMCON ETCCOH WNEXT.
   { intros HH. apply WNISS.
     eapply dom_rf_rmw_S_in_I; eauto.
     exists wnext. apply seqA. apply seq_eqv_r. split; auto. }
+  assert (~ eissued T wnext) as NIWNEXT.
+  { intros HH. apply NSWNEXT. by apply ETCCOH.(etc_I_in_S). }
   assert (~ is_init wnext) as WNEXTINIT.
   { intros HH. apply WNEXTCOV. eapply init_covered; eauto. by split. }
 
