@@ -444,7 +444,8 @@ Lemma dom_sb_S_rfrmw_single_props locw
   ⟪ NSWNEXT : ~ reserved T wnext ⟫ /\
   ⟪ NIWNEXT : ~ eissued T wnext ⟫ /\
   ⟪ WNEXTINIT : ~ is_init wnext ⟫ /\
-  ⟪ WNEXTLOC : loc wnext = Some locw ⟫.
+  ⟪ WNEXTLOC : loc wnext = Some locw ⟫ /\
+  ⟪ WNEXTTID : tid wnext = tid w ⟫.
 Proof using WF IMMCON ETCCOH WNEXT.
   assert (sc_per_loc G) as SPL. 
   { apply coherence_sc_per_loc. apply IMMCON. }
@@ -478,6 +479,13 @@ Proof using WF IMMCON ETCCOH WNEXT.
   assert (loc wnext = Some locw) as WNEXTLOC.
   { rewrite <- WLOC. symmetry. by apply WF.(wf_col). }
   
+  assert (E w) as EW.
+  { apply (dom_l WF.(wf_rfrmwE)) in RFRMWNEXT.
+    destruct_seq_l RFRMWNEXT as AA; auto. }
+  assert (WNEXTTID : tid wnext = tid w).
+  { symmetry. eapply ninit_sb_same_tid. apply seq_eqv_l. split; eauto.
+    intros HH. apply WNCOV. eapply init_covered; eauto. split; auto. }
+
   splits; auto.
 Qed.
   

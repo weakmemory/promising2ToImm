@@ -511,8 +511,7 @@ Proof using All.
     { simpls; rewrite A' in *; rewrite B' in *.
       rewrite RESGET in RES. inv RES.
       exists wnext. splits; eauto.
-      (* TODO: easy *)
-      all: admit. }
+      intros [HH|HH]; subst; eauto. }
     apply NOTNEWP in RES; auto.
     edestruct SIM_RES_PROM as [b H]; eauto; desc.
     exists b. splits; auto.
@@ -634,7 +633,6 @@ Proof using All.
     apply seq_eqv_l in HH. destruct HH as [[HH|] RFRMW]; subst; eauto.
     { apply NINRMW. generalize HH RFRMW. clear. basic_solver 10. }
     eapply wf_rfrmw_irr; eauto. }
-  (* TODO: continue from here. *)
   { red. ins.
     assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
     { generalize NISSB0. clear. basic_solver. }
@@ -658,7 +656,13 @@ Proof using All.
       rewrite REQ_TO; auto. rewrite REQ_FROM; auto.
       splits; ins.
       apply NOTNEWP; auto; rewrite <- REQ_TO; auto. }
-    admit. }
+    assert (b = wnext); subst.
+    { eapply dom_sb_S_rfrmw_single; eauto. }
+    assert (Some l = Some locw) as LL.
+    { by rewrite <- LOC0. }
+    inv LL.
+    splits; ins.
+    erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_eq. }
   intros WREL. red. ins. destruct msg; auto.
   rewrite WREL in PEQ.
   exfalso. 
