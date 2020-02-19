@@ -134,7 +134,16 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
            ⟪ REQ_FROM : forall e (SE : S e), f_from' e = f_from e ⟫ /\
            ⟪ ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
            ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
-           ⟪ FTOWNBOT : f_to' w <> Time.bot ⟫ /\
+           ⟪ FTOWNBOT     : f_to' w     <> Time.bot ⟫ /\
+           ⟪ FTOWNEXTNBOT : f_to' wnext <> Time.bot ⟫ /\
+
+           ⟪ DISJOINT : forall to from msg
+               (INMEM : Memory.get locw to (Configuration.memory PC) = Some (from, msg)),
+               Interval.disjoint (f_from' w, f_to' w) (from, to) ⟫ /\
+
+           ⟪ DISJOINT' : forall to from msg
+               (INMEM : Memory.get locw to (Configuration.memory PC) = Some (from, msg)),
+               Interval.disjoint (f_from' wnext, f_to' wnext) (from, to) ⟫ /\
 
            exists promises_add memory_add promises' memory',
              ⟪ PADD :
@@ -659,6 +668,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     { ins. subst f_from'. by repeat (rewrite updo; [|by intros HH; subst]). }
     assert (FTOWNBOT : f_to' w <> Time.bot).
     { intros HH. eapply Time.lt_strorder with (x:=f_to' w). rewrite HH at 1.
+      eapply TimeFacts.le_lt_lt; eauto. apply Time.bot_spec. }
+
+    assert (FTOWNEXTNBOT : f_to' wnext <> Time.bot).
+    { intros HH. eapply Time.lt_strorder with (x:=f_to' wnext). rewrite HH at 1.
       eapply TimeFacts.le_lt_lt; eauto. apply Time.bot_spec. }
 
     assert (~ is_init wconext) as NINITWCONEXT.
@@ -1302,6 +1315,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   assert (FTOWNBOT : f_to' w <> Time.bot).
   { intros HH. eapply Time.lt_strorder with (x:=f_to' w). rewrite HH at 1.
     eapply TimeFacts.le_lt_lt; eauto. apply Time.bot_spec. }
+  assert (FTOWNEXTNBOT : f_to' wnext <> Time.bot).
+  { intros HH. eapply Time.lt_strorder with (x:=f_to' wnext). rewrite HH at 1.
+    eapply TimeFacts.le_lt_lt; eauto. apply Time.bot_spec. }
+
 
   splits; eauto; subst rel'0; subst rel''0.
   { unfold View.join, TimeMap.join; ins. 
