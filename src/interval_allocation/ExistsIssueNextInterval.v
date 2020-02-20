@@ -162,8 +162,8 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
                             Message.reserve memory' ⟫ /\
 
              ⟪ INHAB : Memory.inhabited memory' ⟫ /\
-             ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory' ⟫ /\
-             ⟪ RELVCLOS : Memory.closed_view rel' memory' ⟫ /\
+             ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add ⟫ /\
+             ⟪ RELVCLOS : Memory.closed_view rel' memory_add ⟫ /\
 
              ⟪ FCOH : f_to_coherent G S' f_to' f_from' ⟫ /\
 
@@ -943,6 +943,9 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       eapply Time.lt_strorder with (x:=nn_to).
       rewrite HH at 1. transitivity n_to; auto. }
 
+    assert (Memory.inhabited memory_add) as INHABADD. 
+    { eapply Memory.add_inhabited; eauto. }
+
     assert (Memory.inhabited memory') as INHAB'. 
     { do 2 (eapply Memory.add_inhabited; eauto). }
 
@@ -959,18 +962,15 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
               (View.rlx
                  (View.join (View.join rel'' (View.unwrap p_rel))
                             (View.singleton_ur locw (f_to' w))))
-              memory') as CLOSTM.
+              memory_add) as CLOSTM.
     { unfold View.join; ins.
       apply Memory.join_closed_timemap.
       2: { eapply Memory.singleton_closed_timemap; eauto.
            erewrite Memory.add_o; eauto.
-           rewrite loc_ts_eq_dec_neq.
-           2: { unfold f_to'. rewrite upds. rewrite updo; [|done]. rewrite upds. eauto. }
-           erewrite Memory.add_o; eauto.
            rewrite loc_ts_eq_dec_eq; eauto. }
       apply Memory.join_closed_timemap.
       2: { subst. simpls. by apply Memory.closed_timemap_bot. }
-      do 2 (eapply Memory.add_closed_timemap; eauto).
+      eapply Memory.add_closed_timemap; eauto.
       subst rel''. destruct (Rel w); apply MEM_CLOSE. }
 
     splits; eauto; subst rel'0; subst rel''0. 
@@ -1123,8 +1123,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       symmetry. apply Interval.disjoint_imm. }
     rewrite loc_ts_eq_dec_neq in GET2; eauto. }
 
+  assert (Memory.inhabited memory_add) as INHABADD. 
+  { eapply Memory.add_inhabited; eauto. }
   assert (Memory.inhabited memory') as INHAB'. 
-  { do 2 (eapply Memory.add_inhabited; eauto). }
+  { eapply Memory.add_inhabited; eauto. }
 
   assert (n_from = Memory.max_ts locw (Configuration.memory PC) /\ (rf ⨾ rmw) wprev w \/
           n_from = Time.incr (Memory.max_ts locw (Configuration.memory PC)) /\
@@ -1289,20 +1291,14 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
             (View.rlx
                (View.join (View.join rel'' (View.unwrap p_rel))
                           (View.singleton_ur locw (f_to' w))))
-            memory') as CLOSTM.
+            memory_add) as CLOSTM.
   { unfold View.join; ins.
     apply Memory.join_closed_timemap.
     2: { eapply Memory.singleton_closed_timemap; eauto.
          erewrite Memory.add_o; eauto.
-         rewrite loc_ts_eq_dec_neq.
-         2: { right. intros HH.
-              eapply f_to_eq with (I:=S') in HH; eauto.
-              { red. etransitivity; eauto. }
-              all: red; unfolder; eauto. }
-         erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq. eauto. }
+         rewrite loc_ts_eq_dec_eq; eauto. }
     apply Memory.join_closed_timemap.
     2: { subst. simpls. by apply Memory.closed_timemap_bot. }
-    eapply Memory.add_closed_timemap; eauto.
     eapply Memory.add_closed_timemap; eauto.
     subst rel''. destruct (Rel w); apply MEM_CLOSE. }
 

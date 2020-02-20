@@ -185,8 +185,8 @@ Lemma issue_step_helper_next w wnext valw locw ordw langst
 
 
              ⟪ INHAB : Memory.inhabited memory' ⟫ /\
-             ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory' ⟫ /\
-             ⟪ RELVCLOS : Memory.closed_view rel' memory' ⟫ /\
+             ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add ⟫ /\
+             ⟪ RELVCLOS : Memory.closed_view rel' memory_add ⟫ /\
 
              ⟪ FCOH : f_to_coherent G S' f_to' f_from' ⟫ /\
 
@@ -295,7 +295,7 @@ Proof using All.
   { eapply f_to_co_mon; eauto; basic_solver. }
 
   splits; eauto.
-  1,2: constructor; eauto; ins.
+  1,2: econstructor; eauto; ins.
   { inv MSG. clear MSG.
     set (AA:=GET). apply DISJOINT' in AA.
     rewrite FWWNEXTEQ in AA.
@@ -630,7 +630,7 @@ Proof using All.
       erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
     { apply HELPER. }
     { apply RELWFEQ. }
-    { apply RELMCLOS. }
+    { eapply Memory.add_closed_timemap; eauto. }
     intros _ NT.
     clear PROMGET.
     destruct (Rel b); desf.
