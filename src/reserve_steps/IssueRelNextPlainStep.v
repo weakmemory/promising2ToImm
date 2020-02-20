@@ -186,6 +186,10 @@ Proof using WF CON.
                                 valw (Some rel') (Event_imm_promise.wmod ordw)).
   assert (ev = ThreadEvent.get_program_event pe1) as EV'.
   { done. }
+  set (pe2 :=
+         ThreadEvent.promise
+           locw (f_from' wnext) (f_to' wnext) Message.reserve
+           Memory.op_kind_add).
   
   assert (forall y : actid, covered T y /\ tid y = tid w -> sb y w) as COVSB.
   { intros y [COVY TIDY].
@@ -248,10 +252,16 @@ Proof using WF CON.
           rewrite View.join_bot_l. rewrite view_join_bot_r.
           unfold LocFun.add. desf. }
         { by constructor. }
-        { econstructor; eauto.
-          (* TODO: continue from here. *)
-          admit. }
         intros _. by eapply nonsynch_loc_le; [|by eauto]. }
+      set (pe' := MachineEvent.silent).
+      arewrite (pe' = ThreadEvent.get_machine_event pe2) by simpls.
+      eapply plain_step_intro with (lang:=thread_lts (tid w)); eauto.
+      { simpls. rewrite IdentMap.gss. eauto. }
+      2: by unfold pe2; clear; desf.
+      apply Thread.step_promise.
+      constructor.
+      2: by simpls.
+      econstructor; eauto. }
     unnw.
     red; splits; red; splits; simpls.
     all: try (rewrite IdentMap.add_add_eq; eauto).
@@ -279,8 +289,9 @@ Proof using WF CON.
     { ins. etransitivity; [apply SC_COV|]; auto.
       basic_solver. }
     { ins. rewrite WEXRES; auto. eauto with hahn. }
-    { eapply Memory.add_closed; eauto. }
+    { do 2 (eapply Memory.add_closed; eauto). }
     rewrite IdentMap.gss.
+    (* TODO: continue from here. *)
  
     eexists; eexists; eexists; splits; eauto; simpls.
     { ins. rewrite IdentMap.gso in TID'; auto.
