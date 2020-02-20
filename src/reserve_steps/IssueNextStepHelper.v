@@ -290,10 +290,23 @@ Proof using All.
   exists f_to', f_from'. splits; eauto.
   exists promises_add, memory_add.
   exists promises', memory'.
+
+  assert (Time.lt (f_to' w) (f_to' wnext)) as FLT.
+  { eapply f_to_co_mon; eauto; basic_solver. }
+
   splits; eauto.
   1,2: constructor; eauto; ins.
-  { inv MSG. clear MSG. admit. }
-  { admit. }
+  { inv MSG. clear MSG.
+    set (AA:=GET). apply DISJOINT' in AA.
+    rewrite FWWNEXTEQ in AA.
+    set (BB:=GET). apply Memory.get_ts in BB.
+    destruct BB as [|BB]; desc; eauto.
+    destruct (TimeFacts.le_lt_dec (f_to' wnext) to').
+    { eapply AA with (x:=f_to' wnext); constructor; simpls; auto. reflexivity. }
+    eapply AA with (x:=to'); constructor; simpls; auto; try reflexivity.
+    apply Time.le_lteq. eauto. }
+  { rewrite FWWNEXTEQ.
+    erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq. eauto. }
 
   set (rel'' :=
         if is_rel lab w
@@ -697,6 +710,6 @@ Proof using All.
   apply NCOV. apply ISSUABLE. exists w. apply seq_eqv_r. split; auto.
   apply sb_to_w_rel_in_fwbob. apply seq_eqv_r. 
   do 2 (split; auto).
-Admitted.
+Qed.
 
 End IssueStepHelper.

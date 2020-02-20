@@ -136,6 +136,7 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
            ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
            ⟪ FTOWNBOT     : f_to' w     <> Time.bot ⟫ /\
            ⟪ FTOWNEXTNBOT : f_to' wnext <> Time.bot ⟫ /\
+           ⟪ FWWNEXTEQ    : f_from' wnext = f_to' w ⟫ /\
 
            ⟪ DISJOINT : forall to from msg
                (INMEM : Memory.get locw to (Configuration.memory PC) = Some (from, msg)),
@@ -976,6 +977,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     { unfold View.join, TimeMap.join; ins. 
       repeat apply DenseOrder.join_spec; auto.
       unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. reflexivity. }
+    { unfold f_from', f_to'. rewrite upds. rewrite updo; auto. by rewrite upds. }
     exists promises_add, memory_add, promises', memory'. splits; eauto.
     { constructor; auto. by rewrite RELPLN. }
     subst. eapply sim_helper_issue with (S':=S'); eauto.
@@ -1324,6 +1326,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   { unfold View.join, TimeMap.join; ins. 
     repeat apply DenseOrder.join_spec; auto.
     unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. reflexivity. }
+  { unfold f_from', f_to'. rewrite upds. rewrite updo; auto. by rewrite upds. }
   exists promises_add, memory_add, promises', memory'.
   splits; eauto.
   { constructor; auto. by rewrite RELPLN. }
