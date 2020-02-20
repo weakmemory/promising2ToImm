@@ -166,7 +166,9 @@ Lemma issue_step_helper_next w wnext valw locw ordw langst
            ⟪ REQ_FROM : forall e (SE : S e), f_from' e = f_from e ⟫ /\
            ⟪ ISSEQ_TO   : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
            ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
-           ⟪ FTOWNBOT : f_to' w <> Time.bot ⟫ /\
+           ⟪ FTOWNBOT     : f_to' w <> Time.bot ⟫ /\
+           ⟪ FTOWNEXTNBOT : f_to' wnext <> Time.bot ⟫ /\
+           << FTONEXTNEQ  : f_to' w <> f_to' wnext >> /\
 
            exists promises_add memory_add promises_add2 memory',
              ⟪ PADD :
@@ -219,7 +221,8 @@ Lemma issue_step_helper_next w wnext valw locw ordw langst
                                       (Message.full valw (Some rel')) promises'
                    else promises' = promises_add2 ⟫ /\
 
-               ⟪ NEW_PROM_IN_MEM : Memory.le promises' memory' ⟫ /\
+               ⟪ OLD_PROM_IN_NEW_PROM : Memory.le (Local.promises local) promises' ⟫ /\
+               ⟪ NEW_PROM_IN_MEM      : Memory.le promises' memory' ⟫ /\
 
                let tview' := if is_rel lab w
                              then TView.write_tview
@@ -328,11 +331,6 @@ Proof using All.
   { red. basic_solver. }
   assert (S' wnext) as SWNEXT'.
   { red. basic_solver. }
-
-  assert (f_to' w <> f_to' wnext) as FTONEXTNEQ.
-  { intros HH. eapply f_to_eq with (I:=S') in HH; eauto.
-    { red. by rewrite LOC. }
-    all: red; basic_solver. }
 
   assert (exists promises'',
              ⟪ PEQ :
@@ -457,6 +455,18 @@ Proof using All.
     erewrite Memory.remove_o; eauto. rewrite loc_ts_eq_dec_eq; eauto.
     erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_neq; eauto.
     erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
+
+  assert (Memory.le (Local.promises local) promises') as OLD_PROM_IN_PROM_ADD.
+  { etransitivity; eapply memory_add_le; eauto. }
+
+  assert (Memory.le (Local.promises local) promises'') as OLD_PROM_IN_NEW_PROM.
+  { destruct (Rel w); subst; auto.
+    red. ins. erewrite Memory.remove_o; eauto.
+    destruct (loc_ts_eq_dec (loc, to) (locw, f_to' w)) as [|NN].
+    2: { rewrite loc_ts_eq_dec_neq; auto. }
+    desc. simpls. subst. exfalso.
+    apply Memory.add_get0 in PADD.
+    clear -PADD LHS. desc. rewrite PADD in LHS. inv LHS. }
 
   splits; eauto.
   { ins.
@@ -666,9 +676,7 @@ Proof using All.
       rewrite (loc_ts_eq_dec_neq PNEQ').
       erewrite Memory.add_o with (mem2:=memory_add); eauto.
       rewrite (loc_ts_eq_dec_neq PNEQ).
-      rewrite REQ_TO; auto. rewrite REQ_FROM; auto.
-      splits; ins.
-      apply NOTNEWP; auto; rewrite <- REQ_TO; auto. }
+      rewrite REQ_TO; auto. rewrite REQ_FROM; auto. }
     assert (b = wnext); subst.
     { eapply dom_sb_S_rfrmw_single; eauto. }
     assert (Some l = Some locw) as LL.

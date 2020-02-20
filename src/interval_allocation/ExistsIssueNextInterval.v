@@ -137,6 +137,7 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
            ⟪ FTOWNBOT     : f_to' w     <> Time.bot ⟫ /\
            ⟪ FTOWNEXTNBOT : f_to' wnext <> Time.bot ⟫ /\
            ⟪ FWWNEXTEQ    : f_from' wnext = f_to' w ⟫ /\
+           << FTONEXTNEQ : f_to' w <> f_to' wnext >> /\
 
            ⟪ DISJOINT : forall to from msg
                (INMEM : Memory.get locw to (Configuration.memory PC) = Some (from, msg)),
@@ -326,6 +327,16 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     { by intros HH; subst. }
     exfalso. eapply rf_rmw_in_coimm; eauto. }
 
+  set (S':=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)).
+  assert (S ⊆₁ S') as SINS by (unfold S'; eauto with hahn).
+  assert (S' ⊆₁ E ∩₁ W) as SEW'.
+  { subst S'. rewrite SEW at 1. unionL; eauto with hahn.
+    { unfolder. ins. desf. }
+    intros x HH.
+    assert (x = wnext); subst.
+    2: by split.
+    eapply dom_sb_S_rfrmwf; eauto. }
+
   destruct (classic (exists wconext, (co ⨾ ⦗ S ⦘) w wconext)) as [WCONEXT|WNONEXT].
   { edestruct co_next_to_imm_co_next with (w:=w) as [wconext]; eauto. clear WCONEXT. desc.
     assert ((co ⨾ ⦗set_compl S⦘ ⨾ co) wprev wconext) as CONS.
@@ -357,7 +368,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       destruct_seq_r R1 as AA. destruct_seq_r R2 as BB.
       eapply NCOIMM with (c:=c); apply seq_eqv_r; split; auto.
       eapply WF.(co_trans) with (y:=wnext); auto. }
-    
+
     destruct smode eqn:SMODE. (* [left|right]. *)
     2: { (* TODO: Currently, it's impossible to split wconextmsg in the needed way. *)
          (* TODO: To support FADDs w/ ctrl dependency, we need to
@@ -805,7 +816,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
         apply seq_eqv_r. by split. }
         by eapply WF.(co_trans); [|by apply COX]. }
 
-    set (S':=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)).
     assert (f_to_coherent G S' f_to' f_from') as FCOH_NEW.
     (* TODO: make a lemma. *)
     { unfold S', f_to', f_from'.
@@ -973,6 +983,11 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       eapply Memory.add_closed_timemap; eauto.
       subst rel''. destruct (Rel w); apply MEM_CLOSE. }
 
+    assert (f_to' w <> f_to' wnext) as FTONEXTNEQ.
+    { intros HH. eapply f_to_eq with (I:=S') in HH; eauto.
+      { red. by rewrite LOC. }
+      all: red; basic_solver. }
+
     splits; eauto; subst rel'0; subst rel''0. 
     { unfold View.join, TimeMap.join; ins. 
       repeat apply DenseOrder.join_spec; auto.
@@ -1136,16 +1151,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     subst ts A.
     destruct NFROM as [AA|]; desf.
     exfalso. generalize NWEX, RFRMW. unfold Execution.W_ex. clear. basic_solver. }
-
-  set (S':=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)).
-  assert (S ⊆₁ S') as SINS by (unfold S'; eauto with hahn).
-  assert (S' ⊆₁ E ∩₁ W) as SEW'.
-  { subst S'. rewrite SEW at 1. unionL; eauto with hahn.
-    { unfolder. ins. desf. }
-    intros x HH.
-    assert (x = wnext); subst.
-    2: by split.
-    eapply dom_sb_S_rfrmwf; eauto. }
 
   assert (f_to_coherent G S' f_to' f_from') as FCOH_NEW.
   (* TODO: make a lemma. *)
@@ -1317,6 +1322,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   { intros HH. eapply Time.lt_strorder with (x:=f_to' wnext). rewrite HH at 1.
     eapply TimeFacts.le_lt_lt; eauto. apply Time.bot_spec. }
 
+  assert (f_to' w <> f_to' wnext) as FTONEXTNEQ.
+  { intros HH. eapply f_to_eq with (I:=S') in HH; eauto.
+    { red. by rewrite LOC. }
+    all: red; basic_solver. }
 
   splits; eauto; subst rel'0; subst rel''0.
   { unfold View.join, TimeMap.join; ins. 
