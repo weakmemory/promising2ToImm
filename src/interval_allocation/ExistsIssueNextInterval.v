@@ -147,16 +147,21 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
                (INMEM : Memory.get locw to (Configuration.memory PC) = Some (from, msg)),
                Interval.disjoint (f_from' wnext, f_to' wnext) (from, to) ⟫ /\
 
-           exists promises_add memory_add promises' memory',
+           exists promises_add memory_add promises_rel promises' memory',
              ⟪ PADD :
                  Memory.add local.(Local.promises) locw (f_from' w) (f_to' w)
                             (Message.full valw (Some rel')) promises_add ⟫ /\
              ⟪ MADD :
                  Memory.add memory locw (f_from' w) (f_to' w)
                             (Message.full valw (Some rel')) memory_add ⟫ /\
+             ⟪ PEQ :
+                 if Rel w
+                 then Memory.remove promises_add locw (f_from' w) (f_to' w)
+                                    (Message.full valw (Some rel')) promises_rel
+                 else promises_rel = promises_add ⟫ /\
 
              ⟪ PADD2 :
-                 Memory.add promises_add locw (f_from' wnext) (f_to' wnext)
+                 Memory.add promises_rel locw (f_from' wnext) (f_to' wnext)
                             Message.reserve promises' ⟫ /\
              ⟪ MADD2 :
                  Memory.add memory_add locw (f_from' wnext) (f_to' wnext)
@@ -732,17 +737,40 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
                                   (Message.full valw (Some rel')))
       as [memory_add MADD]; eauto.
 
-    edestruct (@Memory.add_exists promises_add locw (f_from' wnext) (f_to' wnext)
-                                  Message.reserve)
-      as [promises' PADD2]; eauto; try by constructor.
-    { ins. erewrite Memory.add_o in GET2; eauto.
-      destruct (loc_ts_eq_dec (locw, to2) (locw, f_to' w)) as [|NEQ]; simpls; desc; subst.
+    assert (exists promises_rel,
+               ⟪ PEQ :
+                   if Rel w
+                   then Memory.remove promises_add locw (f_from' w) (f_to' w)
+                                      (Message.full valw (Some rel')) promises_rel
+                   else promises_rel = promises_add ⟫).
+    { destruct (is_rel lab w) eqn:REL; eauto.
+      edestruct Memory.remove_exists as [promises''].
+      2: { exists promises''. eauto. }
+      erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_eq. }
+    desc.
+
+    assert (forall to2 from2 msg2
+                   (GET2 : Memory.get locw to2 promises_add = Some (from2, msg2)),
+               Interval.disjoint (f_from' wnext, f_to' wnext) (from2, to2)) as DISJMM.
+    { ins; erewrite Memory.add_o in GET2; eauto.
+      destruct (loc_ts_eq_dec (locw, to2) (locw, f_to' w)) as [|NEQ];
+        simpls; desc; subst.
       { rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in GET2. inv GET2.
         unfold f_to', f_from'.
         repeat (rewrite !upds; repeat (rewrite updo; [|done])).
         symmetry. apply Interval.disjoint_imm. }
       rewrite (loc_ts_eq_dec_neq NEQ) in GET2.
       eapply DISJOINT''. eapply PROM_IN_MEM; eauto. }
+
+    edestruct (@Memory.add_exists promises_rel locw (f_from' wnext) (f_to' wnext)
+                                  Message.reserve)
+      as [promises' PADD2]; eauto; try by constructor.
+    { destruct (Rel w); subst; ins; auto.
+      erewrite Memory.remove_o in GET2; eauto.
+      destruct (loc_ts_eq_dec (locw, to2) (locw, f_to' w)).
+      { simpls; desc; subst. rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in GET2.
+        inv GET2. }
+      rewrite loc_ts_eq_dec_neq in GET2; auto. eapply DISJMM; eauto. }
 
     edestruct (@Memory.add_exists memory_add locw (f_from' wnext) (f_to' wnext)
                                   Message.reserve)
@@ -993,7 +1021,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       repeat apply DenseOrder.join_spec; auto.
       unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. reflexivity. }
     { unfold f_from', f_to'. rewrite upds. rewrite updo; auto. by rewrite upds. }
-    exists promises_add, memory_add, promises', memory'. splits; eauto.
+    exists promises_add, memory_add, promises_rel, promises', memory'. splits; eauto.
     { constructor; auto. by rewrite RELPLN. }
     subst. eapply sim_helper_issue with (S':=S'); eauto.
     { transitivity (fun _ : actid => False); [|clear; basic_solver].
@@ -1114,10 +1142,21 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
                (Message.full valw (Some rel')))
     as [memory_add MADD]; auto.
 
-  edestruct (@Memory.add_exists
-               promises_add locw (f_from' wnext) (f_to' wnext)
-               Message.reserve)
-    as [promises' PADD2]; auto; try by constructor.
+  assert (exists promises_rel,
+             ⟪ PEQ :
+                 if Rel w
+                 then Memory.remove promises_add locw (f_from' w) (f_to' w)
+                                    (Message.full valw (Some rel')) promises_rel
+                 else promises_rel = promises_add ⟫).
+  { destruct (is_rel lab w) eqn:REL; eauto.
+    edestruct Memory.remove_exists as [promises''].
+    2: { exists promises''. eauto. }
+    erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_eq. }
+  desc.
+
+  assert (forall to2 from2 msg2
+                 (GET2 : Memory.get locw to2 promises_add = Some (from2, msg2)),
+             Interval.disjoint (f_from' wnext, f_to' wnext) (from2, to2)) as DISJMM.
   { ins. erewrite Memory.add_o in GET2; eauto.
     destruct (classic (to2 = f_to' w)); subst.
     { rewrite loc_ts_eq_dec_eq in GET2. inv GET2.
@@ -1126,6 +1165,16 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     rewrite loc_ts_eq_dec_neq in GET2; eauto.
     eapply DISJOINT'.
     eapply PROM_IN_MEM; eauto. }
+
+  edestruct (@Memory.add_exists promises_rel locw (f_from' wnext) (f_to' wnext)
+                                Message.reserve)
+    as [promises' PADD2]; eauto; try by constructor.
+  { destruct (Rel w); subst; ins; auto.
+    erewrite Memory.remove_o in GET2; eauto.
+    destruct (loc_ts_eq_dec (locw, to2) (locw, f_to' w)).
+    { simpls; desc; subst. rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in GET2.
+      inv GET2. }
+    rewrite loc_ts_eq_dec_neq in GET2; auto. eapply DISJMM; eauto. }
 
   edestruct (@Memory.add_exists
                memory_add locw (f_from' wnext) (f_to' wnext)
@@ -1149,6 +1198,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   { right. splits; auto.
     2: { intros HH. generalize NWEX, HH. unfold Execution.W_ex. clear. basic_solver. }
     subst ts A.
+    clear PEQ.
     destruct NFROM as [AA|]; desf.
     exfalso. generalize NWEX, RFRMW. unfold Execution.W_ex. clear. basic_solver. }
 
@@ -1332,7 +1382,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     repeat apply DenseOrder.join_spec; auto.
     unfold TimeMap.singleton, LocFun.add. rewrite Loc.eq_dec_eq. reflexivity. }
   { unfold f_from', f_to'. rewrite upds. rewrite updo; auto. by rewrite upds. }
-  exists promises_add, memory_add, promises', memory'.
+  exists promises_add, memory_add, promises_rel, promises', memory'.
   splits; eauto.
   { constructor; auto. by rewrite RELPLN. }
   subst. eapply sim_helper_issue with (S':=S'); eauto.
