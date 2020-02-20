@@ -293,11 +293,9 @@ Proof using WF CON.
     rewrite IdentMap.gss.
  
     eexists; eexists; eexists; splits; eauto; simpls.
-    { admit. }
-    (* { ins. rewrite IdentMap.gso in TID'; auto. *)
-    (*   edestruct (PROM_DISJOINT thread') as [HH|]; eauto. *)
-    (*   left. destruct (Memory.get loc to promises_add2) eqn:AA; auto. *)
-    (*   destruct p. eapply OLD_PROM_IN_NEW_PROM in AA. by rewrite HH in AA. } *)
+    { ins.
+      eapply PROM_DISJOINT0; eauto.
+      rewrite IdentMap.gso; auto. rewrite IdentMap.gso in TID'; eauto. }
     { red; ins.
       destruct (Ordering.le Ordering.acqrel (Event_imm_promise.wmod ordw)); vauto.
       destruct (classic (b = w)) as [|NEQ].
@@ -317,8 +315,7 @@ Proof using WF CON.
       destruct H1 as [PROM REL']; auto; unnw.
       { by intros H; apply COVWB; left. }
       split.
-      { admit. }
-      (* { by apply LELCL'. } *)
+      { by apply OLD_PROM_IN_NEW_PROM. }
 
       (* TODO: generalize! *)
       assert (l = locw -> Time.lt (f_to' w) (f_to b)) as FGT.
@@ -343,9 +340,8 @@ Proof using WF CON.
         clear. basic_solver. }
       desc. exists p_rel.
       destruct (classic (l = locw)) as [|LL]; subst.
-      { admit. }
-      (* { exfalso. apply LELCL' in PROM. *)
-      (*   apply NOWLOC in PROM; auto. inv PROM. } *)
+      { exfalso. apply OLD_PROM_IN_NEW_PROM in PROM.
+        apply NOWLOC in PROM; auto. inv PROM. }
 
       simpls.
       unfold LocFun.add. rewrite Loc.eq_dec_neq; auto.
@@ -452,6 +448,6 @@ Proof using WF CON.
     rewrite REQ_FROM; eauto.
     apply SIM_RES_MEM1; auto. }
   eapply sim_tview_f_issued; eauto.
-Admitted.
+Qed.
 
 End IssuePlainStep.
