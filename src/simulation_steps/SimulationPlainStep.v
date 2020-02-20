@@ -41,6 +41,7 @@ Require Import ReservePlainStep.
 Require Import IssuePlainStep.
 Require Import IssueNextPlainStep.
 Require Import IssueRelPlainStep.
+Require Import IssueRelNextPlainStep.
 Require Import IssueReservedPlainStep.
 Require Import IssueReservedRelPlainStep.
 Require Import IssueReservedRelNextPlainStep.
@@ -172,7 +173,8 @@ Proof using WF CON.
     2: { edestruct issue_rel_step_no_next; eauto.
          { generalize EMP. clear. basic_solver. }
          desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
-    admit. }
+    desc. edestruct issue_rel_step_next; eauto.
+    desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
 
   { (* Relaxed RMW covering *)
     assert (R r) as RR.
@@ -196,6 +198,6 @@ Proof using WF CON.
        desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto. }
   desc. edestruct issue_rel_reserved_step_with_next; eauto.
   desc. do 3 eexists. splits; eauto. by eapply inclusion_t_rt; eauto.
-Admitted.
+Qed.
 
 End PlainStep.

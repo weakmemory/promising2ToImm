@@ -291,19 +291,20 @@ Proof using WF CON.
     { ins. rewrite WEXRES; auto. eauto with hahn. }
     { do 2 (eapply Memory.add_closed; eauto). }
     rewrite IdentMap.gss.
-    (* TODO: continue from here. *)
  
     eexists; eexists; eexists; splits; eauto; simpls.
-    { ins. rewrite IdentMap.gso in TID'; auto.
-      edestruct (PROM_DISJOINT thread') as [HH|]; eauto.
-      left. destruct (Memory.get loc to promises') eqn:AA; auto.
-      destruct p. eapply LELCL'' in AA. by rewrite HH in AA. }
+    { admit. }
+    (* { ins. rewrite IdentMap.gso in TID'; auto. *)
+    (*   edestruct (PROM_DISJOINT thread') as [HH|]; eauto. *)
+    (*   left. destruct (Memory.get loc to promises_add2) eqn:AA; auto. *)
+    (*   destruct p. eapply OLD_PROM_IN_NEW_PROM in AA. by rewrite HH in AA. } *)
     { red; ins.
       destruct (Ordering.le Ordering.acqrel (Event_imm_promise.wmod ordw)); vauto.
       destruct (classic (b = w)) as [|NEQ].
       { subst.
         unfold loc in LOC; unfold val in VAL; rewrite PARAMS in *; inv LOC.
         eexists (Some _); splits; eauto.
+        { eapply Memory.add_closed_timemap; eauto. }
         intros _ H. by exfalso; apply H; right. }
       destruct ISSB as [ISSB|]; [|by subst].
       edestruct SIM_MEM as [rel]; eauto.
@@ -311,12 +312,13 @@ Proof using WF CON.
       rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto.
       exists rel; splits; auto.
       { eapply sim_mem_helper_f_issued; eauto. }
-      { eapply Memory.add_closed_timemap; eauto. }
+      { do 2 (eapply Memory.add_closed_timemap; eauto). }
       intros TT COVWB.
       destruct H1 as [PROM REL']; auto; unnw.
       { by intros H; apply COVWB; left. }
       split.
-      { by apply LELCL'. }
+      { admit. }
+      (* { by apply LELCL'. } *)
 
       (* TODO: generalize! *)
       assert (l = locw -> Time.lt (f_to' w) (f_to b)) as FGT.
@@ -341,8 +343,9 @@ Proof using WF CON.
         clear. basic_solver. }
       desc. exists p_rel.
       destruct (classic (l = locw)) as [|LL]; subst.
-      { exfalso. apply LELCL' in PROM.
-        apply NOWLOC in PROM; auto. inv PROM. }
+      { admit. }
+      (* { exfalso. apply LELCL' in PROM. *)
+      (*   apply NOWLOC in PROM; auto. inv PROM. } *)
 
       simpls.
       unfold LocFun.add. rewrite Loc.eq_dec_neq; auto.
@@ -378,10 +381,10 @@ Proof using WF CON.
       all: rewrite EQ_CUR; reflexivity. }
     { assert (Memory.closed_timemap (View.rlx (TView.cur (Local.tview local))) memory')
              as CURA.
-      { eapply Memory.add_closed_timemap; eauto. apply MEM_CLOSE. }
+      { do 2 (eapply Memory.add_closed_timemap; eauto). apply MEM_CLOSE. }
       assert (Memory.closed_timemap (View.rlx (TView.acq (Local.tview local))) memory')
              as ACQA.
-      { eapply Memory.add_closed_timemap; eauto. apply MEM_CLOSE. }
+      { do 2 (eapply Memory.add_closed_timemap; eauto). apply MEM_CLOSE. }
       assert (Memory.closed_timemap (TimeMap.singleton locw (f_to' w)) memory') as SINA.
       { eapply Memory.singleton_closed_timemap; eauto. }
       unfold TView.write_tview; simpls.
@@ -389,11 +392,15 @@ Proof using WF CON.
       all: desf; ins.
       all: repeat (apply Memory.join_closed_timemap); auto.
       unfold LocFun.add, LocFun.find; desf.
-      2: { eapply Memory.add_closed_timemap; eauto. apply MEM_CLOSE. }
+      2: { do 2 (eapply Memory.add_closed_timemap; eauto). apply MEM_CLOSE. }
       apply Memory.join_closed_timemap; auto. }
     red. splits; eauto.
     ins. rewrite INDEX_NRMW; auto.
     apply sim_state_cover_event; auto. }
+
+  assert (IdentMap.In (tid w) (Configuration.threads PC)) as INTT.
+  { apply IdentMap.Facts.in_find_iff. rewrite LLH. desf. }
+
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
   subst. desc. red.
@@ -405,10 +412,13 @@ Proof using WF CON.
   apply IdentMap.Facts.add_in_iff in AA.
   destruct AA as [AA|AA]; subst; auto.
   { apply SIMREL_THREAD'. }
+  apply IdentMap.Facts.add_in_iff in AA.
+  destruct AA as [AA|AA]; subst; auto.
+  { exfalso. by apply TNEQ. }
   apply SIMREL in AA. cdes AA.
   eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
-  11: { simpls. eapply msg_preserved_add; eauto. }
-  10: { simpls. eapply closedness_preserved_add; eauto. }
+  11: { simpls. eapply msg_preserved_trans; eapply msg_preserved_add; eauto. }
+  10: { simpls. eapply closedness_preserved_trans; eapply closedness_preserved_add; eauto. }
   9: by eapply same_other_threads_steps; eauto.
   all: simpls; eauto.
   { rewrite coveredE; eauto. generalize EW. clear. basic_solver. }
@@ -416,12 +426,16 @@ Proof using WF CON.
   1-5: clear; basic_solver.
   { rewrite dom_sb_S_rfrmw_same_tid; auto. clear. basic_solver. }
   { ins.
-    etransitivity; [|by symmetry; apply IdentMap.Facts.add_in_iff].
-    split.
-    { ins; eauto. }
-    intros [|HH]; subst; auto.
-    apply SIMREL_THREAD; auto. }
-  { apply IdentMap.Facts.add_in_iff in TP. destruct TP as [HH|]; auto; subst.
+    destruct (classic (thread0 = tid w)); subst.
+    { split; ins; auto. apply IdentMap.Facts.add_in_iff; eauto. }
+    split; intros HH; auto.
+    { apply IdentMap.Facts.add_in_iff; eauto. right.
+      apply IdentMap.Facts.add_in_iff; eauto. }
+    apply IdentMap.Facts.add_in_iff in HH. desf.
+    apply IdentMap.Facts.add_in_iff in HH. desf. }
+  { apply IdentMap.Facts.add_in_iff in TP. destruct TP as [HH|HH]; auto; subst.
+    { clear -TNEQ. desf. }
+    apply IdentMap.Facts.add_in_iff in HH. destruct HH; eauto; subst.
     clear -TNEQ. desf. }
   { eapply sim_prom_f_issued; eauto. }
   { red. ins. apply SIM_RPROM0 in RES. desc.
@@ -438,6 +452,6 @@ Proof using WF CON.
     rewrite REQ_FROM; eauto.
     apply SIM_RES_MEM1; auto. }
   eapply sim_tview_f_issued; eauto.
-Qed.
+Admitted.
 
 End IssuePlainStep.
