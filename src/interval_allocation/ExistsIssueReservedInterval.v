@@ -103,8 +103,11 @@ Hypothesis PROM_IN_MEM :
     Memory.le local.(Local.promises) PC.(Configuration.memory).
 
 (* In the correspoding case, we don't reserve new events
-   so the simulation may proceed with the same timestamp mapping functions,
-   i.e. f_to' = f_to /\ f_from' = f_from *)
+   so the simulation would be able to proceed with the same timestamp mapping functions,
+   i.e. f_to' = f_to /\ f_from' = f_from, but we need to guarantee that
+   the new message is not immediately before others
+   (specifically, reservations introduced by the capped memory).
+ *)
 Lemma exists_time_interval_for_issue_reserved_no_next
       w locw valw langst smode
       (WNISS : ~ issued T w)
@@ -121,17 +124,20 @@ Lemma exists_time_interval_for_issue_reserved_no_next
   let T'       := mkTC (covered T) (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC.(Configuration.memory) w locw p_rel /\
+    let f_to' := upd f_to w (Time.middle (f_from w) (f_to w)) in
     let rel'' :=
         if is_rel lab w
         then (TView.cur (Local.tview local))
         else (TView.rel (Local.tview local) locw)
     in
     let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
-                           (View.singleton_ur locw (f_to w))) in
+                           (View.singleton_ur locw (f_to' w))) in
     ⟪ RELWFEQ : View.pln rel' = View.rlx rel' ⟫ /\
-    ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to w) ⟫ /\
-    ⟪ REL_VIEW_LE : Time.le (View.rlx rel' locw) (f_to w) ⟫ /\
+    ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
+    ⟪ REL_VIEW_LE : Time.le (View.rlx rel'  locw) (f_to' w) ⟫ /\
 
+    ⟪ REQ_TO   : forall e (NEQ : e <> w), f_to' e = f_to e ⟫ /\
+    ⟪ ISSEQ_TO : forall e (ISS : issued T e), f_to' e = f_to e ⟫ /\
 
     exists promises_cancel memory_cancel,
       ⟪ PCANCEL :
@@ -143,29 +149,29 @@ Lemma exists_time_interval_for_issue_reserved_no_next
 
       exists promises_add memory_add,
         ⟪ PADD :
-            Memory.add promises_cancel locw (f_from w) (f_to w)
+            Memory.add promises_cancel locw (f_from w) (f_to' w)
                        (Message.full valw (Some rel')) promises_add ⟫ /\
         ⟪ MADD :
-            Memory.add memory_cancel locw (f_from w) (f_to w)
+            Memory.add memory_cancel locw (f_from w) (f_to' w)
                        (Message.full valw (Some rel')) memory_add ⟫ /\
 
         ⟪ INHAB : Memory.inhabited memory_add ⟫ /\
         ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add ⟫ /\
         ⟪ RELVCLOS : Memory.closed_view rel' memory_add ⟫ /\
 
-        ⟪ FCOH : f_to_coherent G S' f_to f_from ⟫ /\
+        ⟪ FCOH : f_to_coherent G S' f_to' f_from ⟫ /\
 
         ⟪ HELPER :
             sim_mem_helper
-              G sc f_to w (f_from w) valw
+              G sc f_to' w (f_from w) valw
               (View.join (View.join (if is_rel lab w
                                      then (TView.cur (Local.tview local))
                                      else (TView.rel (Local.tview local) locw))
                                     p_rel.(View.unwrap))
-                         (View.singleton_ur locw (f_to w))) ⟫ /\
+                         (View.singleton_ur locw (f_to' w))) ⟫ /\
 
         ⟪ RESERVED_TIME :
-            reserved_time G T' S' f_to f_from smode memory_add ⟫.
+            reserved_time G T' S' f_to' f_from smode memory_add ⟫.
 Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN_RLX_EQ MEM_CLOSE PROM_IN_MEM.
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
@@ -237,11 +243,25 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
          if Rel w
          then TView.cur (Local.tview local)
          else TView.rel (Local.tview local) locw).
-  
+
+  assert (Time.lt (f_from w) (f_to w)) as FFT by (by apply FCOH).
   assert (co wprev w) as COWPREV.
   { eapply rf_rmw_in_co; eauto. }
-  assert (Time.lt (f_to wprev) (f_to w)) as PREVNLT.
-  { eapply f_to_co_mon; eauto. }
+  
+  set (f_to' := upd f_to w (Time.middle (f_from w) (f_to w))).
+  assert (REQ_TO : forall e (NEQ : e <> w), f_to' e = f_to e).
+  { ins. unfold f_to'. rewrite updo; auto. }
+  assert (ISSEQ_TO : forall e (ISS : issued T e), f_to' e = f_to e).
+  { ins. unfold f_to'. rewrite updo; auto. by intros HH; subst. }
+
+  assert (Time.lt (f_to' wprev) (f_to w)) as PREVNLT.
+  { rewrite REQ_TO; auto. eapply f_to_co_mon; eauto. }
+  assert (Time.le (f_to' wprev) (f_from w)) as PREVNEF.
+  { rewrite REQ_TO; auto. apply FCOH; eauto. }
+  assert (Time.lt (f_to' wprev) (f_to' w)) as PREVNLT'.
+  { unfold f_to' at 2. rewrite upds.
+    eapply TimeFacts.le_lt_lt with (b:=f_from w); auto.
+      by apply Time.middle_spec. }
 
   assert (Time.le (View.rlx rel'' locw)
                   (View.rlx (TView.cur (Local.tview local)) locw)) as GG.
@@ -249,16 +269,17 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     { reflexivity. }
     subst. eapply rel_le_cur; eauto. }
 
-  assert (Time.lt (View.rlx rel'' locw) (f_to w)) as REL_VIEW_LT.
+  assert (Time.lt (View.rlx rel'' locw) (f_to' w)) as REL_VIEW_LT.
   { eapply TimeFacts.le_lt_lt; [by apply GG|].
-    eapply TimeFacts.le_lt_lt; [|by apply PREVNLT].
-    eapply le_cur_f_to_wprev; eauto. }
+    eapply TimeFacts.le_lt_lt; [|by apply PREVNLT'].
+    rewrite REQ_TO; auto. eapply le_cur_f_to_wprev; eauto. }
 
   set (rel' := View.join (View.join rel'' (View.unwrap p_rel))
-                         (View.singleton_ur locw (f_to w))).
-  assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to wprev)) as PREL_LE'.
-  { eapply le_p_rel_f_to_wprev; eauto. }
-  assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to w)) as PREL_LE.
+                         (View.singleton_ur locw (f_to' w))).
+  assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to' wprev)) as PREL_LE'.
+  { rewrite REQ_TO; auto.
+    eapply le_p_rel_f_to_wprev; eauto. }
+  assert (Time.le (View.rlx (View.unwrap p_rel) locw) (f_to' w)) as PREL_LE.
   { desc.
     destruct PRELSPEC0; desc.
     { rewrite PREL. apply Time.bot_spec. }
@@ -266,10 +287,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     { eapply wf_rfrmwf; eauto. }
     apply Time.le_lteq. left.
     eapply TimeFacts.le_lt_lt.
-    2: by apply PREVNLT.
+    2: by apply PREVNLT'.
     done. }
 
-  assert (Time.le (View.rlx rel' locw) (f_to w)) as REL_VIEW_LE.
+  assert (Time.le (View.rlx rel' locw) (f_to' w)) as REL_VIEW_LE.
   { unfold rel'.
     unfold View.join, TimeMap.join. simpls.
     unfold TimeMap.singleton, LocFun.add.
@@ -297,7 +318,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     as [memory_cancel MCANCEL].
   { by apply Memory.remove_exists. }
 
-  assert (Time.lt (f_from w) (f_to w)) as WFLT by (by apply FCOH).
+  assert (Time.lt (f_from w) (f_to' w)) as WFLT.
+  { unfold f_to'. rewrite upds. by apply Time.middle_spec. }
 
   assert (View.pln rel' = View.rlx rel') as RELWFEQ.
   { unfold rel'. simpls. desc. rewrite REL_PLN_RLX.
@@ -315,9 +337,14 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
 
   assert (Message.wf (Message.full valw (Some rel'))) as MWF by (by constructor).
 
+  assert (Interval.le (f_from w, f_to' w) (f_from w, f_to w)) as LENIOI.
+  { unfold f_to'. rewrite upds. constructor; simpls.
+    { reflexivity. }
+    apply Time.le_lteq. left. by apply Time.middle_spec. }
+
   assert (exists promises_add,
              Memory.add promises_cancel locw
-                        (f_from w) (f_to w) (Message.full valw (Some rel'))
+                        (f_from w) (f_to' w) (Message.full valw (Some rel'))
                         promises_add)
     as [promises_add PADD].
   { apply Memory.add_exists; auto.
@@ -328,12 +355,13 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     { simpls. desc; subst.
       rewrite (loc_ts_eq_dec_eq locw (f_to w)) in GET2. inv GET2. }
     rewrite loc_ts_eq_dec_neq in GET2; eauto.
+    apply Interval.le_disjoint with (b:=(f_from w, f_to w)); auto.
     edestruct Memory.get_disjoint with (t1:=f_to w) (t2:=to2)
                                        (m:=Local.promises local); eauto.
     desf. }
   assert (exists memory_add,
              Memory.add memory_cancel locw
-                        (f_from w) (f_to w) (Message.full valw (Some rel'))
+                        (f_from w) (f_to' w) (Message.full valw (Some rel'))
                         memory_add)
     as [memory_add MADD].
   { apply Memory.add_exists; auto.
@@ -344,6 +372,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     { simpls. desc; subst.
       rewrite (loc_ts_eq_dec_eq locw (f_to w)) in GET2. inv GET2. }
     rewrite loc_ts_eq_dec_neq in GET2; eauto.
+    apply Interval.le_disjoint with (b:=(f_from w, f_to w)); auto.
     edestruct Memory.get_disjoint with (t1:=f_to w) (t2:=to2)
                                        (m:=PC.(Configuration.memory)); eauto.
     desf. }
@@ -352,8 +381,11 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   { red. ins.
     erewrite Memory.add_o; eauto.
     erewrite Memory.remove_o; eauto.
+    destruct (loc_ts_eq_dec (loc, Time.bot) (locw, f_to' w)) as [AA|LL']; simpls; desc; subst.
+    { exfalso. eapply time_lt_bot with (a:=f_from w). rewrite AA0; auto. }
+    rewrite !(loc_ts_eq_dec_neq LL').
     destruct (loc_ts_eq_dec (loc, Time.bot) (locw, f_to w)) as [AA|LL]; simpls; desc; subst.
-    { exfalso. eapply time_lt_bot. rewrite AA0. by apply FCOH. }
+    { exfalso. eapply time_lt_bot with (a:=f_from w). rewrite AA0; auto. }
     rewrite !(loc_ts_eq_dec_neq LL).
     apply INHAB. }
 
@@ -362,30 +394,60 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     generalize SW. basic_solver. }
 
   assert (reserved_time G (mkTC (covered T) (issued T ∪₁ eq w))
-                        S f_to f_from smode memory_add) as REST.
+                        S f_to' f_from smode memory_add) as REST.
   { destruct smode; [|by apply RESERVED_TIME].
+    unfold f_to'.
     red. splits.
-    3: by apply RESERVED_TIME.
+    3: { intros x y SX SY CO FF.
+         destruct (classic (x = w)); subst.
+         2: { rewrite REQ_TO in FF; auto. by apply RESERVED_TIME. }
+         exfalso. rewrite upds in FF.
+         eapply Time.lt_strorder with (x:=Time.middle (f_from w) (f_to w)).
+         rewrite FF at 2.
+         apply TimeFacts.lt_le_lt with (b:=f_to w).
+         2: by apply FCOH.
+           by apply Time.middle_spec. }
     all: red; ins; erewrite Memory.add_o in MSG; eauto.
-    all: destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [LTEQ|LTNEQ].
+    all: destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [LTEQ|LTNEQ'].
     { simpls. desc; subst. right. exists w. splits; eauto.
       { clear. basic_solver. }
-      rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG. }
+      rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in MSG. inv MSG. }
     { rewrite loc_ts_eq_dec_neq in MSG; eauto.
       erewrite Memory.remove_o in MSG; eauto.
+      destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [LTEQ|LTNEQ].
+      { simpls. desc. subst. rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG. }
       rewrite loc_ts_eq_dec_neq in MSG; eauto.
-      eapply RESERVED_TIME in MSG.
-      generalize MSG. clear. basic_solver 10. }
+      eapply RESERVED_TIME in MSG. destruct MSG as [|MSG]; desc; subst; auto.
+      right. exists b. splits; eauto.
+        by left. }
     { simpls. desc; subst. 
-      rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG. }
+      rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in MSG. inv MSG. }
     rewrite loc_ts_eq_dec_neq in MSG; eauto.
     erewrite Memory.remove_o in MSG; eauto.
+    destruct (loc_ts_eq_dec (l, to) (locw, f_to w)) as [LTEQ|LTNEQ].
+    { simpls. desc. subst. rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG. }
     rewrite loc_ts_eq_dec_neq in MSG; eauto.
     eapply RESERVED_TIME in MSG.
-    desc. exists b. splits; eauto.
-    intros [|AA]; [by desf|subst].
-    simpls. destruct LTNEQ as [AA|AA]; apply AA; auto.
-    rewrite LOC0 in LOC. inv LOC. }
+    desc. subst.
+    assert (b <> w) as NEQBW.
+    { intros HH. subst. simpls.
+      rewrite LOC0 in LOC. inv LOC.
+      clear -LTNEQ. desf. }
+    exists b. splits; eauto.
+    intros [|AA]; desf. }
+
+  assert (f_to_coherent G S f_to' f_from) as FCOH_NEW.
+  { unfold f_to' in *.
+    red. splits.
+    { intros x []. rewrite REQ_TO; [|by intros HH; subst]. by apply FCOH. }
+    { by apply FCOH. }
+    all: ins; destruct (classic (x = w)); subst; [rewrite upds|rewrite updo; auto; by apply FCOH].
+    { by apply Time.middle_spec. }
+    { apply Time.le_lteq. left. apply TimeFacts.lt_le_lt with (b:=f_to w).
+      { by apply Time.middle_spec. }
+        by apply FCOH. }
+    exfalso. apply WNISS. eapply dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
+    exists y. apply seqA. apply seq_eqv_r. by split. }
 
   assert (forall tmap (MCLOS : Memory.closed_timemap tmap PC.(Configuration.memory)),
              Memory.closed_timemap tmap memory_add) as MADDCLOS.
@@ -408,7 +470,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
   do 2 eexists. splits; eauto.
   { constructor; auto. simpls. by rewrite RELWFEQ. }
   { by rewrite NEWS. }
-  { eapply sim_helper_issue with (S':=S); eauto. apply ETCCOH. }
+  { eapply sim_helper_issue with (S':=S); eauto. by apply ETCCOH. }
   eapply reserved_time_more.
   3: by apply NEWS.
   all: eauto.
