@@ -95,7 +95,8 @@ Lemma exists_time_interval_for_reserve PC w locw langst local smode
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local PC.(Configuration.memory))
       (MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory))
-      (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local)) :
+      (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
+      (WEXRES : smode = sim_certification -> W_ex ⊆₁ S) :
   let memory := PC.(Configuration.memory) in
   exists f_to' f_from' promises' memory',
     ⟪ PADD :
@@ -150,16 +151,17 @@ Proof using WF IMMCON ETCCOH FCOH.
   { eapply W_ex_in_codom_rfrmw; eauto. }
   
   assert (smode = sim_normal); subst.
-  { destruct smode; auto.
-    exfalso. apply NSW.
-    cdes RESERVED_TIME.
-    assert (dom_rel (sb^? ⨾ ⦗S⦘) w) as [w' AA] by (by apply RMW_BEF_S).
-    destruct_seq_r AA as SW'.
-    destruct AA as [|AA]; desf.
-    eapply ETCCOH.(etc_sb_S). red. simpls.
-    split.
-    { basic_solver 10. }
-    admit. }
+  { destruct smode; auto. exfalso.
+    apply NSW. by apply WEXRES. }
+  (* { destruct smode; auto. *)
+  (*   exfalso. apply NSW. *)
+  (*   cdes RESERVED_TIME. *)
+  (*   assert (dom_rel (sb^? ⨾ ⦗S⦘) w) as [w' AA] by (by apply RMW_BEF_S). *)
+  (*   destruct_seq_r AA as SW'. *)
+  (*   destruct AA as [|AA]; desf. *)
+  (*   eapply ETCCOH.(etc_sb_S). red. simpls. *)
+  (*   split. *)
+  (*   { basic_solver 10. } *)
     (* eapply ETCCOH'.(etc_S_W_ex_rfrmw_I). split; auto. *)
     (* basic_solver. } *)
 
@@ -358,6 +360,8 @@ Proof using WF IMMCON ETCCOH FCOH.
   exists promises', memory'. splits; auto.
   all: ins; unfold f_to', f_from'; rewrite updo; auto.
   all: intros HH; desf.
-Admitted.
+Unshelve.
+all: apply None.
+Qed.
 
 End Aux.
