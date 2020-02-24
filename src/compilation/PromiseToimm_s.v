@@ -351,7 +351,7 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF.
     red in HH. destruct HH as [CC [HH _]]. subst.
     apply WF.(init_w) in AA.
     type_solver. }
-  { admit. }
+  { intros HH. inv HH. }
   { red. splits; ins.
     3: { match goal with
          | H : co _ _ _ |- _ => rename H into CO
@@ -438,7 +438,7 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF.
   symmetry in UU. apply YY in UU.
   desc. red in UU. desc.
   eexists. splits; eauto. by subst.
-Admitted.
+Qed.
 
 Definition thread_is_terminal ths tid :=
   forall (lang : Language.t ProgramEvent.t) st lc
