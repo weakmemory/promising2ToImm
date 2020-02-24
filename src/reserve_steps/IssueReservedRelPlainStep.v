@@ -110,14 +110,18 @@ Lemma issue_rel_reserved_step_no_next PC T (S : actid -> Prop) f_to f_from threa
 
   let T' := mkTC (covered T ∪₁ eq r ∪₁ eq w) (issued T ∪₁ eq w) in
   let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
-  exists PC',
+  exists f_to' PC',
     ⟪ PCSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread smode ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from thread smode ⟫ /\
     ⟪ SIMREL :
         smode = sim_normal -> simrel G sc PC T S f_to f_from ->
-        simrel G sc PC' T' S' f_to f_from ⟫.
+        simrel G sc PC' T' S' f_to' f_from ⟫.
 Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
+
+  assert (coherence G) as COH by apply CON.
+  assert (wf_sc G sc) as WF_sc by apply CON.
+  assert (coh_sc G sc) as COH_sc by apply CON.
 
   assert (NEXT : next G (covered T) r).
   { eapply ext_itrav_step_cov_next with (T:=mkETC T S); eauto. }
@@ -315,9 +319,13 @@ Proof using WF CON.
   (* destruct H1 as [H1|H1]; red in H1; desc. *)
   (* 2: done. *)
   destruct (is_rel lab w) eqn:RELVV; simpls.
+  
+  set (f_to' := upd f_to w (Time.middle (f_from w) (f_to w))).
+  assert (ISSEQ_TO : forall e : actid, issued T e -> f_to' e = f_to e).
+  { ins. unfold f_to'. rewrite updo; auto. by intros HH; subst. }
 
   set (pe := ThreadEvent.update
-               locr (f_from w) (f_to w) valr valw
+               locr (f_from w) (f_to' w) valr valw
                rel' (Some
                        (View.join
                           (View.join
@@ -333,7 +341,7 @@ Proof using WF CON.
                                                 (Event_imm_promise.rmod (Events.mod lab r))
                                   then View.unwrap rel'
                                   else View.bot)) (View.unwrap rel'))
-                          (View.singleton_ur locr (f_to w))))
+                          (View.singleton_ur locr (f_to' w))))
                (Event_imm_promise.rmod ordr) (Event_imm_promise.wmod ordw)).
 
   assert (Rlx r /\ Rlx w) as [RRLX WRLX].
@@ -357,12 +365,14 @@ Proof using WF CON.
     destruct ordw; simpls. }
 
   assert (f_to w' = f_from w) as FF.
-  { apply FCOH0; auto.
+  { rewrite <- ISSEQ_TO; auto.
+    apply FCOH0; auto.
     { by do 2 left. }
     clear. basic_solver. }
 
   assert (forall l to from msg 
-                 (NEQ : l <> locr \/ to <> f_to w),
+                 (NEQ  : l <> locr \/ to <> f_to  w)
+                 (NEQ' : l <> locr \/ to <> f_to' w),
              Memory.get l to memory_add = Some (from, msg) <->
              Memory.get l to PC.(Configuration.memory) = Some (from, msg))
     as NOTNEWM.
@@ -380,7 +390,15 @@ Proof using WF CON.
   { intros HH.
     eapply f_to_eq with (I:=S) in HH; subst; eauto.
     red. by rewrite WLOC. }
+  assert (f_to w' <> f_to' w) as FWNEQ'.
+  { rewrite <- ISSEQ_TO; auto.
+    intros HH.
+    eapply f_to_eq in HH; (try by apply FCOH0); subst; eauto.
+    { admit. }
+    { red. by rewrite WLOC. }
+    all: admit. }
 
+  exists f_to'.
   eexists (Configuration.mk _ _ memory_add).
   apply and_assoc. apply pair_app.
   { split.
@@ -438,7 +456,6 @@ Proof using WF CON.
           all: generalize SA SW'; clear; basic_solver. }
         exfalso.
         eapply transp_rf_co_urr_irr; eauto.
-        1-3: by apply CON.
         exists w'; split.
         { right; red; apply RF. }
         exists a_max; split; eauto. }
@@ -509,25 +526,19 @@ Proof using WF CON.
     { clear WREPR REPR. rewrite <- FF, <- RORD, <- WORD.
       apply SIM_MEM1. }
     { eapply sim_tview_write_step; eauto.
-      1,2: by apply CON.
-      3: rewrite <- FF; eapply sim_tview_read_step; eauto. 
+      3: { rewrite <- FF.
+           eapply sim_tview_f_issued with (T:=mkTC (covered T ∪₁ eq r) (issued T)); eauto.
+           eapply sim_tview_read_step; eauto. 
+           all: admit. }
       { apply set_subset_union_l; split.
         all: intros x H.
         { apply TCCOH in H; apply H. }
           by desf. }
-      5: { red. ins. eapply NEXT. red. eauto. }
-      2,3: by apply CON.
       { red. ins. left. apply seq_eqv_r in REL0.
         destruct REL0 as [SB [COVY|]]; subst.
         { apply TCCOH in COVY. apply COVY. eexists.
           apply seq_eqv_r. eauto. }
         apply NEXT. eexists. apply seq_eqv_r. eauto. }
-      { intros y [COVY TIDY].
-        edestruct same_thread with (x:=r) (y:=y) as [[|SB]|SB]; eauto.
-        { apply TCCOH in COVY. apply COVY. }
-        { exfalso. apply RNCOV. by subst. }
-        exfalso. apply RNCOV. apply TCCOH in COVY.
-        apply COVY. eexists. apply seq_eqv_r. eauto. }
       { intros [HH|HH]. 
         { by apply WNCOV. }
         clear -HH RREAD WWRITE.
@@ -549,8 +560,7 @@ Proof using WF CON.
         edestruct sb_semi_total_r with (x:=w) (y:=y) (z:=r) as [AA|AA]; eauto.
         { left. apply NEXT. eexists. apply seq_eqv_r. eauto. }
         exfalso. eapply WF.(wf_rmwi); eauto. }
-      { erewrite Memory.add_o; eauto.
-          by rewrite loc_ts_eq_dec_eq. }
+      { erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_eq. }
       done. }
     { cdes PLN_RLX_EQ. 
       unfold TView.write_tview, TView.read_tview; simpls.
@@ -570,7 +580,7 @@ Proof using WF CON.
       all: rewrite EQ_CUR.
       2: done.
         by rewrite REL_PLN_RLX. }
-    { assert (Memory.closed_timemap (TimeMap.singleton locr (f_to w)) memory_add) as AA.
+    { assert (Memory.closed_timemap (TimeMap.singleton locr (f_to' w)) memory_add) as AA.
       { unfold TimeMap.singleton, LocFun.add; red; ins.
         destruct (Loc.eq_dec loc locr); subst; eauto.
         erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq. eauto. }
@@ -586,12 +596,18 @@ Proof using WF CON.
                  Memory.closed_timemap tmap memory_add) as HH.
       { intros tmap HH. red. ins.
         specialize (HH loc). desc.
-        exists from, val, released. apply NOTNEWM; auto.
+        exists from, val, released.
         destruct (classic (loc = locr)) as [|]; subst; auto.
-        destruct (classic (tmap locr = f_to w)) as [EQ|]; subst; auto.
+        2: by apply NOTNEWM; auto.
+        apply NOTNEWM; auto.
+        { destruct (classic (tmap locr = f_to w)) as [EQ|]; subst; auto.
+          rewrite EQ in HH. exfalso.
+          edestruct SIM_RES_MEM with (b:=w) as [OO]; eauto.
+          rewrite OO in HH. inv HH. }
+        destruct (classic (tmap locr = f_to' w)) as [EQ|]; subst; auto.
         rewrite EQ in HH. exfalso.
-        edestruct SIM_RES_MEM with (b:=w) as [OO]; eauto.
-        rewrite OO in HH. inv HH. }
+        (* TODO: add to helper. *)
+        admit. }
       unfold TView.write_tview, TView.read_tview; simpls.
       red; splits; simpls.
       all: desf; ins.
@@ -649,12 +665,22 @@ Proof using WF CON.
     destruct HH as [|HH]; subst; auto.
     apply IdentMap.Facts.in_find_iff. rewrite LLH. clear. desf. }
   { apply IdentMap.Facts.in_find_iff. rewrite LLH0. clear. desf. }
-  ins.
-  assert (b <> w) as BNW.
-  { intros HH. subst. clear -TNEQ. desf. }
-  apply SIM_RES_MEM1; auto.
+  { eapply sim_prom_f_issued; eauto. }
+  { (* TODO: generalize to a lemma? *)
+    red. ins. apply SIM_RPROM0 in RES. desc.
+    assert (b <> w) as BNW.
+    { intros HH; desf. }
+    exists b. splits; auto.
+    unfold f_to'. rewrite updo; auto. }
+  { eapply sim_mem_f_issued; eauto. }
+  { ins.
+    assert (b <> w) as BNW.
+    { intros HH; desf. }
+    unfold f_to'. rewrite updo; auto.
+    apply SIM_RES_MEM1; auto. }
+  eapply sim_tview_f_issued; eauto.
 Unshelve.
 apply state.
-Qed.
+Admitted.
 
 End IssueReservedRelPlainStep.
