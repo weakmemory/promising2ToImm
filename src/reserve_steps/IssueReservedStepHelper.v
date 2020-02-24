@@ -158,6 +158,7 @@ Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
     ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
     ⟪ REL_VIEW_LE : Time.le (View.rlx rel' locw) (f_to' w) ⟫ /\
 
+    << NINMEM : Memory.get locw (f_to' w) (Configuration.memory PC) = None >> /\
 
     exists promises_cancel memory_cancel,
       ⟪ PCANCEL :
@@ -413,6 +414,27 @@ Proof using All.
   { ins. destruct (Rel w); subst; [by desf|].
     erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_eq. }
 
+  assert (Time.lt (f_to' w) (f_to w)) as FTLT.
+  { unfold f_to'; rewrite upds. by apply Time.middle_spec. }
+  assert (Time.le (f_to' w) (f_to w)) as FTLE.
+  { apply Time.le_lteq. eauto. }
+  assert (Time.lt (f_from w) (f_to' w)) as FFLT.
+  { unfold f_to'; rewrite upds. by apply Time.middle_spec. }
+
+  assert (NEQT : f_to' w <> f_to w).
+  { intros HH. apply Time.lt_strorder with (x:=f_to w). rewrite <- HH at 1; auto. }
+
+  assert (Memory.get locw (f_to' w) (Configuration.memory PC) = None) as NINMEM.
+  { destruct (Memory.get locw (f_to' w) (Configuration.memory PC)) eqn:HH; auto.
+    exfalso.
+    destruct p as [from msg].
+    set (BB:=HH). apply Memory.get_ts in BB. destruct BB as [|BB]; desc; subst; auto.
+    edestruct Memory.get_disjoint as [AA|AA].
+    { apply HH. }
+    { apply INMEM. }
+    { desf. }
+    apply AA with (x:=f_to' w); constructor; simpls; auto. reflexivity. }
+
   exists p_rel. splits; eauto.
   do 2 eexists. splits; eauto.
   do 2 eexists. splits; eauto.
@@ -437,11 +459,9 @@ Proof using All.
     apply Memory.get_ts in GET. destruct GET as [HH|HH]; desc; eauto.
     destruct (TimeFacts.le_lt_dec to' (f_to w)) as [LE|LT].
     { apply AA with (x:=to'); constructor; simpls; try reflexivity.
-      transitivity (f_to' w); auto.
-      unfold f_to'; rewrite upds. by apply Time.middle_spec. }
+      transitivity (f_to' w); auto. }
     apply AA with (x:=f_to w); constructor; simpls; auto; try reflexivity.
-    2: by apply Time.le_lteq; eauto.
-    unfold f_to'; rewrite upds. by apply Time.middle_spec. }
+      by apply Time.le_lteq; eauto. }
   { ins.
     destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
     { subst. rewrite IdentMap.gss in TID0.
