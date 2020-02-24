@@ -621,8 +621,7 @@ Proof using WF CON.
           rewrite OO in HH. inv HH. }
         destruct (classic (tmap locr = f_to' w)) as [EQ|]; subst; auto.
         rewrite EQ in HH. exfalso.
-        (* TODO: add to helper. *)
-        admit. }
+        unfold f_to' in HH. rewrite NINMEM in HH. inv HH. }
       unfold TView.write_tview, TView.read_tview; simpls.
       red; splits; simpls.
       all: desf; ins.
@@ -696,6 +695,6 @@ Proof using WF CON.
   eapply sim_tview_f_issued; eauto.
 Unshelve.
 apply state.
-Admitted.
+Qed.
 
 End IssueReservedRelPlainStep.
