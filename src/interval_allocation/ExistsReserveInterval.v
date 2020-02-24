@@ -96,7 +96,7 @@ Lemma exists_time_interval_for_reserve PC w locw langst local smode
                          (tid w) local PC.(Configuration.memory))
       (MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory))
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
-      (WEXRES : smode = sim_certification -> W_ex ⊆₁ S) :
+      (RMWREX : dom_rel rmw ⊆₁ R_ex lab) :
   let memory := PC.(Configuration.memory) in
   exists f_to' f_from' promises' memory',
     ⟪ PADD :
@@ -151,19 +151,23 @@ Proof using WF IMMCON ETCCOH FCOH.
   { eapply W_ex_in_codom_rfrmw; eauto. }
   
   assert (smode = sim_normal); subst.
-  { destruct smode; auto. exfalso.
-    apply NSW. by apply WEXRES. }
-  (* { destruct smode; auto. *)
-  (*   exfalso. apply NSW. *)
-  (*   cdes RESERVED_TIME. *)
-  (*   assert (dom_rel (sb^? ⨾ ⦗S⦘) w) as [w' AA] by (by apply RMW_BEF_S). *)
-  (*   destruct_seq_r AA as SW'. *)
-  (*   destruct AA as [|AA]; desf. *)
-  (*   eapply ETCCOH.(etc_sb_S). red. simpls. *)
-  (*   split. *)
-  (*   { basic_solver 10. } *)
-    (* eapply ETCCOH'.(etc_S_W_ex_rfrmw_I). split; auto. *)
-    (* basic_solver. } *)
+  { destruct smode; auto.
+    exfalso. apply NSW.
+    cdes RESERVED_TIME.
+    assert (dom_rel (sb^? ⨾ ⦗S⦘) w) as [w' AA] by (by apply RMW_BEF_S).
+    destruct_seq_r AA as SW'.
+    destruct AA as [|AA]; desf.
+    eapply ETCCOH.(etc_sb_S). red. simpls.
+    split.
+    { basic_solver 10. }
+    assert (PRMWE' : codom_rel (rf ;; <|R_ex lab|> ⨾ rmw) w).
+    { generalize PRMWE RMWREX. clear. basic_solver 20. }
+    destruct PRMWE' as [x PRMWE'].
+    exists x. apply seq_eqv_l. split; auto.
+    2: by apply seqA.
+    red. eapply dom_rf_rmw_S_in_I with (T:=mkETC T (S ∪₁ eq w)); eauto.
+    exists w. apply seqA. apply seq_eqv_r. split; [|clear; basic_solver].
+    generalize PRMWE'. clear. basic_solver. }
 
   destruct langst as [lang state].
 

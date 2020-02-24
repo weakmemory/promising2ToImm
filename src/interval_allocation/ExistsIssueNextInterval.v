@@ -110,7 +110,8 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local PC.(Configuration.memory))
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
-      (WEXRES : smode = sim_certification -> W_ex ⊆₁ S) :
+      (WEXRES : smode = sim_certification ->
+                dom_rel (<|W_ex|> ;; sb ∩ same_loc lab ;; <|issued T|>) ⊆₁ S) :
   let promises := local.(Local.promises) in
   let memory   := PC.(Configuration.memory) in
   let T'       := mkTC (covered T) (issued T ∪₁ eq w) in
@@ -374,21 +375,32 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       eapply NCOIMM with (c:=c); apply seq_eqv_r; split; auto.
       eapply WF.(co_trans) with (y:=wnext); auto. }
 
+    assert (issued T wconext /\ ~ W_ex wconext) as [WSISS NWEXCONEXT].
+    { eapply codom_nS_imm_co_S_in_I with (T:=mkETC T S); eauto.
+      simpls. exists w. apply seq_eqv_l. by split. }
+
     destruct smode eqn:SMODE. (* [left|right]. *)
     2: { (* TODO: Currently, it's impossible to split wconextmsg in the needed way. *)
          (* TODO: To support FADDs w/ ctrl dependency, we need to
                   use splitting here. For that, we might want to parametrize
                   traversal by simmode.
           *)
-          exfalso. apply NSWNEXT. apply WEXRES; auto. red. generalize RFRMWNEXT.
-          clear. basic_solver. }
+         cdes RESERVED_TIME.
+
+         assert (sb wnext wconext) as SBNEXTNEXT.
+         { eapply nS_imm_co_in_sb with (S:=S); eauto. }
+
+         exfalso. apply NSWNEXT. apply WEXRES; auto.
+         exists wconext. apply seq_eqv_lr. splits; auto.
+         { red. generalize RFRMWNEXT. clear. basic_solver. }
+         split; auto. red. by rewrite WNEXTLOC. }
+
          (* splits; eauto. *)
-         (* cdes RESERVED_TIME. *)
          (* assert (set_compl (W_ex ∪₁ S) w) as WNRMWS. *)
          (* { intros [|]; eauto. } *)
 
-         (* assert (sb w wconext) as SBNEXT. *)
-         (* { eapply nS_imm_co_in_sb with (S:=S); eauto. } *)
+          (* assert (sb w wconext) as SBNEXT. *)
+          (* { eapply nS_imm_co_in_sb with (S:=S); eauto. } *)
 
          (* assert (w <> wconext /\ wnext <> wconext) as [WCONEXTNEQ WNEXTCONEQ]. *)
          (* { by split; intros HH; subst. } *)

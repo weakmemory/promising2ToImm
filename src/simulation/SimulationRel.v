@@ -197,10 +197,12 @@ Definition simrel_common
          forall l,
          max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view) ⟫ /\
   
-  (* TODO: To support RMWs (even FADDs) w/ ctrl dependency, we need to
-           get rid of WEXRES. 
+  (* TODO: To support RMWs (even FADDs) w/o ctrl dependency, we need to
+           get rid of RMWREX and WEXRES. 
    *)
-  ⟪ WEXRES : smode = sim_certification -> W_ex ⊆₁ S ⟫ /\ 
+  ⟪ RMWREX : dom_rel rmw ⊆₁ R_ex lab ⟫ /\ 
+  ⟪ WEXRES : smode = sim_certification ->
+             dom_rel (<|W_ex|> ;; sb ∩ same_loc lab ;; <|I|>) ⊆₁ S ⟫ /\ 
 
   ⟪ RESERVED_TIME: reserved_time smode memory ⟫ /\
                     

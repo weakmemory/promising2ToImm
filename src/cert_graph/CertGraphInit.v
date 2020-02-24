@@ -902,7 +902,10 @@ red. splits.
               (acts_set (rstG Gf T S thread))).
     erewrite E_F_Sc_in_C; eauto.
     basic_solver. }
-  { admit. }
+  { rewrite same_lab_u2v_R_ex; eauto.
+    subst G. simpls.
+    rewrite <- RMWREX. clear. basic_solver. }
+  { intros _. rewrite cert_W_ex. by apply GW_ex_in_IST. }
   splits.
   { subst G. rewrite cert_sb. eapply cert_co_for_split; eauto. }
   subst G. unfold W_ex. rewrite cert_sb. unfold certG. simpls.
