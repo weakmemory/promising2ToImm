@@ -206,6 +206,7 @@ Proof using.
   { right. apply ar_ct_rf_rmw_R_ex_in_ar_ct. }
   split.
   2: { red. rewrite ct_of_ct. apply IMMCON. }
+  rewrite R_ex_in_R. rewrite r_sb_loc_w_in_fri; auto.
   (* rewrite rf_rmw_in_co; eauto. *)
   (* { by apply co_acyclic. } *)
   (* apply coherence_sc_per_loc. by apply IMMCON. *)
