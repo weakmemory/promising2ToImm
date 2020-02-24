@@ -308,8 +308,16 @@ Proof using All.
   assert (~ is_init w) as NINIT.
   { intros AA. apply NCOVB. eby eapply init_covered. }
   assert (Time.lt (f_from w) (f_to w)) as FLT by (by apply FCOH).
-
+  
   set (f_to' := upd f_to w (Time.middle (f_from w) (f_to w))).
+  assert (f_to' w <> Time.bot) as FNNBOT.
+  { intros AA.
+    eapply Time.lt_strorder with (x:=f_to' w). rewrite AA at 1.
+    unfold f_to'. rewrite upds.
+    apply TimeFacts.le_lt_lt with (b:=f_from w); auto.
+    { apply Time.bot_spec. }
+      by apply Time.middle_spec. }
+
   assert (forall thread' langst' local' (TNEQ : tid w <> thread')
                  (TID' : IdentMap.find thread' (Configuration.threads PC) =
                          Some (langst', local')),
@@ -324,8 +332,11 @@ Proof using All.
     { desc; subst. unfold f_to' in AA. rewrite upds in AA.
       eapply Time.lt_strorder with (x:=f_to w). rewrite <- AA at 1.
         by apply Time.middle_spec. }
-    apply Memory.get_ts in HH. destruct HH as [HH|HH]; desc.
-    admit. }
+    apply Memory.get_ts in HH. destruct HH as [HH|HH]; desc; eauto.
+    apply AA with (x:=f_to' w); constructor; simpls; try reflexivity.
+    all: unfold f_to'; rewrite upds.
+    2: apply Time.le_lteq; left.
+    all: by apply Time.middle_spec. }
 
   assert (forall tmap (MCLOS : Memory.closed_timemap tmap PC.(Configuration.memory)),
              Memory.closed_timemap tmap memory_add) as MADDCLOS.
@@ -413,7 +424,24 @@ Proof using All.
     rewrite IdentMap.gso; auto. }
   { ins. eapply sc_view_f_issued with (f_to:=f_to); eauto. }
   { apply Memory.promise_add; auto; ins.
-    admit. }
+    erewrite Memory.remove_o in GET; eauto.
+    destruct (classic (to' = f_to w)) as [|NEQ]; subst.
+    { rewrite loc_ts_eq_dec_eq in GET. inv GET. }
+    rewrite loc_ts_eq_dec_neq in GET; eauto.
+    edestruct Memory.get_disjoint as [AA|AA].
+    { apply GET. }
+    { apply INMEM. }
+    { desc; subst. unfold f_to' in AA0. rewrite upds in AA0.
+      eapply Time.lt_strorder with (x:=f_from w). rewrite <- AA0 at 2.
+        by apply Time.middle_spec. }
+    apply Memory.get_ts in GET. destruct GET as [HH|HH]; desc; eauto.
+    destruct (TimeFacts.le_lt_dec to' (f_to w)) as [LE|LT].
+    { apply AA with (x:=to'); constructor; simpls; try reflexivity.
+      transitivity (f_to' w); auto.
+      unfold f_to'; rewrite upds. by apply Time.middle_spec. }
+    apply AA with (x:=f_to w); constructor; simpls; auto; try reflexivity.
+    2: by apply Time.le_lteq; eauto.
+    unfold f_to'; rewrite upds. by apply Time.middle_spec. }
   { ins.
     destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
     { subst. rewrite IdentMap.gss in TID0.
@@ -567,7 +595,6 @@ Proof using All.
       assert ((⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘) w b) as ST.
       { apply seq_eqv_lr. by splits. }
       apply tid_sb in ST. destruct ST as [[[|ST]|ST]|[AI BI]]; subst; auto.
-      3: { apply NCOVBB. eapply init_covered; eauto. by split. }
       2: { apply NCOVBB. apply ISSUABLE. exists w. apply seq_eqv_r. split; auto.
            apply sb_to_w_rel_in_fwbob. apply seq_eqv_r. split; auto. by split. }
       assert (issuable G sc T b) as IB by (eapply issued_in_issuable; eauto).
@@ -638,7 +665,6 @@ Proof using All.
   assert ((⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘) b w) as HH.
   { apply seq_eqv_lr. splits; auto. }
   apply tid_sb in HH. destruct HH as [[[HH|HH]|HH]|[AA BB]]; subst; auto.
-  3: { apply NCOV. eapply init_covered; eauto. by split. }
   2: { apply NCOVB. eapply dom_W_Rel_sb_loc_I_in_C; eauto.
        exists b. apply seq_eqv_l. split; [by split|].
        apply seqA.
@@ -647,7 +673,7 @@ Proof using All.
   apply NCOV. apply ISSUABLE. exists w. apply seq_eqv_r. split; auto.
   apply sb_to_w_rel_in_fwbob. apply seq_eqv_r. 
   do 2 (split; auto).
-Admitted.
+Qed.
 
 Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
