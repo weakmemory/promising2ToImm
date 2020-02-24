@@ -305,12 +305,27 @@ Proof using All.
     { unfolder. ins. desf. }
     intros x HH. apply NONEXT in HH. inv HH. }
 
+  assert (~ is_init w) as NINIT.
+  { intros AA. apply NCOVB. eby eapply init_covered. }
+  assert (Time.lt (f_from w) (f_to w)) as FLT by (by apply FCOH).
+
   set (f_to' := upd f_to w (Time.middle (f_from w) (f_to w))).
   assert (forall thread' langst' local' (TNEQ : tid w <> thread')
                  (TID' : IdentMap.find thread' (Configuration.threads PC) =
                          Some (langst', local')),
              Memory.get locw (f_to' w) (Local.promises local') = None) as NINTER'.
-  { admit. }
+  { ins.
+    destruct (Memory.get locw (f_to' w) (Local.promises local')) eqn:HH; auto.
+    exfalso.
+    destruct p as [from msg]. eapply PROM_IN_MEM in HH; eauto.
+    edestruct Memory.get_disjoint as [AA|AA].
+    { apply HH. }
+    { apply INMEM. }
+    { desc; subst. unfold f_to' in AA. rewrite upds in AA.
+      eapply Time.lt_strorder with (x:=f_to w). rewrite <- AA at 1.
+        by apply Time.middle_spec. }
+    apply Memory.get_ts in HH. destruct HH as [HH|HH]; desc.
+    admit. }
 
   assert (forall tmap (MCLOS : Memory.closed_timemap tmap PC.(Configuration.memory)),
              Memory.closed_timemap tmap memory_add) as MADDCLOS.
