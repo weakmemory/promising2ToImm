@@ -94,12 +94,12 @@ Lemma issue_rlx_reserved_step_no_next PC T S f_to f_from thread w smode
       (WTID : thread = tid w) :
   let T' := mkTC (covered T) (issued T ∪₁ eq w) in
   let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
-  exists PC',
+  exists f_to' PC',
     ⟪ PCSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread smode ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from thread smode ⟫ /\
     ⟪ SIMREL :
         smode = sim_normal -> simrel G sc PC T S f_to f_from ->
-        simrel G sc PC' T' S' f_to f_from ⟫.
+        simrel G sc PC' T' S' f_to' f_from ⟫.
 Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
   subst.
@@ -125,12 +125,15 @@ Proof using WF CON.
   
   edestruct issue_reserved_step_helper_no_next as [p_rel]; eauto. simpls; desc.
 
+  set (f_to' := upd f_to w (Time.middle (f_from w) (f_to w))).
+  assert (ISSEQ_TO : forall e : actid, issued T e -> f_to' e = f_to e).
+  { ins. unfold f_to'. rewrite updo; auto. by intros HH; subst. }
   set (rel'' :=
         if is_rel lab w
         then (TView.cur (Local.tview local))
         else (TView.rel (Local.tview local) locw)).
   set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
-                          (View.singleton_ur locw (f_to w)))).
+                          (View.singleton_ur locw (f_to' w)))).
 
   set (pe_cancel :=
          ThreadEvent.promise
@@ -139,13 +142,13 @@ Proof using WF CON.
 
   set (pe :=
          ThreadEvent.promise
-           locw (f_from w) (f_to w) (Message.full valw (Some rel'))
+           locw (f_from w) (f_to' w) (Message.full valw (Some rel'))
            Memory.op_kind_add).
   
   assert (Memory.closed_message (Message.full valw (Some rel')) memory_add) as CLOS_MSG.
   { by do 2 constructor. }
   
-  eexists.
+  exists f_to'. eexists.
   apply and_assoc. apply pair_app; unnw.
   { split.
     { eapply t_trans; apply t_step.
@@ -180,30 +183,51 @@ Proof using WF CON.
     exists state; eexists.
     rewrite IdentMap.gss.
     splits; eauto.
+    { eapply sim_tview_f_issued with (f_to':=f_to') (f_to:=f_to); eauto. }
     eapply tview_closedness_preserved_add; eauto.
     eapply tview_closedness_preserved_cancel; eauto. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
-  eapply simrel_fS in SIMREL; eauto.
-  subst.
-  eapply full_simrel_step with (thread:=tid w).
-  16: by apply SIMREL.
-  14: { ins. rewrite !IdentMap.Facts.add_in_iff.
+  subst. desc. red.
+  splits; [by apply SIMREL_THREAD'|].
+  simpls. ins.
+  destruct (classic (thread = tid w)) as [|TNEQ]; subst.
+  { apply SIMREL_THREAD'. }
+  set (AA:=TP).
+  apply IdentMap.Facts.add_in_iff in AA. desf.
+  apply IdentMap.Facts.add_in_iff in AA. desf.
+  apply SIMREL in AA. cdes AA.
+  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
+  11: { ins. rewrite !IdentMap.Facts.add_in_iff.
         split; auto.
         intros [| [ | ]]; auto; subst.
         all: apply IdentMap.Facts.in_find_iff; by rewrite LLH. }
-  13: { eapply msg_preserved_trans.
+  10: { eapply msg_preserved_trans.
         { eapply msg_preserved_cancel; eauto. }
         eapply msg_preserved_add; eauto. }
-  12: { eapply closedness_preserved_trans.
-        { eapply closedness_preserved_cancel; eauto. }
-        eapply closedness_preserved_add; eauto. }
-  10: by eapply same_other_threads_steps; eauto.
+  9: { eapply closedness_preserved_trans.
+       { eapply closedness_preserved_cancel; eauto. }
+       eapply closedness_preserved_add; eauto. }
+  8: by eapply same_other_threads_steps; eauto.
   all: simpls; eauto.
   { eapply coveredE; eauto. }
   { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
   1-4: basic_solver.
-  rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver.
+  { rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver. }
+  { repeat (apply IdentMap.Facts.add_in_iff in TP; desf). }
+  { eapply sim_prom_f_issued; eauto. }
+  { red. ins. apply SIM_RPROM0 in RES. desc.
+    assert (b <> w) as BNW.
+    { intros HH; desf. }
+    exists b. splits; auto.
+    unfold f_to'. rewrite updo; auto. }
+  { eapply sim_mem_f_issued; eauto. }
+  { ins.
+    assert (b <> w) as BNW.
+    { intros HH; desf. }
+    unfold f_to'. rewrite updo; auto.
+    apply SIM_RES_MEM1; auto. }
+  eapply sim_tview_f_issued; eauto.
 Qed.
 
 Lemma issue_rlx_reserved_step_with_next PC T S f_to f_from thread w wnext smode
