@@ -134,7 +134,7 @@ Proof using WF CON.
 
   assert (S ⊆₁ E ∩₁ W) as SEW.
   { generalize TCCOH.(etc_S_in_E). generalize (reservedW WF TCCOH). clear. basic_solver. }
-  
+
   assert (sc_per_loc G) as SC_PER_LOC.
   { by apply coherence_sc_per_loc; cdes CON. }
   assert (tc_coherent G sc T) as TCCOHs.
@@ -236,6 +236,13 @@ Proof using WF CON.
 
   assert (tid w = tid r) as TIDWR.
   { destruct (sb_tid_init WRSB); desf. }
+
+  set (S' := S ∪₁ eq w ∪₁
+               dom_sb_S_rfrmw G (mkETC (mkTC (covered T ∪₁ eq r) (issued T)) S) rfi (eq w)).
+  assert (S' ⊆₁ E ∩₁ W) as SEW'.
+  { unfold S'. rewrite SEW at 1. unionL; auto.
+    { generalize WACT WWRITE. clear. basic_solver. }
+    rewrite NONEXT. basic_solver. }
 
   edestruct SIM_MEM as [rel' DOM'].
   { apply WISS. }
@@ -394,9 +401,18 @@ Proof using WF CON.
   { rewrite <- ISSEQ_TO; auto.
     intros HH.
     eapply f_to_eq in HH; (try by apply FCOH0); subst; eauto.
-    { admit. }
     { red. by rewrite WLOC. }
-    all: admit. }
+    all: clear -SW'; basic_solver. }
+
+  assert (forall y : actid, covered T y /\ tid y = tid r -> sb y r) as COVNR.
+  { intros y [COVY TIDY].
+    edestruct same_thread with (x:=r) (y:=y) as [[|SB]|SB]; eauto.
+    { apply TCCOH in COVY. apply COVY. }
+    { exfalso. apply RNCOV. by subst. }
+    exfalso. apply RNCOV. apply TCCOH in COVY.
+    apply COVY. eexists. apply seq_eqv_r. eauto. }
+  assert (doma (sb ⨾ ⦗eq r⦘) (covered T)) as DOMASBR.
+  { red. ins. eapply NEXT. red. eauto. }
 
   exists f_to'.
   eexists (Configuration.mk _ _ memory_add).
@@ -528,8 +544,7 @@ Proof using WF CON.
     { eapply sim_tview_write_step; eauto.
       3: { rewrite <- FF.
            eapply sim_tview_f_issued with (T:=mkTC (covered T ∪₁ eq r) (issued T)); eauto.
-           eapply sim_tview_read_step; eauto. 
-           all: admit. }
+           eapply sim_tview_read_step; eauto. }
       { apply set_subset_union_l; split.
         all: intros x H.
         { apply TCCOH in H; apply H. }
