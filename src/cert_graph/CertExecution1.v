@@ -570,7 +570,7 @@ Proof using WF ETCCOH.
        rewrite (dom_l WF.(wf_rfD)) at 1. rewrite !seqA.
        seq_rewrite <- clos_trans_rotl.
        arewrite (Frf ⨾ Frmw ⊆ Far ∪ Frf ⨾ Frmw).
-       apply (ar_rfrmw_ct_I_in_I TCCOH). }
+       apply (ar_rfrmw_ct_I_in_I WF TCCOH). }
   rewrite crE. rewrite seq_union_l, seq_id_l, dom_union.
   rewrite set_inter_union_l. rewrite id_union.
   rewrite !seq_union_r, dom_union.
@@ -1210,7 +1210,7 @@ Proof using All.
   arewrite (ar_int Gf ⊆ Far).
   arewrite (Far ⨾ Far ⨾ Far ⨾ Far ⊆ Far⁺).
   { rewrite ct_step with (r:=Far) at 1 2 3 4. by rewrite !ct_ct. }
-  apply ar_ct_I_in_I. apply ETCCOH.
+  apply ar_ct_I_in_I; auto. apply ETCCOH.
 Qed.
 
 Lemma sw_de : ⦗(E \₁ C) ∩₁ (E \₁ I)⦘ ⨾ Gsw ⊆ Gsb.
@@ -1455,7 +1455,8 @@ Proof using WF ETCCOH RELCOV RMWCOV.
   { apply I_in_E. }
   { rewrite (sub_W SUB). rewrite II at 1. basic_solver 12. }
   { rewrite (sub_fwbob_in SUB). rewrite II at 1. basic_solver 12. }
-  rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_rmw_in SUB).
+  rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_ppo_in SUB).
+  rewrite (sub_same_loc_in SUB).
   rewrite II at 1. basic_solver 12.
 Qed.
 
@@ -1543,64 +1544,62 @@ Proof using All.
     rewrite tc_sc_C. basic_solver. }
   { apply I_in_E. }
   { rewrite (sub_fwbob_in SUB), tc_fwbob_I. basic_solver. }
-  rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_rmw_in SUB); auto.
+  rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_ppo_in SUB); auto.
 Qed.
 
-Lemma GW_ex_in_IST
-      (RMWREX : dom_rel Frmw ⊆₁ FR_ex) :
-  GW_ex ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread.
-Proof using.
-  unfold W_ex.
-  rewrite (dom_l WF_rst.(wf_rmwE)).
-  rewrite (dom_r WF_rst.(wf_rmwD)).
-  rewrite E_to_S. rewrite id_union, !seq_union_l, codom_union.
-  unionL.
-  { unionR left. rewrite <- w_covered_issued; eauto.
-    2: by apply TCCOH.
-    rewrite SUB.(sub_W). rewrite SUB.(sub_rmw_in).
-    clear -RMWCOV.
-    unfolder. ins. desf. split; auto. by apply RMWCOV with (r:=x0) (w:=x). }
-  arewrite (⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⨾ Grmw ⊆ ⦗dom_rel (Gsb ⨾ ⦗S⦘)⦘ ⨾ Grmw).
-  { rewrite crE. rewrite seq_union_l, dom_union, id_union.
-    rewrite seq_union_l. unionL; [|done].
-    transitivity (fun (x y : actid) => False); [|clear; basic_solver].
-    rewrite (reservedW WF ETCCOH). rewrite SUB.(sub_rmw_in).
-    rewrite WF.(wf_rmwD). type_solver. }
-  rewrite SUB.(sub_rmw). rewrite SUB.(sub_sb_in).
-  intros x [y HH].
-  apply seq_eqv_l in HH. destruct HH as [AA HH].
-  apply seq_eqv_r in HH. destruct HH as [HH BB].
-  apply seq_eqv_lr in HH. destruct HH as [EY [RMW EX]].
-  assert (SBYX : Fsb y x) by (by apply rmw_in_sb).
-  destruct AA as [z AA]. apply seq_eqv_r in AA. destruct AA as [SBYZ SZ].
+(* Lemma GW_ex_in_IST *)
+(*       (RMWREX : dom_rel Frmw ⊆₁ FR_ex) : *)
+(*   GW_ex ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread. *)
+(* Proof using. *)
+(*   unfold W_ex. *)
+(*   rewrite (dom_l WF_rst.(wf_rmwE)). *)
+(*   rewrite (dom_r WF_rst.(wf_rmwD)). *)
+(*   rewrite E_to_S. rewrite id_union, !seq_union_l, codom_union. *)
+(*   unionL. *)
+(*   { unionR left. rewrite <- w_covered_issued; eauto. *)
+(*     2: by apply TCCOH. *)
+(*     rewrite SUB.(sub_W). rewrite SUB.(sub_rmw_in). *)
+(*     clear -RMWCOV. *)
+(*     unfolder. ins. desf. split; auto. by apply RMWCOV with (r:=x0) (w:=x). } *)
+(*   arewrite (⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⨾ Grmw ⊆ ⦗dom_rel (Gsb ⨾ ⦗S⦘)⦘ ⨾ Grmw). *)
+(*   { rewrite crE. rewrite seq_union_l, dom_union, id_union. *)
+(*     rewrite seq_union_l. unionL; [|done]. *)
+(*     transitivity (fun (x y : actid) => False); [|clear; basic_solver]. *)
+(*     rewrite (reservedW WF ETCCOH). rewrite SUB.(sub_rmw_in). *)
+(*     rewrite WF.(wf_rmwD). type_solver. } *)
+(*   rewrite SUB.(sub_rmw). rewrite SUB.(sub_sb_in). *)
+(*   intros x [y HH]. *)
+(*   apply seq_eqv_l in HH. destruct HH as [AA HH]. *)
+(*   apply seq_eqv_r in HH. destruct HH as [HH BB]. *)
+(*   apply seq_eqv_lr in HH. destruct HH as [EY [RMW EX]]. *)
+(*   assert (SBYX : Fsb y x) by (by apply rmw_in_sb). *)
+(*   destruct AA as [z AA]. apply seq_eqv_r in AA. destruct AA as [SBYZ SZ]. *)
   
-  apply WF.(wf_rmwE) in RMW. apply seq_eqv_lr in RMW. destruct RMW as [FEY [RMW FEX]].
-  apply WF.(wf_rmwD) in RMW. apply seq_eqv_lr in RMW. destruct RMW as [FRY [RMW FWX]].
+(*   apply WF.(wf_rmwE) in RMW. apply seq_eqv_lr in RMW. destruct RMW as [FEY [RMW FEX]]. *)
+(*   apply WF.(wf_rmwD) in RMW. apply seq_eqv_lr in RMW. destruct RMW as [FRY [RMW FWX]]. *)
   
-  destruct (classic (C x)) as [CX|NCX].
-  { left. apply TCCOH.(w_covered_issued). split; auto. }
-  assert (~ is_init x) as NINITX.
-  { intros HH. apply NCX. apply TCCOH.(init_covered). by split. }
-  assert (~ is_init y) as NINITY.
-  { intros HH. apply WF.(init_w) in HH. type_solver. }
+(*   destruct (classic (C x)) as [CX|NCX]. *)
+(*   { left. apply TCCOH.(w_covered_issued). split; auto. } *)
+(*   assert (~ is_init x) as NINITX. *)
+(*   { intros HH. apply NCX. apply TCCOH.(init_covered). by split. } *)
+(*   assert (~ is_init y) as NINITY. *)
+(*   { intros HH. apply WF.(init_w) in HH. type_solver. } *)
 
-  enough (S x) as SX.
-  { apply E_E0 in EX. red in EX.
-    unfolder in EX. desf.
-    { by left. }
-    { right. by split. }
-    { right. split; auto.
-      eapply ImmProperties.ninit_sb_same_tid.
-      apply seq_eqv_l. split; eauto. }
-    apply (dom_l WF.(wf_rmwD)) in EX. apply seq_eqv_l in EX.
-    type_solver 10. }
-  destruct (classic (x = z)) as [|NEQ]; subst; auto.
-  eapply sb_semi_total_l with (x:=y) in NEQ; eauto.
-  destruct NEQ as [SB|SB].
-  2: { exfalso. eapply WF.(wf_rmwi) with (c:=z); eauto. }
-  (* eapply ETCCOH. *)
-Admitted.
-
-
+(*   enough (S x) as SX. *)
+(*   { apply E_E0 in EX. red in EX. *)
+(*     unfolder in EX. desf. *)
+(*     { by left. } *)
+(*     { right. by split. } *)
+(*     { right. split; auto. *)
+(*       eapply ImmProperties.ninit_sb_same_tid. *)
+(*       apply seq_eqv_l. split; eauto. } *)
+(*     apply (dom_l WF.(wf_rmwD)) in EX. apply seq_eqv_l in EX. *)
+(*     type_solver 10. } *)
+(*   destruct (classic (x = z)) as [|NEQ]; subst; auto. *)
+(*   eapply sb_semi_total_l with (x:=y) in NEQ; eauto. *)
+(*   destruct NEQ as [SB|SB]. *)
+(*   2: { exfalso. eapply WF.(wf_rmwi) with (c:=z); eauto. } *)
+(*   (* eapply ETCCOH. *) *)
+(* Admitted. *)
 
 End RestExec.

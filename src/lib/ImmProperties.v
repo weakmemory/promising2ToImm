@@ -8,9 +8,11 @@ Set Implicit Arguments.
 
 Section ImmProperties.
 Variable G : execution.
-Variable WF : Wf G.
+Hypothesis WF : Wf G.
 Variable sc : relation actid.
-Variable CON : imm_consistent G sc.
+Hypothesis CON : imm_consistent G sc.
+Hypothesis WF_SC : wf_sc G sc.
+
 
 Notation "'acts'" := G.(acts).
 Notation "'sb'" := G.(sb).
@@ -512,6 +514,33 @@ Proof using WF.
   apply inclusion_inter_r.
   { by apply rmw_in_ppo. }
   apply WF.(wf_rmwl).
+Qed.
+
+Lemma no_ar_rf_ppo_loc_to_init : (ar G sc ∪ rf ⨾ ppo ∩ same_loc) ;; <|is_init|> ≡ ∅₂.
+Proof using WF CON.
+  split; [|basic_solver].
+  rewrite seq_union_l, seqA, no_ar_to_init; auto.
+  arewrite (ppo ∩ same_loc ⊆ ppo).
+  rewrite WF.(ppo_in_sb). rewrite no_sb_to_init.
+  basic_solver.
+Qed.
+
+Lemma wf_ar_rf_ppo_locE :
+  ar G sc ∪ rf ;; ppo ∩ same_loc ≡ <|E|> ;; (ar G sc ∪ rf ;; ppo ∩ same_loc) ;; <|E|>.
+Proof using WF CON WF_SC.
+  rewrite wf_arE at 1; auto.
+  rewrite (dom_l WF.(wf_rfE)) at 1.
+  rewrite (dom_r WF.(wf_ppoE)) at 1.
+  basic_solver 10.
+Qed.
+
+Lemma wf_ar_rf_ppo_loc_ctE :
+  (ar G sc ∪ rf ;; ppo ∩ same_loc)⁺ ≡ <|E|> ;; (ar G sc ∪ rf ;; ppo ∩ same_loc)⁺ ;; <|E|>.
+Proof using WF WF_SC CON.
+  split; [|basic_solver].
+  rewrite wf_ar_rf_ppo_locE at 1; auto.
+  rewrite inclusion_ct_seq_eqv_l.
+    by rewrite inclusion_ct_seq_eqv_r.
 Qed.
 
 End ImmProperties.

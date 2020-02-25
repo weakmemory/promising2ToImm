@@ -546,16 +546,17 @@ Proof using WF IMMCON.
            generalize RFRMW. clear. basic_solver 10. }
 
       assert
-      (dom_rel ((⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺) ⨾ ⦗eq w⦘) ⊆₁ issued (etc_TC T))
+      (dom_rel ((⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ ppo ∩ same_loc)⁺) ⨾ ⦗eq w⦘) ⊆₁ issued (etc_TC T))
         as PP4.
       { rewrite ct_end.
         rewrite !seq_union_r, !seq_union_l, dom_union, !seqA.
         unionL.
-        2: { rewrite WF.(rmw_in_sb) at 2.
+        2: { arewrite (ppo ∩ same_loc ⊆ ppo) at 2.
+             rewrite WF.(ppo_in_sb) at 2.
              rewrite (dom_rel_helper RFSB).
              rewrite <- !seqA. do 3 rewrite dom_seq.
              rewrite !seqA.
-               by apply ar_rfrmw_rt_I_in_I. }
+               by apply ar_rf_ppo_loc_rt_I_in_I. }
         arewrite (⦗eq w⦘ ⊆ ⦗W⦘ ⨾ ⦗eq w⦘) by basic_solver.
         sin_rewrite ar_W_in_ar_int; auto.
         rewrite ar_int_in_sb; auto.
@@ -566,7 +567,7 @@ Proof using WF IMMCON.
           unionL; auto.
           red. by ins; subst. }
         rewrite <- !seqA. do 2 rewrite dom_seq. rewrite !seqA.
-          by apply ar_rfrmw_rt_coverable_in_I. }
+          by apply ar_rf_ppo_loc_rt_coverable_in_I. }
       
       assert (covered (etc_TC T) ⊆₁ coverable G sc (mkTC (covered (etc_TC T))
                                                          (issued (etc_TC T) ∪₁ eq w)))

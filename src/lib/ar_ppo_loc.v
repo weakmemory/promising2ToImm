@@ -231,7 +231,7 @@ Proof using WF IMMCON.
   rewrite ct_step with (r:=ar) at 1. by apply ar_ct_rf_ppo_loc_ct_in_ar_ct.
 Qed.
 
-Lemma wf_ar_rf_ppo_ct :
+Lemma wf_ar_rf_ppo_loc_ct :
   well_founded (ar ∪ rf ;; ppo ∩ same_loc)⁺.
 Proof using WF WFSC COM IMMCON.
   eapply wf_finite; auto.

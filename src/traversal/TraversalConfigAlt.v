@@ -8,6 +8,7 @@ From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 
+Require Import ImmProperties.
 Require Import TraversalConfig.
 
 Set Implicit Arguments.
@@ -87,13 +88,19 @@ Record tc_coherent_alt T :=
     tc_I_in_E : issued T ⊆₁ E ;
     tc_I_in_W : issued T ⊆₁ W ;
     tc_fwbob_I : dom_rel ( fwbob ⨾ ⦗issued T⦘) ⊆₁ covered T ;
-    tc_I_ar_rfrmw_I : dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T;
+    tc_I_ar_rf_ppo_loc_I : dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc)⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T;
   }.
+
+Lemma tc_I_ar_rfrmw_I WF T (TCCOH : tc_coherent_alt T) :
+  dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
+Proof using.
+  rewrite WF.(rmw_in_ppo_loc). apply TCCOH.
+Qed.
 
 Lemma tc_I_ar_I WF T (TCCOH : tc_coherent_alt T) :
   dom_rel (⦗W⦘ ⨾ ar⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
 Proof using.
-  arewrite (ar ⊆ ar ∪ rf ⨾ rmw).
+  arewrite (ar ⊆ ar ∪ rf ⨾ ppo ∩ same_loc).
   apply TCCOH.
 Qed.
 
@@ -113,33 +120,33 @@ Qed.
 Lemma tc_coherent_alt_implies_tc_coherent T: 
   tc_coherent_alt T  -> tc_coherent G sc T.
 Proof using.
-intro H; destruct H.
-red; splits; eauto.
-- unfold coverable.
+  intro H; destruct H.
+  red; splits; eauto.
+  2: { unfold issuable.
+       repeat (splits; try apply set_subset_inter_r); ins.
+       { by eapply dom_rel_to_cond. }
+         by eapply dom_rel_to_cond; rewrite !seqA. }
+  unfold coverable.
   repeat (splits; try apply set_subset_inter_r); ins.
-  by eapply dom_rel_to_cond.
+  { by eapply dom_rel_to_cond. }
   arewrite (covered T ⊆₁ covered T ∩₁ E).
   revert tc_C_in_E0; basic_solver.
   arewrite (E ⊆₁ R ∪₁ W ∪₁ F).
   unfolder; intro a; forward (apply (lab_rwf lab a)); tauto.
   rewrite !set_inter_union_r; unionL.
-  * unionR left -> right.
+  { unionR left -> right.
     repeat (splits; try apply set_subset_inter_r); ins.
     basic_solver.
     eapply dom_rel_to_cond.
-    revert tc_rf_C0; basic_solver 21.
-  * unionR left -> left.
+    revert tc_rf_C0; basic_solver 21. }
+  { unionR left -> left.
     repeat (splits; try apply set_subset_inter_r); ins.
-    basic_solver.
-  * unionR right.
-    repeat (splits; try apply set_subset_inter_r); ins.
-    basic_solver.
-    eapply dom_rel_to_cond.
-    revert tc_sc_C0; basic_solver 21.
-- unfold issuable.
+    basic_solver. }
+  unionR right.
   repeat (splits; try apply set_subset_inter_r); ins.
-  by eapply dom_rel_to_cond.
-  by eapply dom_rel_to_cond; rewrite !seqA.
+  basic_solver.
+  eapply dom_rel_to_cond.
+  revert tc_sc_C0; basic_solver 21.
 Qed.
 
 Lemma tc_coherent_implies_tc_coherent_alt WF WF_SC T: 

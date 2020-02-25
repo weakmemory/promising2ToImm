@@ -10,8 +10,11 @@ From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import imm_s_rfrmw.
 From imm Require Import AuxDef.
+
 Require Import AuxRel2.
 Require Import TraversalConfig.
+Require Import ImmProperties.
+Require Import ar_ppo_loc.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -198,21 +201,21 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
   Proof using WF IMMCON.
     unfold init_trav.
     red; splits; ins.
-    - unfold coverable; ins.
+    { unfold coverable; ins.
       repeat (splits; try apply set_subset_inter_r).
       basic_solver.
       rewrite no_sb_to_init; unfold dom_cond; basic_solver.
-      generalize (init_w WF); basic_solver 12.
-    - unfold issuable; ins.
-      repeat (splits; try apply set_subset_inter_r).
-      { basic_solver. }
-      { generalize (init_w WF); basic_solver 12. }
-      { rewrite fwbob_in_bob, bob_in_sb, no_sb_to_init; unfold dom_cond; basic_solver. }
-      eapply dom_cond_in with (r' := fun _ _ => False).
-      rewrite id_inter. rewrite ct_end, !seqA.
-      arewrite ((ar G sc ∪ rf ⨾ rmw) ⨾ ⦗Init⦘ ⊆ ∅₂).
-      { by apply no_ar_rfrmw_to_init. }
-      basic_solver.
+      generalize (init_w WF); basic_solver 12. }
+    unfold issuable; ins.
+    repeat (splits; try apply set_subset_inter_r).
+    { basic_solver. }
+    { generalize (init_w WF); basic_solver 12. }
+    { rewrite fwbob_in_bob, bob_in_sb, no_sb_to_init; unfold dom_cond; basic_solver. }
+    eapply dom_cond_in with (r' := fun _ _ => False).
+    rewrite id_inter. rewrite ct_end, !seqA.
+    arewrite ((ar G sc ∪ rf ⨾ ppo ∩ same_loc) ⨾ ⦗Init⦘ ⊆ ∅₂).
+    { by apply no_ar_rf_ppo_loc_to_init. }
+    basic_solver.
   Qed.
 
 (******************************************************************************)
@@ -279,26 +282,26 @@ ins; desc; subst.
 
     assert ((exists w, W w /\ ~ issued T w /\ E w) ->
             exists w, W w /\ ~ issued T w /\
-                      dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺) (issued T) w /\
+                      dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ ppo ∩ same_loc)⁺) (issued T) w /\
                       E w) as WMIN.
     { intros P; desf.
-      induction w using (well_founded_ind (wf_ar_rfrmw_ct WF IMMCON WFSC)).
-      destruct (classic (dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺) (issued T) w)); eauto.
+      induction w using (well_founded_ind (wf_ar_rf_ppo_loc_ct WF COM IMMCON WFSC)).
+      destruct (classic (dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ ppo ∩ same_loc)⁺) (issued T) w)); eauto.
       unfolder in H0. unfold dom_rel in H0.
       apply not_all_ex_not in H0; desf.
       apply not_all_ex_not in H0; desf.
       apply seq_eqv_r in n0. desf.
       eapply H; eauto. 
       cdes IMMCON.
-      apply wf_ar_rfrmw_ctE in n2; auto. by destruct_seq_l n2 as AA. }
+      apply wf_ar_rf_ppo_loc_ctE in n2; auto. by destruct_seq_l n2 as AA. }
 
     assert ((exists f, (F∩₁Sc) f  /\ ~ covered T f /\ E f) ->
             exists f, (F∩₁Sc) f /\ ~ covered T f /\
-                      doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺ ⨾ ⦗eq f⦘) (covered T) /\
+                      doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ⨾ ppo ∩ same_loc)⁺ ⨾ ⦗eq f⦘) (covered T) /\
                       E f) as FMIN.
     { intros P; desf.
-      induction f using (well_founded_ind (wf_ar_rfrmw_ct WF IMMCON WFSC)).
-      destruct (classic (doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ⨾ rmw)⁺ ⨾ ⦗eq f⦘) (covered T)))
+      induction f using (well_founded_ind (wf_ar_rf_ppo_loc_ct WF COM IMMCON WFSC)).
+      destruct (classic (doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ⨾ ppo ∩ same_loc)⁺ ⨾ ⦗eq f⦘) (covered T)))
         as [H0 | H0]; eauto.
       rewrite seq_eqv_r, seq_eqv_l in H0.
       unfold doma in H0.
@@ -307,7 +310,7 @@ ins; desc; subst.
       apply imply_to_and in H0; desf.
       eapply H; eauto.
       cdes IMMCON.
-      apply wf_ar_rfrmw_ctE in H2; auto. by destruct_seq_l H2 as AA. }
+      apply wf_ar_rf_ppo_loc_ctE in H2; auto. by destruct_seq_l H2 as AA. }
 
     assert (forall n, next G (covered T) n ->
                       R n \/ (F∩₁Sc) n) as RorF.
@@ -476,7 +479,7 @@ ins; desc; subst.
         apply sb_to_f_in_bob.
         apply seq_eqv_r. split; auto.
         mode_solver. }
-      assert ((ar G sc ∪ rf ⨾ rmw)⁺ w' f) as wfWF.
+      assert ((ar G sc ∪ rf ⨾ ppo ∩ same_loc)⁺ w' f) as wfWF.
       { eapply clos_trans_mori.
         2: by apply wfWF'.
         basic_solver. }
