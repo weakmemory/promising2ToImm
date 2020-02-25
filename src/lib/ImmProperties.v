@@ -543,4 +543,26 @@ Proof using WF WF_SC CON.
     by rewrite inclusion_ct_seq_eqv_r.
 Qed.
 
+Lemma R_ex_sb_W_in_ppo : ⦗R_ex⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ppo.
+Proof using.
+  arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ;; ⦗R_ex⦘).
+  { generalize (@R_ex_in_R _ lab). basic_solver. }
+  unfold imm_s_ppo.ppo. hahn_frame.
+  rewrite <- ct_step. eauto with hahn.
+Qed.
+
+Lemma rf_rmw_sb_loc_in_rf_ppo_loc (RMWREX : dom_rel rmw ⊆₁ R_ex) :
+  rf ;; rmw ;; sb ∩ same_loc ;; <|W|> ⊆ rf ;; ppo ∩ same_loc.
+Proof using WF.
+  arewrite (rmw ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⊆ (rmw ⨾ sb ⨾ ⦗W⦘) ∩ same_loc).
+  { arewrite (rmw ⊆ rmw ∩ same_loc).
+    { apply inclusion_inter_r; [done|]. apply WF.(wf_rmwl). }
+    generalize (@same_loc_trans _ lab). basic_solver. }
+  rewrite (dom_rel_helper RMWREX). rewrite !seqA.
+  rewrite WF.(rmw_in_sb).
+  arewrite (sb ⨾ sb ⊆ sb).
+  { generalize (@sb_trans G). basic_solver. }
+    by rewrite R_ex_sb_W_in_ppo.
+Qed.
+
 End ImmProperties.

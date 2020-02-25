@@ -129,8 +129,7 @@ Hypothesis SIM_RES_MEM :
 
 Hypothesis SIM_MEM : sim_mem G sc T f_to f_from thread local PC.(Configuration.memory).
 Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread.
-Hypothesis WEXRES : smode = sim_certification ->
-                    dom_rel (<|W_ex|> ;; sb ∩ same_loc lab ;; <|issued T|>) ⊆₁ S.
+Hypothesis RMWREX : dom_rel rmw ⊆₁ R_ex lab.
 
 Lemma issue_step_helper_next w wnext valw locw ordw langst
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))

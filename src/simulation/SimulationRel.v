@@ -201,8 +201,8 @@ Definition simrel_common
            get rid of RMWREX and WEXRES. 
    *)
   ⟪ RMWREX : dom_rel rmw ⊆₁ R_ex lab ⟫ /\ 
-  ⟪ WEXRES : smode = sim_certification ->
-             dom_rel (<|W_ex|> ;; sb ∩ same_loc lab ;; <|I|>) ⊆₁ S ⟫ /\ 
+  (* ⟪ WEXRES : smode = sim_certification -> *)
+  (*            dom_rel (<|W_ex|> ;; sb ∩ same_loc lab ;; <|I|>) ⊆₁ S ⟫ /\  *)
 
   ⟪ RESERVED_TIME: reserved_time smode memory ⟫ /\
                     

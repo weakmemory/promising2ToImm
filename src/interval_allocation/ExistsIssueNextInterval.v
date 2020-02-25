@@ -110,8 +110,7 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
       (SIM_MEM : sim_mem G sc T f_to f_from
                          (tid w) local PC.(Configuration.memory))
       (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
-      (WEXRES : smode = sim_certification ->
-                dom_rel (<|W_ex|> ;; sb ∩ same_loc lab ;; <|issued T|>) ⊆₁ S) :
+      (RMWREX : dom_rel rmw ⊆₁ R_ex lab) :
   let promises := local.(Local.promises) in
   let memory   := PC.(Configuration.memory) in
   let T'       := mkTC (covered T) (issued T ∪₁ eq w) in
@@ -390,10 +389,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          assert (sb wnext wconext) as SBNEXTNEXT.
          { eapply nS_imm_co_in_sb with (S:=S); eauto. }
 
-         exfalso. apply NSWNEXT. apply WEXRES; auto.
-         exists wconext. apply seq_eqv_lr. splits; auto.
-         { red. generalize RFRMWNEXT. clear. basic_solver. }
-         split; auto. red. by rewrite WNEXTLOC. }
+         exfalso. apply WNISS. eapply rf_ppo_loc_I_in_I; eauto.
+         exists wconext. apply seqA. apply seq_eqv_r. split; auto.
+         apply rf_rmw_sb_loc_in_rf_ppo_loc; auto.
+         apply seqA. exists wnext. split; auto.
+         apply seq_eqv_r. split; auto. split; auto.
+         red. by rewrite WNEXTLOC. }
 
          (* splits; eauto. *)
          (* assert (set_compl (W_ex ∪₁ S) w) as WNRMWS. *)

@@ -167,7 +167,6 @@ Proof using WF CON.
     all: try (rewrite IdentMap.add_add_eq; eauto).
     { apply TSTEP. }
     { generalize RELB RELCOV. clear. basic_solver. }
-    { ins. rewrite WEXRES; auto. eauto with hahn. }
     { do 2 (eapply Memory.add_closed; eauto). }
     simpls.
     exists state; eexists.

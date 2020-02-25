@@ -297,7 +297,7 @@ Proof using All.
     arewrite (⦗GW_ex⦘ ⨾ Grfi ⨾ ⦗R ∩₁ Acq⦘ ⊆ Gar_int).
     arewrite (Gar_int ⨾ Gar_int ⊆ Gar_int⁺).
     { by rewrite <- ct_ct, <- ct_step. }
-    arewrite (Gar_int ⊆ Gar ∪ Grf ⨾ Grmw); auto. }
+    arewrite (Gar_int ⊆ Gar ∪ Grf ⨾ Gppo ∩ Gsame_loc); auto. }
 
   constructor.
   all: try by ins.
@@ -362,7 +362,7 @@ Unshelve.
 all:auto.
 Qed.
 
-Lemma dom_cert_ar_rfrmw_I : dom_rel (⦗is_w certG.(lab)⦘ ⨾ (Car ∪ Crf ⨾ rmw certG)⁺ ⨾ ⦗I⦘) ⊆₁ I.
+Lemma dom_cert_ar_rf_ppo_loc_I : dom_rel (⦗is_w certG.(lab)⦘ ⨾ (Car ∪ Crf ⨾ Cppo ∩ Csame_loc)⁺ ⨾ ⦗I⦘) ⊆₁ I.
 Proof using All.
   eapply otc_I_ar_rfrmw_I_implied_helper_2 with (T:=mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
   { apply WF_cert. }

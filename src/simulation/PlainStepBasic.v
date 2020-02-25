@@ -22,6 +22,7 @@ Require Import ViewRel.
 Require Import SimulationRel.
 Require Import MemoryAux.
 Require Import SimState.
+Require Import ImmProperties.
 
 Set Implicit Arguments.
 
@@ -294,23 +295,14 @@ Proof using WF.
     { eapply issuedW; [|by apply ISSY]. apply TCCOH0. }
     destruct (classic (tid y = thread)) as [|TNEQ]; subst.
     2: by apply TNEQ; apply NINISS; split.
-    assert ((rfe ⨾ rmw) y b) as RFERMW.
-    2: { apply NISS.
-         apply IIB in ISSB. apply TCCOH in ISSB.
-         apply ISSB.
-         exists b; apply seq_eqv_r; split; auto.
-         apply seq_eqv_l. split; auto.
-         apply ct_step. by right. }
-
-    hahn_rewrite rfi_union_rfe in HH. hahn_rewrite seq_union_l in HH.
-    destruct HH as [HH|]; [exfalso|done].
-    assert (~ is_init y) as NIN.
-    { intros DD. apply NISS. eapply init_issued; eauto. split; auto. }
-    assert (sb y b) as SBYB.
-    { edestruct HH as [z [RFI RMW]].
-      eapply (@sb_trans G); [by apply WF.(rfi_in_sbloc'); eauto|].
-        by apply WF.(rmw_in_sb). }
-    edestruct (sb_tid_init SBYB); desf. }
+    apply NISS.
+    apply IIB in ISSB. apply TCCOH in ISSB.
+    apply ISSB.
+    exists b; apply seq_eqv_r; split; auto.
+    apply seq_eqv_l. split; auto.
+    apply ct_step. right.
+    destruct HH as [z [AA BB]].
+    exists z. split; auto. by apply WF.(rmw_in_ppo_loc). }
   right. exists p; splits; auto.
   assert (issued T' p) as ISSP'.
   { apply ISSIN. apply ISSP. }

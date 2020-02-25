@@ -122,14 +122,6 @@ Proof using WF.
   assert (sb ;; sb ⊆ sb) as AA.
   { apply transitiveI. apply sb_trans. }
   
-  (* assert (⦗R_ex⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⊆ ppo) as CC. *)
-  (* { arewrite (sb ∩ same_loc ⊆ sb).  *)
-  (*   unfold imm_s_ppo.ppo. *)
-  (*   rewrite <- ct_step. *)
-  (*   arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ;; ⦗R_ex⦘) at 1. *)
-  (*   { generalize (R_ex_in_R lab). basic_solver. } *)
-  (*   hahn_frame. eauto with hahn. } *)
-
   assert (rfi ⨾ sb ∩ same_loc ⊆ sb ∩ same_loc) as DD.
   { rewrite WF.(rfi_in_sbloc'). apply transitiveI. apply sb_same_loc_trans. }
 

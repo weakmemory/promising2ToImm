@@ -136,7 +136,6 @@ Proof using WF CON.
     subst.
     red; splits; red; splits; eauto.
     { apply TSTEP. }
-    { ins. rewrite WEXRES; auto. eauto with hahn. }
     { eapply Memory.add_inhabited; eauto. }
     { eapply Memory.add_closed; eauto. }
     simpls.
