@@ -153,9 +153,12 @@ Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
+Hypothesis SB_S          : dom_sb_S_rfrmw G (mkETC T S) (Grf ⨾ ⦗GR_ex⦘) I ⊆₁ S.
+Hypothesis RMWREX        : dom_rel Grmw ⊆₁ GR_ex.
 
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
+
 
 Notation "'certG'" := (certG G sc T S thread lab').
 
@@ -299,74 +302,153 @@ Proof using All.
         intros HH. apply BB. split; auto. by apply AA. }
       exfalso. apply BB. split.
       2: by apply AA.
-      eneralize AA.
-clear. basic_solver. }
+      split.
+      { by apply ST_in_E. }
+        by apply S_in_W; apply AA. }
 
-  remember (new_co G (cert_co_base G T) (E ∩₁ W ∩₁ Tid_ thread)) as new.
-  rewrite !seqA.
-  arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base G T⦘
-              ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗GW_ex⦘ ⊆
-              ⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base G T⦘
-              ⨾ new ⨾ ⦗GW_ex \₁ E ∩₁ W ∩₁ Tid_ thread⦘).
-  { unfolder; ins; desf; splits; eauto.
-    intros [[EY WY] TT].
-    eapply same_thread in TT; desf; eauto.
-    2: { hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H3.
-         unfolder in H3; desf. }
-    destruct TT; desf; try subst z2; eauto.
-    { apply co_irr in H3; auto. }
-    eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone. }
+    remember (new_co G (cert_co_base T S thread) (E ∩₁ W ∩₁ Tid_ thread)) as new.
+    rewrite !seqA.
+    arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base T S thread⦘
+                ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗cert_co_base T S thread⦘ ⊆
+                ⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base T S thread⦘
+                ⨾ new ⨾ ⦗cert_co_base T S thread \₁ E ∩₁ W ∩₁ Tid_ thread⦘).
+    { unfolder; ins; desf; splits; eauto.
+      intros [[EY WY] TT].
+      eapply same_thread in TT; desf; eauto.
+      2: { hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in H3.
+           unfolder in H3; desf. }
+      destruct TT; desf; try subst z2; eauto.
+      eapply COH. eexists. splits; [apply sb_in_hb | right; apply co_in_eco]; edone. }
 
-  rewrite W_ex_in_cert_co_base.
-  subst new.
+    subst new.
 
-  rewrite (inter_inclusion
-             (@T_I_new_co_I_T G (cert_co_base G T)
-                              (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
+    rewrite (inter_inclusion
+               (@T_I_new_co_I_T G (cert_co_base T S thread)
+                                (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
 
-  rewrite (inter_eq (wf_rfD WF)), (inter_eq (wf_rfE WF)),
-  (inter_inclusion (wf_rfl WF)), (inter_inclusion (wf_rmwl WF)),
-  (inter_inclusion (wf_col WF)).
-  unfolder; ins; desc. subst z0 z3.
-  assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence).
-  assert (K: Gco z4 z1 \/ Gco z1 z4).
-  { eapply WF; try basic_solver 2.
-    intro; subst z1; eauto. }
-  destruct K.
-  2: revert AT'; unfold fr; basic_solver 12.
-  eapply (@new_co_irr _  (cert_co_base G T)); try apply WF.
-  eapply IST_new_co; eauto.
-  eapply (@new_co_trans _  (cert_co_base G T)); try apply WF.
-  eapply IST_new_co; eauto.
+    rewrite (inter_eq (wf_rfD WF)), (inter_eq (wf_rfE WF)),
+    (inter_inclusion (wf_rfl WF)), (inter_inclusion (wf_rmwl WF)),
+    (inter_inclusion (wf_col WF)).
+    unfolder; ins; desc. subst z0 z3.
+    assert (Gsame_loc z1 z4) by (unfold same_loc in *; congruence).
+    assert (K: Gco z4 z1 \/ Gco z1 z4).
+    { eapply WF; try basic_solver 2.
+      intro; subst z1; eauto. }
+    destruct K.
+    2: revert AT'; unfold fr; basic_solver 12.
+    eapply (@new_co_irr _  (cert_co_base T S thread)); try apply WF.
+    eapply IST_new_co; eauto.
+    eapply (@new_co_trans _  (cert_co_base T S thread)); try apply WF.
+    eapply IST_new_co; eauto.
+    
+    apply H3.
+    apply new_co_helper; [apply WF| apply WF| basic_solver 12]. }
   
-  apply H3.
-  apply new_co_helper; [apply WF| apply WF| basic_solver 12].
+  rewrite WF.(rmw_non_init_lr).
+  rewrite WF.(wf_rmwD). rewrite WF.(wf_rmwE).
+  rewrite wf_cert_coE; auto.
+  rewrite wf_cert_coD; auto.
+  unfold cert_co_base.
 
-  
   unfolder. ins. desf.
-  rename H into RMW.
-  apply WF.(wf_rmwD) in RMW. apply seq_eqv_lr in RMW. destruct RMW as [RZ [RMW WX]].
-  apply WF.(wf_rmwE) in RMW. apply seq_eqv_lr in RMW. destruct RMW as [EZ [RMW EX]].
+  rename z1 into z0.
+  rename z3 into z1.
   assert ((E ∩₁ W) x) as EWX by (by split).
-  destruct (classic (Tid_ thread x)).
-  2: { assert (I x) as IX.
-       { apply IT_new_co in EWX. unfolder in EWX. desf. }
+  assert ((E ∩₁ W) z0) as EWZ0 by (by split).
+  assert ((E ∩₁ W) z1) as EWZ1 by (by split).
+
+  destruct (classic (Tid_ thread x)) as [TIDX|].
+  2: { assert (I x); eauto.
+       apply IT_new_co in EWX. unfolder in EWX. desf. }
+
+  assert (NTid_ thread z1) as NTIDZ1.
+  { intros HH. subst.
+    assert ((<|E|> ;; same_tid ;; <|E|>) z1 x) as AA.
+    { apply seq_eqv_lr. splits; auto. }
+    apply tid_sb in AA. unfolder in AA. desf.
+    { eapply cert_co_irr; eauto. }
+    eapply cert_co_sb_irr; eauto. basic_solver. }
+
+  assert (I z1) as IZ1.
+  { apply IT_new_co in EWZ1. unfolder in EWZ1. desf. }
+
+  match goal with
+  | H : Grf ?X ?Y |- _ => rename H into RF
+  end.
+
+  eapply cert_co_alt' in H3; eauto.
+  unfolder in H3. desf.
+
+  assert (dom_rel (Gsb ⨾ ⦗S⦘) x) as AAA.
+  { admit. }
+
+  set (RFA:=RF).
+  apply rfi_union_rfe in RFA. destruct RFA; auto.
+  2: { destruct (classic (Tid_ (tid x) z0)).
+       { eapply rfe_n_same_tid; eauto. split; eauto. red.
+         apply WF.(wf_rmwt) in H17. by rewrite H17. }
        assert (I z0) as IZ0.
-       { eapply rfrmw_I_in_I; eauto. exists x.
-         basic_solver. }
-
+       { apply IT_new_co in EWZ0. unfolder in EWZ0. desf. }
+       apply H6. right. split; auto.
+       apply SB_S. red. split; auto.
+       exists z0. apply seq_eqv_l. split; auto.
+       apply seqA. exists z. split; auto.
+       apply seq_eqv_l. split; auto.
+       apply RMWREX. red. eauto. }
+  (* TODO: continue from here. *)
   
-  rewrite rfi_union_rfe.
-  rewrite transp_union. relsf. apply irreflexive_union. split.
-  2: { unfolder. ins. desf.
+  assert (~ S z0) as NSZ0.
+  { intros AA.
+    enough (S x).
+    { apply H6. eauto. }
+    apply SB_S. red.
+    split; auto.
+    exists z0. apply seq_eqv_l. split; auto.
+    apply seqA.
+    exists z. split; auto.
+    apply seq_eqv_l. split; auto.
+    apply RMWREX. red. eauto. }
+  assert (~ I z0) as NIZ0.
+  { intros II.
+    apply NSZ0. by apply I_in_S. }
 
+  destruct (classic (Tid_ (tid x) z0)).
+  2: { apply NIZ0. apply IT_new_co in EWZ0. unfolder in EWZ0. desf. }
 
-  
-  unfolder. ins. desf.
-  generalize (@T_I_new_co_I_T G (cert_co_base T S thread)
-                              (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF)).
+  (* assert (Grfi z0 z) as RFI. *)
+  (* { apply rfi_union_rfe in RF. destruct RF; auto. *)
+  (*   exfalso. eapply rfe_n_same_tid; eauto. split; eauto. red. rewrite H2. *)
+  (*   symmetry. by apply WF.(wf_rmwt). } *)
+
+  generalize (@T_I_new_co_I_T G (cert_co_base T S (tid x))
+                              (E ∩₁ W ∩₁ Tid_ (tid x)) (co_trans WF)).
   intros HH.
-
-Qed.
+  specialize (HH z0 z1).
+  destruct HH as [d [COA COB]].
+  { unfold cert_co_base.
+    apply seq_eqv_lr. splits; auto.
+    all: split; auto; [basic_solver|].
+    all: unfolder; intro; desf. }
+  unfolder in COB. desf.
+  
+  enough (new_co G (cert_co_base T S (tid x)) (E ∩₁ W ∩₁ Tid_ (tid x)) x d) as AA.
+  { eapply cert_co_irr; eauto.
+    eapply cert_co_trans; eauto.
+    eapply cert_co_trans with (y:=z1); eauto.
+    apply I_co_in_cert_co; auto.
+    apply seq_eqv_l. split; auto. }
+  
+  destruct (classic (d = x)).
+  { desf. }
+  edestruct wf_cert_co_total; eauto.
+  1,2: unfolder; ins; splits; auto.
+  { transitivity (Gloc z0).
+    { symmetry. apply wf_rfrmwl; auto. basic_solver. }
+      by apply WF.(wf_col). }
+  exfalso.
+  eapply cert_co_alt' in H9; eauto.
+  unfolder in H9. desf.
+  eapply AT'. split; eauto. unfold fr. unfolder. eauto. 
+Admitted.
 
 End CertExec_at.
