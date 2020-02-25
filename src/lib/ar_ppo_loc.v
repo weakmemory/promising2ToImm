@@ -6,7 +6,7 @@ From imm Require Import AuxDef Events Execution
 Set Implicit Arguments.
 Remove Hints plus_n_O.
 
-Section ImmRFRMWRex.
+Section ImmRFRMWPPO.
 
   Variable G : execution.
   Variable WF : Wf G.
@@ -115,35 +115,28 @@ Proof using.
   apply clos_trans_mori. eauto with hahn.
 Qed.
 
-Lemma ar_int_rfe_rf_rmw_R_ex_in_ar_int_rfe_ct :
-  (rfe ∪ ar_int) ;; rf ;; (rmw ∪ <|R_ex|> ;; sb ∩ same_loc ;; <|W|>) ⊆ (rfe ∪ ar_int)⁺.
+Lemma ar_int_rfe_rf_ppo_loc_in_ar_int_rfe_ct :
+  (rfe ∪ ar_int) ;; rf ;; (ppo ∩ same_loc) ⊆ (rfe ∪ ar_int)⁺.
 Proof using WF.
-  rewrite !seq_union_r. unionL.
-  { by apply ar_int_rfe_rfrmw_in_ar_int_rfe_ct. }
-
   remember (rfe ∪ ar_int) as ax.
   assert (sb ;; sb ⊆ sb) as AA.
   { apply transitiveI. apply sb_trans. }
   
-  assert (rfi ;; rmw ⊆ sb) as BB.
-  { arewrite (rfi ⊆ sb). by rewrite rmw_in_sb. }
+  (* assert (⦗R_ex⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⊆ ppo) as CC. *)
+  (* { arewrite (sb ∩ same_loc ⊆ sb).  *)
+  (*   unfold imm_s_ppo.ppo. *)
+  (*   rewrite <- ct_step. *)
+  (*   arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ;; ⦗R_ex⦘) at 1. *)
+  (*   { generalize (R_ex_in_R lab). basic_solver. } *)
+  (*   hahn_frame. eauto with hahn. } *)
 
-  assert (⦗R_ex⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⊆ ppo) as CC.
-  { arewrite (sb ∩ same_loc ⊆ sb). 
-    unfold imm_s_ppo.ppo.
-    rewrite <- ct_step.
-    arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ;; ⦗R_ex⦘) at 1.
-    { generalize (R_ex_in_R lab). basic_solver. }
-    hahn_frame. eauto with hahn. }
-
-  assert (rfi ⨾ ⦗R_ex⦘ ⨾ sb ∩ same_loc ⊆ sb ∩ same_loc) as DD.
-  { rewrite WF.(rfi_in_sbloc'). arewrite_id ⦗R_ex⦘. rewrite seq_id_l.
-    apply transitiveI. apply sb_same_loc_trans. }
+  assert (rfi ⨾ sb ∩ same_loc ⊆ sb ∩ same_loc) as DD.
+  { rewrite WF.(rfi_in_sbloc'). apply transitiveI. apply sb_same_loc_trans. }
 
   rewrite rfi_union_rfe.
   rewrite seq_union_l, seq_union_r.
   unionL.
-  2: { rewrite CC.
+  2: { arewrite (ppo ∩ same_loc ⊆ ppo).
        rewrite ppo_in_ar_int.
        arewrite (rfe ⨾ ar_int ⊆ ax ;; ax).
        { subst ax. basic_solver 10. }
@@ -161,23 +154,28 @@ Proof using WF.
   5: by rewrite (dom_l (wf_rfiD WF)); type_solver.
   3: { rewrite WF.(wf_detourD).
        rewrite WF.(wf_rfiD). type_solver. }
-  2: { rewrite CC. rewrite ppo_rfi_ppo. rewrite <- ct_step.
+  2: { arewrite (ppo ∩ same_loc ⊆ ppo).
+       rewrite ppo_rfi_ppo. rewrite <- ct_step.
        rewrite ppo_in_ar_int. eauto with hahn. }
   2: { arewrite_id ⦗W⦘ at 1. rewrite seq_id_l.
-       arewrite_id ⦗R_ex⦘ at 1. rewrite seq_id_l.
        rewrite rfi_in_sb.
-       arewrite (sb ∩ same_loc ⊆ sb). 
+       arewrite (ppo ∩ same_loc ⊆ ppo).
+       rewrite (dom_r (@wf_ppoD G)).
+       rewrite WF.(ppo_in_sb).
        arewrite (sb ⨾ sb ⨾ sb ⊆ sb).
        { generalize (@sb_trans G). basic_solver. }
        rewrite <- ct_step.
        rewrite w_ex_acq_sb_w_in_ar_int. eauto with hahn. }
+  rewrite (dom_r (@wf_ppoD G)).
+  rewrite WF.(ppo_in_sb).
+  rewrite seq_eqv_inter_lr.
   sin_rewrite DD.
   rewrite bob_sb_same_loc_W_in_bob.
   apply clos_trans_mori. rewrite bob_in_ar_int. eauto with hahn.
 Qed.
 
-Lemma ar_rf_rmw_R_ex_in_ar_ct :
-  ar ;; rf ;; (rmw ∪ <|R_ex|> ;; sb ∩ same_loc ;; <|W|>) ⊆ ar⁺.
+Lemma ar_rf_ppo_loc_in_ar_ct :
+  ar ;; rf ;; ppo ∩ same_loc ⊆ ar⁺.
 Proof using WF IMMCON.
   unfold imm_s.ar.
   rewrite unionA, seq_union_l.
@@ -185,55 +183,59 @@ Proof using WF IMMCON.
   { rewrite wf_scD with (sc:=sc) at 1; [|by apply IMMCON].
     rewrite (dom_l WF.(wf_rfD)).
     type_solver. }
-  rewrite ar_int_rfe_rf_rmw_R_ex_in_ar_int_rfe_ct.
+  rewrite ar_int_rfe_rf_ppo_loc_in_ar_int_rfe_ct.
   apply clos_trans_mori. eauto with hahn.
 Qed.
 
-Lemma ar_ct_rf_rmw_R_ex_in_ar_ct :
-  ar⁺ ;; rf ;; (rmw ∪ <|R_ex|> ;; sb ∩ same_loc ;; <|W|>) ⊆ ar⁺.
+Lemma ar_ct_rf_ppo_loc_in_ar_ct :
+  ar⁺ ;; rf ;; ppo ∩ same_loc ⊆ ar⁺.
 Proof using WF IMMCON.
   rewrite ct_end at 1. rewrite !seqA.
-  rewrite ar_rf_rmw_R_ex_in_ar_ct.
+  rewrite ar_rf_ppo_loc_in_ar_ct.
   apply rt_ct.
 Qed.
 
-Lemma ar_rf_rmw_R_ex_acyclic :
-  acyclic (ar ∪ rf ;; (rmw ∪ <|R_ex|> ;; sb ∩ same_loc ;; <|W|>)).
-Proof using.
+Lemma ar_rf_ppo_loc_acyclic :
+  acyclic (ar ∪ rf ;; ppo ∩ same_loc).
+Proof using WF COM IMMCON.
   rewrite ct_step with (r:=ar).
   rewrite unionC.
   apply acyclic_absorb.
-  { right. apply ar_ct_rf_rmw_R_ex_in_ar_ct. }
+  { right. apply ar_ct_rf_ppo_loc_in_ar_ct. }
   split.
   2: { red. rewrite ct_of_ct. apply IMMCON. }
-  rewrite R_ex_in_R. rewrite r_sb_loc_w_in_fri; auto.
-  (* rewrite rf_rmw_in_co; eauto. *)
-  (* { by apply co_acyclic. } *)
-  (* apply coherence_sc_per_loc. by apply IMMCON. *)
-Admitted.
+  rewrite (@wf_ppoD G).
+  rewrite WF.(ppo_in_sb).
+  rewrite seq_eqv_inter_ll.
+  rewrite seq_eqv_inter_lr.
+  rewrite r_sb_loc_w_in_fri; auto.
+  2: { apply coherence_sc_per_loc. by apply IMMCON. }
+  arewrite (fri G ⊆ fr).
+  rewrite rf_fr; auto. by apply co_acyclic.
+Qed.
 
-Lemma ar_ct_rf_rmw_R_ex_ct_in_ar_ct :
-  ar⁺ ⨾ (rf ⨾ (rmw ∪ <|R_ex|> ;; sb ∩ same_loc ;; <|W|>))⁺ ⊆ ar⁺.
+Lemma ar_ct_rf_ppo_loc_ct_in_ar_ct :
+  ar⁺ ⨾ (rf ⨾ ppo ∩ same_loc)⁺ ⊆ ar⁺.
 Proof using WF IMMCON.
   intros x y [z [AA BB]].
   apply clos_trans_t1n in BB.
   induction BB.
   2: apply IHBB.
-  all: apply ar_ct_rf_rmw_R_ex_in_ar_ct; auto.
+  all: apply ar_ct_rf_ppo_loc_in_ar_ct; auto.
   all: eexists; split; eauto.
 Qed.
 
-Lemma ar_rf_rmw_R_ex_ct_in_ar_ct :
-  ar ⨾ (rf ⨾ (rmw ∪ <|R_ex|> ;; sb ∩ same_loc ;; <|W|>))⁺ ⊆ ar⁺.
+Lemma ar_rf_ppo_loc_ct_in_ar_ct :
+  ar ⨾ (rf ⨾ ppo ∩ same_loc)⁺ ⊆ ar⁺.
 Proof using WF IMMCON.
-  rewrite ct_step with (r:=ar) at 1. by apply ar_ct_rf_rmw_R_ex_ct_in_ar_ct.
+  rewrite ct_step with (r:=ar) at 1. by apply ar_ct_rf_ppo_loc_ct_in_ar_ct.
 Qed.
 
-Lemma wf_ar_rf_rmw_R_ex_ct :
-  well_founded (ar ∪ rf ;; (rmw ∪ <|R_ex|> ;; sb ∩ same_loc ;; <|W|>))⁺.
-Proof using WF WFSC.
+Lemma wf_ar_rf_ppo_ct :
+  well_founded (ar ∪ rf ;; ppo ∩ same_loc)⁺.
+Proof using WF WFSC COM IMMCON.
   eapply wf_finite; auto.
-  { red. rewrite ct_of_ct. apply ar_rf_rmw_R_ex_acyclic; auto. }
+  { red. rewrite ct_of_ct. apply ar_rf_ppo_loc_acyclic; auto. }
   rewrite (dom_l (wf_arE WF WFSC)).
   rewrite (dom_l (wf_rfE WF)). rewrite !seqA.
   rewrite <- seq_union_r.
@@ -241,4 +243,4 @@ Proof using WF WFSC.
   red. basic_solver.
 Qed.
 
-End ImmRFRMWRex.
+End ImmRFRMWPPO.
