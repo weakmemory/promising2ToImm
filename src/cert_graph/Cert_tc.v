@@ -347,24 +347,28 @@ Proof using All.
     rewrite cert_sb. eapply tc_W_ex_sb_I; eauto.
     apply tc_coherent_implies_tc_coherent_alt; eauto. }
   simpls.
-  arewrite (Grmw ⨾ ⦗I⦘ ⊆ ⦗D⦘ ⨾ Grmw ⨾ ⦗I⦘).
+  rewrite same_lab_u2v_same_loc; eauto.
+  arewrite (Cppo ∩ Gsame_loc ⨾ ⦗I⦘ ⊆ (Cppo ⨾ ⦗I⦘) ∩ Gsame_loc ⨾ ⦗I⦘).
+  { basic_solver. }
+  arewrite (Cppo ⨾ ⦗I⦘ ⊆ Gppo).
+  { rewrite I_in_D. eapply cert_ppo_D; eauto. }
+  arewrite (Gppo ∩ Gsame_loc ⨾ ⦗I⦘ ⊆ ⦗D⦘ ⨾ Gppo ∩ Gsame_loc ⨾ ⦗I⦘).
   { apply dom_rel_helper.
-    rewrite rmw_in_ppo; auto.
-    rewrite I_in_D.
-    eapply dom_ppo_D; edone. }
+    arewrite (Gppo ∩ Gsame_loc ⊆ Gppo).
+    rewrite I_in_D. eapply dom_ppo_D; edone. }
   rewrite cert_rfi_eq.
   forward (eapply cert_rfi_D with (G:=G) (T:=T) (S:=S) (thread:=thread)); eauto.
   intros HH. sin_rewrite HH.
   arewrite_id ⦗D⦘. rewrite !seq_id_l.
   arewrite (Grfi ⊆ Grf).
-  eapply rfrmw_I_in_I; eauto.
+  eapply rf_ppo_loc_I_in_I; eauto.
 Unshelve.
 all:auto.
 Qed.
 
 Lemma dom_cert_ar_rf_ppo_loc_I : dom_rel (⦗is_w certG.(lab)⦘ ⨾ (Car ∪ Crf ⨾ Cppo ∩ Csame_loc)⁺ ⨾ ⦗I⦘) ⊆₁ I.
 Proof using All.
-  eapply otc_I_ar_rfrmw_I_implied_helper_2 with (T:=mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
+  eapply otc_I_ar_rf_ppo_loc_I_implied_helper_2 with (T:=mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
   { apply WF_cert. }
   { apply cert_imm_consistent. }
   apply TCCOH_cert_old.
@@ -387,7 +391,7 @@ Proof using All.
     generalize tc_sb_C, tc_W_C_in_I; basic_solver 21. }
   { ins; rewrite cert_W; edone. }
   { ins; rewrite cert_fwbob; edone. }
-  ins. apply dom_cert_ar_rfrmw_I.
+  ins. apply dom_cert_ar_rf_ppo_loc_I.
 Qed.
 
 Lemma cert_detour_rfe_D : (Cdetour ∪ certG.(rfe)) ⨾ ⦗D⦘ ⊆ ⦗I⦘ ⨾ (Gdetour ∪ Grfe).
