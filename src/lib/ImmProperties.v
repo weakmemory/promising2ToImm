@@ -507,4 +507,11 @@ Proof using WF CON. arewrite (rfi ⊆ rf). eapply wf_rfrmwsf; eauto. Qed.
 Lemma wf_rfirmwf : functional (rfi ⨾ rmw)⁻¹.
 Proof using WF. arewrite (rfi ⊆ rf). eapply wf_rfrmwf; eauto. Qed.
 
+Lemma rmw_in_ppo_loc : rmw ⊆ ppo ∩ same_loc.
+Proof using WF.
+  apply inclusion_inter_r.
+  { by apply rmw_in_ppo. }
+  apply WF.(wf_rmwl).
+Qed.
+
 End ImmProperties.

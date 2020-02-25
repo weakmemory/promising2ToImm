@@ -3,6 +3,7 @@ From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution
      Execution_eco imm_s_hb imm_s imm_bob imm_s_ppo CombRelations imm_s_rfrmw.
 Require Import ImmProperties.
+Require Import ar_ppo_loc.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -102,7 +103,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 
   Definition issuable T := E ∩₁ W ∩₁
                            (dom_cond fwbob (covered T)) ∩₁
-                           (dom_cond (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺) (issued T)).
+                           (dom_cond (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc))⁺) (issued T)).
 
   Definition tc_coherent (T : trav_config) :=
     ⟪ ICOV  : Init ∩₁ E ⊆₁ covered T ⟫ /\
@@ -270,7 +271,7 @@ Section Properties.
   Lemma ar_ct_issuable_is_issued  : 
     dom_rel (⦗W⦘ ⨾ ar⁺ ⨾ ⦗issuable T⦘) ⊆₁ issued T.
   Proof using.
-    arewrite (ar ⊆ ar ∪ rf ⨾ rmw).
+    arewrite (ar ⊆ ar ∪ rf ⨾ ppo ∩ same_loc).
     unfold issuable. basic_solver 20.
   Qed.
 
@@ -387,63 +388,93 @@ Section Properties.
     apply ar_coverable_in_CI.
   Qed.
 
-  Lemma ar_rfrmw_ct_issuable_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Lemma ar_rf_ppo_loc_ct_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc))⁺ ⨾ ⦗issuable T⦘) ⊆₁ issued T.
   Proof using.
     unfold issuable.
     basic_solver 10.
   Qed.
 
-  Lemma ar_rfrmw_ct_I_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Lemma ar_rfrmw_ct_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF.
+    rewrite WF.(rmw_in_ppo_loc). apply ar_rf_ppo_loc_ct_issuable_in_I.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_ct_I_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc))⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof using TCCOH.
     rewrite issued_in_issuable at 1.
-    apply ar_rfrmw_ct_issuable_in_I.
+    apply ar_rf_ppo_loc_ct_issuable_in_I.
+  Qed.
+
+  Lemma ar_rfrmw_ct_I_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TCCOH.
+    rewrite WF.(rmw_in_ppo_loc). by apply ar_rf_ppo_loc_ct_I_in_I.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_rt_I_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc))＊ ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using TCCOH.
+    rewrite rtE. rewrite !seq_union_l, !seq_union_r, dom_union; unionL.
+    { basic_solver. }
+    apply ar_rf_ppo_loc_ct_I_in_I.
   Qed.
 
   Lemma ar_rfrmw_rt_I_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)＊ ⨾ ⦗issued T⦘) ⊆₁ issued T.
-  Proof using TCCOH.
-    rewrite rtE. rewrite !seq_union_l, !seq_union_r, dom_union; unionL.
-    { basic_solver. }
-      by apply ar_rfrmw_ct_I_in_I.
+  Proof using WF TCCOH.
+    rewrite WF.(rmw_in_ppo_loc). by apply ar_rf_ppo_loc_rt_I_in_I.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc)) ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using.
+    rewrite ct_step with (r := ar ∪ rf ⨾ (ppo ∩ same_loc)).
+      by apply ar_rf_ppo_loc_ct_issuable_in_I.
   Qed.
 
   Lemma ar_rfrmw_issuable_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw) ⨾ ⦗issuable T⦘) ⊆₁ issued T.
-  Proof using.
-    rewrite ct_step with (r := ar ∪ rf ⨾ rmw).
-      by apply ar_rfrmw_ct_issuable_in_I.
+  Proof using WF.
+    rewrite WF.(rmw_in_ppo_loc). by apply ar_rf_ppo_loc_issuable_in_I.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_I_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc)) ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using TCCOH.
+    rewrite ct_step with (r := ar ∪ rf ⨾ (ppo ∩ same_loc)).
+      by apply ar_rf_ppo_loc_ct_I_in_I.
   Qed.
 
   Lemma ar_rfrmw_I_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw) ⨾ ⦗issued T⦘) ⊆₁ issued T.
-  Proof using TCCOH.
-    rewrite ct_step with (r := ar ∪ rf ⨾ rmw).
-      by apply ar_rfrmw_ct_I_in_I.
+  Proof using WF TCCOH.
+    rewrite WF.(rmw_in_ppo_loc). by apply ar_rf_ppo_loc_I_in_I.
   Qed.
 
   Lemma ar_ct_issuable_in_I  :
     dom_rel (⦗W⦘ ⨾ ar⁺ ⨾ ⦗issuable T⦘) ⊆₁ issued T.
-  Proof using.
+  Proof using WF.
     arewrite (ar ⊆ ar ∪ rf ⨾ rmw). by apply ar_rfrmw_ct_issuable_in_I.
   Qed.
 
   Lemma ar_ct_I_in_I  :
     dom_rel (⦗W⦘ ⨾ ar⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
-  Proof using TCCOH.
+  Proof using WF TCCOH.
     arewrite (ar ⊆ ar ∪ rf ⨾ rmw). by apply ar_rfrmw_ct_I_in_I.
   Qed.
 
   Lemma ar_issuable_in_I  :
     dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗issuable T⦘) ⊆₁ issued T.
-  Proof using.
+  Proof using WF.
     rewrite ct_step with (r:=ar). by apply ar_ct_issuable_in_I.
   Qed.
 
   Lemma ar_I_in_I  :
     dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗issued T⦘) ⊆₁ issued T.
-  Proof using TCCOH.
+  Proof using WF TCCOH.
     rewrite ct_step with (r:=ar). by apply ar_ct_I_in_I.
   Qed.
 
@@ -481,7 +512,7 @@ Section Properties.
 
   Lemma ar_rt_I_in_I  :
     dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗issued T⦘) ⊆₁ issued T.
-  Proof using TCCOH.
+  Proof using WF TCCOH.
     rewrite rtE, !seq_union_l, !seq_union_r, seq_id_l, dom_union.
     unionL; [basic_solver|]. by apply ar_ct_I_in_I.
   Qed.
@@ -502,6 +533,7 @@ Section Properties.
     apply dom_W_sb_coverable_in_I.
   Qed.
 
+  (* TODO: continue from here. *)
   Lemma rfrmw_coverable_in_I  :
     dom_rel (rf ⨾ rmw ⨾ ⦗coverable T⦘) ⊆₁ issued T.
   Proof using WF TCCOH.
