@@ -349,7 +349,17 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          { intros [|]; eauto. }
 
          assert (sb w wconext) as SBNEXT.
-         { eapply nS_imm_co_in_sb with (S:=S); eauto. }
+         { eapply nS_imm_co_in_sb; auto.
+           4: by apply FOR_SPLIT.
+           3: { exists wconext. apply seq_eqv_l. split; auto.
+                apply rt_refl. }
+           { intros [y HH].
+             apply seq_eqv_l in HH. destruct HH as [SY RFRMW].
+             apply rtE in RFRMW. destruct RFRMW as [HH|RFRMW].
+             { red in HH. desf. }
+             apply ct_end in RFRMW. destruct RFRMW as [z [AA RFRMW]].
+             apply NWEX. red. generalize RFRMW. clear. basic_solver. }
+           admit. }
 
          assert (~ Rel w) as NREL.
          { intros RR. apply WNCOV.
@@ -536,11 +546,13 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            { clear. basic_solver. }
            rewrite IE. clear. basic_solver. }
          
-         red. split; unnw.
-         { etransitivity.
-           2: by apply FOR_SPLIT.
-           hahn_frame_r. clear. subst S'. basic_solver 10. }
-         rewrite RMW_BEF_S. clear. subst S'. basic_solver 10. }
+         red. splits.
+         2: { rewrite RMW_BEF_S. clear. subst S'. basic_solver 10. }
+         rewrite <- FOR_SPLIT.
+         hahn_frame.
+         clear. apply eqv_rel_mori.
+         apply AuxRel.set_compl_mori. red.
+         clear. subst S'. basic_solver 10. }
 
     assert (f_to wprev <> f_from wconext) as FFNEQ.
     { intros HH.
@@ -917,6 +929,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   { apply same_tc. }
   split; [subst S'; rewrite NONEXT|]; eauto with hahn.
   clear. basic_solver 10.
-Qed.
+Admitted.
 
 End Aux.

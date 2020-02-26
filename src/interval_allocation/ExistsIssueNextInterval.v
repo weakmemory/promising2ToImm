@@ -1417,6 +1417,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     generalize NWEX. unfold Execution.W_ex. clear; basic_solver. }
   { red. unfolder. eauto. }
   rewrite IE. eauto with hahn.
-Qed.
+Admitted.
 
 End Aux.

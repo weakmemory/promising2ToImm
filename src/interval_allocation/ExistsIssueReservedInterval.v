@@ -825,8 +825,11 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN
     destruct smode; simpls; desc.
     2: { splits.
          2: rewrite RMW_BEF_S; basic_solver 10.
-         arewrite (set_compl (S ∪₁ eq wnext) ⊆₁ set_compl S); [|done].
-         apply AuxRel.set_compl_mori. red. basic_solver. }
+         rewrite <- FOR_SPLIT.
+         hahn_frame.
+         clear. apply eqv_rel_mori.
+         apply AuxRel.set_compl_mori. red.
+         basic_solver 10. }
     splits.
     3: { intros x y SX SY CO; subst.
          assert (x <> y) as NEQXY.
