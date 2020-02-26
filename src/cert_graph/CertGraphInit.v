@@ -496,6 +496,23 @@ assert (ST_in_W_ex : S ∩₁ Tid_ thread \₁ issued T ⊆₁ W_ex G).
   all: exists x; apply seq_eqv_r; split; [|split]; auto.
   eapply inclusion_step_cr; [reflexivity|]. by apply WF.(rmw_in_sb). }
 
+assert (SB_S : dom_sb_S_rfrmw G (mkETC T S) (rf G ⨾ ⦗R_ex (lab G)⦘) (issued T) ⊆₁ S).
+{ unfold dom_sb_S_rfrmw. 
+  rewrite sub_sb_in; eauto.
+  rewrite sub_rf_in; eauto.
+  rewrite sub_R_ex; eauto.
+  rewrite sub_rmw_in; eauto.
+  apply ETCCOH. }
+assert (RMWREX : dom_rel (rmw G) ⊆₁ (R_ex (lab G))).
+{ rewrite sub_rmw_in; eauto.
+  rewrite sub_R_ex; eauto.
+  apply COMMON. }
+
+assert (issued T ∪₁ S ∩₁ Tid_ thread ⊆₁ S) as IST_in_S.
+{ generalize ETCCOH.(etc_I_in_S). unfold eissued. simpls.
+  basic_solver. } 
+
+assert (issued T ⊆₁ S) as I_in_S by apply ETCCOH.
 
 exploit (@receptiveness_full thread state state'' new_val
                                new_rfi (E0 Gf T S thread \₁ D G T S thread)); auto.
@@ -748,12 +765,6 @@ assert (forall b (ISSB : issued T b), val lab' b = val Gf.(lab) b) as ISS_OLD.
 assert (acts_certG_in_acts_Gf : acts_set (certG G Gsc T S thread lab') ⊆₁ acts_set Gf).
 { by unfold certG. }
 
-assert (issued T ∪₁ S ∩₁ Tid_ thread ⊆₁ S) as IST_in_S.
-{ generalize ETCCOH.(etc_I_in_S). unfold eissued. simpls.
-  basic_solver. } 
-
-assert (issued T ⊆₁ S) as I_in_S by apply ETCCOH.
-
 assert (dom_rel (⦗W_ex G ∩₁ (is_xacq (lab G))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆₁ issued T) as XACQ_I.
 { rewrite sub_sb_in; eauto.
   rewrite sub_xacq; eauto.
@@ -762,18 +773,6 @@ assert (dom_rel (⦗W_ex G ∩₁ (is_xacq (lab G))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆
 
 assert (dom_rel (rmw G ⨾ ⦗S⦘) ⊆₁ codom_rel (rf G)) as COMP_RMW_S.
 { subst G. eapply COMP_RMW_S; eauto. }
-
-assert (SB_S : dom_sb_S_rfrmw G (mkETC T S) (rf G ⨾ ⦗R_ex (lab G)⦘) (issued T) ⊆₁ S).
-{ unfold dom_sb_S_rfrmw. 
-  rewrite sub_sb_in; eauto.
-  rewrite sub_rf_in; eauto.
-  rewrite sub_R_ex; eauto.
-  rewrite sub_rmw_in; eauto.
-  apply ETCCOH. }
-assert (RMWREX : dom_rel (rmw G) ⊆₁ (R_ex (lab G))).
-{ rewrite sub_rmw_in; eauto.
-  rewrite sub_R_ex; eauto.
-  apply COMMON. }
 
 assert ((cert_rf G Gsc T S thread ⨾ rmw G) ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘ ⊆
         rf Gf ⨾ rmw Gf) as RFRMW_IST_IN.

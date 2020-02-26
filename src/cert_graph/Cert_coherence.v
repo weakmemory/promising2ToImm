@@ -319,7 +319,10 @@ Qed.
 
 
 Lemma hb_rfe_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Crfe).
-Proof using All.
+Proof using ACYC_EXT COH COMP_ACQ COMP_C COMP_NTID COMP_RPPO CSC ETC_DR_R_ACQ_I E_to_S
+F_in_C G Grfe_E IT_new_co I_in_S RELCOV RMWREX S ST_in_E S_I_in_W_ex S_in_W T
+TCCOH_rst_new_T WF WF_SC W_hb_sc_hb_to_I_NTid detour_Acq_E lab' sc thread urr_helper
+urr_helper_C.
 rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
 relsf; unionL.
 { revert COH CSC; unfold coherence, coh_sc, eco.
@@ -335,7 +338,10 @@ clear. basic_solver.
 Qed.
 
 Lemma hb_rf_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Crf).
-Proof using All.
+Proof using ACYC_EXT COH COMP_ACQ COMP_C COMP_NTID COMP_RPPO CSC ETC_DR_R_ACQ_I E_to_S
+F_in_C G Grfe_E IT_new_co I_in_S RELCOV RMWREX S ST_in_E S_I_in_W_ex S_in_W T
+TCCOH_rst_new_T WF WF_SC W_hb_sc_hb_to_I_NTid detour_Acq_E lab' sc thread urr_helper
+urr_helper_C.
 rewrite cert_rf_eq.
 rewrite cert_rfi_union_cert_rfe.
 relsf; unionL.
