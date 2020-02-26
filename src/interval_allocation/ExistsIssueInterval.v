@@ -260,6 +260,8 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
              ⟪ RESERVED_TIME :
                  reserved_time G T' S' f_to' f_from' smode memory' ⟫ ⟫).
 Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
+  assert (sc_per_loc G) as SPL.
+  { apply coherence_sc_per_loc. apply IMMCON. }
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   assert (S ⊆₁ E ∩₁ W) as SEW.
   { apply set_subset_inter_r. split; [by apply ETCCOH|].
@@ -341,6 +343,17 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     assert (issued T wconext /\ ~ W_ex wconext) as [WSISS NWEXCONEXT].
     { eapply codom_nS_imm_co_S_in_I with (T:=mkETC T S); eauto.
       simpls. exists w. apply seq_eqv_l. by split. }
+
+    assert (codom_rel (⦗S⦘ ⨾ (rf ⨾ rmw)＊) wconext) as CCBWCONEXT.
+    { exists wconext. apply seq_eqv_l. split; auto. apply rt_refl. }
+
+    assert (~ codom_rel (⦗S⦘ ⨾ (rf ⨾ rmw)＊) w) as NCCBW.
+    { intros [y HH].
+      apply seq_eqv_l in HH. destruct HH as [SY RFRMW].
+      apply rtE in RFRMW. destruct RFRMW as [HH|RFRMW].
+      { red in HH. desf. }
+      apply ct_end in RFRMW. destruct RFRMW as [z [AA RFRMW]].
+      apply NWEX. red. generalize RFRMW. clear. basic_solver. }
     
     destruct smode eqn:SMODE; [left|right].
     2: { splits; eauto.
@@ -351,14 +364,27 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          assert (sb w wconext) as SBNEXT.
          { eapply nS_imm_co_in_sb; auto.
            4: by apply FOR_SPLIT.
-           3: { exists wconext. apply seq_eqv_l. split; auto.
-                apply rt_refl. }
-           { intros [y HH].
-             apply seq_eqv_l in HH. destruct HH as [SY RFRMW].
-             apply rtE in RFRMW. destruct RFRMW as [HH|RFRMW].
-             { red in HH. desf. }
-             apply ct_end in RFRMW. destruct RFRMW as [z [AA RFRMW]].
-             apply NWEX. red. generalize RFRMW. clear. basic_solver. }
+           1,3: done.
+           red. split.
+           { apply seq_eqv_r. split; auto. }
+           ins.
+           apply seq_eqv_r in R1. destruct R1 as [COWC [cs CCBC]].
+           apply seq_eqv_r in R2. destruct R2 as [COCWCONEXT _].
+           apply seq_eqv_l in CCBC. destruct CCBC as [SCS RFRMWS].
+           assert (co cs wconext) as COCSWCONEXT.
+           { apply rf_rmw_rt_in_co in RFRMWS; auto.
+             apply rewrite_trans_seq_cr_l.
+             { apply WF.(co_trans). }
+             eexists; eauto. }
+           assert (cs <> w) as NEQCS.
+           { intros HH. by subst. }
+           apply (dom_l WF.(wf_coD)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as WCS.
+           apply (dom_l WF.(wf_coE)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as ECS.
+           assert (loc lab cs = Some locw) as CSLOC.
+           { rewrite <- LOCNEXT. by apply WF.(wf_col). }
+           edestruct WF.(wf_co_total) with (a:=w) (b:=cs) as [COCSW|COWCS]; eauto.
+           { unfolder. by splits. }
+           { apply NCOIMM with (c:=cs); basic_solver. }
            admit. }
 
          assert (~ Rel w) as NREL.
