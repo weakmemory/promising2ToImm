@@ -439,6 +439,7 @@ Lemma dom_sb_S_rfrmw_single_props locw
   ⟪ EWNEXT : E wnext ⟫ /\
   ⟪ WWNEXT : W wnext ⟫ /\
   ⟪ WNEXTCOV : ~ ecovered T wnext ⟫ /\
+  ⟪ RFIRMWNEXT : (rfi ⨾ rmw) w wnext ⟫ /\
   ⟪ RFRMWNEXT : (rf ⨾ rmw) w wnext ⟫ /\
   ⟪ COWWNEXT : co w wnext ⟫ /\
   ⟪ NSWNEXT : ~ reserved T wnext ⟫ /\
@@ -462,9 +463,11 @@ Proof using WF IMMCON ETCCOH WNEXT.
   assert (~ ecovered T wnext) as WNEXTCOV.
   { intros HH. apply WNCOV. eapply dom_sb_covered; eauto.
     basic_solver 10. }
-  assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
+  assert ((rfi ⨾ rmw) w wnext) as RFIRMWNEXT.
   { destruct WNEXT as [_ [y AA]]. destruct_seq_l AA as BB; subst.
-    generalize AA. unfold Execution.rfi. clear. basic_solver. }
+    generalize AA. clear. basic_solver. }
+  assert ((rf ⨾ rmw) w wnext) as RFRMWNEXT.
+  { generalize RFIRMWNEXT. unfold Execution.rfi. clear. basic_solver. }
   assert (co w wnext) as COWWNEXT.
   { apply rf_rmw_in_co; auto. }
   assert (~ reserved T wnext) as NSWNEXT.

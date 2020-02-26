@@ -565,4 +565,21 @@ Proof using WF.
     by rewrite R_ex_sb_W_in_ppo.
 Qed.
 
+Lemma n_Wex_co_rf_rmw_rt_transp_in_co_cr :
+  <|set_compl W_ex|> ;; co ;; ((rf ;; rmw)^*)⁻¹ ⊆ co^?.
+Proof using WF CON.
+  rewrite transp_rt.
+  eapply rt_ind_right with (P:= fun r => <|set_compl W_ex|> ;; co ;; r).
+  { by eauto with hahn. }
+  { basic_solver. }
+  ins.
+  arewrite (⦗set_compl W_ex⦘ ⊆ ⦗set_compl W_ex⦘ ;; ⦗set_compl W_ex⦘) by basic_solver.
+  sin_rewrite H.
+  rewrite crE at 1. relsf. unionL.
+  { rewrite rmw_W_ex. basic_solver. }
+  rewrite rf_rmw_in_coimm; auto; try apply CON.
+  { rewrite co_imm_co_in_co_cr. basic_solver. }
+  apply coherence_sc_per_loc. apply CON.
+Qed.
+
 End ImmProperties.

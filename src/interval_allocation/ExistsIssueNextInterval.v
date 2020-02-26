@@ -378,6 +378,17 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     { eapply codom_nS_imm_co_S_in_I with (T:=mkETC T S); eauto.
       simpls. exists w. apply seq_eqv_l. by split. }
 
+    assert (codom_rel (⦗S⦘ ⨾ (rfi ⨾ rmw)＊) wconext) as CCBWCONEXT.
+    { exists wconext. apply seq_eqv_l. split; auto. apply rt_refl. }
+
+    (* assert (~ codom_rel (⦗S⦘ ⨾ (rfi ⨾ rmw)＊) wnext) as NCCBW. *)
+    (* { intros [y HH]. *)
+    (*   apply seq_eqv_l in HH. destruct HH as [SY RFRMW]. *)
+    (*   apply rtE in RFRMW. destruct RFRMW as [HH|RFRMW]. *)
+    (*   { red in HH. desf. } *)
+    (*   apply ct_end in RFRMW. destruct RFRMW as [z [AA RFRMW]]. *)
+    (*   apply NWEX. red. generalize RFRMW. clear. basic_solver. } *)
+
     destruct smode eqn:SMODE. (* [left|right]. *)
     2: { (* TODO: Currently, it's impossible to split wconextmsg in the needed way. *)
          (* TODO: To support FADDs w/ ctrl dependency, we need to
@@ -396,12 +407,45 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
              { red in HH. desf. }
              apply ct_end in RFRMW. destruct RFRMW as [z [RFRMW AA]].
              assert (z = w); subst.
-             { eapply WF.(wf_rfrmwf); eauto. }
+             { eapply WF.(wf_rfirmwf); eauto. }
              apply rtE in RFRMW. destruct RFRMW as [HH|RFRMW].
              { red in HH. desf. }
              apply NWEX. red.
              apply ct_end in RFRMW. generalize RFRMW. clear. basic_solver. }
-           admit. }
+           red. split.
+           { apply seq_eqv_r. split; auto. }
+           ins.
+           apply seq_eqv_r in R1. destruct R1 as [COWC [cs CCBC]].
+           apply seq_eqv_r in R2. destruct R2 as [COCWCONEXT _].
+           apply seq_eqv_l in CCBC. destruct CCBC as [SCS RFIRMWS].
+           assert (RFRMWS : (rf ⨾ rmw)＊ cs c).
+           { assert ((rfi ⨾ rmw)＊ ⊆ (rf ⨾ rmw)＊) as AA by (by rewrite rfi_in_rf).
+               by apply AA. }
+           assert (co cs wconext) as COCSWCONEXT.
+           { apply rf_rmw_rt_in_co in RFRMWS; auto.
+             apply rewrite_trans_seq_cr_l.
+             { apply WF.(co_trans). }
+             eexists; eauto. }
+           assert (cs <> w) as NEQCS.
+           { intros HH. by subst. }
+           apply (dom_l WF.(wf_coD)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as WCS.
+           apply (dom_l WF.(wf_coE)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as ECS.
+           assert (loc lab cs = Some locw) as CSLOC.
+           { rewrite <- LOCNEXT. by apply WF.(wf_col). }
+           edestruct WF.(wf_co_total) with (a:=w) (b:=cs) as [COCSW|COWCS]; eauto.
+           { unfolder. by splits. }
+           { apply NCOIMM with (c:=cs); basic_solver. }
+           
+           assert (co w c) as COWC'.
+           { eapply WF.(co_trans) with (y:=wnext); eauto. }
+           
+           assert (co^? w cs) as AA.
+           { eapply n_Wex_co_rf_rmw_rt_transp_in_co_cr; eauto.
+             apply seq_eqv_l. split; auto.
+             exists c. split; auto. }
+
+           destruct AA as [|AA]; desf.
+           eapply WF.(co_irr). eapply WF.(co_trans); eauto. }
 
          exfalso. apply WNISS. eapply rf_ppo_loc_I_in_I; eauto.
          exists wconext. apply seqA. apply seq_eqv_r. split; auto.
@@ -1417,6 +1461,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     generalize NWEX. unfold Execution.W_ex. clear; basic_solver. }
   { red. unfolder. eauto. }
   rewrite IE. eauto with hahn.
-Admitted.
+Qed.
 
 End Aux.

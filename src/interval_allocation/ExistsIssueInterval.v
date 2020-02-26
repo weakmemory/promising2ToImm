@@ -344,10 +344,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     { eapply codom_nS_imm_co_S_in_I with (T:=mkETC T S); eauto.
       simpls. exists w. apply seq_eqv_l. by split. }
 
-    assert (codom_rel (⦗S⦘ ⨾ (rf ⨾ rmw)＊) wconext) as CCBWCONEXT.
+    assert (codom_rel (⦗S⦘ ⨾ (rfi ⨾ rmw)＊) wconext) as CCBWCONEXT.
     { exists wconext. apply seq_eqv_l. split; auto. apply rt_refl. }
 
-    assert (~ codom_rel (⦗S⦘ ⨾ (rf ⨾ rmw)＊) w) as NCCBW.
+    assert (~ codom_rel (⦗S⦘ ⨾ (rfi ⨾ rmw)＊) w) as NCCBW.
     { intros [y HH].
       apply seq_eqv_l in HH. destruct HH as [SY RFRMW].
       apply rtE in RFRMW. destruct RFRMW as [HH|RFRMW].
@@ -370,7 +370,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            ins.
            apply seq_eqv_r in R1. destruct R1 as [COWC [cs CCBC]].
            apply seq_eqv_r in R2. destruct R2 as [COCWCONEXT _].
-           apply seq_eqv_l in CCBC. destruct CCBC as [SCS RFRMWS].
+           apply seq_eqv_l in CCBC. destruct CCBC as [SCS RFIRMWS].
+           assert (RFRMWS : (rf ⨾ rmw)＊ cs c).
+           { assert ((rfi ⨾ rmw)＊ ⊆ (rf ⨾ rmw)＊) as AA by (by rewrite rfi_in_rf).
+               by apply AA. }
            assert (co cs wconext) as COCSWCONEXT.
            { apply rf_rmw_rt_in_co in RFRMWS; auto.
              apply rewrite_trans_seq_cr_l.
@@ -385,7 +388,13 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            edestruct WF.(wf_co_total) with (a:=w) (b:=cs) as [COCSW|COWCS]; eauto.
            { unfolder. by splits. }
            { apply NCOIMM with (c:=cs); basic_solver. }
-           admit. }
+           
+           assert (co^? w cs) as AA.
+           { eapply n_Wex_co_rf_rmw_rt_transp_in_co_cr; eauto.
+             apply seq_eqv_l. split; auto.
+             exists c. split; auto. }
+           destruct AA as [|AA]; desf.
+           eapply WF.(co_irr). eapply WF.(co_trans); eauto. }
 
          assert (~ Rel w) as NREL.
          { intros RR. apply WNCOV.
@@ -955,6 +964,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   { apply same_tc. }
   split; [subst S'; rewrite NONEXT|]; eauto with hahn.
   clear. basic_solver 10.
-Admitted.
+Qed.
 
 End Aux.

@@ -147,6 +147,7 @@ Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
+Hypothesis RMWREX        : dom_rel Grmw ⊆₁ GR_ex.
 
 
 (******************************************************************************)
@@ -595,76 +596,14 @@ Proof using All.
        rewrite WF.(rfi_rmw_in_sb_loc).
        forward (eapply cert_co_sb_irr with (T:=T)); eauto.
        clear. basic_solver. }
-  (* TODO: potentially, fix w/ dom_rel rmw ⊆ R_ex for now. *)
-  unfolder. intros x y [[z [RFI [ND RMW]]] CCO].
-  split; auto. ins.
-  eapply atomicity_alt; eauto.
-  split; eauto.
-  edestruct imm_cert_co_inv_exists with (x:=y) (T:=T) as [cimm HH]; eauto.
-  { admit. }
-  destruct (classic (cimm = c)) as [|CNEQ]; subst.
-  { exists c. split; auto.
-    { exists x. split; [by apply RFI|].
-      eapply cert_co_alt in R1; eauto.
-      unfolder in R1. desf.
-      exfalso. apply ND.
-      red. do 2 left; right. (* TODO: introduce a selector. *)
-      basic_solver 10. }
-    eapply cert_co_alt in R2; eauto.
-    unfolder in R2. desf.
-    eapply cert_co_alt in R1; eauto.
-    unfolder in R1. desf.
-    { exfalso.
-      assert (Gco y c) as COYC.
-      { admit. }
-      eapply cert_co_alt in R0; eauto.
-      unfolder in R0. desf.
-Admitted.
-
-(*       (* TODO: continue from here. *) *)
-
-(*     destruct (classic (cert_co_base T S (tid y) x)) as [CC|CC]. *)
-(*     { assert (Gco x c) as COXC. *)
-(*       { admit. } *)
-
-(*     admit. } (* generalize CC'. clear. basic_solver. } *) *)
-
-(*   exists cimm. *)
-(*   split; auto. *)
-(*   { exists x. split; [by apply RFI|]. *)
-(*     eapply cert_co_alt in R1; eauto. *)
-(*     unfolder in R1. desf. *)
-(*     exfalso. apply ND. *)
-(*     red. do 2 left; right. (* TODO: introduce a selector. *) *)
-(*     basic_solver 10. *)
-
-(*   exists c. split. *)
-(*   2: { (* assert ((Gco ⨾ ⦗cert_co_base T S thread⦘) c y) as CC'. *) *)
-(*        (* { eapply cert_co_I; eauto. *) *)
-(*        (*   unfold cert_co_base. apply seq_eqv_r. split; auto. *) *)
-(*        (*   basic_solver. } *) *)
-(*     eapply cert_co_alt in R2; eauto. *)
-(*     unfolder in R2. desf. *)
-(*     eapply cert_co_alt in R1; eauto. *)
-(*     unfolder in R1. desf. *)
-(*     { exfalso. *)
-(*       assert (Gco y c) as COYC. *)
-(*       { admit. } *)
-(*       eapply cert_co_alt in R0; eauto. *)
-(*       unfolder in R0. desf. *)
-
-(*     destruct (classic (cert_co_base T S (tid y) x)) as [CC|CC]. *)
-(*     { assert (Gco x c) as COXC. *)
-(*       { admit. } *)
-
-(*     admit. } (* generalize CC'. clear. basic_solver. } *) *)
-(*   exists x. split; [by apply RFI|]. *)
-(*   eapply cert_co_alt in R1; eauto. *)
-(*   unfolder in R1. desf. *)
-(*   exfalso. apply ND. *)
-(*   red. do 2 left; right. (* TODO: introduce a selector. *) *)
-(*   basic_solver 10. *)
-(* Qed. *)
+  arewrite (⦗set_compl D⦘ ⨾ Grmw ⊆ ∅₂).
+  2: { clear. basic_solver. }
+  rewrite (dom_rel_helper RMWREX).
+  rewrite (dom_l WF.(wf_rmwE)).
+  seq_rewrite <- !id_inter.
+  rewrite set_interA. rewrite Rex_in_D; eauto.
+  clear. basic_solver.
+Qed.
 
 (* TODO: move to CombRelations.v *)
 Lemma rf_in_furr : Grf ⊆ Gfurr.
@@ -737,44 +676,12 @@ Proof using All.
   eapply eco_furr_irr; eauto.
   eexists; splits; eauto.
   apply fr_in_eco; eexists; splits; eauto. }
-  
-  unfold cert_rf.
-  rewrite !seq_union_r.
-  unionR right.
-  arewrite (Grfe ⊆ Grf).
-  rewrite WF.(wf_rfE) at 1.
-  rewrite WF.(wf_rfD) at 1.
-  rewrite WF.(wf_rmwE) at 1.
-  rewrite WF.(wf_rmwD) at 1.
-  rewrite WF.(rmw_non_init_lr) at 1.
-  unfolder; ins; desf.
-  assert (AA: exists z, (immediate cert_co) z y0).
-  { eapply (imm_cert_co_inv_exists) with (T:=T); eauto; basic_solver. }
-  desf.
-  assert (BB: x = z \/ Gco x z \/ Gco z x).
-  { cut (x <> z -> Gco x z \/ Gco z x); [tauto|].
-    apply AuxRel.immediate_in in AA.
-    eapply WF.(wf_co_total).
-    unfolder; splits; eauto.
-    unfolder; splits; eauto.
-    eapply (wf_cert_coE) in AA; try edone; unfolder in AA; desf.
-    eapply (wf_cert_coD) in AA; try edone; unfolder in AA; desf.
-    eapply wf_cert_col in AA; try edone.
-    apply WF.(wf_rfl) in H0; unfolder in H0; desf.
-    apply WF.(wf_rmwl) in H7; unfolder in H7; desf.
-    unfold same_loc in *; congruence. } 
-  desf; eauto 10.
-  exfalso.
-  assert (Gco z y0).
-  { apply AuxRel.immediate_in in AA.
-    forward (eapply cert_co_I); eauto.
-    unfolder; ins; desf; eapply H4; splits; eauto.
-    admit. }
-    (* red; right; red; basic_solver. } *)
-  eapply atomicity_alt; eauto.
-  by eapply coherence_sc_per_loc; eauto.
-  unfold fr in *; unfolder; splits; eauto 10.
-Admitted.
+
+  rewrite (dom_l WF.(wf_rmwE)). rewrite dom_eqv1.
+  rewrite RMWREX. rewrite set_interC.
+  rewrite Rex_in_D; eauto.
+  clear. basic_solver.
+Qed.
 
 Lemma I_Grfe_in_inv_Gco_cr_cert_rf : Grfe ⊆ (cert_co ∩ Gco^{-1})^? ⨾ cert_rf.
 Proof using All.

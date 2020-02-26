@@ -154,6 +154,7 @@ Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
+Hypothesis RMWREX        : dom_rel Grmw ⊆₁ GR_ex.
 
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
@@ -320,18 +321,20 @@ Qed.
 Lemma hb_rfe_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Crfe).
 Proof using hb_sc_hb_de WF_SC WF TCCOH_rst_new_T S_in_W S_I_in_W_ex ST_in_E
 IT_new_co Grfe_E CSC COH
-ACYC_EXT.
+ACYC_EXT RMWREX.
 rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
 relsf; unionL.
 { revert COH CSC; unfold coherence, coh_sc, eco.
   ie_unfolder. clear; basic_solver 21. }
 { forward (eapply new_rf_hb with (G:=G)); try edone. 
   clear; basic_solver 12. }
-rotate 1.
-sin_rewrite set_compl_D_helper.
-rewrite AuxRel.immediate_in.
-    arewrite (cert_co ⨾ Grmw⁻¹ \ Gsb ⊆ cert_co ⨾ Grmw⁻¹).
-Admitted.
+arewrite (Grmw ≡ <|GR_ex ∩₁ E|> ;; Grmw).
+2: { rewrite Rex_in_D; eauto. clear. basic_solver. }
+apply dom_rel_helper.
+rewrite (dom_l WF.(wf_rmwE)).
+rewrite (dom_rel_helper RMWREX).
+clear. basic_solver.
+Qed.
 (* rewrite rmw_W_ex, transp_seq, transp_eqv_rel, W_ex_in_cert_co_base. *)
 (* forward (eapply cert_co_I with (G:=G)); eauto; intro AA. *)
 (* sin_rewrite AA. *)
