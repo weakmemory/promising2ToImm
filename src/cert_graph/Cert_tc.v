@@ -166,6 +166,9 @@ Hypothesis OLD_VAL : forall a (NIN: ~ (E \₁ D) a), val lab' a = Gval a.
 
 Hypothesis ETC_DETOUR_RMW_S : dom_rel (Gdetour ⨾ Grmw ⨾ ⦗ S ⦘) ⊆₁ I.
 
+Hypothesis SB_S          : dom_sb_S_rfrmw G (mkETC T S) (Grf ⨾ ⦗GR_ex⦘) I ⊆₁ S.
+Hypothesis RMWREX        : dom_rel Grmw ⊆₁ GR_ex.
+
 Notation "'certG'" := (certG G sc T S thread lab').
 
 Hypothesis WF_cert    : Wf certG.

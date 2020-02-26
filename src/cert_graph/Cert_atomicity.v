@@ -380,11 +380,18 @@ Proof using All.
   | H : Grf ?X ?Y |- _ => rename H into RF
   end.
 
-  eapply cert_co_alt' in H3; eauto.
-  unfolder in H3. desf.
-
+  assert (~ I x) as NIX.
+  { intros HH. apply H6. eauto. }
+  assert (~ C x) as NCX.
+  { intros HH. apply NIX. eapply w_covered_issued; eauto. by split. }
+  assert (~ S x) as NSX.
+  { intros HH. apply H6. right.
+    do 2 eexists. split.
+    2: eby apply rt_refl.
+    splits; eauto. }
   assert (dom_rel (Gsb ⨾ ⦗S⦘) x) as AAA.
-  { admit. }
+  { destruct (E_to_S x) as [|TT]; desf.
+    generalize NSX TT. clear. basic_solver 10. }
 
   set (RFA:=RF).
   apply rfi_union_rfe in RFA. destruct RFA; auto.
@@ -402,55 +409,54 @@ Proof using All.
        apply seq_eqv_l. split; auto.
        apply RMWREX. red. eauto. }
   
-  (* TODO: continue from here. *)
-  assert (~ S z0) as NSZ0.
-  { intros AA.
-    enough (S x).
-    { apply H6. right.
-      do 2 eexists. split.
-      2: by apply rt_step; eauto.
-      splits; eauto.
-      admit. }
-      eauto. }
-    apply SB_S. red.
-    split; auto.
+  destruct (classic (I z0)) as [IZ0|NIZ0].
+  { apply NSX. apply SB_S. red. split; auto.
     exists z0. apply seq_eqv_l. split; auto.
     apply seqA.
     exists z. split; auto.
     apply seq_eqv_l. split; auto.
     apply RMWREX. red. eauto. }
-  assert (~ I z0) as NIZ0.
-  { intros II.
-    apply NSZ0. by apply I_in_S. }
-
   destruct (classic (Tid_ (tid x) z0)).
   2: { apply NIZ0. apply IT_new_co in EWZ0. unfolder in EWZ0. desf. }
 
-  (* assert (Grfi z0 z) as RFI. *)
-  (* { apply rfi_union_rfe in RF. destruct RF; auto. *)
-  (*   exfalso. eapply rfe_n_same_tid; eauto. split; eauto. red. rewrite H2. *)
-  (*   symmetry. by apply WF.(wf_rmwt). } *)
+  destruct (classic (S z0)) as [SZ0|NSZ0].
+  { apply H6. right. do 2 eexists. split.
+    2: by apply rt_step; eauto.
+    splits; eauto. desf. }
 
-  generalize (@T_I_new_co_I_T G (cert_co_base T S (tid x))
-                              (E ∩₁ W ∩₁ Tid_ (tid x)) (co_trans WF)).
+  assert (cert_co_base z1) as CCBZ1 by (by apply I_in_cert_co_base).
+  assert (~ cert_co_base z0) as CCBZ0.
+  { intros HH. destruct HH as [|[w HH]]; [by eauto|].
+    apply seq_eqv_l in HH. unfolder in HH. desc.
+    apply H6. right. exists w, w.
+    splits; eauto.
+    apply rt_unit. exists z0. split; eauto. }
+
+  generalize (@T_I_new_co_I_T
+                G cert_co_base
+                (E ∩₁ W ∩₁ Tid_ (tid x)) (co_trans WF)).
   intros HH.
   specialize (HH z0 z1).
   destruct HH as [d [COA COB]].
-  { unfold cert_co_base.
-    apply seq_eqv_lr. splits; auto.
-    all: split; auto; [basic_solver|].
-    all: unfolder; intro; desf. }
-  unfolder in COB. desf.
-  
-  enough (new_co G (cert_co_base T S (tid x)) (E ∩₁ W ∩₁ Tid_ (tid x)) x d) as AA.
-  { eapply cert_co_irr; eauto.
-    eapply cert_co_trans; eauto.
+  { apply seq_eqv_lr.
+    splits; auto.
+    2: by desf.
+    all: split; auto.
+    { basic_solver. }
+    unfolder; intro; desf. }
+  unfolder in COB. desc.
+
+  enough (new_co G cert_co_base (E ∩₁ W ∩₁ Tid_ (tid x)) x d) as AA.
+  { desf.
+    eapply cert_co_irr with (x:=d); eauto.
+    eapply cert_co_trans with (y:=x); eauto.
     eapply cert_co_trans with (y:=z1); eauto.
     apply I_co_in_cert_co; auto.
     apply seq_eqv_l. split; auto. }
-  
+
   destruct (classic (d = x)).
   { desf. }
+  desf.
   edestruct wf_cert_co_total; eauto.
   1,2: unfolder; ins; splits; auto.
   { transitivity (Gloc z0).
