@@ -763,6 +763,18 @@ assert (dom_rel (⦗W_ex G ∩₁ (is_xacq (lab G))⦘ ⨾ sb G ⨾ ⦗S⦘) ⊆
 assert (dom_rel (rmw G ⨾ ⦗S⦘) ⊆₁ codom_rel (rf G)) as COMP_RMW_S.
 { subst G. eapply COMP_RMW_S; eauto. }
 
+assert (SB_S : dom_sb_S_rfrmw G (mkETC T S) (rf G ⨾ ⦗R_ex (lab G)⦘) (issued T) ⊆₁ S).
+{ unfold dom_sb_S_rfrmw. 
+  rewrite sub_sb_in; eauto.
+  rewrite sub_rf_in; eauto.
+  rewrite sub_R_ex; eauto.
+  rewrite sub_rmw_in; eauto.
+  apply ETCCOH. }
+assert (RMWREX : dom_rel (rmw G) ⊆₁ (R_ex (lab G))).
+{ rewrite sub_rmw_in; eauto.
+  rewrite sub_R_ex; eauto.
+  apply COMMON. }
+
 assert ((cert_rf G Gsc T S thread ⨾ rmw G) ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘ ⊆
         rf Gf ⨾ rmw Gf) as RFRMW_IST_IN.
 { rewrite IST_in_S. rewrite seqA.
@@ -851,18 +863,6 @@ assert (Wf (certG G Gsc T S thread lab')) as WF_CERT.
 assert (wf_sc (certG G Gsc T S thread lab') Gsc) as WF_SC_CERT.
 { eapply WF_SC_cert; eauto. }
 
-assert (SB_S : dom_sb_S_rfrmw G (mkETC T S) (rf G ⨾ ⦗R_ex (lab G)⦘) (issued T) ⊆₁ S).
-{ unfold dom_sb_S_rfrmw. 
-  rewrite sub_sb_in; eauto.
-  rewrite sub_rf_in; eauto.
-  rewrite sub_R_ex; eauto.
-  rewrite sub_rmw_in; eauto.
-  apply ETCCOH. }
-assert (RMWREX : dom_rel (rmw G) ⊆₁ (R_ex (lab G))).
-{ rewrite sub_rmw_in; eauto.
-  rewrite sub_R_ex; eauto.
-  apply COMMON. }
-
 splits; auto.
 { apply cert_imm_consistent; auto. }
 { unfold certG, acts_set; ins; basic_solver. }
@@ -915,7 +915,12 @@ red. splits.
     basic_solver. }
   { rewrite same_lab_u2v_R_ex; eauto. }
   splits.
-  { admit. } (* subst G. rewrite cert_sb. eapply cert_co_for_split; eauto. } *)
+  { subst G.
+    erewrite <- cert_co_for_split with (G:=rstG Gf T S thread); eauto.
+    unfold cert_co_base.
+    hahn_frame. apply eqv_rel_mori.
+    apply AuxRel.set_compl_mori. red.
+      by erewrite Grfi_in_cert_rfi with (G:=rstG Gf T S thread); eauto. }
   subst G. unfold W_ex. rewrite cert_sb. unfold certG. simpls.
   rewrite <- seqA, codom_eqv1.
   arewrite (codom_rel (⦗E0 Gf T S thread⦘ ⨾ rmw Gf) ⊆₁ is_w Gf.(lab)).
@@ -1149,6 +1154,6 @@ eexists. red. splits.
 { intros HH. inv HH. }
 done.
 Unshelve. clear; eapply (fun _ => Afence Orel).
-Admitted.
+Qed.
 
 End Cert.

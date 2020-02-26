@@ -153,21 +153,35 @@ Qed.
 
 Definition cert_co := new_co G cert_co_base (E ∩₁ W ∩₁ Tid_ thread).
 
+Lemma cert_co_base_in_E_W : cert_co_base ⊆₁ E ∩₁ W.
+Proof using WF S_in_W ST_in_E IT_new_co.
+  clear S_I_in_W_ex.
+  unfold cert_co_base.
+  rewrite rtE.
+  arewrite (Grmw ⊆ Grmw ;; <|E ∩₁ W|>).
+  { apply codom_rel_helper.
+    rewrite WF.(wf_rmwE), WF.(wf_rmwD).
+    clear. basic_solver. }
+  rewrite <- !seqA.
+  rewrite inclusion_ct_seq_eqv_r.
+  arewrite (I ∪₁ S ∩₁ Tid_ thread ⊆₁ E ∩₁ W).
+  2: basic_solver.
+  unionL.
+  2: { generalize S_in_W ST_in_E. basic_solver. }
+  rewrite <- IT_new_co. clear. basic_solver 10.
+Qed.
+
 Lemma IST_new_co : cert_co_base ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
 Proof using WF S_in_W ST_in_E IT_new_co.
   clear S_I_in_W_ex.
   rewrite <- IT_new_co at 2.
-  unfold cert_co_base.
-  rewrite rtE.
-  split; [|basic_solver 10].
+  split.
+  2: by rewrite I_in_cert_co_base.
   unionL.
   2: basic_solver.
-Admitted.
-(*   arewrite (S ∩₁ Tid_ thread ⊆₁ (S ∩₁ Tid_ thread) ∩₁ (Tid_ thread ∩₁ W)). *)
-(*   { generalize S_in_W. basic_solver. } *)
-(*   rewrite ST_in_E. *)
-(*   clear. basic_solver. *)
-(* Qed. *)
+  rewrite IT_new_co.
+  apply cert_co_base_in_E_W.
+Qed.
 
 Lemma wf_cert_coE : cert_co ≡ ⦗E⦘ ⨾ cert_co ⨾ ⦗E⦘.
 Proof using WF S_in_W ST_in_E IT_new_co.
@@ -294,34 +308,33 @@ Proof using WF S_in_W S_I_in_W_ex ST_in_E IT_new_co COH.
   clear; basic_solver.
 Qed.
 
+Lemma cert_co_base_nTid : cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ I \₁ Tid_ thread.
+Proof using IT_new_co ST_in_E S_in_W WF.
+  unfold cert_co_base.
+  split.
+  2: { rewrite rtE. clear. intros x [HH BB]. split; [basic_solver 10|].
+       unfolder. intros AA. desf. }
+  intros x [HH AA]. 
+  apply cert_co_base_in_E_W in HH.
+  destruct (classic (I x)).
+  { split; auto. intros BB. apply AA. split; auto. }
+  exfalso.
+  apply IT_new_co in HH. destruct HH; desf.
+Qed.
+
 Lemma cert_co_alt :
   cert_co  ⊆ Gco ∩ cert_co ⨾ ⦗ cert_co_base ⦘ ∪ ⦗ Tid_ thread ⦘ ⨾ Gco ∩ cert_co ∪ 
            ⦗ I ∩₁ NTid_ thread ⦘ ⨾ cert_co ⨾ ⦗ (E ∩₁ W ∩₁ Tid_ thread) \₁
                                               cert_co_base ⦘.
 Proof using WF TCCOH S_in_W ST_in_E S IT_new_co.
-  arewrite (I ∩₁ NTid_ thread ≡₁ cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread).
-  { unfold cert_co_base.
-    split.
-    { rewrite rtE. clear. intros x [HH BB]. split; [basic_solver 10|].
-      unfolder. intros AA. desf. }
-    rewrite TCCOH.(I_eq_EW_I) at 1.
-    (* rewrite rtE. *)
-    (* rewrite set_minus_union_l. unionL. *)
-    (* { clear. intros x [HH BB]. split; [by apply HH|]. *)
-    (*   generalize HH, BB. basic_solver 10. } *)
-    admit. }
-    (* clear -S_in_W ST_in_E. *)
-    (* intros x [HH BB]. exfalso. apply BB. *)
-    (* split; [split|]; try apply HH. *)
-    (* { by apply ST_in_E. } *)
-    (* apply S_in_W. apply HH. } *)
+  rewrite <- cert_co_base_nTid.
   arewrite (cert_co ⊆ cert_co ∩ cert_co) at 1.
   unfold cert_co at 1.
   rewrite new_co_in at 1.
   all: try by apply WF.
   { clear. basic_solver 40. }
   apply IST_new_co.
-Admitted.
+Qed.
 
 Lemma cert_co_alt' : cert_co  ⊆ Gco ∩ cert_co ∪ 
   ⦗ I ∩₁ NTid_ thread ⦘ ⨾ cert_co ⨾ ⦗ (E ∩₁ W ∩₁ Tid_ thread) \₁ I ⦘.

@@ -296,19 +296,6 @@ Proof using All.
     2: eapply IST_new_co; eauto.
     relsf; unionL.
     1,2: generalize (co_trans WF); revert AT'; unfold fr; basic_solver 12.
-    assert (cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN.
-    { (* TODO: make a lemma in Cert_co.v *)
-      admit. }
-    (* { rewrite cert_co_base_alt; eauto. *)
-    (*   rewrite I_eq_EW_I at 1; eauto. *)
-    (*   intros x [[AA|AA] BB]. *)
-    (*   { split; [by apply AA|]. *)
-    (*     intros HH. apply BB. split; auto. by apply AA. } *)
-    (*   exfalso. apply BB. split. *)
-    (*   2: by apply AA. *)
-    (*   split. *)
-    (*   { by apply ST_in_E. } *)
-    (*     by apply S_in_W; apply AA. } *)
 
     remember (new_co G cert_co_base (E ∩₁ W ∩₁ Tid_ thread)) as new.
     rewrite !seqA.
@@ -453,6 +440,6 @@ Proof using All.
   eapply cert_co_alt' in H6; eauto.
   unfolder in H6. desf.
   eapply AT'. split; eauto. unfold fr. unfolder. eauto.
-Admitted.
+Qed.
 
 End CertExec_at.
