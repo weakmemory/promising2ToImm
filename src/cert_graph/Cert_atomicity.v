@@ -357,13 +357,27 @@ Proof using All.
   unfolder. ins. desf.
   rename z1 into z0.
   rename z3 into z1.
+  rename H6 into CCBX.
   assert ((E ∩₁ W) x) as EWX by (by split).
   assert ((E ∩₁ W) z0) as EWZ0 by (by split).
   assert ((E ∩₁ W) z1) as EWZ1 by (by split).
 
+  assert (~ I x) as NIX.
+  { intros HH. eapply I_in_cert_co_base in HH; eauto.
+      by apply CCBX in HH. }
+  assert (~ C x) as NCX.
+  { intros HH. apply NIX. eapply w_covered_issued; eauto. by split. }
+
   destruct (classic (Tid_ thread x)) as [TIDX|].
-  2: { assert (I x); eauto.
-       apply IT_new_co in EWX. unfolder in EWX. desf. }
+  2: { apply NIX. apply IT_new_co in EWX. unfolder in EWX. desf. }
+
+  assert (~ S x) as NSX.
+  { intros HH. apply CCBX. apply IST_in_cert_co_base; auto.
+    right. by split. }
+
+  assert (dom_rel (Gsb ⨾ ⦗S⦘) x) as AAA.
+  { destruct (E_to_S x) as [|TT]; desf.
+    generalize NSX TT. clear. basic_solver 10. }
 
   assert (NTid_ thread z1) as NTIDZ1.
   { intros HH. subst.
@@ -372,7 +386,7 @@ Proof using All.
     apply tid_sb in AA. unfolder in AA. desf.
     { eapply cert_co_irr; eauto. }
     eapply cert_co_sb_irr; eauto. basic_solver. }
-
+  
   assert (I z1) as IZ1.
   { apply IT_new_co in EWZ1. unfolder in EWZ1. desf. }
 
@@ -380,35 +394,6 @@ Proof using All.
   | H : Grf ?X ?Y |- _ => rename H into RF
   end.
 
-  assert (~ I x) as NIX.
-  { intros HH. apply H6. eauto. }
-  assert (~ C x) as NCX.
-  { intros HH. apply NIX. eapply w_covered_issued; eauto. by split. }
-  assert (~ S x) as NSX.
-  { intros HH. apply H6. right.
-    do 2 eexists. split.
-    2: eby apply rt_refl.
-    splits; eauto. }
-  assert (dom_rel (Gsb ⨾ ⦗S⦘) x) as AAA.
-  { destruct (E_to_S x) as [|TT]; desf.
-    generalize NSX TT. clear. basic_solver 10. }
-
-  set (RFA:=RF).
-  apply rfi_union_rfe in RFA. destruct RFA; auto.
-  2: { destruct (classic (Tid_ (tid x) z0)).
-       { eapply rfe_n_same_tid; eauto. split; eauto. red.
-         apply WF.(wf_rmwt) in H17. by rewrite H17. }
-       assert (I z0) as IZ0.
-       { apply IT_new_co in EWZ0. unfolder in EWZ0. desf. }
-       apply H6. right. do 2 eexists. split.
-       2: by apply rt_refl.
-       splits; eauto.
-       apply SB_S. red. split; auto.
-       exists z0. apply seq_eqv_l. split; auto.
-       apply seqA. exists z. split; auto.
-       apply seq_eqv_l. split; auto.
-       apply RMWREX. red. eauto. }
-  
   destruct (classic (I z0)) as [IZ0|NIZ0].
   { apply NSX. apply SB_S. red. split; auto.
     exists z0. apply seq_eqv_l. split; auto.
@@ -416,21 +401,23 @@ Proof using All.
     exists z. split; auto.
     apply seq_eqv_l. split; auto.
     apply RMWREX. red. eauto. }
+
   destruct (classic (Tid_ (tid x) z0)).
   2: { apply NIZ0. apply IT_new_co in EWZ0. unfolder in EWZ0. desf. }
 
-  destruct (classic (S z0)) as [SZ0|NSZ0].
-  { apply H6. right. do 2 eexists. split.
-    2: by apply rt_step; eauto.
-    splits; eauto. desf. }
+  set (RFA:=RF).
+  apply rfi_union_rfe in RFA. destruct RFA; auto.
+  2: { eapply rfe_n_same_tid; eauto. split; eauto. red.
+       apply WF.(wf_rmwt) in H17. by rewrite H17. }
 
-  assert (cert_co_base z1) as CCBZ1 by (by apply I_in_cert_co_base).
   assert (~ cert_co_base z0) as CCBZ0.
-  { intros HH. destruct HH as [|[w HH]]; [by eauto|].
-    apply seq_eqv_l in HH. unfolder in HH. desc.
-    apply H6. right. exists w, w.
-    splits; eauto.
-    apply rt_unit. exists z0. split; eauto. }
+  { intros HH. apply CCBX.
+    apply cert_co_base_rfirmw_clos.
+    exists z0. apply seq_eqv_l. split; auto. basic_solver. }
+
+  destruct (classic (S z0)) as [SZ0|NSZ0].
+  { apply CCBZ0. apply IST_in_cert_co_base; auto. basic_solver. }
+  assert (cert_co_base z1) as CCBZ1 by (by apply I_in_cert_co_base).
 
   generalize (@T_I_new_co_I_T
                 G cert_co_base
@@ -463,9 +450,9 @@ Proof using All.
     { symmetry. apply wf_rfrmwl; auto. basic_solver. }
       by apply WF.(wf_col). }
   exfalso.
-  eapply cert_co_alt' in H9; eauto.
-  unfolder in H9. desf.
-  eapply AT'. split; eauto. unfold fr. unfolder. eauto. 
+  eapply cert_co_alt' in H6; eauto.
+  unfolder in H6. desf.
+  eapply AT'. split; eauto. unfold fr. unfolder. eauto.
 Admitted.
 
 End CertExec_at.

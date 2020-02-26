@@ -119,7 +119,7 @@ Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 
-Definition cert_co_base := I ∪₁ codom_rel (<|S ∩₁ Tid_ thread|> ;; (Grfi ;; Grmw)^*).
+Definition cert_co_base := codom_rel (<|I ∪₁ S ∩₁ Tid_ thread|> ;; (Grfi ;; Grmw)^*).
 (* Lemma cert_co_base_alt : cert_co_base ≡₁ I ∪₁ S ∩₁ Tid_ thread. *)
 (* Proof using WF IT_new_co. *)
 (*   clear -WF IT_new_co. *)
@@ -128,9 +128,19 @@ Definition cert_co_base := I ∪₁ codom_rel (<|S ∩₁ Tid_ thread|> ;; (Grfi
 (*   unionL; [basic_solver|]. *)
 (*   basic_solver. *)
 (* Qed. *)
+                                      
+Lemma cert_co_base_rfirmw_clos :
+  codom_rel (<|cert_co_base|> ;; Grfi ;; Grmw) ⊆₁ cert_co_base.
+Proof using.
+  unfold cert_co_base at 2.
+  rewrite <- rt_unit.
+  unfold cert_co_base.
+  unfolder. ins. desc. subst.
+  do 2 eexists. split; [split; [|by eauto]|]; eauto.
+Qed.
 
 Lemma I_in_cert_co_base : I ⊆₁ cert_co_base.
-Proof using. unfold cert_co_base. basic_solver. Qed.
+Proof using. unfold cert_co_base. rewrite rtE. basic_solver 10. Qed.
 
 Lemma IST_in_cert_co_base : I ∪₁ S ∩₁ Tid_ thread ⊆₁ cert_co_base.
 Proof using S_I_in_W_ex.
@@ -148,9 +158,10 @@ Proof using WF S_in_W ST_in_E IT_new_co.
   clear S_I_in_W_ex.
   rewrite <- IT_new_co at 2.
   unfold cert_co_base.
-  split; [|basic_solver].
+  rewrite rtE.
+  split; [|basic_solver 10].
   unionL.
-  1,3: basic_solver.
+  2: basic_solver.
 Admitted.
 (*   arewrite (S ∩₁ Tid_ thread ⊆₁ (S ∩₁ Tid_ thread) ∩₁ (Tid_ thread ∩₁ W)). *)
 (*   { generalize S_in_W. basic_solver. } *)
@@ -291,12 +302,13 @@ Proof using WF TCCOH S_in_W ST_in_E S IT_new_co.
   arewrite (I ∩₁ NTid_ thread ≡₁ cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread).
   { unfold cert_co_base.
     split.
-    { clear. intros x [HH BB]. split; [basic_solver|].
+    { rewrite rtE. clear. intros x [HH BB]. split; [basic_solver 10|].
       unfolder. intros AA. desf. }
     rewrite TCCOH.(I_eq_EW_I) at 1.
-    rewrite set_minus_union_l. unionL.
-    { clear. intros x [HH BB]. split; [by apply HH|].
-      generalize HH, BB. basic_solver 10. }
+    (* rewrite rtE. *)
+    (* rewrite set_minus_union_l. unionL. *)
+    (* { clear. intros x [HH BB]. split; [by apply HH|]. *)
+    (*   generalize HH, BB. basic_solver 10. } *)
     admit. }
     (* clear -S_in_W ST_in_E. *)
     (* intros x [HH BB]. exfalso. apply BB. *)

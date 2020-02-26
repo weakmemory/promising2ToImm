@@ -362,7 +362,7 @@ intro; desf.
   exists z; split; [| apply furr_alt; basic_solver 12].
   eapply I_co_in_cert_co; try edone.
   apply seq_eqv_l. split; auto.
-  red. basic_solver.
+    by apply I_in_cert_co_base.
 Qed.
 
 Lemma Grfi_nD_in_new_rf : Grfi ⨾ ⦗set_compl D⦘ ⊆ new_rf.
