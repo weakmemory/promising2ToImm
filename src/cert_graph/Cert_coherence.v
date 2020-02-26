@@ -395,8 +395,8 @@ rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
 relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E).
       unfold CertExecution2.certG; ins; rewrite !seqA.
-      rewrite (I_in_cert_co_base T S thread) at 1.
-      arewrite (cert_co ⨾ ⦗cert_co_base T S thread⦘ ⊆ co G ⨾ ⦗cert_co_base T S thread⦘).
+      rewrite (I_in_cert_co_base G T S thread) at 1.
+      arewrite (cert_co ⨾ ⦗cert_co_base G T S thread⦘ ⊆ co G ⨾ ⦗cert_co_base G T S thread⦘).
       eby eapply cert_co_I.
       revert COH CSC. unfold coherence, coh_sc, eco.
       ie_unfolder. basic_solver 21. }
@@ -493,8 +493,8 @@ rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto. relsf; unionL.
   { unfold fr. unfold CertExecution2.certG. ins. unfold Cert_rf.cert_rf.
     rewrite !transp_union, transp_seq; relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E), !seqA.
-      rewrite (I_in_cert_co_base T S thread) at 1.
-      arewrite (cert_co ⨾ ⦗cert_co_base T S thread⦘ ⊆ co G ⨾ ⦗cert_co_base T S thread⦘).
+      rewrite (I_in_cert_co_base G T S thread) at 1.
+      arewrite (cert_co ⨾ ⦗cert_co_base G T S thread⦘ ⊆ co G ⨾ ⦗cert_co_base G T S thread⦘).
       eby eapply cert_co_I.
       revert COH CSC. unfold coherence, coh_sc, eco, fr. ie_unfolder.
       basic_solver 21. }
@@ -510,7 +510,7 @@ rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto. relsf; unionL.
     arewrite (cert_co^? ⨾ ⦗I⦘ ⊆ Gco^? ⨾ ⦗I⦘).
     { cut (cert_co ⨾ ⦗I⦘ ⊆ Gco).
 basic_solver.
-      rewrite (I_in_cert_co_base T S thread) at 1.
+      rewrite (I_in_cert_co_base G T S thread) at 1.
 
       forward (eapply cert_co_I with (G:=G)); eauto; intro AA.
 rewrite AA; basic_solver. }
