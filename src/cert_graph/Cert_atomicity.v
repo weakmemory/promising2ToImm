@@ -251,6 +251,8 @@ Notation "'CAcqrel'" := (fun a => is_true (is_acqrel Clab a)).
 Notation "'CAcq/Rel'" := (fun a => is_true (is_ra Clab a)).
 Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 
+Notation "'cert_co_base'" := (cert_co_base G T S thread).
+
 Lemma cert_rmw_atomicity : rmw_atomicity certG.
 Proof using All.
   generalize (atomicity_alt WF (coherence_sc_per_loc COH) AT).
@@ -277,13 +279,13 @@ Proof using All.
 
   arewrite ((cert_co \ Gsb) ⊆ (cert_co \ Gsb) ;; <|fun _ => True|>) by basic_solver.
   arewrite (<|fun _ => True|> ⊆
-            <| cert_co_base T S thread ∪₁ set_compl (cert_co_base T S thread)|>).
+            <| cert_co_base ∪₁ set_compl cert_co_base|>).
   { unfolder. ins. tauto. }
   rewrite id_union, !seq_union_r. apply irreflexive_union. split.
-  { arewrite ((cert_co \ Gsb) ⨾ ⦗cert_co_base T S thread⦘ ⊆
-            (cert_co ∩ Gco \ Gsb) ⨾ ⦗cert_co_base T S thread⦘).
-    { cut (new_co G (cert_co_base T S thread) (E ∩₁ W ∩₁ Tid_ thread) ⨾
-           ⦗cert_co_base T S thread⦘ ⊆ Gco).
+  { arewrite ((cert_co \ Gsb) ⨾ ⦗cert_co_base⦘ ⊆
+            (cert_co ∩ Gco \ Gsb) ⨾ ⦗cert_co_base⦘).
+    { cut (new_co G (cert_co_base) (E ∩₁ W ∩₁ Tid_ thread) ⨾
+           ⦗cert_co_base⦘ ⊆ Gco).
       { basic_solver 21. }
       erewrite new_co_I; try apply WF.
       clear. basic_solver.
@@ -294,24 +296,26 @@ Proof using All.
     2: eapply IST_new_co; eauto.
     relsf; unionL.
     1,2: generalize (co_trans WF); revert AT'; unfold fr; basic_solver 12.
-    assert (cert_co_base T S thread \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN.
-    { rewrite cert_co_base_alt; eauto.
-      rewrite I_eq_EW_I at 1; eauto.
-      intros x [[AA|AA] BB].
-      { split; [by apply AA|].
-        intros HH. apply BB. split; auto. by apply AA. }
-      exfalso. apply BB. split.
-      2: by apply AA.
-      split.
-      { by apply ST_in_E. }
-        by apply S_in_W; apply AA. }
+    assert (cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread ⊆₁ I \₁ Tid_ thread) as ISTN.
+    { (* TODO: make a lemma in Cert_co.v *)
+      admit. }
+    (* { rewrite cert_co_base_alt; eauto. *)
+    (*   rewrite I_eq_EW_I at 1; eauto. *)
+    (*   intros x [[AA|AA] BB]. *)
+    (*   { split; [by apply AA|]. *)
+    (*     intros HH. apply BB. split; auto. by apply AA. } *)
+    (*   exfalso. apply BB. split. *)
+    (*   2: by apply AA. *)
+    (*   split. *)
+    (*   { by apply ST_in_E. } *)
+    (*     by apply S_in_W; apply AA. } *)
 
-    remember (new_co G (cert_co_base T S thread) (E ∩₁ W ∩₁ Tid_ thread)) as new.
+    remember (new_co G cert_co_base (E ∩₁ W ∩₁ Tid_ thread)) as new.
     rewrite !seqA.
-    arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base T S thread⦘
-                ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗cert_co_base T S thread⦘ ⊆
-                ⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base T S thread⦘
-                ⨾ new ⨾ ⦗cert_co_base T S thread \₁ E ∩₁ W ∩₁ Tid_ thread⦘).
+    arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘
+                ⨾ (new ∩ Gco \ Gsb) ⨾ ⦗cert_co_base⦘ ⊆
+                ⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘
+                ⨾ new ⨾ ⦗cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread⦘).
     { unfolder; ins; desf; splits; eauto.
       intros [[EY WY] TT].
       eapply same_thread in TT; desf; eauto.
@@ -323,7 +327,7 @@ Proof using All.
     subst new.
 
     rewrite (inter_inclusion
-               (@T_I_new_co_I_T G (cert_co_base T S thread)
+               (@T_I_new_co_I_T G (cert_co_base)
                                 (E ∩₁ W ∩₁ Tid_ thread) (co_trans WF))).
 
     rewrite (inter_eq (wf_rfD WF)), (inter_eq (wf_rfE WF)),
@@ -336,9 +340,9 @@ Proof using All.
       intro; subst z1; eauto. }
     destruct K.
     2: revert AT'; unfold fr; basic_solver 12.
-    eapply (@new_co_irr _  (cert_co_base T S thread)); try apply WF.
+    eapply (@new_co_irr _  (cert_co_base)); try apply WF.
     eapply IST_new_co; eauto.
-    eapply (@new_co_trans _  (cert_co_base T S thread)); try apply WF.
+    eapply (@new_co_trans _  (cert_co_base)); try apply WF.
     eapply IST_new_co; eauto.
     
     apply H3.
@@ -348,7 +352,7 @@ Proof using All.
   rewrite WF.(wf_rmwD). rewrite WF.(wf_rmwE).
   rewrite wf_cert_coE; auto.
   rewrite wf_cert_coD; auto.
-  unfold cert_co_base.
+  unfold Cert_co.cert_co_base.
 
   unfolder. ins. desf.
   rename z1 into z0.
@@ -389,18 +393,25 @@ Proof using All.
          apply WF.(wf_rmwt) in H17. by rewrite H17. }
        assert (I z0) as IZ0.
        { apply IT_new_co in EWZ0. unfolder in EWZ0. desf. }
-       apply H6. right. split; auto.
+       apply H6. right. do 2 eexists. split.
+       2: by apply rt_refl.
+       splits; eauto.
        apply SB_S. red. split; auto.
        exists z0. apply seq_eqv_l. split; auto.
        apply seqA. exists z. split; auto.
        apply seq_eqv_l. split; auto.
        apply RMWREX. red. eauto. }
-  (* TODO: continue from here. *)
   
+  (* TODO: continue from here. *)
   assert (~ S z0) as NSZ0.
   { intros AA.
     enough (S x).
-    { apply H6. eauto. }
+    { apply H6. right.
+      do 2 eexists. split.
+      2: by apply rt_step; eauto.
+      splits; eauto.
+      admit. }
+      eauto. }
     apply SB_S. red.
     split; auto.
     exists z0. apply seq_eqv_l. split; auto.
