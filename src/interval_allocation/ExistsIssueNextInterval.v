@@ -387,7 +387,21 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          cdes RESERVED_TIME.
 
          assert (sb wnext wconext) as SBNEXTNEXT.
-         { eapply nS_imm_co_in_sb with (S:=S); eauto. }
+         { eapply nS_imm_co_in_sb; auto. 
+           4: by apply FOR_SPLIT.
+           3: { exists wconext. apply seq_eqv_l. split; auto. apply rt_refl. }
+           { intros [y HH].
+             apply seq_eqv_l in HH. destruct HH as [SY RFRMW].
+             apply rtE in RFRMW. destruct RFRMW as [HH|RFRMW].
+             { red in HH. desf. }
+             apply ct_end in RFRMW. destruct RFRMW as [z [RFRMW AA]].
+             assert (z = w); subst.
+             { eapply WF.(wf_rfrmwf); eauto. }
+             apply rtE in RFRMW. destruct RFRMW as [HH|RFRMW].
+             { red in HH. desf. }
+             apply NWEX. red.
+             apply ct_end in RFRMW. generalize RFRMW. clear. basic_solver. }
+           admit. }
 
          exfalso. apply WNISS. eapply rf_ppo_loc_I_in_I; eauto.
          exists wconext. apply seqA. apply seq_eqv_r. split; auto.

@@ -851,6 +851,18 @@ assert (Wf (certG G Gsc T S thread lab')) as WF_CERT.
 assert (wf_sc (certG G Gsc T S thread lab') Gsc) as WF_SC_CERT.
 { eapply WF_SC_cert; eauto. }
 
+assert (SB_S : dom_sb_S_rfrmw G (mkETC T S) (rf G ⨾ ⦗R_ex (lab G)⦘) (issued T) ⊆₁ S).
+{ unfold dom_sb_S_rfrmw. 
+  rewrite sub_sb_in; eauto.
+  rewrite sub_rf_in; eauto.
+  rewrite sub_R_ex; eauto.
+  rewrite sub_rmw_in; eauto.
+  apply ETCCOH. }
+assert (RMWREX : dom_rel (rmw G) ⊆₁ (R_ex (lab G))).
+{ rewrite sub_rmw_in; eauto.
+  rewrite sub_R_ex; eauto.
+  apply COMMON. }
+
 splits; auto.
 { apply cert_imm_consistent; auto. }
 { unfold certG, acts_set; ins; basic_solver. }
@@ -883,9 +895,8 @@ red. splits.
     { intros x HH AA. apply FCOH; auto. }
     { ins. apply FCOH.
       1,2: by apply IST_in_S.
-      assert ((cert_co G T S thread ⨾ ⦗cert_co_base T S thread⦘) x y) as HH.
-      { apply seq_eqv_r. split; auto. }
-      (*   eapply IST_in_cert_co_base; eauto. } *)
+      assert ((cert_co G T S thread ⨾ ⦗cert_co_base G T S thread⦘) x y) as HH.
+      { apply seq_eqv_r. split; auto. apply IST_in_cert_co_base; auto. }
       eapply cert_co_I in HH; eauto.
       apply seq_eqv_r in HH. destruct HH as [HH _].
       eapply (sub_co SUB) in HH.
@@ -902,11 +913,9 @@ red. splits.
               (acts_set (rstG Gf T S thread))).
     erewrite E_F_Sc_in_C; eauto.
     basic_solver. }
-  { rewrite same_lab_u2v_R_ex; eauto.
-    subst G. simpls.
-    rewrite <- RMWREX. clear. basic_solver. }
+  { rewrite same_lab_u2v_R_ex; eauto. }
   splits.
-  { subst G. rewrite cert_sb. eapply cert_co_for_split; eauto. }
+  { admit. } (* subst G. rewrite cert_sb. eapply cert_co_for_split; eauto. } *)
   subst G. unfold W_ex. rewrite cert_sb. unfold certG. simpls.
   rewrite <- seqA, codom_eqv1.
   arewrite (codom_rel (⦗E0 Gf T S thread⦘ ⨾ rmw Gf) ⊆₁ is_w Gf.(lab)).
