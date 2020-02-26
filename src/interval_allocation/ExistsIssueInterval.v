@@ -420,7 +420,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
          assert (~ is_init wconext) as NINITWCONEXT.
          { apply no_co_to_init in CONEXT; auto.
-           2: { apply coherence_sc_per_loc. apply IMMCON. }
            apply seq_eqv_r in CONEXT. desf. }
 
          assert (Time.lt (f_from wconext) (f_to wconext)) as LLWCONEXT.
@@ -615,7 +614,6 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
     assert (~ is_init wconext) as NINITWCONEXT.
     { apply no_co_to_init in CONEXT; auto.
-      2: { apply coherence_sc_per_loc. apply IMMCON. }
       apply seq_eqv_r in CONEXT. desf. }
 
     assert (forall to from msg,

@@ -154,6 +154,8 @@ Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ �
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 
+Hypothesis RMWREX : dom_rel Grmw ⊆₁ GR_ex.
+
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
 
@@ -415,7 +417,7 @@ Proof using All.
     arewrite (Grfe ⊆ Grf).
 arewrite (Grf
     ⨾ ⦗dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘)⦘  ⊆ Crf).
-apply Grf_to_Acq_S_in_cert_rf; edone.
+{ apply Grf_to_Acq_S_in_cert_rf; eauto. } 
 
     rewrite Grfi_in_cert_rfi at 1; try edone.
     arewrite_id ⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘.
