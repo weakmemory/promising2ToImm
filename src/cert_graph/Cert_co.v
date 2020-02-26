@@ -119,22 +119,23 @@ Hypothesis ST_in_E : S ∩₁ Tid_ thread ⊆₁ E.
 Hypothesis I_in_S : I ⊆₁ S.
 Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 
-Definition cert_co_base := I ∪₁ S ∩₁ Tid_ thread.
-Lemma cert_co_base_alt : cert_co_base ≡₁ I ∪₁ S ∩₁ Tid_ thread.
-Proof using WF IT_new_co.
-  clear -WF IT_new_co.
-  unfold cert_co_base.
-  split; [|basic_solver].
-  unionL; [basic_solver|].
-  basic_solver.
-Qed.
+Definition cert_co_base := I ∪₁ codom_rel (<|S ∩₁ Tid_ thread|> ;; (Grfi ;; Grmw)^*).
+(* Lemma cert_co_base_alt : cert_co_base ≡₁ I ∪₁ S ∩₁ Tid_ thread. *)
+(* Proof using WF IT_new_co. *)
+(*   clear -WF IT_new_co. *)
+(*   unfold cert_co_base. *)
+(*   split; [|basic_solver]. *)
+(*   unionL; [basic_solver|]. *)
+(*   basic_solver. *)
+(* Qed. *)
 
 Lemma I_in_cert_co_base : I ⊆₁ cert_co_base.
 Proof using. unfold cert_co_base. basic_solver. Qed.
 
 Lemma IST_in_cert_co_base : I ∪₁ S ∩₁ Tid_ thread ⊆₁ cert_co_base.
 Proof using S_I_in_W_ex.
-  unfold cert_co_base. clear. basic_solver.
+  unfold cert_co_base. clear.
+  rewrite rtE. basic_solver 10.
 Qed.
 
 (* Lemma W_ex_in_cert_co_base : GW_ex ⊆₁ cert_co_base. *)
@@ -146,15 +147,16 @@ Lemma IST_new_co : cert_co_base ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E �
 Proof using WF S_in_W ST_in_E IT_new_co.
   clear S_I_in_W_ex.
   rewrite <- IT_new_co at 2.
-  rewrite cert_co_base_alt.
+  unfold cert_co_base.
   split; [|basic_solver].
   unionL.
   1,3: basic_solver.
-  arewrite (S ∩₁ Tid_ thread ⊆₁ (S ∩₁ Tid_ thread) ∩₁ (Tid_ thread ∩₁ W)).
-  { generalize S_in_W. basic_solver. }
-  rewrite ST_in_E.
-  clear. basic_solver.
-Qed.
+Admitted.
+(*   arewrite (S ∩₁ Tid_ thread ⊆₁ (S ∩₁ Tid_ thread) ∩₁ (Tid_ thread ∩₁ W)). *)
+(*   { generalize S_in_W. basic_solver. } *)
+(*   rewrite ST_in_E. *)
+(*   clear. basic_solver. *)
+(* Qed. *)
 
 Lemma wf_cert_coE : cert_co ≡ ⦗E⦘ ⨾ cert_co ⨾ ⦗E⦘.
 Proof using WF S_in_W ST_in_E IT_new_co.
@@ -269,7 +271,7 @@ Proof using WF S_in_W ST_in_E IT_new_co S_I_in_W_ex COH.
 Qed.
 
 Lemma cert_co_for_split :
-  ⦗set_compl (I ∪₁ S ∩₁ Tid_ thread)⦘ ⨾ immediate cert_co ⊆ Gsb.
+  ⦗set_compl cert_co_base⦘ ⨾ immediate cert_co ⊆ Gsb.
 Proof using WF S_in_W S_I_in_W_ex ST_in_E IT_new_co COH.
   arewrite (immediate cert_co ⊆
             ⦗cert_co_base ∪₁ set_compl cert_co_base⦘ ⨾ immediate cert_co).
@@ -278,9 +280,7 @@ Proof using WF S_in_W S_I_in_W_ex ST_in_E IT_new_co COH.
   2: { rewrite cert_co_for_split_helper. clear. basic_solver. }
   rewrite <- seqA. rewrite <- id_inter.
   rewrite set_interC. rewrite <- set_minusE.
-  arewrite (cert_co_base \₁ (I ∪₁ S ∩₁ Tid_ thread) ⊆₁ ∅).
-  2: clear; basic_solver.
-  unfold cert_co_base. clear. basic_solver.
+  clear; basic_solver.
 Qed.
 
 Lemma cert_co_alt :
@@ -289,26 +289,27 @@ Lemma cert_co_alt :
                                               cert_co_base ⦘.
 Proof using WF TCCOH S_in_W ST_in_E S IT_new_co.
   arewrite (I ∩₁ NTid_ thread ≡₁ cert_co_base \₁ E ∩₁ W ∩₁ Tid_ thread).
-  { rewrite cert_co_base_alt.
+  { unfold cert_co_base.
     split.
-    2: { rewrite TCCOH.(I_eq_EW_I) at 1.
-         rewrite set_minus_union_l. unionL.
-         2: { clear -S_in_W ST_in_E.
-              intros x [HH BB]. exfalso. apply BB.
-              split; [split|]; try apply HH.
-              { by apply ST_in_E. }
-              apply S_in_W. apply HH. }
-         clear. intros x [HH BB]. split; [by apply HH|].
-         generalize HH, BB. basic_solver 10. }
-    clear. intros x [HH BB]. split; [basic_solver|].
-    unfolder. intros AA. desf. }
+    { clear. intros x [HH BB]. split; [basic_solver|].
+      unfolder. intros AA. desf. }
+    rewrite TCCOH.(I_eq_EW_I) at 1.
+    rewrite set_minus_union_l. unionL.
+    { clear. intros x [HH BB]. split; [by apply HH|].
+      generalize HH, BB. basic_solver 10. }
+    admit. }
+    (* clear -S_in_W ST_in_E. *)
+    (* intros x [HH BB]. exfalso. apply BB. *)
+    (* split; [split|]; try apply HH. *)
+    (* { by apply ST_in_E. } *)
+    (* apply S_in_W. apply HH. } *)
   arewrite (cert_co ⊆ cert_co ∩ cert_co) at 1.
   unfold cert_co at 1.
   rewrite new_co_in at 1.
   all: try by apply WF.
   { clear. basic_solver 40. }
   apply IST_new_co.
-Qed.
+Admitted.
 
 Lemma cert_co_alt' : cert_co  ⊆ Gco ∩ cert_co ∪ 
   ⦗ I ∩₁ NTid_ thread ⦘ ⨾ cert_co ⨾ ⦗ (E ∩₁ W ∩₁ Tid_ thread) \₁ I ⦘.

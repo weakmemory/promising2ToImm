@@ -822,7 +822,7 @@ Proof using All.
   rewrite I_in_cert_co_base with (T:=T) (S:=S) (thread:=thread); eauto.
   seq_rewrite <- seq_eqv_inter_ll.
 
-  arewrite (⦗cert_co_base T S thread⦘ ⨾ (cert_co⁻¹)^? ⊆ Gco⁻¹^?).
+  arewrite (⦗cert_co_base G T S thread⦘ ⨾ (cert_co⁻¹)^? ⊆ Gco⁻¹^?).
   { forward (eapply cert_co_I); eauto.
     clear. unfolder; ins; desf; eauto.
     right; eapply H; eauto. }
@@ -1055,7 +1055,7 @@ Proof using All.
   assert (E w) as EW.
   { hahn_rewrite (wf_rfE WF) in A; unfolder in A; desf. }
   exists z; split; eauto.
-  cut ((co G ⨾ ⦗cert_co_base T S thread⦘) w z).
+  cut ((co G ⨾ ⦗cert_co_base G T S thread⦘) w z).
   { basic_solver. }
   eapply new_co_I; try eapply IST_new_co; try apply WF; eauto.
   unfolder; splits; eauto.

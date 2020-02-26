@@ -394,7 +394,7 @@ Proof using All.
   forward (eapply cert_co_I with (G:=G) (T:=T) (S:=S) (thread:=thread)); eauto.
   unfold coe. rewrite cert_sb. unfold CertExecution2.certG.
   clear. simpls.
-  unfolder. intros HH; ins; desf. splits; auto. apply HH. by split.
+  unfolder. intros HH; ins; desf. splits; auto. apply HH. eby split.
 Qed.
 
 Lemma cert_detour_R_Acq' : 
@@ -422,7 +422,7 @@ basic_solver 21. }
   forward (eapply cert_co_I with (G:=G) (T:=T) (S:=S) (thread:=thread)); eauto.
   unfold coe. rewrite cert_sb. unfold CertExecution2.certG.
   clear. simpls.
-  unfolder. intros HH; ins; desf. splits; auto. apply HH. by split. }
+  unfolder. intros HH; ins; desf. splits; auto. apply HH. eby split. }
 
 rewrite (dom_r WF.(wf_rfiE)).
 rewrite (dom_r (@wf_sbE G)).
