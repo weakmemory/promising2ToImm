@@ -1,24 +1,41 @@
+# Promising 2.0: Global Optimizations in Relaxed Memory Concurrency
+
+Sung-Hwan Lee, Minki Cho, Anton Podkopaev, Soham Chakraborty, Chung-Kil Hur, Ori Lahav, Viktor Vafeiadis.
+
+Proceedings of the 41st annual ACM SIGPLAN conference on Programming Languages Design and Implementation ([PLDI 2020](https://conf.researchr.org/home/pldi-2020))
+
+Please visit the [project website](https://sf.snu.ac.kr/promising2.0/) for more information.
+
 This repository contains Coq code of Promising 2.0 to IMM compilation correctness proof
 supplementing the paper *Promising 2.0: Global Optimizations and Relaxed Memory Concurrency*.
 
-## Installation of dependencies
-You can either run `configure', or to execute the following commands:
-```bash
-opam repo add coq-released https://coq.inria.fr/opam/released
-opam remote add coq-promising-local -k git https://github.com/snu-sf/promising-opam-coq-archive
-opam remote add coq-weakmemory-local -k git https://github.com/weakmemory/local-coq-opam-archive
-opam pin add coq-promising2 git@github.com:snu-sf/promising-coq-private.git#v2
-opam install coq-imm coq-promising2
-```
+## Build
 
-## Building the project
-Run `make -j -k`.
+- Requirement: [Coq 8.9.1](https://coq.inria.fr/download), opam, Make, Rsync.
 
-## The project structure
-- `src/lib` contains definitions and lemmas about relations, IMM, and Promising2's memory.
-- `src/promise_basics` contains definitions and lemmas about Promising2.
+- Installing dependencies with opam
+
+        opam repo add coq-released https://coq.inria.fr/opam/released
+        opam remote add coq-promising -k git https://github.com/snu-sf/promising-opam-coq-archive
+        opam remote add coq-weakmemory-local -k git https://github.com/weakmemory/local-coq-opam-archive
+        opam install coq-paco.2.0.3 coq-sflib coq-promising-lib coq-promising2 coq-imm
+
+- Building the project
+
+        git clone https://github.com/weakmemory/promising2ToImm.git
+        cd promising2ToImm 
+        make -j build
+
+- Interactive Theorem Proving: use [ProofGeneral](https://proofgeneral.github.io/) or [CoqIDE](https://coq.inria.fr/download).
+  Note that `make` creates `_CoqProject`, which is then used by ProofGeneral and CoqIDE. To use it:
+    + ProofGeneral: use a recent version.
+    + CoqIDE: configure it to use `_CoqProject`: `Edit` > `Preferences` > `Project`: change `ignored` to `appended to arguments`.
+
+## References
+- `src/lib` contains definitions and lemmas about relations, IMM, and Promising 2.0's memory.
+- `src/promise_basics` contains definitions and lemmas about Promising 2.0.
 - `src/traversal` contains definitions related to the IMM traversal as it is presented in Podkopaev et al. POPL19.
 - `src/ext_traversal` contains definitions related to the extended IMM traversal with reservations.
 - `src/simulation` contains definitions and lemmas related to certification graph's construction and the simulation relation.
-- `src/simulation_steps` contains definitions and lemmas related to the simulation step lemma (`SimulationPlainStep.v`) and
-  the main theorem of compilation (`PromiseToimm_s.v`).
+- `src/simulation_steps` contains definitions and lemmas related to the simulation step lemma (`SimulationPlainStep.v`).
+- `src/compilation` contains the main theorem of compilation (`PromiseToimm_s.v`).
