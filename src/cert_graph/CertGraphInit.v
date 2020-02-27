@@ -872,6 +872,9 @@ red. splits.
   { erewrite same_lab_u2v_is_rlx; eauto.
     rewrite cert_E. rewrite acts_G_in_acts_Gf.
     rewrite lab_G_eq_lab_Gf. apply SIMREL. }
+  { erewrite same_lab_u2v_is_ra; eauto.
+    rewrite cert_E, cert_F; eauto. rewrite acts_G_in_acts_Gf.
+    rewrite lab_G_eq_lab_Gf. apply SIMREL. }
   { by apply ETCCOH_cert. }
   { erewrite same_lab_u2v_is_rel; eauto.
     erewrite same_lab_u2v_is_w; eauto.

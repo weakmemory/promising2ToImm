@@ -61,6 +61,7 @@ Notation "'Rlx'" := (is_rlx lab).
 Notation "'Rel'" := (is_rel lab).
 Notation "'Acq'" := (is_acq lab).
 Notation "'Acqrel'" := (is_acqrel lab).
+Notation "'Acq/Rel'" := (is_ra lab).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Notation "'W_ex'" := G.(W_ex).
@@ -168,8 +169,6 @@ Definition reserved_time smode memory :=
     (* During certification *)
     (⟪ FOR_SPLIT :
          ⦗ set_compl (codom_rel (<|S|> ;; (rfi ;; rmw)^* )) ⦘ ⨾ (immediate co) ⊆ sb ⟫ /\
-    (* (⟪ FOR_SPLIT : ⦗ set_compl (W_ex ∪₁ S) ⦘ ⨾ (immediate co) ⊆ sb ⟫ /\ *)
-    (* (⟪ FOR_SPLIT : ⦗ set_compl I ⦘ ⨾ (immediate co) ⊆ sb ⟫ /\ *)
      ⟪ RMW_BEF_S : W_ex ⊆₁ dom_rel (sb^? ⨾ ⦗ S ⦘) ⟫)
   end.
 
@@ -178,10 +177,11 @@ Definition simrel_common
   let memory := PC.(Configuration.memory) in
   let threads := PC.(Configuration.threads) in
   let sc_view := PC.(Configuration.sc) in
-  ⟪ ALLRLX: E \₁ is_init ⊆₁ Rlx ⟫ /\
-  ⟪ TCCOH : etc_coherent G sc (mkETC T S) ⟫ /\
-  ⟪ RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C ⟫ /\
-  ⟪ RMWCOV : forall r w (RMW : rmw r w), covered T r <-> covered T w ⟫ /\
+  ⟪ ALLRLX  : E \₁ is_init ⊆₁ Rlx ⟫ /\
+  ⟪ FRELACQ : E ∩₁ F ⊆₁ Acq/Rel ⟫ /\
+  ⟪ TCCOH   : etc_coherent G sc (mkETC T S) ⟫ /\
+  ⟪ RELCOV  : W ∩₁ Rel ∩₁ I ⊆₁ C ⟫ /\
+  ⟪ RMWCOV  : forall r w (RMW : rmw r w), covered T r <-> covered T w ⟫ /\
 
   ⟪ THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
     exists langst, IdentMap.find (tid e) threads = Some langst ⟫ /\
@@ -199,11 +199,9 @@ Definition simrel_common
          max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view) ⟫ /\
   
   (* TODO: To support RMWs (even FADDs) w/o ctrl dependency, we need to
-           get rid of RMWREX and WEXRES. 
+           get rid of RMWREX.
    *)
   ⟪ RMWREX : dom_rel rmw ⊆₁ R_ex lab ⟫ /\ 
-  (* ⟪ WEXRES : smode = sim_certification -> *)
-  (*            dom_rel (<|W_ex|> ;; sb ∩ same_loc lab ;; <|I|>) ⊆₁ S ⟫ /\  *)
 
   ⟪ RESERVED_TIME: reserved_time smode memory ⟫ /\
                     

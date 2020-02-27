@@ -582,4 +582,13 @@ Proof using WF CON.
   apply coherence_sc_per_loc. apply CON.
 Qed.
 
+Lemma E_in_RW_F_AcqRel (FACQREL : E ∩₁ F ⊆₁ Acq/Rel) :
+  E ⊆₁ R ∪₁ W ∪₁ F ∩₁  Acq/Rel.
+Proof using.
+  arewrite (E ⊆₁ E ∩₁ E).
+  arewrite (E ⊆₁ R ∪₁ W ∪₁ F) at 2 by type_solver.
+  rewrite set_inter_union_r.
+  generalize FACQREL. clear. basic_solver 10.
+Qed.
+
 End ImmProperties.

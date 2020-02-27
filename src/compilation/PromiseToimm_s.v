@@ -200,7 +200,10 @@ Hypothesis TNONULL : ~ IdentMap.In tid_init prog.
 Variable G : execution.
 Variable final_memory : location -> value.
 
-Hypothesis ALLRLX : G.(acts_set) \₁ is_init ⊆₁ (fun a => is_true (is_rlx G.(lab) a)).
+Hypothesis ALLRLX  : G.(acts_set) \₁ is_init ⊆₁ (fun a => is_true (is_rlx G.(lab) a)).
+(* All fences in the program are at least release or acquire ones. *)
+Hypothesis FRELACQ : G.(acts_set) ∩₁ (fun a => is_true (is_f G.(lab) a)) ⊆₁ (fun a => is_true (is_ra G.(lab) a)).
+Hypothesis RMWREX  : dom_rel G.(rmw) ⊆₁ (fun a => is_true (R_ex G.(lab) a)).
 
 Hypothesis EFM : execution_final_memory G final_memory.
 
@@ -295,9 +298,8 @@ Lemma simrel_init :
   simrel G sc (conf_init prog)
          (init_trav G) (is_init ∩₁ acts_set G)
          (fun _ => tid_init) (fun _ => tid_init).
-Proof using ALLRLX IMMCON PROG_EX TNONULL WF.
-  red; splits; red; splits. 
-  { apply ALLRLX. }
+Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
+  red; splits; red; splits; auto.
   { by apply ext_init_trav_coherent. }
   { simpls. basic_solver. }
   { ins. split; intros [INIT GG]; exfalso.
@@ -351,7 +353,6 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF.
     red in HH. destruct HH as [CC [HH _]]. subst.
     apply WF.(init_w) in AA.
     type_solver. }
-  { admit. }
   { red. splits; ins.
     3: { match goal with
          | H : co _ _ _ |- _ => rename H into CO
@@ -376,7 +377,6 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF.
     edestruct TView.bot_closed.
     unfold TView.bot, View.bot in *; simpls.
     destruct CUR. simpls. }
-  { apply inhabited_init. }
   { simpls. apply Memory.init_closed. }
   simpls.
   apply IdentMap.Facts.in_find_iff in TP.
@@ -438,7 +438,7 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF.
   symmetry in UU. apply YY in UU.
   desc. red in UU. desc.
   eexists. splits; eauto. by subst.
-Admitted.
+Qed.
 
 Definition thread_is_terminal ths tid :=
   forall (lang : Language.t ProgramEvent.t) st lc
