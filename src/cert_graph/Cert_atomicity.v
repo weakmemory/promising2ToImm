@@ -155,6 +155,7 @@ Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ �
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 Hypothesis SB_S          : dom_sb_S_rfrmw G (mkETC T S) (Grf ⨾ ⦗GR_ex⦘) I ⊆₁ S.
 Hypothesis RMWREX        : dom_rel Grmw ⊆₁ GR_ex.
+Hypothesis FACQREL       : E ∩₁ F ⊆₁ Acq/Rel.
 
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.

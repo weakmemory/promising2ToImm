@@ -201,7 +201,6 @@ Variable G : execution.
 Variable final_memory : location -> value.
 
 Hypothesis ALLRLX  : G.(acts_set) \₁ is_init ⊆₁ (fun a => is_true (is_rlx G.(lab) a)).
-(* All fences in the program are at least release or acquire ones. *)
 Hypothesis FRELACQ : G.(acts_set) ∩₁ (fun a => is_true (is_f G.(lab) a)) ⊆₁ (fun a => is_true (is_ra G.(lab) a)).
 Hypothesis RMWREX  : dom_rel G.(rmw) ⊆₁ (fun a => is_true (R_ex G.(lab) a)).
 

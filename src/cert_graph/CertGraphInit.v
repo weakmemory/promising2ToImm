@@ -862,6 +862,11 @@ assert (Wf (certG G Gsc T S thread lab')) as WF_CERT.
 assert (wf_sc (certG G Gsc T S thread lab') Gsc) as WF_SC_CERT.
 { eapply WF_SC_cert; eauto. }
 
+assert (acts_set G ∩₁ (fun a : actid => is_f (lab G) a) ⊆₁
+                 (fun a : actid => is_ra (lab G) a)) as FACQREL.
+{ rewrite acts_G_in_acts_Gf.
+  rewrite lab_G_eq_lab_Gf. apply SIMREL. }
+
 splits; auto.
 { apply cert_imm_consistent; auto. }
 { unfold certG, acts_set; ins; basic_solver. }
@@ -873,8 +878,7 @@ red. splits.
     rewrite cert_E. rewrite acts_G_in_acts_Gf.
     rewrite lab_G_eq_lab_Gf. apply SIMREL. }
   { erewrite same_lab_u2v_is_ra; eauto.
-    rewrite cert_E, cert_F; eauto. rewrite acts_G_in_acts_Gf.
-    rewrite lab_G_eq_lab_Gf. apply SIMREL. }
+    rewrite cert_E, cert_F; eauto. }
   { by apply ETCCOH_cert. }
   { erewrite same_lab_u2v_is_rel; eauto.
     erewrite same_lab_u2v_is_w; eauto.

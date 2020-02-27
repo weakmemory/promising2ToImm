@@ -158,6 +158,8 @@ Hypothesis ETC_DETOUR_RMW_S : dom_rel (Gdetour ⨾ Grmw ⨾ ⦗ S ⦘) ⊆₁ I.
 
 Hypothesis RMWREX : dom_rel Grmw ⊆₁ GR_ex.
 
+Hypothesis FACQREL : E ∩₁ F ⊆₁ Acq/Rel.
+
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
 
@@ -375,7 +377,6 @@ Proof using All.
   ins; rewrite cert_co_I; try edone.
   clear. basic_solver 21.
 Qed.
-
 
 Lemma cert_detour_R_Acq : Cdetour ⨾ ⦗R∩₁Acq⦘ ⊆ ⦗ I ⦘ ⨾ Gdetour ⨾ ⦗R∩₁Acq⦘.
 Proof using All.
