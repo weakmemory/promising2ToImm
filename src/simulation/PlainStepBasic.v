@@ -11,6 +11,7 @@ From imm Require Import imm_s.
 From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
+From imm Require Import RMWinstrProps.
 
 Require Import AuxRel2.
 Require Import ViewRelHelpers.
@@ -23,6 +24,7 @@ Require Import SimulationRel.
 Require Import MemoryAux.
 Require Import SimState.
 Require Import ImmProperties.
+Require Import SimulationPlainStepAux.
 
 Set Implicit Arguments.
 
@@ -183,6 +185,7 @@ Lemma simrel_thread_local_step thread PC PC' T S T' S' label f_to f_from
       (TP' : IdentMap.In thread' (Configuration.threads PC'))
       (TP0 : IdentMap.In thread' (Configuration.threads PC))
       (state : Language.state (PromiseLTS.thread_lts thread')) local
+      (RMWREX : rmw_is_rex_instrs (ProgToExecution.instrs state))
       (TNNULL : thread' <> tid_init)
       (GPC : ProgToExecutionProperties.wf_thread_state thread' state)
       (LLH : IdentMap.find thread' (Configuration.threads PC) =

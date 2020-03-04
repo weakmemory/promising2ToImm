@@ -9,6 +9,7 @@ From imm Require Import imm_s.
 From imm Require Import CombRelations.
 From imm Require Import ProgToExecution.
 From imm Require Import ProgToExecutionProperties.
+From imm Require Import RMWinstrProps.
 
 Require Import TraversalConfig.
 Require Import MaxValue.
@@ -221,6 +222,7 @@ Definition simrel_thread_local (thread : thread_id) (smode : sim_mode) :=
   exists state local,
     ⟪ TNNULL : thread <> tid_init ⟫ /\
     ⟪ GPC : wf_thread_state thread state ⟫ /\
+    ⟪ RMWRES : rmw_is_rex_instrs state.(instrs) ⟫ /\
     ⟪ LLH : IdentMap.find thread threads =
              Some (existT _ (thread_lts thread) state, local) ⟫ /\
     ⟪ PROM_DISJOINT :

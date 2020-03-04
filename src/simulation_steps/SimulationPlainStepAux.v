@@ -5,6 +5,7 @@ From Promising2 Require Import TView View Time Event Cell Thread Memory Configur
 
 From imm Require Import Events Execution.
 From imm Require Import ProgToExecution.
+From imm Require Import RMWinstrProps.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import SimulationRel.
@@ -38,10 +39,9 @@ Proof using.
     by cdes ISTEP.
 Qed.
 
-Lemma tau_steps_rmw_is_xacq (PC : Configuration.t) thread
+Lemma tau_steps_step_same_instrs (PC : Configuration.t) thread
       (state : ProgToExecution.state)
       (local : Local.t)
-      (XACQIN : ProgToExecutionProperties.rmw_is_xacq_instrs (instrs state))
       (ev : ProgramEvent.t)
       (state'' state''' : ProgToExecution.state)
       (ESTEPS : rtc (Thread.tau_step (lang:=thread_lts thread))
@@ -54,10 +54,9 @@ Lemma tau_steps_rmw_is_xacq (PC : Configuration.t) thread
                                PC.(Configuration.sc)
                                PC.(Configuration.memory)))
       (STEP : lts_step thread ev state'' state''') :
-  ProgToExecutionProperties.rmw_is_xacq_instrs (instrs state''').
+  instrs state''' = instrs state.
 Proof using.
   cdes STEP. cdes ISTEP. rewrite <- INSTRS.
-  arewrite (instrs state'' = instrs state); auto.
   clear -ESTEPS.
   remember (Thread.mk (thread_lts thread)
                       state local

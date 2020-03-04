@@ -255,6 +255,7 @@ Proof using WF CON.
       type_solver. }
     rewrite IdentMap.gss.
     eexists; eexists; eexists; splits; eauto; simpls.
+    { erewrite tau_steps_step_same_instrs; eauto. }
     { ins.
       rewrite IdentMap.gso in TID'; auto.
       eapply PROM_DISJOINT; eauto. }

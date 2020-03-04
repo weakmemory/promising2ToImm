@@ -516,6 +516,8 @@ assert (issued T ⊆₁ S) as I_in_S by apply ETCCOH.
 
 exploit (@receptiveness_full thread state state'' new_val
                                new_rfi (E0 Gf T S thread \₁ D G T S thread)); auto.
+{ clear -RMWRES. red in RMWRES. red. ins.
+  red. apply RMWRES in IN. red in IN. desf. }
 { split; [|basic_solver].
   rewrite TEH''.(tr_acts_set).
   apply dom_helper_3.

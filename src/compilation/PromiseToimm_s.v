@@ -13,6 +13,7 @@ From imm Require Import Execution.
 From imm Require Import imm_s.
 From imm Require Import CombRelations.
 From imm Require Import ProgToExecutionProperties.
+From imm Require Import RMWinstrProps.
 
 Require Import SimulationRel.
 Require Import PlainStepBasic.
@@ -47,17 +48,20 @@ Proof using.
   unfolder. ins. exists nil. eauto.
 Qed.
 
+(* TODO: move *)
 Lemma InAE A x (l : list A) : SetoidList.InA eq x l <-> In x l.
 Proof using.
   split; [by induction 1; desf; ins; eauto|].
   induction l; ins; desf; eauto using SetoidList.InA.
 Qed.
 
+(* TODO: move *)
 Lemma NoDupAE A (l : list A) : SetoidList.NoDupA eq l <-> NoDup l.
 Proof using.
   split; induction 1; constructor; eauto; rewrite InAE in *; eauto.
 Qed.
 
+(* TODO: move *)
 Lemma NoDup_map_NoDupA A B (f : A -> B) l :
   SetoidList.NoDupA (fun p p' => f p = f p') l ->
   NoDup (map f l).
@@ -67,6 +71,21 @@ Proof using.
     eauto using SetoidList.InA.
 Qed.
 
+(* TODO: move to ImmProperties.v (and then to imm/RMWinstrProps.v). *)
+Lemma dom_rmw_in_rex_thread_steps thread s s'
+      (RMWREX : rmw_is_rex_instrs s.(instrs))
+      (WF : wf_thread_state thread s)
+      (STEPS : (step thread)^* s s')
+      (SS : dom_rmw_in_rex s) :
+  dom_rmw_in_rex s'.
+Proof using.
+  apply clos_rt_rtn1_iff in STEPS.
+  induction STEPS; auto.
+  apply clos_rt_rtn1_iff in STEPS.
+  eapply dom_rmw_in_rex_thread_step with (s:=y); eauto.
+  { erewrite steps_preserve_instrs; eauto. }
+  eapply wf_thread_state_steps; eauto.
+Qed.
 
 Definition execution_final_memory (G : execution) final_memory :=
   forall l,
@@ -202,11 +221,13 @@ Variable final_memory : location -> value.
 
 Hypothesis ALLRLX  : G.(acts_set) \₁ is_init ⊆₁ (fun a => is_true (is_rlx G.(lab) a)).
 Hypothesis FRELACQ : G.(acts_set) ∩₁ (fun a => is_true (is_f G.(lab) a)) ⊆₁ (fun a => is_true (is_ra G.(lab) a)).
-Hypothesis RMWREX  : dom_rel G.(rmw) ⊆₁ (fun a => is_true (R_ex G.(lab) a)).
 
 Hypothesis EFM : execution_final_memory G final_memory.
 
 Hypothesis PROG_EX : program_execution prog G.
+Hypothesis RMWREX  : forall thread linstr
+                            (IN : Some linstr = IdentMap.find thread prog),
+    rmw_is_rex_instrs linstr.
 Hypothesis WF : Wf G.
 Variable sc : relation actid.
 Hypothesis IMMCON : imm_consistent G sc.
@@ -293,6 +314,47 @@ Proof using PROG_EX.
   destruct (HH e ACT) as [|AA]; [by desf|done].
 Qed.
 
+Lemma dom_rmw_in_R_ex : dom_rel (rmw G) ⊆₁ (fun a : actid => R_ex (lab G) a).
+Proof using PROG_EX RMWREX WF.
+  red in PROG_EX.
+  intros x H.
+  destruct H as [y RMW].
+  assert (acts_set G x) as EX.
+  { apply (dom_l WF.(wf_rmwE)) in RMW.
+    apply seq_eqv_l in RMW. desf. }
+  rename PROG_EX into HH. destruct HH as [PROG_EX PEX].
+  specialize (PROG_EX x EX).
+  destruct PROG_EX as [INIT|TH]. 
+  { exfalso. apply (rmw_from_non_init WF) in RMW.
+    apply seq_eqv_l in RMW. desf. }
+  apply IdentMap.Facts.in_find_iff in TH.
+  destruct (IdentMap.find (tid x) prog) eqn: INP.
+  2: done.
+  symmetry in INP.
+  set (PP:=INP).
+  apply PEX in PP. desc. subst.
+  red in PP. desc.
+  rewrite <- PEQ in *.
+  assert (acts_set s.(ProgToExecution.G) x) as SX.
+  { apply PP0.(tr_acts_set). by split. }
+  unfold R_ex.
+  assert (lab G x = lab (ProgToExecution.G s) x) as LL.
+  { eapply lab_thread_eq_thread_restricted_lab; eauto. }
+  assert (s.(ProgToExecution.G).(rmw) x y) as SRMW.
+  { apply PP0.(tr_rmw).
+    simpls. apply seq_eqv_l; split; auto.
+    apply seq_eqv_r. split; auto.
+    apply WF.(wf_rmwt) in RMW. symmetry. apply RMW. }
+  assert (dom_rmw_in_rex s) as YY.
+  2: { specialize (YY x). rewrite LL.
+       apply YY. by exists y. }
+  apply RMWREX in INP.
+  eapply dom_rmw_in_rex_thread_steps; eauto.
+  { unfold init; simpls. }
+  { apply wf_thread_state_init. }
+  red. unfold init. simpls. clear. basic_solver.
+Qed.
+
 Lemma simrel_init :
   simrel G sc (conf_init prog)
          (init_trav G) (is_init ∩₁ acts_set G)
@@ -352,6 +414,7 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
     red in HH. destruct HH as [CC [HH _]]. subst.
     apply WF.(init_w) in AA.
     type_solver. }
+  { apply dom_rmw_in_R_ex. }
   { red. splits; ins.
     3: { match goal with
          | H : co _ _ _ |- _ => rename H into CO
@@ -391,6 +454,7 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
   exists (init l), (Local.init); splits; auto.
   { red; ins; desf; apply TNONULL, IdentMap.Facts.in_find_iff; congruence. }
   { apply wf_thread_state_init. }
+  { symmetry in UU. apply RMWREX in UU. unfold init. simpls. }
   { ins. left. apply Memory.bot_get. }
   { red. ins.
     unfold Local.init in *. simpls. 
@@ -515,7 +579,8 @@ Proof using All.
   { by hahn_rewrite <- istep_nil_eq_silent. }
   assert (state'.(eindex) = state.(eindex)) as EII.
   { eapply steps_same_eindex; eauto. }
-  clear STEPS. rename HH into STEPS.
+  rename STEPS into STEPSAA.
+  rename HH into STEPS.
 
   assert (forall A (a b : A), Some a = Some b -> a = b) as XBB.
   { ins. inv H. }
@@ -591,8 +656,9 @@ Proof using All.
   destruct (classic (thread0 = thread)) as [|NEQ]; subst.
   { rewrite IdentMap.gss. 
     eexists; eexists. splits.
-    1,3: done.
+    1,4: done.
     all: eauto.
+    { erewrite steps_preserve_instrs; eauto. }
     { ins. left. rewrite PBOT. apply Memory.bot_get. }
     red. splits.
     { by rewrite EII. }

@@ -536,6 +536,7 @@ Proof using WF CON.
       eapply Memory.cancel_closed; eauto. }
     rewrite IdentMap.gss.
     eexists; eexists; eexists; splits; eauto; simpls.
+    { erewrite tau_steps_step_same_instrs; eauto. }
     { ins. edestruct PROM_DISJOINT0 as [HH|]; eauto.
       do 2 (rewrite IdentMap.gso in *; eauto). }
     { clear WREPR REPR. rewrite <- FF, <- RORD, <- WORD.

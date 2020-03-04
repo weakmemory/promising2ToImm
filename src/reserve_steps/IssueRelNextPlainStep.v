@@ -292,6 +292,7 @@ Proof using WF CON.
     rewrite IdentMap.gss.
  
     eexists; eexists; eexists; splits; eauto; simpls.
+    { erewrite tau_steps_step_same_instrs; eauto. }
     { ins.
       eapply PROM_DISJOINT0; eauto.
       rewrite IdentMap.gso; auto. rewrite IdentMap.gso in TID'; eauto. }
