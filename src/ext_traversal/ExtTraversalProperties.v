@@ -1,11 +1,10 @@
 Require Import Setoid.
 From hahn Require Import Hahn.
 From imm Require Import Events Execution Execution_eco
-     imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxDef.
-Require Import AuxRel AuxRel2.
+     imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxDef AuxRel2.
+Require Import AuxRel.
 Require Import TraversalConfig Traversal.
 Require Import ExtTraversalConfig.
-Require Import ImmProperties.
 
 Set Implicit Arguments.
 

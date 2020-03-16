@@ -15,7 +15,7 @@ From imm Require Import Prog.
 From imm Require Import ProgToExecution.
 
 Require Import AuxRel.
-Require Import AuxRel2.
+From imm Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import Traversal.
 Require Import ExtTraversalConfig.

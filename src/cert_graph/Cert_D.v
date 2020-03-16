@@ -10,13 +10,11 @@ From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 
-Require Import AuxRel2.
+From imm Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import TraversalConfigAlt.
 Require Import TraversalConfigAltOld.
 Require Import ExtTraversalConfig.
-
-Require Import ImmProperties.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.

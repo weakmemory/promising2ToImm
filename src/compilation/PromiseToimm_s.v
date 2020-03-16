@@ -14,6 +14,7 @@ From imm Require Import imm_s.
 From imm Require Import CombRelations.
 From imm Require Import ProgToExecutionProperties.
 From imm Require Import RMWinstrProps.
+From imm Require Import AuxRel2.
 
 Require Import SimulationRel.
 Require Import PlainStepBasic.
@@ -34,7 +35,7 @@ Require Import ExtTraversal.
 Require Import ExtTraversalCounting.
 Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
-Require Import AuxRel2.
+Require Import AuxTime.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -71,7 +72,7 @@ Proof using.
     eauto using SetoidList.InA.
 Qed.
 
-(* TODO: move to ImmProperties.v (and then to imm/RMWinstrProps.v). *)
+(* TODO: move to to imm/RMWinstrProps.v. *)
 Lemma dom_rmw_in_rex_thread_steps thread s s'
       (RMWREX : rmw_is_rex_instrs s.(instrs))
       (WF : wf_thread_state thread s)

@@ -13,7 +13,7 @@ From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import RMWinstrProps.
 
-Require Import AuxRel2.
+From imm Require Import AuxRel2.
 Require Import ViewRelHelpers.
 Require Import TraversalConfig.
 Require Import Traversal.
@@ -23,7 +23,6 @@ Require Import ViewRel.
 Require Import SimulationRel.
 Require Import MemoryAux.
 Require Import SimState.
-Require Import ImmProperties.
 Require Import SimulationPlainStepAux.
 
 Set Implicit Arguments.

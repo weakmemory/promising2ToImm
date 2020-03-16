@@ -3,7 +3,7 @@ From hahn Require Import Hahn.
 Require Import Omega.
 
 From imm Require Import Events Execution imm_s.
-Require Import AuxRel2.
+From imm Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import Traversal.
 Require Import ExtTraversalConfig.

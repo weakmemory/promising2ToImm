@@ -1,7 +1,7 @@
 From hahn Require Import Hahn.
 From PromisingLib Require Import Loc.
 From Promising2 Require Import View Time Event.
-Require Import AuxRel2.
+From imm Require Import AuxRel2.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.

@@ -1,7 +1,7 @@
 From hahn Require Import Hahn.
 Require Import PromisingLib.
 From Promising2 Require Import Memory View Time Cell TView.
-Require Import AuxRel2.
+From imm Require Import AuxRel2.
 
 Definition memory_close tview memory :=
   ⟪ CLOSED_CUR :

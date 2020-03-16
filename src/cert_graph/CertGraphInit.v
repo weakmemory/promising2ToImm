@@ -29,7 +29,6 @@ Require Import SimulationRel.
 Require Import SimState.
 Require Import ExtTraversalConfig.
 Require Import CertExecution1.
-Require Import ImmProperties.
 Require Import ExtTraversalProperties.
 
 Set Implicit Arguments.

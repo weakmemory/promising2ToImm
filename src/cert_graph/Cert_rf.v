@@ -10,13 +10,11 @@ From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 
-Require Import AuxRel2.
+From imm Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import TraversalConfigAlt.
 Require Import TraversalConfigAltOld.
 Require Import ExtTraversalConfig.
-
-Require Import ImmProperties.
 
 Require Import Cert_co.
 Require Import Cert_D.
@@ -789,10 +787,10 @@ Proof using All.
   rewrite <- seqA.
   rewrite <- !AuxRel.seq_eqv_inter_rr.
   arewrite (Gsb⁻¹ ⨾ ⦗set_compl Init⦘ ⊆ same_tid).
-  { generalize (@ImmProperties.ninit_sb_same_tid G).
+  { generalize (@ninit_sb_same_tid G).
     unfold same_tid; unfolder; clear; ins; desf; symmetry; eauto. }
   arewrite (cert_co ∩ same_tid ⨾ same_tid ⊆ same_tid).
-  { clear; generalize (ImmProperties.same_tid_trans); basic_solver 21. }
+  { clear; generalize same_tid_trans; basic_solver 21. }
   generalize (rfe_n_same_tid WF COH).
   basic_solver 21.
 Qed.

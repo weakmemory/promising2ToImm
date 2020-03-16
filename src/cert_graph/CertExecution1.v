@@ -6,6 +6,7 @@ From imm Require Import Execution_eco.
 From imm Require Import imm_bob imm_s_ppo imm_s_hb imm_s.
 From imm Require Import SubExecution.
 From imm Require Import CombRelations.
+From imm Require Import AuxRel2.
 
 Require Import TraversalConfig.
 Require Import TraversalConfigAlt.
@@ -545,7 +546,7 @@ Lemma rfe_rmwrfi_rt_Acq_E :
 Proof using WF ETCCOH.
   clear RELCOV.
   arewrite (Frfe ⨾ (Frmw ⨾ Frfi)＊ ⊆ (Frfe ⨾ (Frmw ⨾ Frfi)＊) ⨾ ⦗R⦘).
-  { apply AuxRel2.codom_rel_helper.
+  { apply codom_rel_helper.
     rewrite (dom_r WF.(wf_rfiD)), (dom_r WF.(wf_rfeD)).
     rewrite rtE. rewrite <- !seqA.
     rewrite inclusion_ct_seq_eqv_r.
@@ -1591,7 +1592,7 @@ Qed.
 (*     { by left. } *)
 (*     { right. by split. } *)
 (*     { right. split; auto. *)
-(*       eapply ImmProperties.ninit_sb_same_tid. *)
+(*       eapply ninit_sb_same_tid. *)
 (*       apply seq_eqv_l. split; eauto. } *)
 (*     apply (dom_l WF.(wf_rmwD)) in EX. apply seq_eqv_l in EX. *)
 (*     type_solver 10. } *)

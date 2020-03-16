@@ -11,8 +11,8 @@ From imm Require Import imm_s.
 From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import AuxDef.
+From imm Require Import AuxRel2.
 
-Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import ViewRelHelpers.
 Require Import SimulationRel.
@@ -23,6 +23,7 @@ Require Import ViewRel.
 Require Import Event_imm_promise.
 Require Import ExtTraversalConfig.
 Require Import FtoCoherent.
+Require Import AuxTime.
 
 Set Implicit Arguments.
 

@@ -10,7 +10,6 @@ From imm Require Import imm_s_rfrmw.
 From imm Require Import AuxDef.
 
 Require Import TraversalConfig TraversalConfigAlt.
-Require Import ImmProperties.
 Require Import ar_ppo_loc.
 
 Set Implicit Arguments.

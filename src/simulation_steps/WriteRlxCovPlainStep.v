@@ -26,7 +26,7 @@ Require Import SimStateHelper.
 Require Import PromiseLTS.
 Require Import MemoryAux.
 Require Import FtoCoherent.
-Require Import AuxRel2.
+From imm Require Import AuxRel2.
 
 Set Implicit Arguments.
 

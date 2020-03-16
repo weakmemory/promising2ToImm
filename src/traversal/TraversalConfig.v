@@ -2,7 +2,6 @@ Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution
      Execution_eco imm_s_hb imm_s imm_bob imm_s_ppo CombRelations imm_s_rfrmw.
-Require Import ImmProperties.
 Require Import ar_ppo_loc.
 
 Set Implicit Arguments.

@@ -8,7 +8,6 @@ From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 
-Require Import ImmProperties.
 Require Import TraversalConfig.
 
 Set Implicit Arguments.

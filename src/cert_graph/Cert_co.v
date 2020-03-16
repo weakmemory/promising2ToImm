@@ -15,13 +15,11 @@ From imm Require Import AuxDef.
 (* From imm Require Import Events Execution Execution_eco *)
 (*      imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxDef. *)
 
-Require Import AuxRel2.
+From imm Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import TraversalConfigAlt.
 Require Import TraversalConfigAltOld.
 Require Import ExtTraversalConfig.
-
-Require Import ImmProperties.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.

@@ -11,9 +11,8 @@ From imm Require Import CombRelations.
 From imm Require Import imm_s_rfrmw.
 From imm Require Import AuxDef.
 
-Require Import AuxRel2.
+From imm Require Import AuxRel2.
 Require Import TraversalConfig.
-Require Import ImmProperties.
 Require Import ar_ppo_loc.
 
 Set Implicit Arguments.

@@ -9,13 +9,14 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import AuxDef.
+From imm Require Import AuxRel2.
 Require Import TraversalConfig.
 Require Import TraversalConfigAlt.
 Require Import Traversal.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtTraversalProperties.
-Require Import AuxRel AuxRel2.
+Require Import AuxRel.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
