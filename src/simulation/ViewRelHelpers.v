@@ -8,7 +8,7 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
-Require Import TraversalConfig.
+From imm Require Import TraversalConfig.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.

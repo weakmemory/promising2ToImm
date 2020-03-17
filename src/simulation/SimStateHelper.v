@@ -7,7 +7,7 @@ From imm Require Import Events Execution.
 From imm Require Import ProgToExecution.
 From imm Require Import ProgToExecutionProperties.
 Require Import SimulationRel.
-Require Import TraversalConfig.
+From imm Require Import TraversalConfig.
 Require Import Event_imm_promise.
 Require Import SimState.
 Require Import MaxValue.

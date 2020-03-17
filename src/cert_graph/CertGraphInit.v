@@ -22,7 +22,7 @@ Require Import Cert_ar.
 Require Import Cert_co.
 Require Import Cert_D.
 Require Import CertExecution2.
-Require Import TraversalConfig.
+From imm Require Import TraversalConfig.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import SimulationRel.

@@ -13,7 +13,7 @@ From imm Require Import CombRelations.
 From imm Require Import AuxDef.
 From imm Require Import AuxRel2.
 
-Require Import TraversalConfig.
+From imm Require Import TraversalConfig.
 Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimState.

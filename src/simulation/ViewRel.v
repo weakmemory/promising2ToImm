@@ -12,7 +12,7 @@ From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 
 Require Import ViewRelHelpers.
-Require Import TraversalConfig.
+From imm Require Import TraversalConfig.
 Require Import MaxValue.
 Require Import Event_imm_promise.
 

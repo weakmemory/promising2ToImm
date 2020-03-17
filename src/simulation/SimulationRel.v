@@ -11,7 +11,7 @@ From imm Require Import ProgToExecution.
 From imm Require Import ProgToExecutionProperties.
 From imm Require Import RMWinstrProps.
 
-Require Import TraversalConfig.
+From imm Require Import TraversalConfig.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import Event_imm_promise.

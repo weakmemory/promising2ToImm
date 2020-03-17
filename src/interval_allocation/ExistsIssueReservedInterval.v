@@ -13,7 +13,7 @@ From imm Require Import CombRelations.
 From imm Require Import AuxDef.
 From imm Require Import AuxRel2.
 
-Require Import TraversalConfig.
+From imm Require Import TraversalConfig.
 Require Import SimulationRel.
 Require Import SimState.
 Require Import MemoryAux.
@@ -24,7 +24,7 @@ Require Import Event_imm_promise.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtTraversalProperties.
-Require Import TraversalProperties.
+From imm Require Import TraversalProperties.
 Require Import FtoCoherent.
 Require Import SimulationRelProperties.
 Require Import IntervalHelper.

@@ -12,7 +12,7 @@ From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
 
-Require Import TraversalConfig.
+From imm Require Import TraversalConfig.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import MaxValue.

@@ -16,9 +16,9 @@ From imm Require Import AuxDef.
 (*      imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxDef. *)
 
 From imm Require Import AuxRel2.
-Require Import TraversalConfig.
-Require Import TraversalConfigAlt.
-Require Import TraversalConfigAltOld.
+From imm Require Import TraversalConfig.
+From imm Require Import TraversalConfigAlt.
+From imm Require Import TraversalConfigAltOld.
 Require Import ExtTraversalConfig.
 
 Set Implicit Arguments.

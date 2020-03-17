@@ -8,8 +8,8 @@ From imm Require Import SubExecution.
 From imm Require Import CombRelations.
 From imm Require Import AuxRel2.
 
-Require Import TraversalConfig.
-Require Import TraversalConfigAlt.
+From imm Require Import TraversalConfig.
+From imm Require Import TraversalConfigAlt.
 Require Import ExtTraversalConfig ExtTraversalProperties.
 Require Import AuxRel.
 

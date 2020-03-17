@@ -4,15 +4,14 @@ From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import Execution_eco.
 From imm Require Import imm_s.
-From imm Require Import imm_s_rfrmw.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import AuxDef.
 From imm Require Import AuxRel2.
-Require Import TraversalConfig.
-Require Import TraversalConfigAlt.
-Require Import Traversal.
+From imm Require Import TraversalConfig.
+From imm Require Import TraversalConfigAlt.
+From imm Require Import Traversal.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtTraversalProperties.

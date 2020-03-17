@@ -26,8 +26,8 @@ Require Import PromiseOutcome.
 Require Import CertGraphInit.
 Require Import MemoryAux.
 Require Import PromiseLTS.
-Require Import Traversal.
-Require Import TraversalConfig.
+From imm Require Import Traversal.
+From imm Require Import TraversalConfig.
 Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
 Require Import ExtTraversalConfig.

@@ -4,8 +4,8 @@ Require Import Omega.
 
 From imm Require Import Events Execution imm_s.
 From imm Require Import AuxRel2.
-Require Import TraversalConfig.
-Require Import Traversal.
+From imm Require Import TraversalConfig.
+From imm Require Import Traversal.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtSimTraversal.

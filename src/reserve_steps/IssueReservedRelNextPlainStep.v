@@ -13,7 +13,7 @@ From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
 From imm Require Import AuxDef.
 
-Require Import TraversalConfig.
+From imm Require Import TraversalConfig.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtTraversalProperties.

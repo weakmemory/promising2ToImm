@@ -16,8 +16,8 @@ From imm Require Import ProgToExecution.
 
 Require Import AuxRel.
 From imm Require Import AuxRel2.
-Require Import TraversalConfig.
-Require Import Traversal.
+From imm Require Import TraversalConfig.
+From imm Require Import Traversal.
 Require Import ExtTraversalConfig.
 Require Import ViewRelHelpers.
 Require Import PlainStepBasic.

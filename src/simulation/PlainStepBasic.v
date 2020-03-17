@@ -15,8 +15,8 @@ From imm Require Import RMWinstrProps.
 
 From imm Require Import AuxRel2.
 Require Import ViewRelHelpers.
-Require Import TraversalConfig.
-Require Import Traversal.
+From imm Require Import TraversalConfig.
+From imm Require Import Traversal.
 Require Import MemoryClosedness.
 Require Import MaxValue.
 Require Import ViewRel.
