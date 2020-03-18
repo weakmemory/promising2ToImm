@@ -20,7 +20,7 @@ From imm Require Import TraversalConfig.
 From imm Require Import Traversal.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
-Require Import ViewRelHelpers.
+From imm Require Import ViewRelHelpers.
 Require Import PlainStepBasic.
 Require Import MemoryAux.
 Require Import SimulationRel.

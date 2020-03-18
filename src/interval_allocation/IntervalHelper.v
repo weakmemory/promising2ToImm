@@ -19,7 +19,7 @@ Require Import SimState.
 Require Import MemoryAux.
 Require Import MaxValue.
 Require Import ViewRel.
-Require Import ViewRelHelpers.
+From imm Require Import ViewRelHelpers.
 Require Import Event_imm_promise.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.

@@ -19,7 +19,7 @@ Require Import ExtTraversal.
 Require Import ExtTraversalProperties.
 Require Import MaxValue.
 Require Import ViewRel.
-Require Import ViewRelHelpers.
+From imm Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimulationPlainStepAux.
 Require Import PlainStepBasic.

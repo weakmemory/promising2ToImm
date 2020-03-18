@@ -14,7 +14,7 @@ From imm Require Import CombRelationsMore.
 From imm Require Import RMWinstrProps.
 
 From imm Require Import AuxRel2.
-Require Import ViewRelHelpers.
+From imm Require Import ViewRelHelpers.
 From imm Require Import TraversalConfig.
 From imm Require Import Traversal.
 Require Import MemoryClosedness.
