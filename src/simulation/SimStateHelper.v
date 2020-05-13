@@ -115,10 +115,7 @@ Proof using.
     clear -ord. desf; eauto. }
   { exists (ProgramEvent.read l val (rmod ordr)).
     by splits. }
-  { exists (ProgramEvent.update l expected new_value (rmod ordr) (wmod ordw)).
-    by splits. }
-  exists (ProgramEvent.update l val nval (rmod ordr) (wmod ordw)).
-  splits; auto.
+  all: eexists (ProgramEvent.update _ _ _ _ _); splits; eauto.
 Qed.
 
 Lemma sim_state_to_events_helper_add
