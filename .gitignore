@@ -6,3 +6,6 @@ Makefile.coq
 *.glob
 *.vo
 *.vio
+*.vok
+*.vos
+*.lia.cache
