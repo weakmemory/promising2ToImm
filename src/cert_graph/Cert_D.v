@@ -29,41 +29,41 @@ Variable sc : relation actid.
 
 Notation "'Init'" := (fun a => is_true (is_init a)).
 
-Notation "'E'" := G.(acts_set).
-Notation "'Gacts'" := G.(acts).
-Notation "'Glab'" := G.(lab).
-Notation "'Gsb'" := G.(sb).
-Notation "'Grf'" := G.(rf).
-Notation "'Gco'" := G.(co).
-Notation "'Grmw'" := G.(rmw).
-Notation "'Gdata'" := G.(data).
-Notation "'Gaddr'" := G.(addr).
-Notation "'Gctrl'" := G.(ctrl).
-Notation "'Gdeps'" := G.(deps).
-Notation "'Grmw_dep'" := G.(rmw_dep).
+Notation "'E'" := (acts_set G).
+Notation "'Gacts'" := (acts G).
+Notation "'Glab'" := (lab G).
+Notation "'Gsb'" := (sb G).
+Notation "'Grf'" := (rf G).
+Notation "'Gco'" := (co G).
+Notation "'Grmw'" := (rmw G).
+Notation "'Gdata'" := (data G).
+Notation "'Gaddr'" := (addr G).
+Notation "'Gctrl'" := (ctrl G).
+Notation "'Gdeps'" := (deps G).
+Notation "'Grmw_dep'" := (rmw_dep G).
 
-Notation "'Gfre'" := G.(fre).
-Notation "'Grfe'" := G.(rfe).
-Notation "'Gcoe'" := G.(coe).
-Notation "'Grfi'" := G.(rfi).
-Notation "'Gfri'" := G.(fri).
-Notation "'Gcoi'" := G.(coi).
-Notation "'Gfr'" := G.(fr).
-Notation "'Geco'" := G.(eco).
-Notation "'Gdetour'" := G.(detour).
-Notation "'Gsw'" := G.(sw).
-Notation "'Grelease'" := G.(release).
-Notation "'Grs'" := G.(rs).
-Notation "'Ghb'" := G.(hb).
-Notation "'Gppo'" := G.(ppo).
-Notation "'Grppo'" := G.(rppo).
-Notation "'Gbob'" := G.(bob).
-Notation "'Gfwbob'" := G.(fwbob).
-Notation "'Gar'" := (G.(ar) sc).
-Notation "'Gar_int'" := (G.(ar_int)).
-Notation "'Gurr'" := (G.(urr) sc).
-Notation "'Gfurr'" := (G.(furr) sc).
-Notation "'Gmsg_rel'" := (G.(msg_rel) sc).
+Notation "'Gfre'" := (fre G).
+Notation "'Grfe'" := (rfe G).
+Notation "'Gcoe'" := (coe G).
+Notation "'Grfi'" := (rfi G).
+Notation "'Gfri'" := (fri G).
+Notation "'Gcoi'" := (coi G).
+Notation "'Gfr'" := (fr G).
+Notation "'Geco'" := (eco G).
+Notation "'Gdetour'" := (detour G).
+Notation "'Gsw'" := (sw G).
+Notation "'Grelease'" := (release G).
+Notation "'Grs'" := (rs G).
+Notation "'Ghb'" := (hb G).
+Notation "'Gppo'" := (ppo G).
+Notation "'Grppo'" := (rppo G).
+Notation "'Gbob'" := (bob G).
+Notation "'Gfwbob'" := (fwbob G).
+Notation "'Gar'" := ((ar G) sc).
+Notation "'Gar_int'" := ((ar_int G)).
+Notation "'Gurr'" := ((urr G) sc).
+Notation "'Gfurr'" := ((furr G) sc).
+Notation "'Gmsg_rel'" := ((msg_rel G) sc).
 
 Notation "'Gloc'" := (loc Glab).
 Notation "'Gval'" := (val Glab).
@@ -73,7 +73,7 @@ Notation "'R'" := (fun a => is_true (is_r Glab a)).
 Notation "'W'" := (fun a => is_true (is_w Glab a)).
 Notation "'F'" := (fun a => is_true (is_f Glab a)).
 Notation "'GR_ex'" := (fun a => is_true (R_ex Glab a)).
-Notation "'GW_ex'" := G.(W_ex).
+Notation "'GW_ex'" := (W_ex G).
 Notation "'GW_ex_acq'" := (GW_ex ∩₁ (fun a => is_true (is_xacq Glab a))).
 
 Notation "'Loc_' l" := (fun x => Gloc x = Some l) (at level 1).
@@ -245,7 +245,7 @@ Proof using WF TCCOH E_to_S S_in_W.
   rewrite (dom_r (wf_rmw_depD WF)), !seqA.
   arewrite (⦗GR_ex⦘ ⨾ Gsb^? ⨾ ⦗W⦘ ⊆ Gsb ⨾ ⦗W⦘).
   { clear. type_solver. }
-  sin_rewrite WF.(rmw_dep_sb_W_in_rppo).
+  sin_rewrite (rmw_dep_sb_W_in_rppo WF).
   apply dom_rppo_S_in_D.
 Qed.
 
@@ -254,18 +254,18 @@ Proof using sc WF TCCOH.
   unfold D.
   rewrite !id_union; relsf; unionL; splits.
   { rewrite (dom_l (wf_rmwD WF)).
-    rewrite WF.(rmw_in_sb) at 1.
+    rewrite (rmw_in_sb WF) at 1.
     generalize (dom_sb_covered TCCOH), (w_covered_issued TCCOH).
     clear; basic_solver 21. }
-  { rewrite WF.(rmw_in_ppo) at 1.
+  { rewrite (rmw_in_ppo WF) at 1.
     clear. basic_solver 12. }
   { unionR left -> left -> left -> left.
     unionR left -> right.
-    rewrite (dom_l WF.(wf_rmwE)) at 1. 
-    rewrite WF.(wf_rmwt) at 1.
+    rewrite (dom_l (wf_rmwE WF)) at 1. 
+    rewrite (wf_rmwt WF) at 1.
     clear; unfold same_tid; basic_solver 12. }
   { rewrite dom_rel_eqv_dom_rel.
-    rewrite WF.(rmw_in_ppo) at 1.
+    rewrite (rmw_in_ppo WF) at 1.
     rewrite (dom_r (@wf_ppoD G)) at 1.
     rewrite (dom_l (@wf_ppoD G)) at 2.
     unionR left -> left -> left -> left. 
@@ -320,13 +320,13 @@ Proof using All.
     unionR left -> right.
     rewrite (dom_l (@wf_sbE G)) at 1.
     arewrite ((GR_ex) ⊆₁ set_compl Init).
-    { rewrite WF.(init_w), R_ex_in_R; type_solver. }
+    { rewrite (init_w WF), R_ex_in_R; type_solver. }
     generalize (@ninit_sb_same_tid G).
     unfold same_tid; unfolder; ins; desf; splits; eauto.
     erewrite H; eauto. }
   { unionR left -> left -> left -> right.
     arewrite (Grfi ⊆ Gsb) at 1.
-    rewrite WF.(ppo_in_sb) at 1.
+    rewrite (ppo_in_sb WF) at 1.
     rewrite I_in_S.
     arewrite (⦗S⦘ ⊆ ⦗S⦘ ⨾ ⦗W⦘) at 1.
     by generalize S_in_W; basic_solver.
@@ -334,9 +334,9 @@ Proof using All.
     generalize (@sb_trans G); basic_solver 21. }
   { unionR left -> left -> left -> right.
     arewrite (Grfi ⊆ Gsb) at 1.
-    rewrite WF.(data_in_sb) at 1.
-    rewrite WF.(rmw_in_sb) at 1.
-    rewrite WF.(rppo_in_sb) at 1.
+    rewrite (data_in_sb WF) at 1.
+    rewrite (rmw_in_sb WF) at 1.
+    rewrite (rppo_in_sb WF) at 1.
     arewrite (⦗S⦘ ⊆ ⦗S⦘ ⨾ ⦗W⦘) at 1.
     by generalize S_in_W; basic_solver.
     unfold rppo.
@@ -524,7 +524,7 @@ Proof using WF TCCOH.
   { exfalso. apply ND.
     do 2 red. left. left. right. basic_solver 10. }
   destruct RFI as [RF SB].
-  apply WF.(wf_rfE) in RF.
+  apply (wf_rfE WF) in RF.
   unfolder in RF. desf.
   assert (~ is_init x) as NINX.
   { intros II. apply NIX. 
@@ -584,8 +584,8 @@ rewrite !seqA.
 arewrite (Gsb ⨾ (Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grfi ∪ Grmw
         ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex⦘ ⨾ Gsb)＊ ⊆ Gsb).
 { arewrite_id ⦗GR_ex⦘.
-  rewrite WF.(data_in_sb), WF.(addr_in_sb), WF.(ctrl_in_sb).
-  rewrite WF.(rmw_dep_in_sb), WF.(rmw_in_sb).
+  rewrite (data_in_sb WF), (addr_in_sb WF), (ctrl_in_sb WF).
+  rewrite (rmw_dep_in_sb WF), (rmw_in_sb WF).
   arewrite (Grfi ⊆ Gsb).
   generalize (@sb_trans G); ins; relsf. }
 relsf; unionL.
@@ -609,7 +609,7 @@ Qed.
 
 Lemma dom_ar_int_D_helper : dom_rel (⦗R ∩₁ set_compl Acq⦘ ⨾ Gar_int ⨾ ⦗I⦘) ⊆₁ D.
 Proof using All.
-  unfold ar_int. rewrite WF.(wf_detourD). rewrite WF.(W_ex_in_W).
+  unfold ar_int. rewrite (wf_detourD WF). rewrite (W_ex_in_W WF).
   rewrite !seq_union_l, !seq_union_r. rewrite !dom_union. unionL.
   3-5: clear; type_solver 10.
   2: { unfold D. clear. basic_solver 20. }
@@ -627,11 +627,11 @@ Hypothesis FACQREL : E ∩₁ F ⊆₁ Acq/Rel.
 Lemma dom_ar_int_D :
   dom_rel (Gar_int⁺ ⨾ ⦗I⦘) ⊆₁ D ∪₁ R ∩₁ Acq.
 Proof using All.
-  rewrite (dom_l WF.(wf_ar_intE)).
+  rewrite (dom_l (wf_ar_intE WF)).
   rewrite inclusion_ct_seq_eqv_l.
   rewrite E_in_RW_F_AcqRel; auto. rewrite !seqA.
   rewrite !id_union, !seq_union_l, !dom_union. unionL.
-  3: { rewrite WF.(ar_int_in_sb). rewrite ct_of_trans; [|by apply sb_trans].
+  3: { rewrite (ar_int_in_sb WF). rewrite ct_of_trans; [|by apply sb_trans].
        rewrite <- C_in_D. rewrite wf_sbE. generalize E_F_AcqRel_in_C.
        clear. basic_solver 10. }
   2: { rewrite ar_int_in_ar. rewrite ar_ct_I_in_I; eauto. rewrite I_in_D. eauto with hahn. }
@@ -639,12 +639,12 @@ Proof using All.
   { clear. unfolder. ins. tauto. }
   rewrite !id_union, !seq_union_l, !dom_union. unionL.
   { clear. basic_solver. }
-  rewrite (dom_r WF.(wf_ar_intE)).
+  rewrite (dom_r (wf_ar_intE WF)).
   rewrite E_in_RW_F_AcqRel; auto.
   rewrite id_union. rewrite seq_union_r. 
   rewrite path_ut_first. rewrite seq_union_l, seq_union_r, dom_union.
   unionL.
-  2: { rewrite !seqA. rewrite WF.(ar_int_in_sb).
+  2: { rewrite !seqA. rewrite (ar_int_in_sb WF).
        arewrite_id ⦗R ∪₁ W⦘. rewrite seq_id_r.
        generalize (@sb_trans G). ins. relsf.
        generalize C_in_D, dom_sb_F_AcqRel_in_C.
@@ -665,7 +665,7 @@ Proof using All.
   arewrite (⦗R ∩₁ set_compl Acq⦘ ⨾ Gar_int ⨾ ⦗R⦘ ⊆ ∅₂).
   2: { clear. basic_solver. }
   unfold ar_int.
-  rewrite wf_ppoD. rewrite WF.(wf_detourD). rewrite WF.(W_ex_in_W).
+  rewrite wf_ppoD. rewrite (wf_detourD WF). rewrite (W_ex_in_W WF).
   rewrite !seq_union_l, !seq_union_r. unionL.
   2-5: clear; type_solver 10.
   unfold bob, fwbob. clear. type_solver 10.
@@ -704,7 +704,7 @@ Proof using All.
     arewrite_id ⦗W⦘. rewrite seq_id_l.
     rewrite (dom_rel_helper (@E_ntid_sb_prcl G thread)).
     arewrite (GW_ex_acq ⊆₁ W).
-    { generalize WF.(W_ex_in_W). basic_solver. }
+    { generalize (W_ex_in_W WF). basic_solver. }
     rewrite !dom_eqv1. unionR right.
     rewrite <- !set_interA.
     arewrite (W ∩₁ E ⊆₁ E ∩₁ W) by basic_solver.
@@ -714,7 +714,7 @@ Proof using All.
     arewrite (Gsb ⨾ ⦗W⦘ ⨾ Grfi^? ⨾ Gppo ⊆ Gsb).
     2: by unionR right. 
     arewrite (Grfi ⊆ Gsb).
-    rewrite WF.(ppo_in_sb).
+    rewrite (ppo_in_sb WF).
     generalize (@sb_trans G). basic_solver. }
   { unionR right. 
     rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel.
@@ -722,13 +722,13 @@ Proof using All.
     arewrite (Gsb ⨾ ⦗W⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⊆ Gsb).
     2: rewrite W_ex_acq_in_I; basic_solver.
     arewrite (Grfi ⊆ Gsb).
-    rewrite WF.(data_in_sb).
-    rewrite WF.(rppo_in_sb).
-    rewrite WF.(rmw_in_sb).
+    rewrite (data_in_sb WF).
+    rewrite (rppo_in_sb WF).
+    rewrite (rmw_in_sb WF).
     rewrite unionK.
     rewrite rt_of_trans.
     all: generalize (@sb_trans G); basic_solver. }
-  { rewrite (dom_r WF.(wf_rfiD)).
+  { rewrite (dom_r (wf_rfiD WF)).
     rewrite <- !seqA. rewrite codom_eqv1.
     clear. type_solver 20. }
   clear. type_solver 20.

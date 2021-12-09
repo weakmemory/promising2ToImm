@@ -34,41 +34,41 @@ Variable sc : relation actid.
 
 Notation "'Init'" := (fun a => is_true (is_init a)).
 
-Notation "'E'" := G.(acts_set).
-Notation "'Gacts'" := G.(acts).
-Notation "'Glab'" := G.(lab).
-Notation "'Gsb'" := G.(sb).
-Notation "'Grf'" := G.(rf).
-Notation "'Gco'" := G.(co).
-Notation "'Grmw'" := G.(rmw).
-Notation "'Gdata'" := G.(data).
-Notation "'Gaddr'" := G.(addr).
-Notation "'Gctrl'" := G.(ctrl).
-Notation "'Gdeps'" := G.(deps).
-Notation "'Grmw_dep'" := G.(rmw_dep).
+Notation "'E'" := (acts_set G).
+Notation "'Gacts'" := (acts G).
+Notation "'Glab'" := (lab G).
+Notation "'Gsb'" := (sb G).
+Notation "'Grf'" := (rf G).
+Notation "'Gco'" := (co G).
+Notation "'Grmw'" := (rmw G).
+Notation "'Gdata'" := (data G).
+Notation "'Gaddr'" := (addr G).
+Notation "'Gctrl'" := (ctrl G).
+Notation "'Gdeps'" := (deps G).
+Notation "'Grmw_dep'" := (rmw_dep G).
 
-Notation "'Gfre'" := G.(fre).
-Notation "'Grfe'" := G.(rfe).
-Notation "'Gcoe'" := G.(coe).
-Notation "'Grfi'" := G.(rfi).
-Notation "'Gfri'" := G.(fri).
-Notation "'Gcoi'" := G.(coi).
-Notation "'Gfr'" := G.(fr).
-Notation "'Geco'" := G.(eco).
-Notation "'Gdetour'" := G.(detour).
-Notation "'Gsw'" := G.(sw).
-Notation "'Grelease'" := G.(release).
-Notation "'Grs'" := G.(rs).
-Notation "'Ghb'" := G.(hb).
-Notation "'Gppo'" := G.(ppo).
-Notation "'Grppo'" := G.(rppo).
-Notation "'Gbob'" := G.(bob).
-Notation "'Gfwbob'" := G.(fwbob).
-Notation "'Gar'" := (G.(ar) sc).
-Notation "'Gar_int'" := (G.(ar_int)).
-Notation "'Gurr'" := (G.(urr) sc).
-Notation "'Gfurr'" := (G.(furr) sc).
-Notation "'Gmsg_rel'" := (G.(msg_rel) sc).
+Notation "'Gfre'" := (fre G).
+Notation "'Grfe'" := (rfe G).
+Notation "'Gcoe'" := (coe G).
+Notation "'Grfi'" := (rfi G).
+Notation "'Gfri'" := (fri G).
+Notation "'Gcoi'" := (coi G).
+Notation "'Gfr'" := (fr G).
+Notation "'Geco'" := (eco G).
+Notation "'Gdetour'" := (detour G).
+Notation "'Gsw'" := (sw G).
+Notation "'Grelease'" := (release G).
+Notation "'Grs'" := (rs G).
+Notation "'Ghb'" := (hb G).
+Notation "'Gppo'" := (ppo G).
+Notation "'Grppo'" := (rppo G).
+Notation "'Gbob'" := (bob G).
+Notation "'Gfwbob'" := (fwbob G).
+Notation "'Gar'" := ((ar G) sc).
+Notation "'Gar_int'" := ((ar_int G)).
+Notation "'Gurr'" := ((urr G) sc).
+Notation "'Gfurr'" := ((furr G) sc).
+Notation "'Gmsg_rel'" := ((msg_rel G) sc).
 
 Notation "'Gloc'" := (loc Glab).
 Notation "'Gval'" := (val Glab).
@@ -78,7 +78,7 @@ Notation "'R'" := (fun a => is_true (is_r Glab a)).
 Notation "'W'" := (fun a => is_true (is_w Glab a)).
 Notation "'F'" := (fun a => is_true (is_f Glab a)).
 Notation "'GR_ex'" := (fun a => is_true (R_ex Glab a)).
-Notation "'GW_ex'" := G.(W_ex).
+Notation "'GW_ex'" := (W_ex G).
 Notation "'GW_ex_acq'" := (GW_ex ∩₁ (fun a => is_true (is_xacq Glab a))).
 
 Notation "'Loc_' l" := (fun x => Gloc x = Some l) (at level 1).
@@ -158,7 +158,7 @@ Proof using WF S_in_W ST_in_E IT_new_co.
   rewrite rtE.
   arewrite (Grmw ⊆ Grmw ;; <|E ∩₁ W|>).
   { apply codom_rel_helper.
-    rewrite WF.(wf_rmwE), WF.(wf_rmwD).
+    rewrite (wf_rmwE WF), (wf_rmwD WF).
     clear. basic_solver. }
   rewrite <- !seqA.
   rewrite inclusion_ct_seq_eqv_r.
@@ -218,13 +218,13 @@ Qed.
 
 Lemma Gco_in_cert_co_sym_clos : Gco ⊆ cert_co ∪ cert_co^{-1}.
 Proof.
-  rewrite WF.(wf_coE). do 2 rewrite WF.(wf_coD).
+  rewrite (wf_coE WF). do 2 rewrite (wf_coD WF).
   arewrite (W ⊆₁ fun x => exists l, loc Glab x = Some l) at 1.
   { clear. unfolder. ins. by apply is_w_loc. }
   arewrite (Gco ⊆ Gco ∩ Gco).
-  rewrite WF.(wf_col) at 1.
+  rewrite (wf_col WF) at 1.
   unfolder. ins. desf. eapply wf_cert_co_total.
-  3: eby intros HH; subst; eapply WF.(co_irr).
+  3: eby intros HH; subst; eapply (co_irr WF).
   all: split; [split|]; eauto.
 Qed.
 
@@ -235,7 +235,7 @@ Proof.
   { clear. unfolder. ins. by apply is_w_loc. }
   arewrite (cert_co ⊆ cert_co ∩ cert_co).
   rewrite (wf_cert_col) at 1.
-  unfolder. ins. desf. eapply WF.(wf_co_total).
+  unfolder. ins. desf. eapply (wf_co_total WF).
   3: eby intros HH; subst; eapply cert_co_irr.
   all: split; [split|]; eauto.
 Qed.

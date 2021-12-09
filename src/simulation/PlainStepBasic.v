@@ -34,11 +34,11 @@ Inductive plain_step :
          (c1 c2:Configuration.t), Prop :=
 | plain_step_intro
     pf e tid c1 lang st1 lc1 e2 st3 lc3 sc3 memory3
-    (TID: IdentMap.find tid c1.(Configuration.threads) = Some (existT _ lang st1, lc1))
-    (STEPS: rtc (@Thread.tau_step _) (Thread.mk _ st1 lc1 c1.(Configuration.sc) c1.(Configuration.memory)) e2)
+    (TID: IdentMap.find tid (Configuration.threads c1) = Some (existT _ lang st1, lc1))
+    (STEPS: rtc (@Thread.tau_step _) (Thread.mk _ st1 lc1 (Configuration.sc c1) (Configuration.memory c1)) e2)
     (STEP: Thread.step pf e e2 (Thread.mk _ st3 lc3 sc3 memory3))
     (EVENT: e <> ThreadEvent.failure) :
-    plain_step (ThreadEvent.get_machine_event e) tid c1 (Configuration.mk (IdentMap.add tid (existT _ _ st3, lc3) c1.(Configuration.threads)) sc3 memory3).
+    plain_step (ThreadEvent.get_machine_event e) tid c1 (Configuration.mk (IdentMap.add tid (existT _ _ st3, lc3) (Configuration.threads c1)) sc3 memory3).
 
 Section PlainStepBasic.
 
@@ -47,26 +47,26 @@ Variable WF : Wf G.
 Variable sc : relation actid.
 Variable CON : imm_consistent G sc.
 
-Notation "'E'" := G.(acts_set).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'co'" := G.(co).
-Notation "'rmw'" := G.(rmw).
-Notation "'data'" := G.(data).
-Notation "'addr'" := G.(addr).
-Notation "'ctrl'" := G.(ctrl).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
 
-Notation "'fr'" := G.(fr).
-Notation "'coe'" := G.(coe).
-Notation "'coi'" := G.(coi).
-Notation "'deps'" := G.(deps).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'detour'" := G.(detour).
-Notation "'hb'" := G.(hb).
-Notation "'sw'" := G.(sw).
+Notation "'fr'" := (fr G).
+Notation "'coe'" := (coe G).
+Notation "'coi'" := (coi G).
+Notation "'deps'" := (deps G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'detour'" := (detour G).
+Notation "'hb'" := (hb G).
+Notation "'sw'" := (sw G).
 
-Notation "'lab'" := G.(lab).
+Notation "'lab'" := (lab G).
 (* Notation "'loc'" := (loc lab). *)
 (* Notation "'val'" := (val lab). *)
 (* Notation "'mod'" := (mod lab). *)
@@ -88,21 +88,21 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
-Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
 
 Lemma same_thread_modify_for_step thread x y
       (STEP : plain_step MachineEvent.silent thread x y) :
-  forall tt, IdentMap.add thread tt y.(Configuration.threads) =
-             IdentMap.add thread tt x.(Configuration.threads).
+  forall tt, IdentMap.add thread tt (Configuration.threads y) =
+             IdentMap.add thread tt (Configuration.threads x).
 Proof using. ins. inv STEP; simpls. by rewrite IdentMap.add_add_eq. Qed.
 
 Lemma same_thread_modify_for_steps thread x y
       (STEP : (plain_step MachineEvent.silent thread)＊ x y) :
-  forall tt, IdentMap.add thread tt y.(Configuration.threads) =
-             IdentMap.add thread tt x.(Configuration.threads).
+  forall tt, IdentMap.add thread tt (Configuration.threads y) =
+             IdentMap.add thread tt (Configuration.threads x).
 Proof using.
   induction STEP; eauto.
   { by apply same_thread_modify_for_step. }
@@ -114,8 +114,8 @@ Lemma plain_step_seq_plain_step_in_plain_step thread :
              plain_step MachineEvent.silent thread.
 Proof using.
   intros x z [y [AA BB]].
-  assert (forall tt, IdentMap.add thread tt y.(Configuration.threads) =
-                     IdentMap.add thread tt x.(Configuration.threads)) as HH.
+  assert (forall tt, IdentMap.add thread tt (Configuration.threads y) =
+                     IdentMap.add thread tt (Configuration.threads x)) as HH.
   { by apply same_thread_modify_for_step. }
   set (pe := MachineEvent.silent).
   assert (pe = MachineEvent.silent) as EQ by done.
@@ -173,11 +173,11 @@ Lemma simrel_thread_local_step thread PC PC' T S T' S' label f_to f_from
           IdentMap.find thread' PC'.(Configuration.threads) = Some (langst, local))
       (PCSTEP : (plain_step label thread)⁺ PC PC')
       (CLOSED_PRES :
-         closedness_preserved PC.(Configuration.memory) PC'.(Configuration.memory))
+         closedness_preserved (Configuration.memory PC) PC'.(Configuration.memory))
       (MSG_PRES :
-         msg_preserved PC.(Configuration.memory) PC'.(Configuration.memory))
+         msg_preserved (Configuration.memory PC) PC'.(Configuration.memory))
       (TPEQ : forall thread,
-          IdentMap.In thread PC.(Configuration.threads) <->
+          IdentMap.In thread (Configuration.threads PC) <->
           IdentMap.In thread PC'.(Configuration.threads))
       (SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread sim_normal)
       thread' (NEQ : thread <> thread')
@@ -204,7 +204,7 @@ Lemma simrel_thread_local_step thread PC PC' T S T' S' label f_to f_from
       (SIM_MEM : sim_mem G sc T f_to f_from thread' local (Configuration.memory PC))
       (SIM_RES_MEM_LCL : forall l b (RESB: S b) (NISSB: ~ issued T b) (LOC: Loc_ l b)
                                 (TID : tid b = thread'),
-          Memory.get l (f_to b) local.(Local.promises) =
+          Memory.get l (f_to b) (Local.promises local) =
           Some (f_from b, Message.reserve))
       (SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) thread')
       (PLN_RLX_EQ : pln_rlx_eq (Local.tview local))
@@ -212,7 +212,7 @@ Lemma simrel_thread_local_step thread PC PC' T S T' S' label f_to f_from
       (STATE : sim_state G sim_normal (covered T) state) :
   simrel_thread_local G sc PC' T' S' f_to f_from thread' sim_normal.
 Proof using WF.
-  assert (IdentMap.In thread' PC.(Configuration.threads)) as TP.
+  assert (IdentMap.In thread' (Configuration.threads PC)) as TP.
   { by apply TPEQ. }
   assert (IdentMap.find thread' (Configuration.threads PC') =
           Some (existT _ (PromiseLTS.thread_lts thread') state,
@@ -304,14 +304,14 @@ Proof using WF.
     apply seq_eqv_l. split; auto.
     apply ct_step. right.
     destruct HH as [z [AA BB]].
-    exists z. split; auto. by apply WF.(rmw_in_ppo_loc). }
+    exists z. split; auto. by apply (rmw_in_ppo_loc WF). }
   right. exists p; splits; auto.
   assert (issued T' p) as ISSP'.
   { apply ISSIN. apply ISSP. }
   assert (loc lab p = Some l) as LOCP.
   { simpls. erewrite wf_rfrmwl; eauto. }
   assert (exists p_v', val lab p = Some p_v') as [p_v' VALP].
-  { apply WF.(wf_rfrmwD) in INRMW.
+  { apply (wf_rfrmwD WF) in INRMW.
     unfold val, is_w in *. desf.
     all: eexists; eauto. }
   eapply MSG_PRES in P_INMEM. desc.
@@ -335,11 +335,11 @@ Lemma full_simrel_step thread PC PC' T S T' S' label f_to f_from
           IdentMap.find thread' PC'.(Configuration.threads) = Some (langst, local))
       (PCSTEP : (plain_step label thread)⁺ PC PC')
       (CLOSED_PRES :
-         closedness_preserved PC.(Configuration.memory) PC'.(Configuration.memory))
+         closedness_preserved (Configuration.memory PC) PC'.(Configuration.memory))
       (MSG_PRES :
-         msg_preserved PC.(Configuration.memory) PC'.(Configuration.memory))
+         msg_preserved (Configuration.memory PC) PC'.(Configuration.memory))
       (TPEQ : forall thread,
-          IdentMap.In thread PC.(Configuration.threads) <->
+          IdentMap.In thread (Configuration.threads PC) <->
           IdentMap.In thread PC'.(Configuration.threads))
       (SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to f_from thread sim_normal)
       (SIMREL : simrel G sc PC T S f_to f_from) :
@@ -367,7 +367,7 @@ Lemma max_event_cur PC T S f_to f_from l e thread foo local smode
       (NEXT : next G (covered T) e)
       (TID_E : tid e = thread)
       (LOC : loc lab e = Some l)
-      (TID: IdentMap.find thread PC.(Configuration.threads) = Some (foo, local)):
+      (TID: IdentMap.find thread (Configuration.threads PC) = Some (foo, local)):
   exists p_max,
     ⟪ NEQ : p_max <> e ⟫ /\
     ⟪ CCUR : urr G sc l p_max e ⟫ /\
@@ -392,10 +392,10 @@ Proof using WF CON.
     { intros H; subst; simpls. }
     apply hb_in_urr.
     apply seq_eqv_l; split; red; [|right].
-    { by unfold is_w, loc; rewrite WF.(wf_init_lab). }
+    { by unfold is_w, loc; rewrite (wf_init_lab WF). }
     apply sb_in_hb.
     apply init_ninit_sb; auto.
-    apply WF.(wf_init). eexists; eauto. }
+    apply (wf_init WF). eexists; eauto. }
   desf.
   exists a_max. apply and_assoc; split; auto.
   red in INam; red in INam.

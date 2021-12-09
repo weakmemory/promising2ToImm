@@ -22,17 +22,17 @@ Section SimStateHelper.
   Variable WF : Wf G.
   Variable sc : relation actid.
 
-Notation "'E'" := G.(acts_set).
-Notation "'acts'" := G.(acts).
-Notation "'co'" := G.(co).
-Notation "'coi'" := G.(coi).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'rfe'" := G.(rfe).
-Notation "'rmw'" := G.(rmw).
-Notation "'lab'" := G.(lab).
+Notation "'E'" := (acts_set G).
+Notation "'acts'" := (acts G).
+Notation "'co'" := (co G).
+Notation "'coi'" := (coi G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'rfe'" := (rfe G).
+Notation "'rmw'" := (rmw G).
+Notation "'lab'" := (lab G).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
@@ -50,7 +50,7 @@ Notation "'Acq'" := (is_acq lab).
 Notation "'Acqrel'" := (is_acqrel lab).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
-Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Lemma next_event_representation e state state' T smode
@@ -60,20 +60,20 @@ Lemma next_event_representation e state state' T smode
       (TEH  : thread_restricted_execution G (tid e) state'.(ProgToExecution.G))
       (NEXT : next G (covered T) e)
       (STATE : @sim_state G smode (covered T) (tid e) state) :
-  e = ThreadEvent (tid e) state.(eindex).
+  e = ThreadEvent (tid e) (eindex state).
 Proof using.
   assert (~ is_init e) as NINIT.
   { intros H. apply NEXT.
     apply TCCOH. split; auto. apply NEXT. }
   destruct e; desf. simpls.
-  assert (index = state.(eindex)); [|by subst].
+  assert (index = (eindex state)); [|by subst].
   cdes STATE.
-  destruct (classic (index < state.(eindex))) as [LT|GE].
+  destruct (classic (index < (eindex state))) as [LT|GE].
   { exfalso. apply NEXT. by apply PCOV. }
-  destruct (classic (index > state.(eindex))) as [GT|].
+  destruct (classic (index > (eindex state))) as [GT|].
   2: omega.
   exfalso.
-  assert (covered T (ThreadEvent thread state.(eindex))) as HH.
+  assert (covered T (ThreadEvent thread (eindex state))) as HH.
   2: { apply PCOV in HH. omega. }
   apply NEXT. red. eexists. apply seq_eqv_r. split; eauto.
   unfold Execution.sb.
@@ -83,8 +83,8 @@ Proof using.
   assert (E (ThreadEvent thread index)) as EI.
   { apply NEXT. }
   assert (acts_set (ProgToExecution.G state') (ThreadEvent thread index)) as EI'.
-  { apply TEH.(tr_acts_set). by split. }
-  apply TEH.(tr_acts_set).
+  { apply (tr_acts_set TEH). by split. }
+  apply (tr_acts_set TEH).
   assert (wf_thread_state thread state') as GPC'.
   { eapply wf_thread_state_steps; eauto. }
   eapply GPC'.(acts_clos).
@@ -133,8 +133,8 @@ Lemma sim_state_to_events_helper_add
             add (ProgToExecution.G state) thread (eindex state)
                 ll s1 s2 s3 s4)
       (UINDEX : eindex yst = eindex state + 1) :
-  let e  := ThreadEvent thread state.(eindex) in
-  let e' := ThreadEvent thread (S state.(eindex)) in
+  let e  := ThreadEvent thread (eindex state) in
+  let e' := ThreadEvent thread (S (eindex state)) in
   exists ev state'' state''',
     ⟪ ESTEPS : (lts_step thread ProgramEvent.silent)＊ state state'' ⟫ /\
     ⟪ STEP : lts_step thread ev state'' state''' ⟫ /\
@@ -142,9 +142,9 @@ Lemma sim_state_to_events_helper_add
                   same_g_events lab (e :: nil) ev ⟫ /\
     ⟪ SAME_RMW  :   dom_rel rmw e -> same_g_events lab (e' :: e :: nil) ev ⟫ /\
     ⟪ INDEX_NRMW : ~ dom_rel rmw e ->
-                   state'''.(eindex) = 1 + state.(eindex) ⟫ /\
+                   state'''.(eindex) = 1 + (eindex state) ⟫ /\
     ⟪ INDEX_RMW  :  dom_rel rmw e ->
-                    state'''.(eindex) = 2 + state.(eindex) ⟫ /\
+                    state'''.(eindex) = 2 + (eindex state) ⟫ /\
     ⟪ SSH : @sim_state_helper G smode thread state''' state' ⟫.
 Proof using WF.
   eexists. exists state. exists yst.
@@ -158,13 +158,13 @@ Proof using WF.
   assert (~ dom_rel rmw (ThreadEvent thread (eindex state))) as XX.
   { intros [w RMW].
     assert (Tid_ thread w) as WTID.
-    { apply WF.(wf_rmwt) in RMW. red in RMW. simpls. }
+    { apply (wf_rmwt WF) in RMW. red in RMW. simpls. }
     set (r := ThreadEvent thread (eindex state)).
     assert (Execution.rmw state'.(ProgToExecution.G) r w) as YY.
-    { apply TEH.(tr_rmw).
+    { apply (tr_rmw TEH).
       apply seq_eqv_l. split; auto.
       apply seq_eqv_r. split; auto. }
-    assert ((⦗ acts_set yst.(ProgToExecution.G) ⦘ ⨾
+    assert ((⦗ acts_set (ProgToExecution.G yst) ⦘ ⨾
             Execution.rmw state'.(ProgToExecution.G)) r w) as ZZ.
     { apply seq_eqv_l. split; auto.
       rewrite UG. unfold add, acts_set. simpls. by left. }
@@ -182,7 +182,7 @@ Proof using WF.
   { red. unfold map.
     erewrite lab_thread_eq_thread_restricted_lab.
     3: by apply TEH.
-    2: { apply TEH.(tr_acts_set). by split. }
+    2: { apply (tr_acts_set TEH). by split. }
     assert (ll = Execution.lab (ProgToExecution.G state')
                                (ThreadEvent thread (eindex state))); subst; auto.
     erewrite steps_preserve_lab with (state0:=yst) (state':=state'); eauto.
@@ -207,8 +207,8 @@ Lemma sim_state_to_events_helper_add_rmw
             add_rmw (ProgToExecution.G state) thread (eindex state)
                     rl wl s1 s2 s3 s4)
       (UINDEX : eindex yst = eindex state + 2) :
-  let e  := ThreadEvent thread state.(eindex) in
-  let e' := ThreadEvent thread (S state.(eindex)) in
+  let e  := ThreadEvent thread (eindex state) in
+  let e' := ThreadEvent thread (S (eindex state)) in
   exists ev state'' state''',
     ⟪ ESTEPS : (lts_step thread ProgramEvent.silent)＊ state state'' ⟫ /\
     ⟪ STEP : lts_step thread ev state'' state''' ⟫ /\
@@ -216,9 +216,9 @@ Lemma sim_state_to_events_helper_add_rmw
                   same_g_events lab (e :: nil) ev ⟫ /\
     ⟪ SAME_RMW  :   dom_rel rmw e -> same_g_events lab (e' :: e :: nil) ev ⟫ /\
     ⟪ INDEX_NRMW : ~ dom_rel rmw e ->
-                   state'''.(eindex) = 1 + state.(eindex) ⟫ /\
+                   state'''.(eindex) = 1 + (eindex state) ⟫ /\
     ⟪ INDEX_RMW  :  dom_rel rmw e ->
-                    state'''.(eindex) = 2 + state.(eindex) ⟫ /\
+                    state'''.(eindex) = 2 + (eindex state) ⟫ /\
     ⟪ SSH : @sim_state_helper G smode thread state''' state' ⟫.
 Proof using.
   eexists. exists state. exists yst.
@@ -249,13 +249,13 @@ Proof using.
   { rewrite UG. unfold add_rmw, acts_set. simpls.
     left. by rewrite plus_comm. }
   assert (E (ThreadEvent thread (S (eindex state)))) as EEI.
-  { eapply TEH.(tr_acts_set).
+  { eapply (tr_acts_set TEH).
     eapply steps_preserve_E; eauto. }
   erewrite lab_thread_eq_thread_restricted_lab with (G':=(ProgToExecution.G state')); eauto.
-  2: { apply TEH.(tr_acts_set). by split. }
+  2: { apply (tr_acts_set TEH). by split. }
   erewrite lab_thread_eq_thread_restricted_lab with (G:=G) (G':=(ProgToExecution.G state'));
     eauto.
-  2: { apply TEH.(tr_acts_set). by split. }
+  2: { apply (tr_acts_set TEH). by split. }
   erewrite steps_preserve_lab with (state0:=yst) (state':=state'); eauto.
   erewrite steps_preserve_lab with (state0:=yst) (state':=state'); eauto.
   rewrite UG. unfold add_rmw. simpls.
@@ -268,9 +268,9 @@ Lemma sim_state_to_events_helper smode thread
       (state state' : Language.state (thread_lts thread))
       (GPC : wf_thread_state thread state)
       (SSH : sim_state_helper G smode state state')
-      (EE : E (ThreadEvent thread state.(eindex))) :
-  let e  := ThreadEvent thread state.(eindex) in
-  let e' := ThreadEvent thread (1 + state.(eindex)) in
+      (EE : E (ThreadEvent thread (eindex state))) :
+  let e  := ThreadEvent thread (eindex state) in
+  let e' := ThreadEvent thread (1 + (eindex state)) in
   exists ev state'' state''',
     ⟪ ESTEPS : (lts_step thread ProgramEvent.silent)＊ state state'' ⟫ /\
     ⟪ STEP : lts_step thread ev state'' state''' ⟫ /\
@@ -278,9 +278,9 @@ Lemma sim_state_to_events_helper smode thread
                   same_g_events lab (e :: nil) ev ⟫ /\
     ⟪ SAME_RMW  :   dom_rel rmw e -> same_g_events lab (e' :: e :: nil) ev ⟫ /\
     ⟪ INDEX_NRMW : ~ dom_rel rmw e ->
-                   state'''.(eindex) = 1 + state.(eindex) ⟫ /\
+                   state'''.(eindex) = 1 + (eindex state) ⟫ /\
     ⟪ INDEX_RMW  :  dom_rel rmw e ->
-                    state'''.(eindex) = 2 + state.(eindex) ⟫ /\
+                    state'''.(eindex) = 2 + (eindex state) ⟫ /\
     ⟪ SSH : sim_state_helper G smode state''' state' ⟫.
 Proof using WF.
   red in SSH. desc.
@@ -291,8 +291,8 @@ Proof using WF.
   induction STEPS'.
   { exfalso. clear TERMINAL. rename x into s.
     assert (acts_set (ProgToExecution.G s) (ThreadEvent thread (eindex s))) as TT.
-    { apply TEH.(tr_acts_set). by split. }
-    apply GPC.(acts_rep) in TT.
+    { apply (tr_acts_set TEH). by split. }
+    apply (acts_rep GPC) in TT.
     desc. inv REP. omega. }
   destruct H as [llab H].
   cdes H. cdes ISTEP.
@@ -321,25 +321,25 @@ Lemma sim_state_to_events e state state' T smode
       (TCCOH : tc_coherent G sc T)
       (GPC : wf_thread_state (tid e) state)
       (NEXT : next G (covered T) e)
-      (PCOV : forall index, covered T (ThreadEvent (tid e) index) <-> index < state.(eindex))
+      (PCOV : forall index, covered T (ThreadEvent (tid e) index) <-> index < (eindex state))
       (SSH : sim_state_helper G smode state state') :
   exists ev state'' state''',
     ⟪ GPC : wf_thread_state (tid e) state''' ⟫ /\
-    ⟪ REPR : ThreadEvent (tid e) state.(eindex) = e ⟫ /\
+    ⟪ REPR : ThreadEvent (tid e) (eindex state) = e ⟫ /\
     ⟪ ESTEPS : (lts_step (tid e) ProgramEvent.silent)＊ state state'' ⟫ /\
     ⟪ STEP : lts_step (tid e) ev state'' state''' ⟫ /\
     ⟪ SAME_NRMW : ~ dom_rel rmw e -> same_g_events lab (e :: nil) ev ⟫ /\
     ⟪ SAME_RMW  : forall w (RMW: rmw e w),
         same_g_events lab (w :: e :: nil) ev /\
-        ThreadEvent (tid e) (S state.(eindex)) = w
+        ThreadEvent (tid e) (S (eindex state)) = w
     ⟫ /\
     ⟪ INDEX_NRMW : ~ dom_rel rmw e ->
-                   state'''.(eindex) = 1 + state.(eindex) ⟫ /\
+                   state'''.(eindex) = 1 + (eindex state) ⟫ /\
     ⟪ INDEX_RMW  : forall w (RMW: rmw e w),
-        state'''.(eindex) = 2 + state.(eindex) ⟫ /\
+        state'''.(eindex) = 2 + (eindex state) ⟫ /\
     ⟪ SSH : @sim_state_helper G smode (tid e) state''' state' ⟫.
 Proof using WF. 
-  assert (e = ThreadEvent (tid e) state.(eindex)) as HH.
+  assert (e = ThreadEvent (tid e) (eindex state)) as HH.
   { cdes SSH.
     eapply next_event_representation; eauto.
     red. splits; eauto. }
@@ -347,16 +347,16 @@ Proof using WF.
   edestruct sim_state_to_events_helper as [ev BB]; eauto.
   { apply NEXT. }
   desc.
-  assert (forall w (RMW : rmw e w), w = ThreadEvent (tid e) (S state.(eindex))) as YY.
+  assert (forall w (RMW : rmw e w), w = ThreadEvent (tid e) (S (eindex state))) as YY.
   { intros. simpls.
     assert (wf_thread_state (tid e) state') as GPC'.
     { cdes SSH. eapply wf_thread_state_steps; eauto. }
     edestruct (GPC'.(wft_rmwIndex) e w) as [ii].
     2: { desc. rewrite HH in RI. inv RI. }
-    cdes SSH. apply TEH.(tr_rmw).
+    cdes SSH. apply (tr_rmw TEH).
     apply seq_eqv_l. split; auto.
     apply seq_eqv_r. split; auto.
-    symmetry. by apply WF.(wf_rmwt). }
+    symmetry. by apply (wf_rmwt WF). }
   eexists. eexists. exists state'''. splits; eauto.
   { eapply wf_thread_state_step. 
     2: { cdes STEP. red. eauto. }

@@ -40,26 +40,26 @@ Variable WF : Wf G.
 Variable sc : relation actid.
 Variable CON : imm_consistent G sc.
 
-Notation "'E'" := G.(acts_set).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'co'" := G.(co).
-Notation "'rmw'" := G.(rmw).
-Notation "'data'" := G.(data).
-Notation "'addr'" := G.(addr).
-Notation "'ctrl'" := G.(ctrl).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
 
-Notation "'fr'" := G.(fr).
-Notation "'coe'" := G.(coe).
-Notation "'coi'" := G.(coi).
-Notation "'deps'" := G.(deps).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'detour'" := G.(detour).
-Notation "'hb'" := G.(hb).
-Notation "'sw'" := G.(sw).
+Notation "'fr'" := (fr G).
+Notation "'coe'" := (coe G).
+Notation "'coi'" := (coi G).
+Notation "'deps'" := (deps G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'detour'" := (detour G).
+Notation "'hb'" := (hb G).
+Notation "'sw'" := (sw G).
 
-Notation "'lab'" := G.(lab).
+Notation "'lab'" := (lab G).
 (* Notation "'loc'" := (loc lab). *)
 (* Notation "'val'" := (val lab). *)
 (* Notation "'mod'" := (mod lab). *)
@@ -81,7 +81,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
-Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Lemma read_step_helper PC T S f_to f_from r w locr valr rel smode
@@ -91,9 +91,9 @@ Lemma read_step_helper PC T S f_to f_from r w locr valr rel smode
       (RR : R r)
       (LOC : loc lab r = Some locr) (VAL : val lab r = Some valr)
       (WW : W w) (RF : rf w r)
-      (INMEM : Memory.get locr (f_to w) PC.(Configuration.memory) =
+      (INMEM : Memory.get locr (f_to w) (Configuration.memory PC) =
                Some (f_from w, Message.full valr rel))
-      (TIDMAP : IdentMap.find (tid r) PC.(Configuration.threads) =
+      (TIDMAP : IdentMap.find (tid r) (Configuration.threads PC) =
                 Some (existT _ (thread_lts (tid r)) state, local)) :
   let T' := (mkTC (covered T ∪₁ eq r) (issued T)) in
   let tview' := TView.read_tview (Local.tview local) locr
@@ -103,7 +103,7 @@ Lemma read_step_helper PC T S f_to f_from r w locr valr rel smode
   let threads' :=
       IdentMap.add (tid r) (langst', local')
                    (Configuration.threads PC) in
-  let PC' := Configuration.mk threads' PC.(Configuration.sc) PC.(Configuration.memory) in
+  let PC' := Configuration.mk threads' (Configuration.sc PC) (Configuration.memory PC) in
   ⟪ TCCOH : etc_coherent G sc (mkETC T' S) ⟫ /\
   ⟪ RELCOV : W ∩₁ Rel ∩₁ issued T' ⊆₁ covered T' ⟫ /\
 
@@ -113,21 +113,21 @@ Lemma read_step_helper PC T S f_to f_from r w locr valr rel smode
   ⟪ PROM_IN_MEM :
       forall thread' langst local
              (TID : IdentMap.find thread' threads' = Some (langst, local)),
-        Memory.le local.(Local.promises) PC.(Configuration.memory) ⟫ /\
+        Memory.le (Local.promises local) (Configuration.memory PC) ⟫ /\
 
   ⟪ SC_COV : smode = sim_certification -> E∩₁F∩₁Sc ⊆₁ covered T' ⟫ /\ 
   ⟪ SC_REQ : smode = sim_normal -> 
          forall (l : Loc.t),
-           max_value f_to (S_tm G l (covered T')) (LocFun.find l PC.(Configuration.sc)) ⟫ /\
+           max_value f_to (S_tm G l (covered T')) (LocFun.find l (Configuration.sc PC)) ⟫ /\
 
-  ⟪ SIM_PROM : sim_prom G sc T' f_to f_from (tid r) local.(Local.promises) ⟫ /\
+  ⟪ SIM_PROM : sim_prom G sc T' f_to f_from (tid r) (Local.promises local) ⟫ /\
   ⟪ RESERVED_TIME :
-      reserved_time G T' S f_to f_from smode PC.(Configuration.memory) ⟫ /\
+      reserved_time G T' S f_to f_from smode (Configuration.memory PC) ⟫ /\
   
-  ⟪ SIM_MEM : sim_mem G sc T' f_to f_from (tid r) local' PC.(Configuration.memory) ⟫ /\
+  ⟪ SIM_MEM : sim_mem G sc T' f_to f_from (tid r) local' (Configuration.memory PC) ⟫ /\
   ⟪ SIM_TVIEW : sim_tview G sc (covered T') f_to tview' (tid r) ⟫ /\
   ⟪ PLN_RLX_EQ : pln_rlx_eq tview' ⟫ /\
-  ⟪ MEM_CLOSE : memory_close tview' PC.(Configuration.memory) ⟫.
+  ⟪ MEM_CLOSE : memory_close tview' (Configuration.memory PC) ⟫.
 Proof using WF CON.
   simpls.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.

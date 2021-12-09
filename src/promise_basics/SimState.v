@@ -17,7 +17,7 @@ Definition sim_state_helper G smode thread
 
 Definition sim_state G smode (C : actid -> Prop) thread
            (state : Language.state (thread_lts thread)) : Prop :=
-  ⟪ PCOV : forall index , C (ThreadEvent thread index) <-> index < state.(eindex)⟫ /\
+  ⟪ PCOV : forall index , C (ThreadEvent thread index) <-> index < (eindex state)⟫ /\
   exists state', sim_state_helper G smode state state'.
 
 Lemma sim_state_other_thread_step G

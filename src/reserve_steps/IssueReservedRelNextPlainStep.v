@@ -44,26 +44,26 @@ Variable WF : Wf G.
 Variable sc : relation actid.
 Variable CON : imm_consistent G sc.
 
-Notation "'E'" := G.(acts_set).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'co'" := G.(co).
-Notation "'rmw'" := G.(rmw).
-Notation "'data'" := G.(data).
-Notation "'addr'" := G.(addr).
-Notation "'ctrl'" := G.(ctrl).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
 
-Notation "'fr'" := G.(fr).
-Notation "'coe'" := G.(coe).
-Notation "'coi'" := G.(coi).
-Notation "'deps'" := G.(deps).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'detour'" := G.(detour).
-Notation "'hb'" := G.(hb).
-Notation "'sw'" := G.(sw).
+Notation "'fr'" := (fr G).
+Notation "'coe'" := (coe G).
+Notation "'coi'" := (coi G).
+Notation "'deps'" := (deps G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'detour'" := (detour G).
+Notation "'hb'" := (hb G).
+Notation "'sw'" := (sw G).
 
-Notation "'lab'" := G.(lab).
+Notation "'lab'" := (lab G).
 
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
@@ -81,7 +81,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
-Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Lemma issue_rel_reserved_step_with_next PC T (S : actid -> Prop) f_to f_from thread r w wnext smode
@@ -125,13 +125,13 @@ Proof using WF CON.
   { eapply ext_itrav_step_cov_next with (T:=mkETC T S); eauto. }
  
   assert (WTID : thread = tid w).
-  { rewrite <- TID. by apply WF.(wf_rmwt). }
+  { rewrite <- TID. by apply (wf_rmwt WF). }
   assert (ISS : ~ issued T w).
   { cdes TSTEP2. desf. unfold ecovered, eissued in *; simpls.
     intros HH. apply NCOV. apply COVEQ. clear. basic_solver. }
 
   assert (S ⊆₁ E ∩₁ W) as SEW.
-  { generalize TCCOH.(etc_S_in_E). generalize (reservedW WF TCCOH). clear. basic_solver. }
+  { generalize (etc_S_in_E TCCOH). generalize (reservedW WF TCCOH). clear. basic_solver. }
 
   assert (sc_per_loc G) as SC_PER_LOC.
   { by apply coherence_sc_per_loc; cdes CON. }
@@ -152,7 +152,7 @@ Proof using WF CON.
 
   apply clos_rt_rt1n in ESTEPS.
   eapply (rtc_lang_tau_step_rtc_thread_tau_step
-            _ _ _ local PC.(Configuration.sc) PC.(Configuration.memory)) in ESTEPS.
+            _ _ _ local (Configuration.sc PC) (Configuration.memory PC)) in ESTEPS.
 
   assert (E r /\ E w) as [RACT WACT].
   { apply (wf_rmwE WF) in RMW.
@@ -192,7 +192,7 @@ Proof using WF CON.
     eexists. apply seq_eqv_r. eauto. }
 
   assert (S w') as SW'.
-  { by apply TCCOH.(etc_I_in_S). }
+  { by apply (etc_I_in_S TCCOH). }
 
   assert (~ is_init r) as RNINIT.
   { intros H; apply (init_w WF) in H.
@@ -301,7 +301,7 @@ Proof using WF CON.
       left.
       edestruct sb_semi_total_r with (x:=w) (y:=x) (z:=r); eauto.
       { apply NEXT. eexists. apply seq_eqv_r. eauto. }
-      exfalso. eapply WF.(wf_rmwi); eauto. }
+      exfalso. eapply (wf_rmwi WF); eauto. }
     clear WREPR REPR.
     red; intros [H|H]; [by desf|].
     type_solver. }
@@ -310,7 +310,7 @@ Proof using WF CON.
                @issue_reserved_step_helper_with_next
                G WF sc CON (mkTC (covered T ∪₁ eq r) (issued T)) S
                w1 w2 f_to f_from FCOH
-               (Configuration.mk x PC.(Configuration.sc) PC.(Configuration.memory))
+               (Configuration.mk x (Configuration.sc PC) (Configuration.memory PC))
                w3 smode w4 w5 (Local.mk z k)
             ) with (w:=w) (valw:=valw) (ordw:=Events.mod lab w) (wnext:=wnext)
     as [p_rel H].
@@ -384,10 +384,10 @@ Proof using WF CON.
     eapply ExtTraversalProperties.dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
     exists wnext. apply seqA. apply seq_eqv_r. split; auto. }
   assert (~ issued T wnext) as NISSNEXT.
-  { intros HH. apply NRESNEXT. by apply TCCOH.(etc_I_in_S). }
+  { intros HH. apply NRESNEXT. by apply (etc_I_in_S TCCOH). }
 
   assert (w <> wnext) as WNEQNEXT.
-  { intros HH; subst. eapply WF.(wf_rfrmw_irr); eauto. }
+  { intros HH; subst. eapply (wf_rfrmw_irr WF); eauto. }
 
   assert (f_to' w' = f_from' w) as FF'.
   { apply FCOH0; auto.
@@ -399,7 +399,7 @@ Proof using WF CON.
   (* assert (forall l to from msg  *)
   (*                (NEQ : l <> locr \/ to <> f_to w), *)
   (*            Memory.get l to memory_add = Some (from, msg) <-> *)
-  (*            Memory.get l to PC.(Configuration.memory) = Some (from, msg)) *)
+  (*            Memory.get l to (Configuration.memory PC) = Some (from, msg)) *)
   (*   as NOTNEWM. *)
   (* { ins. erewrite Memory.add_o; eauto. *)
   (*   rewrite loc_ts_eq_dec_neq; auto. *)
@@ -421,7 +421,7 @@ Proof using WF CON.
     all: generalize SW'; clear; basic_solver. }
   
   assert (loc lab wnext = Some locr) as LOCWNEXT.
-  { rewrite <- WLOC. symmetry. by apply WF.(wf_rfrmwl). }
+  { rewrite <- WLOC. symmetry. by apply (wf_rfrmwl WF). }
 
   assert (f_to' w' <> f_to' wnext) as FWNEQ'.
   { intros HH.
@@ -467,7 +467,7 @@ Proof using WF CON.
           { basic_solver. }
           apply (urr_coverable) in A; try done.
           revert A. clear. basic_solver. }
-        assert (S a_max) as SA by (by apply TCCOH.(etc_I_in_S)).
+        assert (S a_max) as SA by (by apply (etc_I_in_S TCCOH)).
         rewrite <- FF.
         destruct (classic (a_max = w')) as [|AWNEQ]; [by desf|].
         edestruct (@wf_co_total G WF (Some locr) a_max) as [AWCO|AWCO].
@@ -509,7 +509,7 @@ Proof using WF CON.
       apply set_subset_union_l; split.
       etransitivity; eauto.
       all: clear; basic_solver. }
-    { ins. apply WF.(wf_rmwD) in RMW0.
+    { ins. apply (wf_rmwD WF) in RMW0.
       apply seq_eqv_l in RMW0; destruct RMW0 as [RR RMW0].
       apply seq_eqv_r in RMW0; destruct RMW0 as [RMW0 WW].
       split; intros [[HH|HH]|HH].
@@ -594,7 +594,7 @@ Proof using WF CON.
         { by right. }
         edestruct sb_semi_total_r with (x:=w) (y:=y) (z:=r) as [AA|AA]; eauto.
         { left. apply NEXT. eexists. apply seq_eqv_r. eauto. }
-        exfalso. eapply WF.(wf_rmwi); eauto. }
+        exfalso. eapply (wf_rmwi WF); eauto. }
       { erewrite Memory.split_o; eauto. eby rewrite loc_ts_eq_dec_eq. }
       done. }
     { cdes PLN_RLX_EQ. 
@@ -628,7 +628,7 @@ Proof using WF CON.
         rewrite loc_ts_eq_dec_neq; auto.
         rewrite ISSEQ_TO; eauto. }
       assert (forall tmap,
-                 Memory.closed_timemap tmap PC.(Configuration.memory) ->
+                 Memory.closed_timemap tmap (Configuration.memory PC) ->
                  Memory.closed_timemap tmap memory_split) as HH.
       { intros tmap HH. red. ins.
         specialize (HH loc). desc.

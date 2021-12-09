@@ -39,21 +39,21 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 
-Notation "'acts'" := G.(acts).
-Notation "'co'" := G.(co).
-Notation "'sw'" := G.(sw).
-Notation "'hb'" := G.(hb).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'rmw'" := G.(rmw).
-Notation "'lab'" := G.(lab).
+Notation "'acts'" := (acts G).
+Notation "'co'" := (co G).
+Notation "'sw'" := (sw G).
+Notation "'hb'" := (hb G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'rmw'" := (rmw G).
+Notation "'lab'" := (lab G).
 Notation "'msg_rel'" := (msg_rel G sc).
 Notation "'urr'" := (urr G sc).
-Notation "'release'" := G.(release).
+Notation "'release'" := (release G).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
@@ -89,11 +89,11 @@ Variable threads : Threads.t.
 Variable memory : Memory.t.
 Variable local : Local.t.
 
-Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread.
+Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) thread.
 Hypothesis SIM_MEM : sim_mem G sc T f_to f_from thread local memory.
 Hypothesis INHAB : Memory.inhabited memory.
-Hypothesis PLN_RLX_EQ : pln_rlx_eq local.(Local.tview).
-Hypothesis MEM_CLOSE : memory_close local.(Local.tview) memory.
+Hypothesis PLN_RLX_EQ : pln_rlx_eq (Local.tview local).
+Hypothesis MEM_CLOSE : memory_close (Local.tview local) memory.
 
 Hypothesis SIM_RES_MEM :
   sim_res_mem G T S f_to f_from thread local memory.
@@ -101,14 +101,14 @@ Hypothesis SIM_RES_MEM :
 Hypothesis PROM_IN_MEM :
   forall thread' langst local
          (TID : IdentMap.find thread' threads = Some (langst, local)),
-    Memory.le local.(Local.promises) memory.
+    Memory.le (Local.promises local) memory.
 
 Variable smode : sim_mode.
 Hypothesis RESERVED_TIME: reserved_time G T S f_to f_from smode memory.
 
 Definition rfrmw_prev_rel w locw p_rel := 
-  (⟪ REL_PLN_RLX : View.pln p_rel.(View.unwrap) = View.rlx p_rel.(View.unwrap) ⟫ /\
-   ⟪ P_MEM_CLOS : Memory.closed_timemap (View.rlx p_rel.(View.unwrap))
+  (⟪ REL_PLN_RLX : View.pln (View.unwrap p_rel) = View.rlx (View.unwrap p_rel) ⟫ /\
+   ⟪ P_MEM_CLOS : Memory.closed_timemap (View.rlx (View.unwrap p_rel))
                                         memory ⟫) /\
   ((⟪ NINRMW : ~ codom_rel (⦗ issued T ⦘ ⨾ rf ⨾ rmw) w ⟫ /\
     ⟪ PREL : p_rel = None ⟫) \/
@@ -117,7 +117,7 @@ Definition rfrmw_prev_rel w locw p_rel :=
        ⟪ ISSP  : issued T p ⟫ /\
        ⟪ INRMW : (rf ⨾ rmw) p w ⟫ /\
        ⟪ P_LOC : loc lab p = Some locw ⟫ /\
-       ⟪ P_MSG : sim_msg G sc f_to p p_rel.(View.unwrap) ⟫  /\
+       ⟪ P_MSG : sim_msg G sc f_to p (View.unwrap p_rel) ⟫  /\
        exists p_v,
          ⟪ P_VAL : val lab p = Some p_v ⟫ /\
          ⟪ P_INMEM : Memory.get locw (f_to p) memory =
@@ -136,9 +136,9 @@ Proof using WF SIM_MEM INHAB.
        simpls. splits; auto. by apply Memory.closed_timemap_bot. }
   destruct_seq_l PRMWE as ISSPREV.
   assert (E wprev) as EPREV.
-  { apply WF.(wf_rfrmwE) in PRMWE. by destruct_seq PRMWE as [AA BB]. }
+  { apply (wf_rfrmwE WF) in PRMWE. by destruct_seq PRMWE as [AA BB]. }
   assert (W wprev) as WPREV.
-  { apply WF.(wf_rfrmwD) in PRMWE. by destruct_seq PRMWE as [AA BB]. }
+  { apply (wf_rfrmwD WF) in PRMWE. by destruct_seq PRMWE as [AA BB]. }
   assert (loc lab wprev = Some locw) as PREVLOC.
   { rewrite <- LOC. by apply wf_rfrmwl. }
   assert (exists vprev, val lab wprev = Some vprev) as [vprev PREVVAL].
@@ -170,7 +170,7 @@ Lemma sim_helper_issue w locw valw f_to' f_from' (S' : actid -> Prop) p_rel
     (View.join (View.join (if is_rel lab w
                            then (TView.cur (Local.tview local))
                            else (TView.rel (Local.tview local) locw))
-                          p_rel.(View.unwrap))
+                          (View.unwrap p_rel))
                (View.singleton_ur locw (f_to' w))).
 Proof using WF IMMCON RELCOV ETCCOH SIM_TVIEW.
   clear SIM_MEM SIM_RES_MEM.
@@ -351,7 +351,7 @@ Lemma le_cur_f_to_wprev w locw wprev
       (PRMWE : (rf ⨾ rmw) wprev w)
       (LOC : loc lab w = Some locw)
       (WTID : thread = tid w) :
-  let promises := local.(Local.promises) in
+  let promises := (Local.promises local) in
   DenseOrder.le (View.rlx (TView.cur (Local.tview local)) locw) (f_to wprev).
 Proof using WF SIM_TVIEW SIM_RES_MEM SIM_MEM RELCOV IMMCON FCOH ETCCOH.
   assert (sc_per_loc G) as SPL.
@@ -360,7 +360,7 @@ Proof using WF SIM_TVIEW SIM_RES_MEM SIM_MEM RELCOV IMMCON FCOH ETCCOH.
   assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
 
   assert (E w) as EW.
-  { by apply ETCCOH.(etc_S_in_E). }
+  { by apply (etc_S_in_E ETCCOH). }
   assert (W w) as WW.
   { by apply (reservedW WF ETCCOH). }
   
@@ -377,22 +377,22 @@ Proof using WF SIM_TVIEW SIM_RES_MEM SIM_MEM RELCOV IMMCON FCOH ETCCOH.
   { split; [split|]; auto. }
 
   assert (E wprev) as EPREV.
-  { apply WF.(wf_rfrmwE) in PRMWE. by destruct_seq PRMWE as [AA BB]. }
+  { apply (wf_rfrmwE WF) in PRMWE. by destruct_seq PRMWE as [AA BB]. }
   assert (W wprev) as WPREV.
-  { apply WF.(wf_rfrmwD) in PRMWE. by destruct_seq PRMWE as [AA BB]. }
+  { apply (wf_rfrmwD WF) in PRMWE. by destruct_seq PRMWE as [AA BB]. }
   
   assert (wprev <> w) as NEQPREV.
   { intros HH; subst. eapply wf_rfrmw_irr; eauto. }
 
   assert (loc lab wprev = Some locw) as PREVLOC.
-  { rewrite <- LOC. by apply WF.(wf_rfrmwl). }
+  { rewrite <- LOC. by apply (wf_rfrmwl WF). }
 
   assert (issued T wprev) as ISSPREV.
   { eapply dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
     generalize PRMWE SW. clear. basic_solver 10. }
 
   assert (S wprev) as SPREV.
-  { by apply ETCCOH.(etc_I_in_S). }
+  { by apply (etc_I_in_S ETCCOH). }
   
   assert (dom_rel (rf ⨾ rmw ⨾ ⦗eq w⦘) ⊆₁ S) as DRFRMWS.
   { intros x [y HH]. apply seqA in HH. destruct_seq_r HH as AA; subst.
@@ -441,7 +441,7 @@ Lemma le_p_rel_f_to_wprev w locw wprev p_rel
       (LOC : loc lab w = Some locw)
       (WTID : thread = tid w)
       (PRELSPEC : rfrmw_prev_rel w locw p_rel) :
-  let promises := local.(Local.promises) in
+  let promises := (Local.promises local) in
   DenseOrder.le (View.rlx (View.unwrap p_rel) locw) (f_to wprev).
 Proof using WF SIM_TVIEW SIM_RES_MEM SIM_MEM RELCOV IMMCON FCOH ETCCOH.
   assert (sc_per_loc G) as SPL.
@@ -454,7 +454,7 @@ Proof using WF SIM_TVIEW SIM_RES_MEM SIM_MEM RELCOV IMMCON FCOH ETCCOH.
     generalize PRMWE SW. clear. basic_solver 10. }
 
   assert (S wprev) as SPREV.
-  { by apply ETCCOH.(etc_I_in_S). }
+  { by apply (etc_I_in_S ETCCOH). }
 
   assert (co wprev w) as COWPREV.
   { eapply rf_rmw_in_co; eauto. }
@@ -496,7 +496,7 @@ Proof using WF SIM_TVIEW SIM_RES_MEM SIM_MEM RELCOV IMMCON FCOH ETCCOH.
     2: { generalize SPREV. clear. basic_solver. }
     (* TODO: introduce a lemma *)
     etransitivity.
-    2: by apply ETCCOH.(etc_I_in_S).
+    2: by apply (etc_I_in_S ETCCOH).
     intros x HH.
     eapply msg_rel_issued; eauto.
     eexists. apply seq_eqv_r. split; eauto. }
@@ -536,21 +536,21 @@ Proof using WF IMMCON ETCCOH FCOH.
   { destruct NIMMCO as [AA _]. by destruct_seq_r AA as BB. }
 
   assert (E wnext) as ENEXT.
-  { by apply ETCCOH.(etc_S_in_E). }
+  { by apply (etc_S_in_E ETCCOH). }
   assert (W wnext) as WNEXT.
   { by apply (reservedW WF ETCCOH). }
 
   assert (S wprev /\ co wprev w) as [ISSPREV COPREV].
   { destruct PIMMCO as [H _]. apply seq_eqv_l in H; desf. }
   assert (E wprev) as EPREV.
-  { by apply ETCCOH.(etc_S_in_E). }
+  { by apply (etc_S_in_E ETCCOH). }
   assert (W wprev) as WPREV.
   { by apply (reservedW WF ETCCOH). }
 
   assert (E w) as EW.
-  { apply WF.(wf_coE) in CONEXT. by destruct_seq CONEXT as [AA BB]. }
+  { apply (wf_coE WF) in CONEXT. by destruct_seq CONEXT as [AA BB]. }
   assert (W w) as WW.
-  { apply WF.(wf_coD) in CONEXT. by destruct_seq CONEXT as [AA BB]. }
+  { apply (wf_coD WF) in CONEXT. by destruct_seq CONEXT as [AA BB]. }
 
   assert (~ is_init w) as WNINIT.
   { apply no_co_to_init in COPREV; auto. by destruct_seq_r COPREV as AA. }
@@ -560,7 +560,7 @@ Proof using WF IMMCON ETCCOH FCOH.
     apply seq_eqv_r in CONEXT. desf. }
 
   assert (co wprev wnext) as COPN.
-  { eapply WF.(co_trans); eauto. }
+  { eapply (co_trans WF); eauto. }
 
   assert (Time.lt (f_to wprev) (f_from wnext)) as NPLT.
   { assert (Time.le (f_to wprev) (f_from wnext)) as H.
@@ -616,7 +616,7 @@ Proof using WF IMMCON ETCCOH FCOH.
       { apply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
         exists y. split; auto. basic_solver. }
       eapply co_S_f_to_le; eauto. }
-    2: by apply WF.(co_irr) in CO.
+    2: by apply (co_irr WF) in CO.
     etransitivity; [by apply LETONEXT|].
     assert (co^? wnext y) as COXP.
     { apply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
@@ -627,7 +627,7 @@ Proof using WF IMMCON ETCCOH FCOH.
   all: try rewrite !updo.
   all: try by intros H; subst.
   { by apply FCOH. }
-  3: { exfalso. eapply WF.(co_irr).
+  3: { exfalso. eapply (co_irr WF).
        eapply rfrmw_in_im_co in RFRMW; eauto.
        apply RFRMW. }
   2: { set (CC:=RFRMW).
@@ -679,14 +679,14 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_MEM SIM_RES_MEM.
   assert (S wprev /\ co wprev w) as [ISSPREV COPREV].
   { destruct PIMMCO as [H _]. apply seq_eqv_l in H; desf. }
   assert (E wprev) as EPREV.
-  { by apply ETCCOH.(etc_S_in_E). }
+  { by apply (etc_S_in_E ETCCOH). }
   assert (W wprev) as WPREV.
   { by apply (reservedW WF ETCCOH). }
 
   assert (E w) as EW.
-  { apply WF.(wf_coE) in COPREV. by destruct_seq COPREV as [AA BB]. }
+  { apply (wf_coE WF) in COPREV. by destruct_seq COPREV as [AA BB]. }
   assert (W w) as WW.
-  { apply WF.(wf_coD) in COPREV. by destruct_seq COPREV as [AA BB]. }
+  { apply (wf_coD WF) in COPREV. by destruct_seq COPREV as [AA BB]. }
 
   assert (~ is_init w) as WNINIT.
   { apply no_co_to_init in COPREV; auto. by destruct_seq_r COPREV as AA. }
@@ -731,7 +731,7 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_MEM SIM_RES_MEM.
     { by apply FCOH. }
     { etransitivity; [|by apply LENFROM_R].
       eapply S_le_max_ts; eauto.
-      rewrite <- WLOC. by apply WF.(wf_col). }
+      rewrite <- WLOC. by apply (wf_col WF). }
     { exfalso. eapply NCO. eexists; apply seq_eqv_r; eauto. }
     exfalso. by apply co_irr in CO. }
   intros x y [ISSX|EQX] [ISSY|EQY] RFRMW; subst.
@@ -755,7 +755,7 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_MEM SIM_RES_MEM.
   all: exfalso; eapply rfrmw_in_im_co in RFRMW; eauto.
   { eapply NCO. eexists; apply seq_eqv_r; split; eauto.
     apply RFRMW. }
-  eapply WF.(co_irr). apply RFRMW.
+  eapply (co_irr WF). apply RFRMW.
 Qed.
 
 Lemma f_to_coherent_split w wnext locw n_to
@@ -773,19 +773,19 @@ Lemma f_to_coherent_split w wnext locw n_to
 Proof using WF IMMCON ETCCOH FCOH.
   assert (TCCOH : tc_coherent G sc T) by apply ETCCOH.
   assert (WNISS : ~ issued T w).
-  { intros HH. apply NSW. by apply ETCCOH.(etc_I_in_S). }
+  { intros HH. apply NSW. by apply (etc_I_in_S ETCCOH). }
   assert (WNINIT : ~ is_init w).
   { intros HH. apply WNISS. eapply init_issued; eauto. by split. }
   assert (co w wnext /\ S wnext) as [CONEXT ISSNEXT].
   { destruct NCOIMM as [HH]. apply seq_eqv_r in HH. apply HH. }
   assert (E wnext /\ W wnext) as [ENEXT WNEXT].
-  { apply (dom_r WF.(wf_coE)) in CONEXT. destruct_seq_r CONEXT as AA.
-    apply (dom_r WF.(wf_coD)) in CONEXT. destruct_seq_r CONEXT as BB.
+  { apply (dom_r (wf_coE WF)) in CONEXT. destruct_seq_r CONEXT as AA.
+    apply (dom_r (wf_coD WF)) in CONEXT. destruct_seq_r CONEXT as BB.
       by split. }
   assert (NEQNEXT : wnext <> w).
-  { intros HH. subst. eapply WF.(co_irr); eauto. }
+  { intros HH. subst. eapply (co_irr WF); eauto. }
   assert (LOCNEXT : loc lab wnext = Some locw).
-  { rewrite <- LOC. symmetry. by apply WF.(wf_col). }
+  { rewrite <- LOC. symmetry. by apply (wf_col WF). }
 
   red; splits; ins.
   { rewrite updo.
@@ -806,7 +806,7 @@ Proof using WF IMMCON ETCCOH FCOH.
       rewrite updo; auto; try by intros HH; subst.
       by apply FCOH. }
   { assert (x <> y) as HXY.
-    { by intros HH; subst; apply WF.(co_irr) in H1. }
+    { by intros HH; subst; apply (co_irr WF) in H1. }
     destruct H as [H|]; destruct H0 as [H0|]; subst.
     all: try (rewrite !upds).
     { rewrite updo; [|by intros HH; subst].
@@ -819,7 +819,7 @@ Proof using WF IMMCON ETCCOH FCOH.
         by apply FCOH. }
     { rewrite updo; auto.
       apply FCOH; auto.
-      eapply WF.(co_trans); eauto. }
+      eapply (co_trans WF); eauto. }
     { rewrite updo; auto.
       destruct (classic (wnext = y)) as [|NEQ]; subst;
         [by rewrite upds; apply DenseOrder_le_PreOrder | rewrite updo; auto].
@@ -835,7 +835,7 @@ Proof using WF IMMCON ETCCOH FCOH.
         hahn_rewrite (wf_col WF) in H1; unfold same_loc in *; congruence. }
       { unfold immediate in NCOIMM; desc; intro; eapply NCOIMM0; basic_solver 21. }
         by intro; subst. }
-      by apply WF.(co_irr) in H1. }
+      by apply (co_irr WF) in H1. }
   destruct H as [H|]; subst.
   { assert (x <> w) as NXW.
     { intros YY. desf. }
@@ -849,10 +849,10 @@ Proof using WF IMMCON ETCCOH FCOH.
     2: { rewrite updo; auto. by apply FCOH. }
     intros UU; subst.
     assert (loc lab x = Some locw) as XLOC.
-    { rewrite <- LOCNEXT. by apply WF.(wf_rfrmwl). }
-    edestruct WF.(wf_co_total) with (a:=w) (b:=x) as [CO|CO]; auto.
+    { rewrite <- LOCNEXT. by apply (wf_rfrmwl WF). }
+    edestruct (wf_co_total WF) with (a:=w) (b:=x) as [CO|CO]; auto.
     1,2: split; [split|]; auto.
-    { by apply ETCCOH.(etc_S_in_E). }
+    { by apply (etc_S_in_E ETCCOH). }
     { by apply (reservedW WF ETCCOH). }
     { by rewrite XLOC. }
     { eapply NCOIMM.
@@ -962,7 +962,7 @@ Proof using WF IMMCON FCOH RESERVED_TIME.
     apply seq_eqv_r in CONEXT. desf. }
 
   assert (co wprev wnext) as COPN.
-  { eapply WF.(co_trans); eauto. }
+  { eapply (co_trans WF); eauto. }
 
   assert (Time.lt (f_to wprev) (f_from wnext)) as NPLT.
   { assert (Time.le (f_to wprev) (f_from wnext)) as H.
@@ -1039,15 +1039,15 @@ Proof using WF IMMCON FCOH RESERVED_TIME.
     rewrite upds in FT.
     assert (same_loc lab x wprev) as LXPREV.
     { etransitivity.
-      { apply WF.(wf_col); eauto. }
-      symmetry. by apply WF.(wf_col). }
+      { apply (wf_col WF); eauto. }
+      symmetry. by apply (wf_col WF). }
     destruct NFROM as [[NFROM BB]|[NFROM BB]]; unnw.
     { desc; subst.
       eapply f_to_eq with (I:=S) in FT; eauto; subst; desc.
       subst. apply BB. }
     exfalso.
     assert (E x /\ W x) as [EX WX] by (by apply SEW).
-    edestruct WF.(wf_co_total) with (a:=x) (b:=wprev) as [COWX|COWX].
+    edestruct (wf_co_total WF) with (a:=x) (b:=wprev) as [COWX|COWX].
     1-2: split; [split|]; eauto.
     { intros H; subst.
       eapply Time.lt_strorder with (x:=f_to wprev).
@@ -1064,8 +1064,8 @@ Proof using WF IMMCON FCOH RESERVED_TIME.
   rewrite updo in FT; auto.
   assert (same_loc lab wnext y) as LXPREV.
   { etransitivity.
-    { symmetry. apply WF.(wf_col). apply CONEXT. }
-    apply WF.(wf_col); eauto. }
+    { symmetry. apply (wf_col WF). apply CONEXT. }
+    apply (wf_col WF); eauto. }
   assert (~ is_init y) as NINITY.
   { apply no_co_to_init in CO; auto. by destruct_seq_r CO as BB. }
   destruct NTO as [[NTO BB]|[NTO BB]]; unnw.
@@ -1074,7 +1074,7 @@ Proof using WF IMMCON FCOH RESERVED_TIME.
     subst. apply BB. }
   exfalso.
   assert (E y /\ W y) as [EY WY] by (by apply SEW).
-  edestruct WF.(wf_co_total) with (a:=wnext) (b:=y) as [COWY|COWY].
+  edestruct (wf_co_total WF) with (a:=wnext) (b:=y) as [COWY|COWY].
   1-2: split; [split|]; eauto.
   { intros H; subst.
     eapply Time.lt_strorder with (x:=f_from y).
@@ -1136,7 +1136,7 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM.
   { apply no_co_to_init in COPREV; auto. by destruct_seq_r COPREV as AA. }
   
   assert (E w) as EW.
-  { apply WF.(wf_coE) in COPREV. by destruct_seq COPREV as [AA BB]. }
+  { apply (wf_coE WF) in COPREV. by destruct_seq COPREV as [AA BB]. }
 
   cdes RESERVED_TIME. red.
   destruct smode; desc; unnw.
@@ -1181,8 +1181,8 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM.
     rewrite upds in FT.
     assert (same_loc lab x wprev) as LXPREV.
     { etransitivity.
-      { apply WF.(wf_col); eauto. }
-      symmetry. by apply WF.(wf_col). }
+      { apply (wf_col WF); eauto. }
+      symmetry. by apply (wf_col WF). }
     destruct NFROM as [[NFROM BB]|[NFROM BB]]; unnw.
     { desc; subst.
       assert (f_to x = f_to wprev) as FF.
@@ -1196,7 +1196,7 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM.
     2: by apply DenseOrder.incr_spec.
     subst. rewrite <- FT.
     eapply S_le_max_ts; eauto.
-    rewrite <- WLOC. by apply WF.(wf_col). }
+    rewrite <- WLOC. by apply (wf_col WF). }
   rewrite upds in FT.
   rewrite updo in FT; auto.
   exfalso. eapply Time.lt_strorder.
@@ -1205,7 +1205,7 @@ Proof using WF IMMCON ETCCOH FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM.
   rewrite FT.
   eapply TimeFacts.lt_le_lt.
   2: { eapply S_le_max_ts with (x:=y) (S:=S); eauto.
-       rewrite <- WLOC. symmetry. by apply WF.(wf_col). }
+       rewrite <- WLOC. symmetry. by apply (wf_col WF). }
   apply FCOH; auto.
   apply no_co_to_init in CO; auto. by destruct_seq_r CO as AA.
 Qed.

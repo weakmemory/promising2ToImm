@@ -33,20 +33,20 @@ Variable T : trav_config.
 Variable S : actid -> Prop. (* A set of reserved events *)
 Variables f_to f_from : actid -> Time.t.
 
-Notation "'acts'" := G.(acts).
-Notation "'co'" := G.(co).
-Notation "'coi'" := G.(coi).
-Notation "'sw'" := G.(sw).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'rfe'" := G.(rfe).
-Notation "'rfi'" := G.(rfi).
-Notation "'rmw'" := G.(rmw).
-Notation "'lab'" := G.(lab).
+Notation "'acts'" := (acts G).
+Notation "'co'" := (co G).
+Notation "'coi'" := (coi G).
+Notation "'sw'" := (sw G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'rfe'" := (rfe G).
+Notation "'rfi'" := (rfi G).
+Notation "'rmw'" := (rmw G).
+Notation "'lab'" := (lab G).
 Notation "'msg_rel'" := (msg_rel G sc).
 Notation "'urr'" := (urr G sc).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
@@ -65,7 +65,7 @@ Notation "'Acqrel'" := (is_acqrel lab).
 Notation "'Acq/Rel'" := (is_ra lab).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
-Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Notation "'C'" := (covered T).
@@ -83,7 +83,7 @@ Definition sim_prom (thread : thread_id) promises :=
     ⟪ LOC  : Loc_ l b ⟫ /\
     ⟪ FROM : f_from b = from ⟫ /\
     ⟪ TO   : f_to b = to ⟫ /\
-    ⟪ HELPER : sim_mem_helper G sc f_to b from v rel.(View.unwrap) ⟫.
+    ⟪ HELPER : sim_mem_helper G sc f_to b from v (View.unwrap rel) ⟫.
 
 Definition sim_res_prom (thread : thread_id) promises :=
   forall l to from (RES : Memory.get l to promises = Some (from, Message.reserve)),
@@ -101,13 +101,13 @@ Definition sim_res_mem (thread : thread_id) (local : Local.t) mem :=
       ⟪ INMEM : Memory.get l (f_to b) mem =
                  Some (f_from b, Message.reserve) ⟫ /\
       (⟪ TID  : tid b = thread ⟫ ->
-       ⟪ PROM : Memory.get l (f_to b) local.(Local.promises) =
+       ⟪ PROM : Memory.get l (f_to b) (Local.promises local) =
                 Some (f_from b, Message.reserve) ⟫).
 
 Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
     forall l b (ISSB: I b) (LOC: Loc_ l b) v (VAL: val lab b = Some v),
     exists rel_opt,
-      let rel := rel_opt.(View.unwrap) in
+      let rel := (View.unwrap rel_opt) in
       ⟪ INMEM : Memory.get l (f_to b) mem =
                  Some (f_from b, Message.full v rel_opt) ⟫ /\
 
@@ -117,13 +117,13 @@ Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
 
       (⟪ TID  : tid b = thread ⟫ ->
        ⟪ NCOV : ~ covered T b ⟫ ->
-       ⟪ PROM: Memory.get l (f_to b) local.(Local.promises) =
+       ⟪ PROM: Memory.get l (f_to b) (Local.promises local) =
           Some (f_from b, Message.full v rel_opt) ⟫ /\
        ⟪ REL_REPR :
          exists p_rel,
            ⟪ REL : rel_opt =
                    Some (View.join (View.join (TView.rel (Local.tview local) l)
-                                              p_rel.(View.unwrap))
+                                              (View.unwrap p_rel))
                                    (View.singleton_ur l (f_to b))) ⟫ /\
            ((⟪ NINRMW : ~ codom_rel (⦗ I ⦘ ⨾ rf ⨾ rmw) b ⟫ /\
              ⟪ PREL : p_rel = None ⟫) \/
@@ -175,9 +175,9 @@ Definition reserved_time smode memory :=
 
 Definition simrel_common
            (smode : sim_mode) :=
-  let memory := PC.(Configuration.memory) in
-  let threads := PC.(Configuration.threads) in
-  let sc_view := PC.(Configuration.sc) in
+  let memory := (Configuration.memory PC) in
+  let threads := (Configuration.threads PC) in
+  let sc_view := (Configuration.sc PC) in
   ⟪ ALLRLX  : E \₁ is_init ⊆₁ Rlx ⟫ /\
   ⟪ FRELACQ : E ∩₁ F ⊆₁ Acq/Rel ⟫ /\
   ⟪ TCCOH   : etc_coherent G sc (mkETC T S) ⟫ /\
@@ -190,7 +190,7 @@ Definition simrel_common
   ⟪ PROM_IN_MEM :
      forall thread' langst local
             (TID : IdentMap.find thread' threads = Some (langst, local)),
-           Memory.le local.(Local.promises) memory ⟫ /\
+           Memory.le (Local.promises local) memory ⟫ /\
 
   ⟪ FCOH: f_to_coherent G S f_to f_from ⟫ /\
 
@@ -217,12 +217,12 @@ Definition pln_rlx_eq tview :=
     forall l, TimeMap.eq (View.pln (TView.rel tview l)) (View.rlx (TView.rel tview l)) ⟫.
 
 Definition simrel_thread_local (thread : thread_id) (smode : sim_mode) :=
-  let memory := PC.(Configuration.memory) in
-  let threads := PC.(Configuration.threads) in
+  let memory := (Configuration.memory PC) in
+  let threads := (Configuration.threads PC) in
   exists state local,
     ⟪ TNNULL : thread <> tid_init ⟫ /\
     ⟪ GPC : wf_thread_state thread state ⟫ /\
-    ⟪ RMWRES : rmw_is_rex_instrs state.(instrs) ⟫ /\
+    ⟪ RMWRES : rmw_is_rex_instrs (instrs state) ⟫ /\
     ⟪ LLH : IdentMap.find thread threads =
              Some (existT _ (thread_lts thread) state, local) ⟫ /\
     ⟪ PROM_DISJOINT :
@@ -233,14 +233,14 @@ Definition simrel_thread_local (thread : thread_id) (smode : sim_mode) :=
           Memory.get loc to local .(Local.promises) = None \/
           Memory.get loc to local'.(Local.promises) = None ⟫ /\
 
-    ⟪ SIM_PROM  : sim_prom     thread local.(Local.promises) ⟫ /\
-    ⟪ SIM_RPROM : sim_res_prom thread local.(Local.promises) ⟫ /\
+    ⟪ SIM_PROM  : sim_prom     thread (Local.promises local) ⟫ /\
+    ⟪ SIM_RPROM : sim_res_prom thread (Local.promises local) ⟫ /\
 
     ⟪ SIM_MEM : sim_mem thread local memory ⟫ /\
     ⟪ SIM_RES_MEM : sim_res_mem thread local memory ⟫ /\
-    ⟪ SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread ⟫ /\
-    ⟪ PLN_RLX_EQ : pln_rlx_eq local.(Local.tview) ⟫ /\
-    ⟪ MEM_CLOSE : memory_close local.(Local.tview) memory ⟫ /\
+    ⟪ SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) thread ⟫ /\
+    ⟪ PLN_RLX_EQ : pln_rlx_eq (Local.tview local) ⟫ /\
+    ⟪ MEM_CLOSE : memory_close (Local.tview local) memory ⟫ /\
     ⟪ STATE : @sim_state G smode (covered T) thread state ⟫.
 
 Definition simrel_thread (thread : thread_id) (smode : sim_mode) :=
@@ -249,7 +249,7 @@ Definition simrel_thread (thread : thread_id) (smode : sim_mode) :=
 
 Definition simrel :=
   ⟪ COMMON : simrel_common sim_normal ⟫ /\
-  ⟪ THREADS : forall thread (TP : IdentMap.In thread PC.(Configuration.threads)),
+  ⟪ THREADS : forall thread (TP : IdentMap.In thread (Configuration.threads PC)),
       simrel_thread_local thread sim_normal ⟫.
 
 End SimRel.

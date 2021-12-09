@@ -17,16 +17,16 @@ Variable sc : relation actid.
 Variable IMMCON : imm_consistent G sc.
 Variable I : actid -> Prop.
 
-Notation "'acts'" := G.(acts).
-Notation "'co'" := G.(co).
-Notation "'coi'" := G.(coi).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'rfe'" := G.(rfe).
-Notation "'rmw'" := G.(rmw).
-Notation "'lab'" := G.(lab).
+Notation "'acts'" := (acts G).
+Notation "'co'" := (co G).
+Notation "'coi'" := (coi G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'rfe'" := (rfe G).
+Notation "'rmw'" := (rmw G).
+Notation "'lab'" := (lab G).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
@@ -44,7 +44,7 @@ Notation "'Acq'" := (is_acq lab).
 Notation "'Acqrel'" := (is_acqrel lab).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
-Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
   
 Variable IE : I ⊆₁ E ∩₁ W.
@@ -109,7 +109,7 @@ Proof using WF IMMCON IE INITINI FCOH.
   destruct e; desf.
   cdes FCOH.
   assert (E (InitEvent l)) as EL.
-  { apply WF.(wf_init). eexists.
+  { apply (wf_init WF). eexists.
     split; eauto. unfold loc. desf. }
   assert ((is_init ∩₁ E) (InitEvent l)) as LL.
   { by split; eauto. }
@@ -117,7 +117,7 @@ Proof using WF IMMCON IE INITINI FCOH.
   eapply f_to_co_mon; eauto.
   eapply init_co_w; eauto.
   { unfold is_w. desf. }
-  red. unfold loc. rewrite WF.(wf_init_lab).
+  red. unfold loc. rewrite (wf_init_lab WF).
   desf.
 Qed.
 
@@ -141,7 +141,7 @@ Proof using WF IMMCON IE INITINI FCOH.
   destruct e; desf.
   cdes FCOH.
   assert (E (InitEvent l)) as EL.
-  { apply WF.(wf_init). eexists.
+  { apply (wf_init WF). eexists.
     split; eauto. unfold loc. desf. }
   assert ((is_init ∩₁ E) (InitEvent l)) as LL.
   { by split; eauto. }
@@ -149,7 +149,7 @@ Proof using WF IMMCON IE INITINI FCOH.
   apply FCOH; eauto.
   eapply init_co_w; eauto.
   { unfold is_w. desf. }
-  red. unfold loc. rewrite WF.(wf_init_lab).
+  red. unfold loc. rewrite (wf_init_lab WF).
   desf.
 Qed.
 
@@ -231,7 +231,7 @@ Lemma to_from_disjoint_to w w'
 Proof using WF IMMCON IE FCOH.
   edestruct is_w_loc as [l LL].
   { apply IE. apply SW. }
-  edestruct WF.(wf_co_total) with (a:=w) (b:=w'); eauto.
+  edestruct (wf_co_total WF) with (a:=w) (b:=w'); eauto.
   1,2: split; [by apply IE|]; eauto.
   { by rewrite <- SL. }
   { right. by apply f_to_co_mon. }
@@ -248,7 +248,7 @@ Lemma to_from_disjoint_from w w'
 Proof using WF IMMCON IE FCOH.
   edestruct is_w_loc as [l LL].
   { apply IE. apply SW. }
-  edestruct WF.(wf_co_total) with (a:=w) (b:=w'); eauto.
+  edestruct (wf_co_total WF) with (a:=w) (b:=w'); eauto.
   1,2: split; [by apply IE|]; eauto.
   { by rewrite <- SL. }
   { right. by apply FCOH. }

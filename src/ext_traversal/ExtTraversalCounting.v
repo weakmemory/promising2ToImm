@@ -59,16 +59,16 @@ Section ExtTraversalCounting.
   Variable sc : relation actid.
   Variable WF : Wf G.
   
-  Notation "'E'" := G.(acts_set).
-  Notation "'lab'" := G.(lab).
+  Notation "'E'" := (acts_set G).
+  Notation "'lab'" := (lab G).
   Notation "'W'" := (fun x => is_true (is_w lab x)).
   Notation "'Rel'" := (fun x => is_true (is_rel lab x)).
-  Notation "'rmw'" := G.(rmw).
+  Notation "'rmw'" := (rmw G).
 
   Definition trav_steps_left (T : ext_trav_config) :=
-    countP (set_compl (ecovered T)) G.(acts) +
-    countP (W ∩₁ set_compl (eissued T)) G.(acts) +
-    countP (W ∩₁ set_compl (reserved T)) G.(acts).
+    countP (set_compl (ecovered T)) (acts G) +
+    countP (W ∩₁ set_compl (eissued T)) (acts G) +
+    countP (W ∩₁ set_compl (reserved T)) (acts G).
   
   Lemma trav_steps_left_step_decrease (T T' : ext_trav_config)
         (STEP : ext_trav_step G sc T T') :
@@ -184,7 +184,7 @@ Section ExtTraversalCounting.
             countP (W ∩₁ set_compl (reserved T)) (acts G)) as BB.
     { apply countP_mori; auto.
       intros x [WX NN].
-      split; auto. intros CC. apply NN. by apply ETCCOH.(etc_I_in_S). }
+      split; auto. intros CC. apply NN. by apply (etc_I_in_S ETCCOH). }
 
     unfold trav_steps_left in *.
     assert (countP (set_compl (ecovered T)) (acts G) > 0 \/
@@ -217,7 +217,7 @@ Section ExtTraversalCounting.
         (ETCCOH : etc_coherent G sc T)
         (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
         (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w) :
-    exists T', (ext_sim_trav_step G sc)＊ T T' /\ (G.(acts_set) ⊆₁ ecovered T').
+    exists T', (ext_sim_trav_step G sc)＊ T T' /\ ((acts_set G) ⊆₁ ecovered T').
   Proof using WF.
     assert
       (exists T' : ext_trav_config,
@@ -260,17 +260,17 @@ Section ExtTraversalCounting.
   Qed.
   
   Lemma sim_traversal (IMMCON : imm_consistent G sc) :
-    exists T, (ext_sim_trav_step G sc)＊ (ext_init_trav G) T /\ (G.(acts_set) ⊆₁ ecovered T).
+    exists T, (ext_sim_trav_step G sc)＊ (ext_init_trav G) T /\ ((acts_set G) ⊆₁ ecovered T).
   Proof using WF.
     apply sim_traversal_helper; auto.
     { by apply ext_init_trav_coherent. }
     { unfold ext_init_trav. simpls. basic_solver. }
     unfold ecovered, eissued.
     ins. split; intros [HH AA].
-    { apply WF.(init_w) in HH.
-      apply (dom_l WF.(wf_rmwD)) in RMW. apply seq_eqv_l in RMW.
+    { apply (init_w WF) in HH.
+      apply (dom_l (wf_rmwD WF)) in RMW. apply seq_eqv_l in RMW.
       type_solver. }
-    apply WF.(rmw_in_sb) in RMW. apply no_sb_to_init in RMW.
+    apply (rmw_in_sb WF) in RMW. apply no_sb_to_init in RMW.
     apply seq_eqv_r in RMW. desf.
   Qed.
 
@@ -280,7 +280,7 @@ Section ExtTraversalCounting.
   Lemma sim_step_cov_full_thread T T' thread thread'
         (ETCCOH : etc_coherent G sc T)
         (TS : ext_isim_trav_step G sc thread' T T')
-        (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T) :
+        (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ ecovered T) :
     thread' = thread.
   Proof using WF.
     assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
@@ -296,10 +296,10 @@ Section ExtTraversalCounting.
   Lemma sim_step_cov_full_traversal T thread
         (IMMCON : imm_consistent G sc)
         (TCCOH : etc_coherent G sc T)
-        (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T)
+        (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ ecovered T)
         (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
         (RMWCOV : forall r w : actid, rmw r w -> ecovered T r <-> ecovered T w) : 
-    exists T', (ext_isim_trav_step G sc thread)＊ T T' /\ (G.(acts_set) ⊆₁ ecovered T').
+    exists T', (ext_isim_trav_step G sc thread)＊ T T' /\ ((acts_set G) ⊆₁ ecovered T').
   Proof using WF.
     edestruct sim_traversal_helper as [T']; eauto.
     desc. exists T'. splits; auto.

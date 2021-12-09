@@ -36,21 +36,21 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 
-Notation "'acts'" := G.(acts).
-Notation "'co'" := G.(co).
-Notation "'sw'" := G.(sw).
-Notation "'hb'" := G.(hb).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'rmw'" := G.(rmw).
-Notation "'lab'" := G.(lab).
+Notation "'acts'" := (acts G).
+Notation "'co'" := (co G).
+Notation "'sw'" := (sw G).
+Notation "'hb'" := (hb G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'rmw'" := (rmw G).
+Notation "'lab'" := (lab G).
 Notation "'msg_rel'" := (msg_rel G sc).
 Notation "'urr'" := (urr G sc).
-Notation "'release'" := G.(release).
+Notation "'release'" := (release G).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
@@ -84,25 +84,25 @@ Variable FCOH : f_to_coherent G S f_to f_from.
 
 Variable PC : Configuration.t.
 Hypothesis THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
-    exists langst, IdentMap.find (tid e) PC.(Configuration.threads) = Some langst.
+    exists langst, IdentMap.find (tid e) (Configuration.threads PC) = Some langst.
 
 Variable smode : sim_mode.
 Hypothesis SC_REQ :
   smode = sim_normal -> 
   forall (l : Loc.t),
-    max_value f_to (S_tm G l (covered T)) (LocFun.find l PC.(Configuration.sc)).
+    max_value f_to (S_tm G l (covered T)) (LocFun.find l (Configuration.sc PC)).
 
 Variable thread : thread_id.
 Variable local : Local.t.
-Hypothesis SIM_PROM     : sim_prom     G sc T   f_to f_from thread local.(Local.promises).
-Hypothesis SIM_RES_PROM : sim_res_prom G    T S f_to f_from thread local.(Local.promises).
+Hypothesis SIM_PROM     : sim_prom     G sc T   f_to f_from thread (Local.promises local).
+Hypothesis SIM_RES_PROM : sim_res_prom G    T S f_to f_from thread (Local.promises local).
 
-Hypothesis CLOSED_SC : Memory.closed_timemap PC.(Configuration.sc) PC.(Configuration.memory).
+Hypothesis CLOSED_SC : Memory.closed_timemap (Configuration.sc PC) (Configuration.memory PC).
 
 Hypothesis PROM_DISJOINT :
   forall thread' langst' local'
          (TNEQ : thread <> thread')
-         (TID' : IdentMap.find thread' PC.(Configuration.threads) =
+         (TID' : IdentMap.find thread' (Configuration.threads PC) =
                  Some (langst', local')),
   forall loc to,
     Memory.get loc to local .(Local.promises) = None \/
@@ -110,26 +110,26 @@ Hypothesis PROM_DISJOINT :
 
 Hypothesis PROM_IN_MEM :
   forall thread' langst local
-         (TID : IdentMap.find thread' PC.(Configuration.threads) =
+         (TID : IdentMap.find thread' (Configuration.threads PC) =
                 Some (langst, local)),
-    Memory.le local.(Local.promises) PC.(Configuration.memory).
+    Memory.le (Local.promises local) (Configuration.memory PC).
 
 Hypothesis INHAB      : Memory.inhabited (Configuration.memory PC).
 Hypothesis CLOSED_MEM : Memory.closed (Configuration.memory PC).
-Hypothesis PLN_RLX_EQ : pln_rlx_eq local.(Local.tview).
-Hypothesis MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory).
+Hypothesis PLN_RLX_EQ : pln_rlx_eq (Local.tview local).
+Hypothesis MEM_CLOSE : memory_close (Local.tview local) (Configuration.memory PC).
 
 Hypothesis RESERVED_TIME:
-  reserved_time G T S f_to f_from smode PC.(Configuration.memory).
+  reserved_time G T S f_to f_from smode (Configuration.memory PC).
 
 Hypothesis SIM_RES_MEM :
   sim_res_mem G T S f_to f_from thread local (Configuration.memory PC).
 
-Hypothesis SIM_MEM : sim_mem G sc T f_to f_from thread local PC.(Configuration.memory).
-Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread.
+Hypothesis SIM_MEM : sim_mem G sc T f_to f_from thread local (Configuration.memory PC).
+Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) thread.
 
 Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
-      (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
+      (TID : IdentMap.find (tid w) (Configuration.threads PC) = Some (langst, local))
       (RMW : rmw r w) (SW : S w)
       (NISSB : ~ issued T w)
       (ISSUABLE : issuable G sc T w)
@@ -138,20 +138,20 @@ Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
       (VAL : val lab w = Some valw)
       (ORD : mod lab w = ordw)
       (WTID : thread = tid w) :
-  let promises := local.(Local.promises) in
-  let memory   := PC.(Configuration.memory) in
-  let sc_view  := PC.(Configuration.sc) in
+  let promises := (Local.promises local) in
+  let memory   := (Configuration.memory PC) in
+  let sc_view  := (Configuration.sc PC) in
   let covered' := if Rel w then covered T ∪₁ eq w else covered T in
   let T'       := mkTC covered' (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
-  exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC.(Configuration.memory) w locw p_rel /\
+  exists p_rel, rfrmw_prev_rel G sc T f_to f_from (Configuration.memory PC) w locw p_rel /\
     let f_to' := upd f_to w (Time.middle (f_from w) (f_to w)) in
     let rel'' :=
         if is_rel lab w
         then (TView.cur (Local.tview local))
         else (TView.rel (Local.tview local) locw)
     in
-    let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
+    let rel' := (View.join (View.join rel'' (View.unwrap p_rel))
                            (View.singleton_ur locw (f_to' w))) in
 
     ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
@@ -196,7 +196,7 @@ Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
               (View.join (View.join (if is_rel lab w
                                      then (TView.cur (Local.tview local))
                                      else (TView.rel (Local.tview local) locw))
-                                    p_rel.(View.unwrap))
+                                    (View.unwrap p_rel))
                          (View.singleton_ur locw (f_to' w))) ⟫ /\
 
         ⟪ RESERVED_TIME :
@@ -204,9 +204,9 @@ Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
 
         let tview' := if is_rel lab w
                       then TView.write_tview
-                             local.(Local.tview) sc_view locw
+                             (Local.tview local) sc_view locw
                              (f_to' w) (Event_imm_promise.wmod ordw)
-                      else local.(Local.tview) in
+                      else (Local.tview local) in
         let local' := Local.Local.mk tview' promises' in
         let threads' :=
             IdentMap.add (tid w)
@@ -222,7 +222,7 @@ Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
         ⟪ CLOSED_SC : Memory.closed_timemap sc_view memory_add ⟫ /\
 
         ⟪ MEM_CANCEL :
-            Memory.promise local.(Local.promises) memory locw (f_from w) (f_to w)
+            Memory.promise (Local.promises local) memory locw (f_from w) (f_to w)
                            Message.reserve
                            promises_cancel memory_cancel Memory.op_kind_cancel ⟫ /\
 
@@ -233,7 +233,7 @@ Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
         ⟪ PROM_IN_MEM :
             forall thread' langst local
                    (TID : IdentMap.find thread' threads' = Some (langst, local)),
-              Memory.le local.(Local.promises) memory_add ⟫ /\
+              Memory.le (Local.promises local) memory_add ⟫ /\
 
         ⟪ SIM_PROM     : sim_prom G sc T' f_to' f_from (tid w) promises'  ⟫ /\
         ⟪ SIM_RES_PROM : sim_res_prom G T' S' f_to' f_from (tid w) promises'  ⟫ /\
@@ -276,7 +276,7 @@ Proof using All.
     exists w. apply seqA. apply seq_eqv_r. split; auto. }
   
   assert (R r) as RR.
-  { apply WF.(wf_rmwD) in RMW. by destruct_seq RMW as [AA BB]. }
+  { apply (wf_rmwD WF) in RMW. by destruct_seq RMW as [AA BB]. }
 
   assert (Memory.le promises_add memory_add) as PP.
   { eapply memory_le_add2 with (mem1:=promises_cancel) (mem2:=memory_cancel); eauto.
@@ -289,7 +289,7 @@ Proof using All.
   assert (Memory.get locw (f_to w) (Local.promises local) =
           Some (f_from w, Message.reserve)) as INPROM.
   { eapply SIM_RES_MEM; eauto. }
-  assert (Memory.get locw (f_to w) PC.(Configuration.memory) =
+  assert (Memory.get locw (f_to w) (Configuration.memory PC) =
           Some (f_from w, Message.reserve)) as INMEM.
   { eapply PROM_IN_MEM in INPROM; eauto. }
 
@@ -338,7 +338,7 @@ Proof using All.
     2: apply Time.le_lteq; left.
     all: by apply Time.middle_spec. }
 
-  assert (forall tmap (MCLOS : Memory.closed_timemap tmap PC.(Configuration.memory)),
+  assert (forall tmap (MCLOS : Memory.closed_timemap tmap (Configuration.memory PC)),
              Memory.closed_timemap tmap memory_add) as MADDCLOS.
   { ins. eapply Memory.add_closed_timemap; eauto.
     eapply Memory.cancel_closed_timemap; eauto. }
@@ -347,7 +347,7 @@ Proof using All.
         if is_rel lab w
         then (TView.cur (Local.tview local))
         else (TView.rel (Local.tview local) locw)).
-  set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
+  set (rel' := (View.join (View.join rel'' (View.unwrap p_rel))
                           (View.singleton_ur locw (f_to' w)))).
 
   assert (exists promises',
@@ -372,7 +372,7 @@ Proof using All.
   assert (forall l to from msg 
                  (NEQ : l <> locw \/ to <> f_to w),
              Memory.get l to promises_cancel = Some (from, msg) <->
-             Memory.get l to local.(Local.promises) = Some (from, msg))
+             Memory.get l to (Local.promises local) = Some (from, msg))
     as NOTNEWC.
   { ins. erewrite Memory.remove_o; eauto.
     rewrite loc_ts_eq_dec_neq; auto. }
@@ -381,7 +381,7 @@ Proof using All.
                  (NEQ  : l <> locw \/ to <> f_to  w)
                  (NEQ' : l <> locw \/ to <> f_to' w),
              Memory.get l to memory_add = Some (from, msg) <->
-             Memory.get l to PC.(Configuration.memory) = Some (from, msg))
+             Memory.get l to (Configuration.memory PC) = Some (from, msg))
     as NOTNEWM.
   { ins. erewrite Memory.add_o; eauto.
     rewrite loc_ts_eq_dec_neq; auto.
@@ -392,7 +392,7 @@ Proof using All.
                  (NEQ  : l <> locw \/ to <> f_to  w)
                  (NEQ' : l <> locw \/ to <> f_to' w),
              Memory.get l to promises_add = Some (from, msg) <->
-             Memory.get l to local.(Local.promises) = Some (from, msg))
+             Memory.get l to (Local.promises local) = Some (from, msg))
     as NOTNEWA.
   { ins. erewrite Memory.add_o; eauto.
     rewrite loc_ts_eq_dec_neq; auto. }
@@ -401,7 +401,7 @@ Proof using All.
                  (NEQ  : l <> locw \/ to <> f_to  w)
                  (NEQ' : l <> locw \/ to <> f_to' w),
              Memory.get l to promises' = Some (from, msg) <->
-             Memory.get l to local.(Local.promises) = Some (from, msg))
+             Memory.get l to (Local.promises local) = Some (from, msg))
     as NOTNEWP.
   { ins. destruct (Rel w); subst; auto.
     erewrite Memory.remove_o; eauto. rewrite loc_ts_eq_dec_neq; auto. }
@@ -556,12 +556,12 @@ Proof using All.
         apply BNEQ.
         eapply f_to_eq with (I:=S); eauto.
         { red. by rewrite LOC. }
-          by apply ETCCOH.(etc_I_in_S). }
+          by apply (etc_I_in_S ETCCOH). }
       destruct (loc_ts_eq_dec (l, f_to b) (locw, (f_to' w))) as [EQ|NEQ']; simpls; desc; subst.
       { exfalso. rewrite <- REQ_TO in EQ0; auto.
         eapply f_to_eq in EQ0; (try by apply FCOH0); eauto.
         { red. by rewrite LOC. }
-        { apply ETCCOH.(etc_I_in_S) in ISSB. basic_solver. }
+        { apply (etc_I_in_S ETCCOH) in ISSB. basic_solver. }
         basic_solver. }
       unfold f_to' in *. rewrite REQ_TO with (e:=b); auto.
       erewrite Memory.add_o with (mem2:=memory_add); eauto.
@@ -584,9 +584,9 @@ Proof using All.
              apply seqA. apply seq_eqv_r. by split. }
            desc.
            assert (loc lab p = Some l) as PLOC.
-           { rewrite <- LOC0. by apply WF.(wf_rfrmwl). }
+           { rewrite <- LOC0. by apply (wf_rfrmwl WF). }
            assert (p <> w) as PNEQ by (by intros HH; subst).
-           assert (S p) by (by apply ETCCOH.(etc_I_in_S)).
+           assert (S p) by (by apply (etc_I_in_S ETCCOH)).
            exists p. splits; auto.
            { by left. }
            eexists. splits; eauto.
@@ -637,7 +637,7 @@ Proof using All.
     cdes PREL. destruct PREL1; desc.
     { exfalso. eauto. }
     assert (S p) as SP.
-    { by apply ETCCOH.(etc_I_in_S). }
+    { by apply (etc_I_in_S ETCCOH). }
     exists p. splits; eauto.
     { by left. }
     eexists. splits; eauto.
@@ -647,7 +647,7 @@ Proof using All.
     destruct (classic (f_to p = f_to b)) as [EQ|NEQ].
     2: { rewrite loc_ts_eq_dec_neq; auto. }
     exfalso. eapply f_to_eq with (I:=S) in EQ; eauto; subst.
-    2: by apply WF.(wf_rfrmwl).
+    2: by apply (wf_rfrmwl WF).
     eapply wf_rfrmw_irr; eauto. }
   { red. ins.
     assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
@@ -695,7 +695,7 @@ Proof using All.
 Qed.
 
 Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
-      (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
+      (TID : IdentMap.find (tid w) (Configuration.threads PC) = Some (langst, local))
       (RMW : rmw r w) (SW : S w)
       (NISSB : ~ issued T w)
       (ISSUABLE : issuable G sc T w)
@@ -704,9 +704,9 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
       (VAL : val lab w = Some valw)
       (ORD : mod lab w = ordw)
       (WTID : thread = tid w) :
-  let promises := local.(Local.promises) in
-  let memory   := PC.(Configuration.memory) in
-  let sc_view  := PC.(Configuration.sc) in
+  let promises := (Local.promises local) in
+  let memory   := (Configuration.memory PC) in
+  let sc_view  := (Configuration.sc PC) in
   let covered' := if Rel w then covered T ∪₁ eq w else covered T in
   let T'       := mkTC covered' (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
@@ -719,13 +719,13 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
   ⟪ ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e ⟫ /\
   ⟪ ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e ⟫ /\
 
-  exists p_rel, rfrmw_prev_rel G sc T f_to f_from PC.(Configuration.memory) w locw p_rel /\
+  exists p_rel, rfrmw_prev_rel G sc T f_to f_from (Configuration.memory PC) w locw p_rel /\
     let rel'' :=
         if is_rel lab w
         then (TView.cur (Local.tview local))
         else (TView.rel (Local.tview local) locw)
     in
-    let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
+    let rel' := (View.join (View.join rel'' (View.unwrap p_rel))
                            (View.singleton_ur locw (f_to' w))) in
 
     ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
@@ -733,7 +733,7 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
 
     exists promises_split memory_split,
       ⟪ PSPLIT :
-          Memory.split local.(Local.promises) locw (f_from' w) (f_to' w) (f_to' wnext)
+          Memory.split (Local.promises local) locw (f_from' w) (f_to' w) (f_to' wnext)
                        (Message.full valw (Some rel')) Message.reserve promises_split ⟫ /\
       ⟪ MSPLIT :
           Memory.split memory locw (f_from' w) (f_to' w) (f_to' wnext)
@@ -751,7 +751,7 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
             (View.join (View.join (if is_rel lab w
                                    then (TView.cur (Local.tview local))
                                    else (TView.rel (Local.tview local) locw))
-                                  p_rel.(View.unwrap))
+                                  (View.unwrap p_rel))
                        (View.singleton_ur locw (f_to' w))) ⟫ /\
 
       ⟪ RESERVED_TIME :
@@ -768,9 +768,9 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
 
         let tview' := if is_rel lab w
                       then TView.write_tview
-                             local.(Local.tview) sc_view locw
+                             (Local.tview local) sc_view locw
                              (f_to' w) (Event_imm_promise.wmod ordw)
-                      else local.(Local.tview) in
+                      else (Local.tview local) in
         let local' := Local.Local.mk tview' promises' in
         let threads' :=
             IdentMap.add (tid w)
@@ -786,7 +786,7 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
         ⟪ CLOSED_SC : Memory.closed_timemap sc_view memory_split ⟫ /\
 
         ⟪ MEM_SPLIT :
-            Memory.promise local.(Local.promises) memory locw (f_from' w) (f_to' w)
+            Memory.promise (Local.promises local) memory locw (f_from' w) (f_to' w)
                            (Message.full valw (Some rel'))
                            promises_split memory_split
                            (Memory.op_kind_split (f_to' wnext) Message.reserve) ⟫ /\
@@ -794,7 +794,7 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
         ⟪ PROM_IN_MEM :
             forall thread' langst local
                    (TID : IdentMap.find thread' threads' = Some (langst, local)),
-              Memory.le local.(Local.promises) memory_split ⟫ /\
+              Memory.le (Local.promises local) memory_split ⟫ /\
 
         ⟪ SIM_PROM     : sim_prom G sc T' f_to' f_from' (tid w) promises'  ⟫ /\
         ⟪ SIM_RES_PROM : sim_res_prom G T' S' f_to' f_from' (tid w) promises'  ⟫ /\
@@ -838,7 +838,7 @@ Proof using All.
     eapply ExtTraversalProperties.dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
     exists w. apply seqA. apply seq_eqv_r. split; auto. }
   
-  assert (tid r = tid w) as TIDRW by (by apply WF.(wf_rmwt)).
+  assert (tid r = tid w) as TIDRW by (by apply (wf_rmwt WF)).
 
   assert (Memory.le promises_split memory_split) as PP.
   { eapply memory_le_split2; eauto. }
@@ -850,7 +850,7 @@ Proof using All.
         if is_rel lab w
         then (TView.cur (Local.tview local))
         else (TView.rel (Local.tview local) locw)).
-  set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
+  set (rel' := (View.join (View.join rel'' (View.unwrap p_rel))
                           (View.singleton_ur locw (f_to' w)))).
 
   assert (exists promises',
@@ -875,7 +875,7 @@ Proof using All.
   assert (Memory.get locw (f_to w) (Local.promises local) =
           Some (f_from w, Message.reserve)) as INPROM.
   { eapply SIM_RES_MEM; eauto. }
-  assert (Memory.get locw (f_to w) PC.(Configuration.memory) =
+  assert (Memory.get locw (f_to w) (Configuration.memory PC) =
           Some (f_from w, Message.reserve)) as INMEM.
   { eapply PROM_IN_MEM in INPROM; eauto. }
 
@@ -885,7 +885,7 @@ Proof using All.
              Memory.get locw (f_to w) (Local.promises local') = None) as NINTER.
   { ins. eapply PROM_DISJOINT with (loc:=locw) (to:=f_to w) in TID'; eauto. desf. }
 
-  assert (forall tmap (MCLOS : Memory.closed_timemap tmap PC.(Configuration.memory)),
+  assert (forall tmap (MCLOS : Memory.closed_timemap tmap (Configuration.memory PC)),
              Memory.closed_timemap tmap memory_split) as MSPLITCLOS.
   { ins. eapply Memory.split_closed_timemap; eauto. }
   desc.
@@ -906,14 +906,14 @@ Proof using All.
   assert (~ is_init wnext) as NINITNEXT.
   { apply no_co_to_init in COWNEXT; auto. by destruct_seq_r COWNEXT as AA. }
   assert (E wnext) as EWNEXT.
-  { apply WF.(wf_coE) in COWNEXT. by destruct_seq COWNEXT as [AA BB]. }
+  { apply (wf_coE WF) in COWNEXT. by destruct_seq COWNEXT as [AA BB]. }
   assert (W wnext) as WWNEXT.
-  { apply WF.(wf_coD) in COWNEXT. by destruct_seq COWNEXT as [AA BB]. }
+  { apply (wf_coD WF) in COWNEXT. by destruct_seq COWNEXT as [AA BB]. }
   assert (~ S wnext) as NSNEXT.
   { intros HH. apply NISSB. eapply dom_rf_rmw_S_in_I with (T:=mkETC T S); eauto.
     exists wnext. apply seqA. apply seq_eqv_r. by split. }
   assert (~ issued T wnext) as NINEXT.
-  { intros HH. apply NSNEXT. by apply ETCCOH.(etc_I_in_S). }
+  { intros HH. apply NSNEXT. by apply (etc_I_in_S ETCCOH). }
   assert (loc lab wnext = Some locw) as NLOC.
   { rewrite <- LOC. symmetry. by apply wf_rfrmwl. }
 
@@ -921,7 +921,7 @@ Proof using All.
                  (NEQ  : l <> locw \/ to <> f_to' w)
                  (NEQ' : l <> locw \/ to <> f_to' wnext),
              Memory.get l to memory_split = omsg <->
-             Memory.get l to PC.(Configuration.memory) = omsg)
+             Memory.get l to (Configuration.memory PC) = omsg)
     as NOTNEWM.
   { ins. erewrite Memory.split_o; eauto.
     repeat (rewrite loc_ts_eq_dec_neq; auto). }
@@ -932,15 +932,15 @@ Proof using All.
   { ins. unfold f_from'. by rewrite updo; [|by intros HH; desf]. }
 
   assert (ISSEQ_TO : forall e (ISS: issued T e), f_to' e = f_to e).
-  { ins. apply REQ_TO; [|intros HH; desf]. by apply ETCCOH.(etc_I_in_S). }
+  { ins. apply REQ_TO; [|intros HH; desf]. by apply (etc_I_in_S ETCCOH). }
   assert (ISSEQ_FROM : forall e (ISS: issued T e), f_from' e = f_from e).
-  { ins. apply REQ_FROM; [|intros HH; desf]. by apply ETCCOH.(etc_I_in_S). }
+  { ins. apply REQ_FROM; [|intros HH; desf]. by apply (etc_I_in_S ETCCOH). }
 
   assert (forall l to omsg 
                  (NEQ  : l <> locw \/ to <> f_to' w)
                  (NEQ' : l <> locw \/ to <> f_to' wnext),
              Memory.get l to promises_split = omsg <->
-             Memory.get l to local.(Local.promises) = omsg)
+             Memory.get l to (Local.promises local) = omsg)
     as NOTNEWA.
   { ins. erewrite Memory.split_o; eauto.
     repeat (rewrite loc_ts_eq_dec_neq; auto). }
@@ -949,7 +949,7 @@ Proof using All.
                  (NEQ : l <> locw \/ to <> f_to' w)
                  (NEQ' : l <> locw \/ to <> f_to' wnext),
              Memory.get l to promises' = omsg <->
-             Memory.get l to local.(Local.promises) = omsg)
+             Memory.get l to (Local.promises local) = omsg)
     as NOTNEWP.
   { ins. destruct (Rel w); subst; auto.
     erewrite Memory.remove_o; eauto. rewrite (loc_ts_eq_dec_neq NEQ); auto. }
@@ -986,7 +986,7 @@ Proof using All.
     { subst. rewrite IdentMap.gss in TID0.
       inv TID0; simpls; clear TID0. }
     red; ins; rewrite IdentMap.gso in TID0; auto.
-    assert (Memory.get loc to PC.(Configuration.memory) = Some (from, msg)) as INMEMM.
+    assert (Memory.get loc to (Configuration.memory PC) = Some (from, msg)) as INMEMM.
     { eapply PROM_IN_MEM; eauto. }
     destruct (classic (loc = locw)) as [|LNEQ]; subst.
     2: by apply NOTNEWM; auto.
@@ -1095,7 +1095,7 @@ Proof using All.
         with (f_to:=f_to')
              (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)); eauto.
       { red. by rewrite NLOC. }
-      { do 2 left. destruct ISSB; subst; auto. by apply ETCCOH.(etc_I_in_S). }
+      { do 2 left. destruct ISSB; subst; auto. by apply (etc_I_in_S ETCCOH). }
         by right. }
     destruct ISSB as [ISSB|]; subst.
     2: { assert (Some l = Some locw) as QQ.
@@ -1115,7 +1115,7 @@ Proof using All.
          cdes PREL. destruct PREL1; desc.
          { exfalso. eauto. }
          assert (S p) as SP.
-         { by apply ETCCOH.(etc_I_in_S). }
+         { by apply (etc_I_in_S ETCCOH). }
          exists p. splits; eauto.
          { by left. }
          eexists. splits; eauto.
@@ -1136,7 +1136,7 @@ Proof using All.
       eapply f_to_eq with 
           (I:=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)); eauto.
       { red. by rewrite LOC. }
-      { do 2 left. by apply ETCCOH.(etc_I_in_S). }
+      { do 2 left. by apply (etc_I_in_S ETCCOH). }
       clear. basic_solver. }
     split.
     { apply NOTNEWM; auto.
@@ -1165,8 +1165,8 @@ Proof using All.
          destruct (classic (l = locw)) as [|LNEQ]; subst; auto.
          2: { apply NOTNEWM; auto. rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
          assert (loc lab p = Some locw) as PLOC.
-         { rewrite <- LOC0. by apply WF.(wf_rfrmwl). }
-         assert (S p) as SP by (by apply ETCCOH.(etc_I_in_S)).
+         { rewrite <- LOC0. by apply (wf_rfrmwl WF). }
+         assert (S p) as SP by (by apply (etc_I_in_S ETCCOH)).
          apply NOTNEWM.
          3: { rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
          all: right; intros HH; eapply f_to_eq in HH; eauto; subst; auto.

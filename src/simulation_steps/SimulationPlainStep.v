@@ -55,26 +55,26 @@ Variable WF : Wf G.
 Variable sc : relation actid.
 Variable CON : imm_consistent G sc.
 
-Notation "'E'" := G.(acts_set).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'co'" := G.(co).
-Notation "'rmw'" := G.(rmw).
-Notation "'data'" := G.(data).
-Notation "'addr'" := G.(addr).
-Notation "'ctrl'" := G.(ctrl).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
 
-Notation "'fr'" := G.(fr).
-Notation "'coe'" := G.(coe).
-Notation "'coi'" := G.(coi).
-Notation "'deps'" := G.(deps).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'detour'" := G.(detour).
-Notation "'hb'" := G.(hb).
-Notation "'sw'" := G.(sw).
+Notation "'fr'" := (fr G).
+Notation "'coe'" := (coe G).
+Notation "'coi'" := (coi G).
+Notation "'deps'" := (deps G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'detour'" := (detour G).
+Notation "'hb'" := (hb G).
+Notation "'sw'" := (sw G).
 
-Notation "'lab'" := G.(lab).
+Notation "'lab'" := (lab G).
 
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
@@ -92,7 +92,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
-Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Lemma plain_sim_step thread PC T S f_to f_from T' S' smode
@@ -113,7 +113,7 @@ Proof using WF CON.
     { edestruct fence_step; eauto.
       desc. do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
     all: exfalso; assert (W f) as WFF; [|type_solver].
-    all: eapply WF.(reservedW); [by apply TS|].
+    all: eapply (reservedW WF); [by apply TS|].
     all: apply RESEQ; basic_solver. }
 
   { (* Read covering *)
@@ -121,7 +121,7 @@ Proof using WF CON.
     { edestruct read_step; eauto.
       desc. do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
     all: exfalso; assert (W r) as WFF; [|type_solver].
-    all: eapply WF.(reservedW); [by apply TS|].
+    all: eapply (reservedW WF); [by apply TS|].
     all: apply RESEQ; basic_solver. }
 
   { (* Write reserving *)
@@ -178,12 +178,12 @@ Proof using WF CON.
 
   { (* Relaxed RMW covering *)
     assert (R r) as RR.
-    { apply (dom_l WF.(wf_rmwD)) in RMW. apply seq_eqv_l in RMW. desf. }
+    { apply (dom_l (wf_rmwD WF)) in RMW. apply seq_eqv_l in RMW. desf. }
     cdes TS1. desf; unfold eissued, ecovered in *; simpls.
     { edestruct rlx_rmw_cover_step; eauto.
       desc. do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
     all: exfalso; assert (W r) as WFF; [|type_solver].
-    all: eapply WF.(reservedW); [by apply TS1|].
+    all: eapply (reservedW WF); [by apply TS1|].
     all: apply RESEQ; basic_solver. }
 
   (* Release RMW covering *)

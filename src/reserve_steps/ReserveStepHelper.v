@@ -34,21 +34,21 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 
-Notation "'acts'" := G.(acts).
-Notation "'co'" := G.(co).
-Notation "'sw'" := G.(sw).
-Notation "'hb'" := G.(hb).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'rmw'" := G.(rmw).
-Notation "'lab'" := G.(lab).
+Notation "'acts'" := (acts G).
+Notation "'co'" := (co G).
+Notation "'sw'" := (sw G).
+Notation "'hb'" := (hb G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'rmw'" := (rmw G).
+Notation "'lab'" := (lab G).
 Notation "'msg_rel'" := (msg_rel G sc).
 Notation "'urr'" := (urr G sc).
-Notation "'release'" := G.(release).
+Notation "'release'" := (release G).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
@@ -82,25 +82,25 @@ Variable FCOH : f_to_coherent G S f_to f_from.
 
 Variable PC : Configuration.t.
 Hypothesis THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
-    exists langst, IdentMap.find (tid e) PC.(Configuration.threads) = Some langst.
+    exists langst, IdentMap.find (tid e) (Configuration.threads PC) = Some langst.
 
 Variable smode : sim_mode.
 Hypothesis SC_REQ :
   smode = sim_normal -> 
   forall (l : Loc.t),
-    max_value f_to (S_tm G l (covered T)) (LocFun.find l PC.(Configuration.sc)).
+    max_value f_to (S_tm G l (covered T)) (LocFun.find l (Configuration.sc PC)).
 
 Variable thread : thread_id.
 Variable local : Local.t.
-Hypothesis SIM_PROM     : sim_prom     G sc T   f_to f_from thread local.(Local.promises).
-Hypothesis SIM_RES_PROM : sim_res_prom G    T S f_to f_from thread local.(Local.promises).
+Hypothesis SIM_PROM     : sim_prom     G sc T   f_to f_from thread (Local.promises local).
+Hypothesis SIM_RES_PROM : sim_res_prom G    T S f_to f_from thread (Local.promises local).
 
-Hypothesis CLOSED_SC : Memory.closed_timemap PC.(Configuration.sc) PC.(Configuration.memory).
+Hypothesis CLOSED_SC : Memory.closed_timemap (Configuration.sc PC) (Configuration.memory PC).
 
 Hypothesis PROM_DISJOINT :
   forall thread' langst' local'
          (TNEQ : thread <> thread')
-         (TID' : IdentMap.find thread' PC.(Configuration.threads) =
+         (TID' : IdentMap.find thread' (Configuration.threads PC) =
                  Some (langst', local')),
   forall loc to,
     Memory.get loc to local .(Local.Local.promises) = None \/
@@ -108,41 +108,41 @@ Hypothesis PROM_DISJOINT :
 
 Hypothesis PROM_IN_MEM :
   forall thread' langst local
-         (TID : IdentMap.find thread' PC.(Configuration.threads) =
+         (TID : IdentMap.find thread' (Configuration.threads PC) =
                 Some (langst, local)),
-    Memory.le local.(Local.Local.promises) PC.(Configuration.memory).
+    Memory.le (Local.Local.promises local) (Configuration.memory PC).
 
 Hypothesis INHAB      : Memory.inhabited (Configuration.memory PC).
 Hypothesis CLOSED_MEM : Memory.closed (Configuration.memory PC).
-Hypothesis PLN_RLX_EQ : pln_rlx_eq local.(Local.tview).
-Hypothesis MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory).
+Hypothesis PLN_RLX_EQ : pln_rlx_eq (Local.tview local).
+Hypothesis MEM_CLOSE : memory_close (Local.tview local) (Configuration.memory PC).
 
 Hypothesis RESERVED_TIME:
-  reserved_time G T S f_to f_from smode PC.(Configuration.memory).
+  reserved_time G T S f_to f_from smode (Configuration.memory PC).
 
 Hypothesis SIM_RES_MEM :
   sim_res_mem G T S f_to f_from thread local (Configuration.memory PC).
 
-Hypothesis SIM_MEM : sim_mem G sc T f_to f_from thread local PC.(Configuration.memory).
-Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread.
+Hypothesis SIM_MEM : sim_mem G sc T f_to f_from thread local (Configuration.memory PC).
+Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) thread.
 Hypothesis RMWREX : dom_rel rmw ⊆₁ R_ex lab.
 
 Lemma reserve_step_helper w locw langst
-      (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
+      (TID : IdentMap.find (tid w) (Configuration.threads PC) = Some (langst, local))
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
       (LOC : loc lab w = Some locw)
       (WTID : thread = tid w) :
-  let memory := PC.(Configuration.memory) in
-  let sc_view := PC.(Configuration.sc) in
+  let memory := (Configuration.memory PC) in
+  let sc_view := (Configuration.sc PC) in
   exists f_to' f_from' promises' memory',
-    let local' := Local.mk local.(Local.tview) promises' in
+    let local' := Local.mk (Local.tview local) promises' in
     let threads' :=
         IdentMap.add (tid w)
                      (langst, local')
                      (Configuration.threads PC) in
     ⟪ PADD :
-        Memory.add local.(Local.promises) locw (f_from' w) (f_to' w)
+        Memory.add (Local.promises local) locw (f_from' w) (f_to' w)
                                           Message.reserve promises' ⟫ /\
     ⟪ MADD :
         Memory.add memory locw (f_from' w) (f_to' w)
@@ -167,7 +167,7 @@ Lemma reserve_step_helper w locw langst
     ⟪ PROM_IN_MEM :
         forall thread' langst local
                (TID : IdentMap.find thread' threads' = Some (langst, local)),
-          Memory.le local.(Local.Local.promises) memory' ⟫ /\
+          Memory.le (Local.Local.promises local) memory' ⟫ /\
 
     ⟪ SIM_PROM     : sim_prom     G sc T             f_to' f_from' (tid w) promises'  ⟫ /\
     ⟪ SIM_RES_PROM : sim_res_prom G    T (S ∪₁ eq w) f_to' f_from' (tid w) promises'  ⟫ /\
@@ -194,12 +194,12 @@ Proof using All.
   { eapply ext_itrav_step_reserve_nS with (T:=mkETC T S); eauto. }
 
   assert (~ issued T w) as NISSB.
-  { intros AA. apply NSW. by apply ETCCOH.(etc_I_in_S). }
+  { intros AA. apply NSW. by apply (etc_I_in_S ETCCOH). }
 
   assert (forall e, issued T e -> f_to' e = f_to e) as ISSEQ_TO.
-  { ins. apply REQ_TO. by apply ETCCOH.(etc_I_in_S). }
+  { ins. apply REQ_TO. by apply (etc_I_in_S ETCCOH). }
   assert (forall e, issued T e -> f_from' e = f_from e) as ISSEQ_FROM.
-  { ins. apply REQ_FROM. by apply ETCCOH.(etc_I_in_S). }
+  { ins. apply REQ_FROM. by apply (etc_I_in_S ETCCOH). }
 
   assert (W w) as WW.
   { eapply ext_itrav_step_reserveW with (T := mkETC T S); eauto. }
@@ -227,9 +227,9 @@ Proof using All.
 
   assert (forall l b (ISSB : issued T b) (BLOC : loc lab b = Some l),
              l <> locw \/ f_to b <> f_to' w) as INEQ.
-  { ins. apply SNEQ; auto. by apply ETCCOH.(etc_I_in_S). }
+  { ins. apply SNEQ; auto. by apply (etc_I_in_S ETCCOH). }
 
-  assert (Memory.le PC.(Configuration.memory) memory') as MM.
+  assert (Memory.le (Configuration.memory PC) memory') as MM.
   { eapply memory_add_le; eauto. }
 
   assert (Memory.le promises' memory') as PP.
@@ -275,7 +275,7 @@ Proof using All.
     symmetry.
     eapply FCOH0; eauto.
     2: by right.
-    left. by apply ETCCOH.(etc_I_in_S). }
+    left. by apply (etc_I_in_S ETCCOH). }
  { ins.
     destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
     { subst. rewrite IdentMap.gss in TID0.
@@ -291,7 +291,7 @@ Proof using All.
       destruct (is_rel lab w); simpls. }
     rewrite (loc_ts_eq_dec_neq LL) in PROM.
     edestruct SIM_PROM as [b H]; eauto; desc.
-    assert (S b) as SB by (by apply ETCCOH.(etc_I_in_S)).
+    assert (S b) as SB by (by apply (etc_I_in_S ETCCOH)).
     rewrite <- REQ_TO in TO; auto.
     rewrite <- REQ_FROM in FROM; auto.
     exists b; splits; auto.
@@ -339,7 +339,7 @@ Proof using All.
     destruct BB1 as [|CC]; [by left|right].
     desc.
     assert (l <> locw \/ f_to p <> f_to' w) as PNEQ.
-    { apply INEQ; auto. rewrite <- LOC0. by apply WF.(wf_rfrmwl). }
+    { apply INEQ; auto. rewrite <- LOC0. by apply (wf_rfrmwl WF). }
     exists p. splits; auto.
     exists p_v. splits; auto.
     arewrite (f_to' p = f_to p).

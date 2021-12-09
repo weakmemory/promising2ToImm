@@ -33,21 +33,21 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 
-Notation "'acts'" := G.(acts).
-Notation "'co'" := G.(co).
-Notation "'sw'" := G.(sw).
-Notation "'hb'" := G.(hb).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'rmw'" := G.(rmw).
-Notation "'lab'" := G.(lab).
+Notation "'acts'" := (acts G).
+Notation "'co'" := (co G).
+Notation "'sw'" := (sw G).
+Notation "'hb'" := (hb G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'rmw'" := (rmw G).
+Notation "'lab'" := (lab G).
 Notation "'msg_rel'" := (msg_rel G sc).
 Notation "'urr'" := (urr G sc).
-Notation "'release'" := G.(release).
+Notation "'release'" := (release G).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
@@ -181,8 +181,8 @@ Proof using ETCCOH REQ_TO REQ_FROM.
     destruct MEM as [MEM|MEM]; [by left; apply MEM|right].
     destruct MEM as [b H]; desc.
     exists b; splits; auto.
-    { rewrite REQ_FROM; auto. by apply ETCCOH.(etc_I_in_S). }
-    rewrite REQ_TO; auto. by apply ETCCOH.(etc_I_in_S). }
+    { rewrite REQ_FROM; auto. by apply (etc_I_in_S ETCCOH). }
+    rewrite REQ_TO; auto. by apply (etc_I_in_S ETCCOH). }
   { red. ins. specialize (HMEM l to from MSG).
     desc.
     exists b. splits; auto.
@@ -211,10 +211,10 @@ Proof using WF TCCOH ETCCOH FCOH REQ_TO REQ_FROM.
   cdes FCOH. red; splits; ins.
   all: try (rewrite REQ_TO);
     try (rewrite REQ_FROM); try (rewrite REQ_FROM); auto.
-  all: apply ETCCOH.(etc_I_in_S); auto.
+  all: apply (etc_I_in_S ETCCOH); auto.
   all: eapply w_covered_issued; eauto; split.
   2,4: by apply TCCOH.
-  all: apply WF.(init_w).
+  all: apply (init_w WF).
   all: by destruct H.
 Qed.
 
@@ -309,25 +309,25 @@ Proof using WF IMMCON ETCCOH FCOH TCCOH.
   { destruct COIMM as [CO _].
     apply seq_eqv_l in CO. desf. }
   assert (E w) as EW.
-  { apply (dom_r WF.(wf_coE)) in COWP. 
+  { apply (dom_r (wf_coE WF)) in COWP. 
     apply seq_eqv_r in COWP. desf. }
   assert (W w) as WW.
-  { apply (dom_r WF.(wf_coD)) in COWP. 
+  { apply (dom_r (wf_coD WF)) in COWP. 
     apply seq_eqv_r in COWP. desf. }
   assert (E wprev) as EWP.
-  { by apply ETCCOH.(etc_S_in_E). }
+  { by apply (etc_S_in_E ETCCOH). }
   assert (W wprev) as WWP.
   { by apply (reservedW WF ETCCOH). }
   assert (loc lab wprev = Some locw) as LOCWP.
-  { rewrite <- LOC. by apply WF.(wf_col). }
+  { rewrite <- LOC. by apply (wf_col WF). }
   assert (S a_max) as ISSA.
   { by apply ISSS. }
   assert (E a_max) as EA.
-  { by apply ETCCOH.(etc_S_in_E). }
+  { by apply (etc_S_in_E ETCCOH). }
   assert (is_w lab a_max) as WA.
   { by apply (reservedW WF ETCCOH). }
   eapply f_to_co_mon; eauto.
-  edestruct WF.(wf_co_total) as [CO|CO].
+  edestruct (wf_co_total WF) as [CO|CO].
   3: by apply NEQ.
   3: done.
   1,2: split; [split|]; auto.
@@ -335,7 +335,7 @@ Proof using WF IMMCON ETCCOH FCOH TCCOH.
   assert (w <> a_max) as WANEQ.
   { intros H. desf. }
   assert (co w a_max) as COWA.
-  { edestruct WF.(wf_co_total) as [CO'|CO'].
+  { edestruct (wf_co_total WF) as [CO'|CO'].
     3: by apply WANEQ.
     3: done.
     1,2: split; [split|]; auto.
@@ -367,7 +367,7 @@ Lemma reserved_to_message thread local memory
       Memory.get l (f_to b) memory = Some (f_from b, msg) /\
       (tid b = thread ->
        ~ covered T b ->
-       Memory.get l (f_to b) local.(Local.promises) = Some (f_from b, msg)).
+       Memory.get l (f_to b) (Local.promises local) = Some (f_from b, msg)).
 Proof using TCCOH.
   ins. destruct (classic (issued T b)) as [AA|AA].
   2: { eexists. split; ins; apply SIMRESMEM; auto. }
@@ -392,7 +392,7 @@ Lemma memory_to_event memory
 Proof using ETCCOH.
   ins. destruct msg.
   { apply MTE in MSG. desf; eauto.
-    right. eexists. splits; eauto. by apply ETCCOH.(etc_I_in_S). }
+    right. eexists. splits; eauto. by apply (etc_I_in_S ETCCOH). }
   right.
   apply HMTE in MSG. desf. eexists. splits; eauto.
 Qed.
@@ -425,11 +425,11 @@ Proof using WF IMMCON ETCCOH FCOH TCCOH.
   assert (S wp /\ co wp wn /\ S wn) as [SWP [COPN SWN]].
   { destruct COIMM as [AA _]. by destruct_seq AA as [BB CC]. }
   assert (E wp /\ E wn) as [EWP EWN].
-  { by split; apply ETCCOH.(etc_S_in_E). }
+  { by split; apply (etc_S_in_E ETCCOH). }
   assert (W wp /\ W wn) as [WWP WWN].
   { by split; apply (reservedW WF ETCCOH). }
   assert (loc lab wn = Some locw) as LOCN.
-  { rewrite <- LOCP. symmetry. by apply WF.(wf_col). }
+  { rewrite <- LOCP. symmetry. by apply (wf_col WF). }
 
   assert (~ is_init wn) as WNNIN.
   { apply no_co_to_init in COPN; auto.
@@ -443,7 +443,7 @@ Proof using WF IMMCON ETCCOH FCOH TCCOH.
       { by apply time_lt_bot in TT. }
         by apply Time.lt_strorder in FROM. }
     assert (S b) as SB.
-    { by apply ETCCOH.(etc_I_in_S). }
+    { by apply (etc_I_in_S ETCCOH). }
     assert (W b) as WB.
     { by apply TCCOH. }
     assert (co^? b wp \/ co^? wn b) as CO.
@@ -451,12 +451,12 @@ Proof using WF IMMCON ETCCOH FCOH TCCOH.
       { by left; left. }
       destruct (classic (b = wn)) as [|NNEQ]; subst.
       { by right; left. }
-      edestruct WF.(wf_co_total) as [|LIMM].
+      edestruct (wf_co_total WF) as [|LIMM].
       3: by apply PNEQ.
       1,2: split; [split|]; eauto.
       { by left; right. }
       right; right.
-      edestruct WF.(wf_co_total) as [LHN|].
+      edestruct (wf_co_total WF) as [LHN|].
       3: by apply NNEQ.
       1,2: split; [split|]; eauto.
       2: done.
@@ -473,7 +473,7 @@ Proof using WF IMMCON ETCCOH FCOH TCCOH.
 
   apply HMEM in IN. desf.
   assert (E b) as EB.
-  { by apply ETCCOH.(etc_S_in_E). }
+  { by apply (etc_S_in_E ETCCOH). }
   assert (W b) as WB.
   { by apply (reservedW WF ETCCOH). }
 
@@ -482,12 +482,12 @@ Proof using WF IMMCON ETCCOH FCOH TCCOH.
     { by left; left. }
     destruct (classic (b = wn)) as [|NNEQ]; subst.
     { by right; left. }
-    edestruct WF.(wf_co_total) as [|LIMM].
+    edestruct (wf_co_total WF) as [|LIMM].
     3: by apply PNEQ.
     1,2: split; [split|]; eauto.
     { by left; right. }
     right; right.
-    edestruct WF.(wf_co_total) as [LHN|].
+    edestruct (wf_co_total WF) as [LHN|].
     3: by apply NNEQ.
     1,2: split; [split|]; eauto.
     2: done.
@@ -521,7 +521,7 @@ Proof using WF IMMCON FCOH ETCCOH TCCOH.
   { apply coherence_sc_per_loc. apply IMMCON. }
   assert (co x w) as COXW by (by apply rf_rmw_in_co).
   assert (loc lab x = Some locw) as XLOC. 
-  { rewrite <- WLOC. by apply WF.(wf_col). }
+  { rewrite <- WLOC. by apply (wf_col WF). }
 
   set (XX:=SX).
   eapply reserved_to_message in XX; eauto.
@@ -536,22 +536,22 @@ Proof using WF IMMCON FCOH ETCCOH TCCOH.
   exfalso.
   
   assert (E w /\ E x) as [EW EX].
-  { apply WF.(wf_coE) in COXW. destruct_seq COXW as [AA BB]. desf. }
+  { apply (wf_coE WF) in COXW. destruct_seq COXW as [AA BB]. desf. }
   assert (W w /\ W x) as [WW WX].
-  { apply WF.(wf_coD) in COXW. destruct_seq COXW as [AA BB]. desf. }
+  { apply (wf_coD WF) in COXW. destruct_seq COXW as [AA BB]. desf. }
   assert (W wmax) as WWMAX.
   { by apply (reservedW WF ETCCOH). }
   
   assert (wmax <> w) as WWNEQ.
   { intros PP; desf. }
-  edestruct WF.(wf_co_total) with (a:=wmax) (b:=w) as [CO|CO]; auto.
+  edestruct (wf_co_total WF) with (a:=wmax) (b:=w) as [CO|CO]; auto.
   1,2: by split; [split|]; eauto.
   2: { apply NCO. eexists. apply seq_eqv_r. eauto. }
 
   destruct (classic (wmax = x)) as [|WXNEQ]; subst.
   { rewrite TO in TS. eapply Time.lt_strorder; eauto. }
 
-  edestruct WF.(wf_co_total) with (a:=wmax) (b:=x) as [CO'|CO']; auto.
+  edestruct (wf_co_total WF) with (a:=wmax) (b:=x) as [CO'|CO']; auto.
   1,2: by split; [split|]; eauto.
   2: { eapply rfrmw_in_im_co; eauto. }
   eapply Time.lt_strorder.
@@ -610,7 +610,7 @@ Lemma le_msg_rel_f_to_wprev w wprev locw PC lang state
   (LOC : loc lab w = Some locw)
   (local : Local.t)
   (SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) (tid w))
-  (TID : IdentMap.find (tid w) PC.(Configuration.threads) =
+  (TID : IdentMap.find (tid w) (Configuration.threads PC) =
          Some (existT (fun lang : language => Language.state lang) lang state, local))
   (PCOIMM : immediate (⦗S⦘ ⨾ co) wprev w) :
   let rel :=
@@ -641,7 +641,7 @@ Proof using WF IMMCON RELCOV TCCOH ETCCOH FCOH.
   { unfold t_cur, c_cur, CombRelations.urr.
     rewrite !seqA. rewrite dom_eqv1.
       by intros x [[_ YY]]. }
-  { rewrite <- ETCCOH.(etc_I_in_S). apply t_cur_covered; eauto. }
+  { rewrite <- (etc_I_in_S ETCCOH). apply t_cur_covered; eauto. }
   split; [|basic_solver].
   intros x y QQ. apply seq_eqv_l in QQ. destruct QQ as [QQ' QQ]; subst.
   apply seq_eqv_r in QQ. destruct QQ as [COXY TCUR].

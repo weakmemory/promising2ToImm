@@ -37,26 +37,26 @@ Variable WF : Wf G.
 Variable sc : relation actid.
 Variable CON : imm_consistent G sc.
 
-Notation "'E'" := G.(acts_set).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'co'" := G.(co).
-Notation "'rmw'" := G.(rmw).
-Notation "'data'" := G.(data).
-Notation "'addr'" := G.(addr).
-Notation "'ctrl'" := G.(ctrl).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
 
-Notation "'fr'" := G.(fr).
-Notation "'coe'" := G.(coe).
-Notation "'coi'" := G.(coi).
-Notation "'deps'" := G.(deps).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'detour'" := G.(detour).
-Notation "'hb'" := G.(hb).
-Notation "'sw'" := G.(sw).
+Notation "'fr'" := (fr G).
+Notation "'coe'" := (coe G).
+Notation "'coi'" := (coi G).
+Notation "'deps'" := (deps G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'detour'" := (detour G).
+Notation "'hb'" := (hb G).
+Notation "'sw'" := (sw G).
 
-Notation "'lab'" := G.(lab).
+Notation "'lab'" := (lab G).
 
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
@@ -74,7 +74,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
-Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Lemma rlx_write_cover_step PC T S f_to f_from thread w smode
@@ -114,7 +114,7 @@ Proof using WF CON.
 
   apply clos_rt_rt1n in ESTEPS.
   eapply (rtc_lang_tau_step_rtc_thread_tau_step
-            _ _ _ local PC.(Configuration.sc) PC.(Configuration.memory)) in ESTEPS.
+            _ _ _ local (Configuration.sc PC) (Configuration.memory PC)) in ESTEPS.
 
   assert (E w) as WACT.
   { apply NEXT. }
@@ -130,7 +130,7 @@ Proof using WF CON.
   assert (issued T w) as WISS.
   { cdes COV; desf; type_solver. }
   assert (S w) as WS.
-  { by apply TCCOH.(etc_I_in_S). }
+  { by apply (etc_I_in_S TCCOH). }
   assert (val lab w = Some valw) as WPVAL.
   { by unfold val; rewrite PARAMS. }
 
@@ -139,7 +139,7 @@ Proof using WF CON.
   desc.
 
   assert (~ dom_rel rmw w) as NNRMW.
-  { intros [x RMW]. apply (dom_l WF.(wf_rmwD)) in RMW.
+  { intros [x RMW]. apply (dom_l (wf_rmwD WF)) in RMW.
     apply seq_eqv_l in RMW. type_solver. }
 
   assert (Event_imm_promise.same_g_events lab (w :: nil) ev) as SAME.
@@ -226,7 +226,7 @@ Proof using WF CON.
       eapply w_covered_issued; eauto.
         by split. }
     assert (S a_max) as SA.
-    { by apply TCCOH.(etc_I_in_S). }
+    { by apply (etc_I_in_S TCCOH). }
     assert ((E ∩₁ W ∩₁ (fun x => loc lab a_max = Some locw)) a_max) as BB.
     { destruct INam as [IN|IN].
       { apply set_interA; split.
@@ -309,7 +309,7 @@ Proof using WF CON.
           apply (urr_coverable) in A; try done.
           revert A; unfold seq; unfolder; ins; desf. }
         assert (S a_max) as SA.
-        { by apply TCCOH.(etc_I_in_S). }
+        { by apply (etc_I_in_S TCCOH). }
         edestruct (@wf_co_total G WF (Some locw) a_max) as [AWCO|AWCO].
         3: apply NEQ.
         2: basic_solver.
@@ -339,7 +339,7 @@ Proof using WF CON.
     red; splits; red; splits; simpls.
     { apply TSTEP. }
     { etransitivity; eauto. basic_solver. }
-    { intros. apply WF.(wf_rmwD) in RMW.
+    { intros. apply (wf_rmwD WF) in RMW.
       apply seq_eqv_l in RMW; destruct RMW as [RR RMW].
       apply seq_eqv_r in RMW; destruct RMW as [RMW WW].
       split; intros [HH|HH]; left; auto.
@@ -426,7 +426,7 @@ Proof using WF CON.
         exfalso.
         apply COVWB; left.
         apply NEXT. eexists; apply seq_eqv_r; eauto.
-          by apply TCCOH.(etc_I_in_S). }
+          by apply (etc_I_in_S TCCOH). }
 
       destruct (loc_ts_eq_dec (l, f_to b) (locw, f_to w)) as [[A B]|LNEQ].
       { exfalso. simpls; subst; rewrite B in *.
@@ -460,7 +460,7 @@ Proof using WF CON.
       exfalso.
       assert (b = w); desf.
       eapply f_to_eq with (I:=S); eauto.
-      { generalize TCCOH.(etc_S_in_E), (reservedW WF TCCOH). basic_solver. }
+      { generalize (etc_S_in_E TCCOH), (reservedW WF TCCOH). basic_solver. }
       red. by rewrite LOC. }
     { eapply sim_tview_write_step; eauto.
       { etransitivity; [by apply TCCOH|].

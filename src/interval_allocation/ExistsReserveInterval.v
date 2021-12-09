@@ -35,21 +35,21 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 
-Notation "'acts'" := G.(acts).
-Notation "'co'" := G.(co).
-Notation "'sw'" := G.(sw).
-Notation "'hb'" := G.(hb).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'rmw'" := G.(rmw).
-Notation "'lab'" := G.(lab).
+Notation "'acts'" := (acts G).
+Notation "'co'" := (co G).
+Notation "'sw'" := (sw G).
+Notation "'hb'" := (hb G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'rmw'" := (rmw G).
+Notation "'lab'" := (lab G).
 Notation "'msg_rel'" := (msg_rel G sc).
 Notation "'urr'" := (urr G sc).
-Notation "'release'" := G.(release).
+Notation "'release'" := (release G).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
@@ -84,22 +84,22 @@ Lemma exists_time_interval_for_reserve PC w locw langst local smode
       (LOC : loc lab w = Some locw)
       (PROM_IN_MEM :
          forall thread' langst local
-                (TID : IdentMap.find thread' PC.(Configuration.threads) =
+                (TID : IdentMap.find thread' (Configuration.threads PC) =
                        Some (langst, local)),
-           Memory.le local.(Local.promises) PC.(Configuration.memory))
+           Memory.le (Local.promises local) (Configuration.memory PC))
       (RESERVED_TIME:
-         reserved_time G T S f_to f_from smode PC.(Configuration.memory))
+         reserved_time G T S f_to f_from smode (Configuration.memory PC))
       (SIM_RES_MEM :
          sim_res_mem G T S f_to f_from (tid w) local (Configuration.memory PC))
       (SIM_MEM : sim_mem G sc T f_to f_from
-                         (tid w) local PC.(Configuration.memory))
-      (MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory))
-      (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
+                         (tid w) local (Configuration.memory PC))
+      (MEM_CLOSE : memory_close (Local.tview local) (Configuration.memory PC))
+      (TID : IdentMap.find (tid w) (Configuration.threads PC) = Some (langst, local))
       (RMWREX : dom_rel rmw ⊆₁ R_ex lab) :
-  let memory := PC.(Configuration.memory) in
+  let memory := (Configuration.memory PC) in
   exists f_to' f_from' promises' memory',
     ⟪ PADD :
-        Memory.add local.(Local.promises) locw (f_from' w) (f_to' w)
+        Memory.add (Local.promises local) locw (f_from' w) (f_to' w)
                                           Message.reserve promises' ⟫ /\
     ⟪ MADD :
         Memory.add memory locw (f_from' w) (f_to' w)
@@ -135,7 +135,7 @@ Proof using WF IMMCON ETCCOH FCOH.
   { eapply ext_itrav_step_reserve_nS with (T := mkETC T S); eauto. }
 
   assert (~ issued T w) as WNISS.
-  { intros AA. apply NSW. by apply ETCCOH.(etc_I_in_S). }
+  { intros AA. apply NSW. by apply (etc_I_in_S ETCCOH). }
 
   assert (~ is_init w) as WNINIT.
   { eapply ext_itrav_step_ninit with (T := mkETC T S); eauto. }
@@ -156,7 +156,7 @@ Proof using WF IMMCON ETCCOH FCOH.
     assert (dom_rel (sb^? ⨾ ⦗S⦘) w) as [w' AA] by (by apply RMW_BEF_S).
     destruct_seq_r AA as SW'.
     destruct AA as [|AA]; desf.
-    eapply ETCCOH.(etc_sb_S). red. simpls.
+    eapply (etc_sb_S ETCCOH). red. simpls.
     split.
     { basic_solver 10. }
     assert (PRMWE' : codom_rel (rf ;; <|R_ex lab|> ⨾ rmw) w).
@@ -178,7 +178,7 @@ Proof using WF IMMCON ETCCOH FCOH.
     { exists w. split; auto. apply seq_eqv_l. by split. }
 
     assert (co wprev wnext) as COPN.
-    { eapply WF.(co_trans); eauto. }
+    { eapply (co_trans WF); eauto. }
 
     assert (immediate (⦗S⦘ ⨾ co ⨾ ⦗S⦘) wprev wnext) as COSIMM.
     { apply P_co_nP_co_P_imm; auto.
@@ -232,7 +232,7 @@ Proof using WF IMMCON ETCCOH FCOH.
     { unfold f_from', f_to'. rewrite !upds.
       eapply f_to_coherent_add_S_middle with (S:=S); eauto. }
 
-    edestruct (@Memory.add_exists PC.(Configuration.memory) locw (f_from' w) (f_to' w) Message.reserve)
+    edestruct (@Memory.add_exists (Configuration.memory PC) locw (f_from' w) (f_to' w) Message.reserve)
       as [memory' MADD].
     3: by apply Message.wf_reserve.
     { apply DISJOINT. }
@@ -326,7 +326,7 @@ Proof using WF IMMCON ETCCOH FCOH.
     eapply PROM_IN_MEM; eauto. }
   { unfold f_from', f_to'. by rewrite !upds. }
 
-  edestruct (@Memory.add_exists PC.(Configuration.memory) locw (f_from' w) (f_to' w) Message.reserve)
+  edestruct (@Memory.add_exists (Configuration.memory PC) locw (f_from' w) (f_to' w) Message.reserve)
     as [memory' MADD].
   3: by apply Message.wf_reserve.
   { apply DISJOINT. }
@@ -337,7 +337,7 @@ Proof using WF IMMCON ETCCOH FCOH.
   { eapply dom_rf_rmw_S_in_I with (T:= (mkETC T (S ∪₁ eq w))); eauto.
     eexists. apply seqA.
     apply seq_eqv_r. split; eauto. by right. }
-  assert (S wprev) as SWPREV by (by apply ETCCOH.(etc_I_in_S)).
+  assert (S wprev) as SWPREV by (by apply (etc_I_in_S ETCCOH)).
   assert (immediate (⦗S⦘ ⨾ co) wprev w) as PIMMCO.
   { eapply rfrmwP_in_immPco with (P':=eq w); eauto.
     2: { apply seqA. basic_solver. }

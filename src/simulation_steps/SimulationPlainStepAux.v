@@ -47,12 +47,12 @@ Lemma tau_steps_step_same_instrs (PC : Configuration.t) thread
       (ESTEPS : rtc (Thread.tau_step (lang:=thread_lts thread))
                     (Thread.mk (thread_lts thread)
                                state local
-                               PC.(Configuration.sc)
-                               PC.(Configuration.memory))
+                               (Configuration.sc PC)
+                               (Configuration.memory PC))
                     (Thread.mk (thread_lts thread)
                                state'' local
-                               PC.(Configuration.sc)
-                               PC.(Configuration.memory)))
+                               (Configuration.sc PC)
+                               (Configuration.memory PC)))
       (STEP : lts_step thread ev state'' state''') :
   instrs state''' = instrs state.
 Proof using.
@@ -60,12 +60,12 @@ Proof using.
   clear -ESTEPS.
   remember (Thread.mk (thread_lts thread)
                       state local
-                      PC.(Configuration.sc)
-                           PC.(Configuration.memory)) as s1.
+                      (Configuration.sc PC)
+                           (Configuration.memory PC)) as s1.
   remember (Thread.mk (thread_lts thread)
                       state'' local
-                      PC.(Configuration.sc)
-                           PC.(Configuration.memory)) as s2.
+                      (Configuration.sc PC)
+                           (Configuration.memory PC)) as s2.
   arewrite (state   = Thread.state s1) by desf.
   arewrite (state'' = Thread.state s2) by desf.
   eapply tau_steps_same_instrs; eauto.

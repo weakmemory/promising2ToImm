@@ -74,7 +74,7 @@ Qed.
 
 (* TODO: move to to imm/RMWinstrProps.v. *)
 Lemma dom_rmw_in_rex_thread_steps thread s s'
-      (RMWREX : rmw_is_rex_instrs s.(instrs))
+      (RMWREX : rmw_is_rex_instrs (instrs s))
       (WF : wf_thread_state thread s)
       (STEPS : (step thread)^* s s')
       (SS : dom_rmw_in_rex s) :
@@ -90,14 +90,14 @@ Qed.
 
 Definition execution_final_memory (G : execution) final_memory :=
   forall l,
-    (⟪ NO : forall e (EE : acts_set G e), loc G.(lab) e <> Some l ⟫ /\
+    (⟪ NO : forall e (EE : acts_set G e), loc (lab G) e <> Some l ⟫ /\
      ⟪ ZERO : final_memory l = 0 ⟫) \/
     exists w,
-      ⟪ ACTS : G.(acts_set) w ⟫ /\
-      ⟪ WW   : is_w G.(lab) w ⟫ /\
-      ⟪ LOC  : loc  G.(lab) w = Some l ⟫ /\
-      ⟪ VAL  : val  G.(lab) w = Some (final_memory l) ⟫ /\
-      ⟪ LAST : ~ (exists w', G.(co) w w') ⟫.
+      ⟪ ACTS : (acts_set G) w ⟫ /\
+      ⟪ WW   : is_w (lab G) w ⟫ /\
+      ⟪ LOC  : loc  (lab G) w = Some l ⟫ /\
+      ⟪ VAL  : val  (lab G) w = Some (final_memory l) ⟫ /\
+      ⟪ LAST : ~ (exists w', (co G) w w') ⟫.
 
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 Notation "'Tid_' t"  := (fun x => tid x =  t) (at level 1).
@@ -106,7 +106,7 @@ Lemma cert_sim_step G sc thread PC T T' f_to f_from smode
       (WF : Wf G) (IMMCON : imm_consistent G sc)
       (STEP : ext_isim_trav_step G sc thread T T')
       (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
-      (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T) :
+      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ ecovered T) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
       ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread smode ⟫.
@@ -122,7 +122,7 @@ Lemma cert_sim_steps G sc thread PC T T' f_to f_from smode
       (WF : Wf G) (IMMCON : imm_consistent G sc)
       (STEPS : (ext_isim_trav_step G sc thread)⁺ T T')
       (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
-      (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ ecovered T) :
+      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ ecovered T) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
       ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread  smode ⟫.
@@ -152,9 +152,9 @@ Qed.
 Lemma cert_simulation G sc thread PC T S f_to f_from
       (WF : Wf G) (IMMCON : imm_consistent G sc)
       (SIMREL : simrel_thread G sc PC T S f_to f_from thread sim_certification)
-      (NCOV : NTid_ thread ∩₁ G.(acts_set) ⊆₁ covered T) :
+      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T) :
   exists T' S' PC' f_to' f_from',
-    ⟪ FINALT : G.(acts_set) ⊆₁ covered T' ⟫ /\
+    ⟪ FINALT : (acts_set G) ⊆₁ covered T' ⟫ /\
     ⟪ PSTEP  : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
     ⟪ SIMREL : simrel_thread G sc PC' T' S' f_to' f_from' thread sim_certification⟫.
 Proof using.
@@ -220,8 +220,8 @@ Hypothesis TNONULL : ~ IdentMap.In tid_init prog.
 Variable G : execution.
 Variable final_memory : location -> value.
 
-Hypothesis ALLRLX  : G.(acts_set) \₁ is_init ⊆₁ (fun a => is_true (is_rlx G.(lab) a)).
-Hypothesis FRELACQ : G.(acts_set) ∩₁ (fun a => is_true (is_f G.(lab) a)) ⊆₁ (fun a => is_true (is_ra G.(lab) a)).
+Hypothesis ALLRLX  : (acts_set G) \₁ is_init ⊆₁ (fun a => is_true (is_rlx (lab G) a)).
+Hypothesis FRELACQ : (acts_set G) ∩₁ (fun a => is_true (is_f (lab G) a)) ⊆₁ (fun a => is_true (is_ra (lab G) a)).
 
 Hypothesis EFM : execution_final_memory G final_memory.
 
@@ -236,7 +236,7 @@ Hypothesis IMMCON : imm_consistent G sc.
 Lemma conf_steps_preserve_thread tid PC PC'
       (STEPS : (plain_step MachineEvent.silent tid)＊ PC PC') :
   forall lang state local
-         (THREAD  : IdentMap.find tid PC.(Configuration.threads) =
+         (THREAD  : IdentMap.find tid (Configuration.threads PC) =
                     Some (existT _ lang  state , local)),
   exists lang' state' local',
     IdentMap.find tid PC'.(Configuration.threads) =
@@ -253,7 +253,7 @@ Qed.
 Lemma conf_steps_preserve_lang tid PC PC'
       (STEPS : (plain_step MachineEvent.silent tid)＊ PC PC') :
   forall lang  state  local lang' state' local'
-         (THREAD  : IdentMap.find tid PC.(Configuration.threads) =
+         (THREAD  : IdentMap.find tid (Configuration.threads PC) =
                     Some (existT _ lang  state , local))
          (THREAD' : IdentMap.find tid PC'.(Configuration.threads) =
                     Some (existT _ lang' state', local')),
@@ -275,12 +275,12 @@ Lemma conf_steps_to_thread_steps tid PC PC'
       (STEPS : (plain_step MachineEvent.silent tid)＊ PC PC') :
   forall lang state local
          state' local' ts ts' 
-         (THREAD  : IdentMap.find tid PC.(Configuration.threads) =
+         (THREAD  : IdentMap.find tid (Configuration.threads PC) =
                     Some (existT _ lang state, local))
          (THREAD' : IdentMap.find tid PC'.(Configuration.threads) =
                     Some (existT _ lang state', local'))
          (TS  : ts  = Thread.mk lang state local
-                                PC.(Configuration.sc) PC.(Configuration.memory))
+                                (Configuration.sc PC) (Configuration.memory PC))
          (TS' : ts' = Thread.mk lang state' local'
                                 PC'.(Configuration.sc) PC'.(Configuration.memory)),
     rtc (Thread.tau_step (lang:=lang)) ts ts'.
@@ -321,7 +321,7 @@ Proof using PROG_EX RMWREX WF.
   intros x H.
   destruct H as [y RMW].
   assert (acts_set G x) as EX.
-  { apply (dom_l WF.(wf_rmwE)) in RMW.
+  { apply (dom_l (wf_rmwE WF)) in RMW.
     apply seq_eqv_l in RMW. desf. }
   rename PROG_EX into HH. destruct HH as [PROG_EX PEX].
   specialize (PROG_EX x EX).
@@ -336,16 +336,16 @@ Proof using PROG_EX RMWREX WF.
   apply PEX in PP. desc. subst.
   red in PP. desc.
   rewrite <- PEQ in *.
-  assert (acts_set s.(ProgToExecution.G) x) as SX.
-  { apply PP0.(tr_acts_set). by split. }
+  assert (acts_set (ProgToExecution.G s) x) as SX.
+  { apply (tr_acts_set PP0). by split. }
   unfold R_ex.
   assert (lab G x = lab (ProgToExecution.G s) x) as LL.
   { eapply lab_thread_eq_thread_restricted_lab; eauto. }
-  assert (s.(ProgToExecution.G).(rmw) x y) as SRMW.
-  { apply PP0.(tr_rmw).
+  assert ((ProgToExecution.G s).(rmw) x y) as SRMW.
+  { apply (tr_rmw PP0).
     simpls. apply seq_eqv_l; split; auto.
     apply seq_eqv_r. split; auto.
-    apply WF.(wf_rmwt) in RMW. symmetry. apply RMW. }
+    apply (wf_rmwt WF) in RMW. symmetry. apply RMW. }
   assert (dom_rmw_in_rex s) as YY.
   2: { specialize (YY x). rewrite LL.
        apply YY. by exists y. }
@@ -365,11 +365,11 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
   { by apply ext_init_trav_coherent. }
   { simpls. basic_solver. }
   { ins. split; intros [INIT GG]; exfalso.
-    { apply WF.(init_w) in INIT.
-      apply (dom_l WF.(wf_rmwD)) in RMW.
+    { apply (init_w WF) in INIT.
+      apply (dom_l (wf_rmwD WF)) in RMW.
       apply seq_eqv_l in RMW.
       type_solver. }
-    apply WF.(rmw_in_sb) in RMW.
+    apply (rmw_in_sb WF) in RMW.
     apply no_sb_to_init in RMW.
     apply seq_eqv_r in RMW. desf. }
   { ins.
@@ -413,7 +413,7 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
     destruct HH as [w [_ HH]].
     apply seq_eqv_r in HH. destruct HH as [HH [AA BB]].
     red in HH. destruct HH as [CC [HH _]]. subst.
-    apply WF.(init_w) in AA.
+    apply (init_w WF) in AA.
     type_solver. }
   { apply dom_rmw_in_R_ex. }
   { red. splits; ins.
@@ -472,7 +472,7 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
       destruct b.
       2: by inv II.
       unfold val in VAL.
-      rewrite WF.(wf_init_lab) in VAL.
+      rewrite (wf_init_lab WF) in VAL.
       inv VAL. }
     { red. splits; auto.
       { right. splits; auto. apply ISSB. }
@@ -521,7 +521,7 @@ Lemma sim_thread_covered_exists_terminal PC thread T S f_to f_from
                             (map fst (IdentMap.elements (Configuration.threads PC'))) ⟫ /\ 
     ⟪ TERMINAL  : thread_is_terminal PC'.(Configuration.threads) thread ⟫ /\
     ⟪ PTERMINAL :
-      forall thread' (TT : thread_is_terminal PC.(Configuration.threads) thread'),
+      forall thread' (TT : thread_is_terminal (Configuration.threads PC) thread'),
         thread_is_terminal PC'.(Configuration.threads) thread' ⟫.
 Proof using All.
   cdes SIMREL.
@@ -573,12 +573,12 @@ Proof using All.
     assert (covered T (ThreadEvent thread index)) as CC.
     { apply FINALT. split; auto.
       apply TEH in HH. apply HH. }
-    apply PCOV in CC. by apply GPC.(acts_clos). }
+    apply PCOV in CC. by apply (acts_clos GPC). }
   assert ((istep thread nil)＊ state state') as KK.
   { apply steps_same_E_empty_in; auto. }
   assert ((lts_step thread ProgramEvent.silent)＊ state state') as HH.
   { by hahn_rewrite <- istep_nil_eq_silent. }
-  assert (state'.(eindex) = state.(eindex)) as EII.
+  assert (state'.(eindex) = (eindex state)) as EII.
   { eapply steps_same_eindex; eauto. }
   rename STEPS into STEPSAA.
   rename HH into STEPS.
@@ -690,14 +690,14 @@ Lemma sim_covered_exists_terminal T S PC f_to f_from
 Proof using All.
   assert
     (exists l, 
-         length (filterP (fun x => ~ thread_is_terminal (PC.(Configuration.threads)) x)
-                   (map fst (IdentMap.elements PC.(Configuration.threads))))
+         length (filterP (fun x => ~ thread_is_terminal ((Configuration.threads PC)) x)
+                   (map fst (IdentMap.elements (Configuration.threads PC))))
          = l)
      as [l LL] by eauto.
   generalize dependent PC.
   induction l using (well_founded_ind lt_wf); ins; desf.
   destruct (classic (
-      forall x (ELEM: In x (IdentMap.elements PC.(Configuration.threads))), 
+      forall x (ELEM: In x (IdentMap.elements (Configuration.threads PC))), 
         Language.is_terminal (projT1 (fst (snd x))) (projT2 (fst (snd x))) /\
         Local.is_terminal (snd (snd x))
     )) as [Y|Y].
@@ -757,13 +757,13 @@ Proof using All.
     assert (is_init w) as II.
     2: { unfold val in VAL.
          destruct w; [|by desf].
-         rewrite WF.(wf_init_lab) in VAL.
+         rewrite (wf_init_lab WF) in VAL.
          inv VAL. }
     assert (issued T w) as WISS.
     { eapply w_covered_issued; eauto.
       split; auto. }
     assert (S w) as WS.
-    { by apply ETCCOH.(etc_I_in_S). }
+    { by apply (etc_I_in_S ETCCOH). }
     destruct (classic (is_init w)) as [|NINIT]; auto.
     exfalso.
     destruct (THREAD w) as [langst TT]; auto.
@@ -792,7 +792,7 @@ Proof using All.
   { assert (f_to w = Time.bot) as BB.
     { apply FCOH. by split. }
     destruct (classic (b = w)) as [|NEQ]; subst.
-    2: { edestruct WF.(wf_co_total) as [CO|CO]; eauto.
+    2: { edestruct (wf_co_total WF) as [CO|CO]; eauto.
          1,2: split; [split|]; auto.
          { apply TCCOH in ISS. apply ISS. }
          { by rewrite LOC. }
@@ -803,7 +803,7 @@ Proof using All.
     rewrite BB in *. rewrite <- TO in *.
     rewrite INHAB in AA. inv AA.
     destruct w; simpls.
-    unfold val in VAL. rewrite WF.(wf_init_lab) in VAL.
+    unfold val in VAL. rewrite (wf_init_lab WF) in VAL.
     inv VAL. }
   assert (IdentMap.In (tid w) (Configuration.threads PC)) as NN.
   { destruct (THREAD w); auto.
@@ -817,15 +817,15 @@ Proof using All.
   simpls. desc. clear H1.
   destruct (classic (b = w)) as [|NEQ]; subst.
   { rewrite <- TO in *. rewrite INMEM in AA. inv AA. }
-  edestruct WF.(wf_co_total) as [CO|CO]; eauto.
+  edestruct (wf_co_total WF) as [CO|CO]; eauto.
   1,2: split; [split|]; auto.
   { apply TCCOH in ISS. apply ISS. }
   { by rewrite LOC. }
   2: { exfalso. apply LAST. eauto. }
   assert (S b) as BS.
-  { by apply ETCCOH.(etc_I_in_S). }
+  { by apply (etc_I_in_S ETCCOH). }
   assert (S w) as WS.
-  { by apply ETCCOH.(etc_I_in_S). }
+  { by apply (etc_I_in_S ETCCOH). }
   eapply f_to_co_mon with (I:=S) in CO; eauto.
   apply Memory.max_ts_spec in INMEM.
   destruct INMEM as [_ CC].
@@ -959,7 +959,7 @@ Qed.
 
 Lemma simulation :
   exists T S PC f_to f_from,
-    ⟪ FINALT : G.(acts_set) ⊆₁ covered T ⟫ /\
+    ⟪ FINALT : (acts_set G) ⊆₁ covered T ⟫ /\
     ⟪ PSTEP  : conf_step＊ (conf_init prog) PC ⟫ /\
     ⟪ SIMREL : simrel G sc PC T S f_to f_from ⟫.
 Proof using All.

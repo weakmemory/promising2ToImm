@@ -26,38 +26,38 @@ Variable sc : relation actid.
 
 Notation "'Init'" := (fun a => is_true (is_init a)).
 
-Notation "'FE'" := Gf.(acts_set).
-Notation "'Facts'" := Gf.(acts).
-Notation "'Flab'" := Gf.(lab).
-Notation "'Fsb'" := Gf.(sb).
-Notation "'Frf'" := Gf.(rf).
-Notation "'Fco'" := Gf.(co).
-Notation "'Frmw'" := Gf.(rmw).
-Notation "'Fdata'" := Gf.(data).
-Notation "'Faddr'" := Gf.(addr).
-Notation "'Fctrl'" := Gf.(ctrl).
-Notation "'Fdeps'" := Gf.(deps).
-Notation "'Frmw_dep'" := Gf.(rmw_dep).
+Notation "'FE'" := (acts_set Gf).
+Notation "'Facts'" := (acts Gf).
+Notation "'Flab'" := (lab Gf).
+Notation "'Fsb'" := (sb Gf).
+Notation "'Frf'" := (rf Gf).
+Notation "'Fco'" := (co Gf).
+Notation "'Frmw'" := (rmw Gf).
+Notation "'Fdata'" := (data Gf).
+Notation "'Faddr'" := (addr Gf).
+Notation "'Fctrl'" := (ctrl Gf).
+Notation "'Fdeps'" := (deps Gf).
+Notation "'Frmw_dep'" := (rmw_dep Gf).
 
-Notation "'Ffre'" := Gf.(fre).
-Notation "'Frfe'" := Gf.(rfe).
-Notation "'Fcoe'" := Gf.(coe).
-Notation "'Frfi'" := Gf.(rfi).
-Notation "'Ffri'" := Gf.(fri).
-Notation "'Fcoi'" := Gf.(coi).
-Notation "'Ffr'" := Gf.(fr).
-Notation "'Feco'" := Gf.(eco).
-Notation "'Fdetour'" := Gf.(detour).
-Notation "'Fsw'" := Gf.(sw).
-Notation "'Frelease'" := Gf.(release).
-Notation "'Frs'" := Gf.(rs).
-Notation "'Fhb'" := Gf.(hb).
-Notation "'Fppo'" := Gf.(ppo).
-Notation "'Fbob'" := Gf.(bob).
-Notation "'Ffwbob'" := Gf.(fwbob).
-Notation "'Far'" := (Gf.(ar) sc).
-Notation "'Furr'" := (Gf.(urr) sc).
-Notation "'Fmsg_rel'" := (Gf.(msg_rel) sc).
+Notation "'Ffre'" := (fre Gf).
+Notation "'Frfe'" := (rfe Gf).
+Notation "'Fcoe'" := (coe Gf).
+Notation "'Frfi'" := (rfi Gf).
+Notation "'Ffri'" := (fri Gf).
+Notation "'Fcoi'" := (coi Gf).
+Notation "'Ffr'" := (fr Gf).
+Notation "'Feco'" := (eco Gf).
+Notation "'Fdetour'" := (detour Gf).
+Notation "'Fsw'" := (sw Gf).
+Notation "'Frelease'" := (release Gf).
+Notation "'Frs'" := (rs Gf).
+Notation "'Fhb'" := (hb Gf).
+Notation "'Fppo'" := (ppo Gf).
+Notation "'Fbob'" := (bob Gf).
+Notation "'Ffwbob'" := (fwbob Gf).
+Notation "'Far'" := ((ar Gf) sc).
+Notation "'Furr'" := ((urr Gf) sc).
+Notation "'Fmsg_rel'" := ((msg_rel Gf) sc).
 
 Notation "'Floc'" := (loc Flab).
 Notation "'Fval'" := (val Flab).
@@ -67,7 +67,7 @@ Notation "'FR'" := (fun a => is_true (is_r Flab a)).
 Notation "'FW'" := (fun a => is_true (is_w Flab a)).
 Notation "'FF'" := (fun a => is_true (is_f Flab a)).
 Notation "'FR_ex'" := (fun a => is_true (R_ex Flab a)).
-Notation "'FW_ex'" := Gf.(W_ex).
+Notation "'FW_ex'" := (W_ex Gf).
 Notation "'FW_ex_acq'" := (FW_ex ∩₁ (fun a => is_true (is_xacq Flab a))).
 
 Notation "'FLoc_' l" := (fun x => Floc x = Some l) (at level 1).
@@ -107,38 +107,38 @@ Definition E0 :=  C ∪₁ I ∪₁ dom_rel (Fsb^? ⨾ ⦗Tid_ thread ∩₁ S�
 Definition rstG := restrict Gf E0.
 Definition rst_sc := ⦗ E0 ⦘ ⨾ sc ⨾ ⦗ E0 ⦘.
 
-Notation "'E'" := rstG.(acts_set).
-Notation "'Gacts'" := rstG.(acts).
-Notation "'Glab'" := rstG.(lab).
-Notation "'Gsb'" := rstG.(sb).
-Notation "'Grf'" := rstG.(rf).
-Notation "'Gco'" := rstG.(co).
-Notation "'Grmw'" := rstG.(rmw).
-Notation "'Gdata'" := rstG.(data).
-Notation "'Gaddr'" := rstG.(addr).
-Notation "'Gctrl'" := rstG.(ctrl).
-Notation "'Gdeps'" := rstG.(deps).
-Notation "'Grmw_dep'" := rstG.(rmw_dep).
+Notation "'E'" := (acts_set rstG).
+Notation "'Gacts'" := (acts rstG).
+Notation "'Glab'" := (lab rstG).
+Notation "'Gsb'" := (sb rstG).
+Notation "'Grf'" := (rf rstG).
+Notation "'Gco'" := (co rstG).
+Notation "'Grmw'" := (rmw rstG).
+Notation "'Gdata'" := (data rstG).
+Notation "'Gaddr'" := (addr rstG).
+Notation "'Gctrl'" := (ctrl rstG).
+Notation "'Gdeps'" := (deps rstG).
+Notation "'Grmw_dep'" := (rmw_dep rstG).
 
-Notation "'Gfre'" := rstG.(fre).
-Notation "'Grfe'" := rstG.(rfe).
-Notation "'Gcoe'" := rstG.(coe).
-Notation "'Grfi'" := rstG.(rfi).
-Notation "'Gfri'" := rstG.(fri).
-Notation "'Gcoi'" := rstG.(coi).
-Notation "'Gfr'" := rstG.(fr).
-Notation "'Geco'" := rstG.(eco).
-Notation "'Gdetour'" := rstG.(detour).
-Notation "'Gsw'" := rstG.(sw).
-Notation "'Grelease'" := rstG.(release).
-Notation "'Grs'" := rstG.(rs).
-Notation "'Ghb'" := rstG.(hb).
-Notation "'Gppo'" := rstG.(ppo).
-Notation "'Gbob'" := rstG.(bob).
-Notation "'Gfwbob'" := rstG.(fwbob).
-Notation "'Gar'" := (rstG.(ar) rst_sc).
-Notation "'Gurr'" := (rstG.(urr) rst_sc).
-Notation "'Gmsg_rel'" := (rstG.(msg_rel) rst_sc).
+Notation "'Gfre'" := (fre rstG).
+Notation "'Grfe'" := (rfe rstG).
+Notation "'Gcoe'" := (coe rstG).
+Notation "'Grfi'" := (rfi rstG).
+Notation "'Gfri'" := (fri rstG).
+Notation "'Gcoi'" := (coi rstG).
+Notation "'Gfr'" := (fr rstG).
+Notation "'Geco'" := (eco rstG).
+Notation "'Gdetour'" := (detour rstG).
+Notation "'Gsw'" := (sw rstG).
+Notation "'Grelease'" := (release rstG).
+Notation "'Grs'" := (rs rstG).
+Notation "'Ghb'" := (hb rstG).
+Notation "'Gppo'" := (ppo rstG).
+Notation "'Gbob'" := (bob rstG).
+Notation "'Gfwbob'" := (fwbob rstG).
+Notation "'Gar'" := ((ar rstG) rst_sc).
+Notation "'Gurr'" := ((urr rstG) rst_sc).
+Notation "'Gmsg_rel'" := ((msg_rel rstG) rst_sc).
 
 Notation "'Gloc'" := (loc Glab).
 Notation "'Gval'" := (val Glab).
@@ -148,7 +148,7 @@ Notation "'R'" := (fun a => is_true (is_r Glab a)).
 Notation "'W'" := (fun a => is_true (is_w Glab a)).
 Notation "'F'" := (fun a => is_true (is_f Glab a)).
 Notation "'GR_ex'" := (fun a => is_true (R_ex Glab a)).
-Notation "'GW_ex'" := rstG.(W_ex).
+Notation "'GW_ex'" := (W_ex rstG).
 Notation "'GW_ex_acq'" := (GW_ex ∩₁ (fun a => is_true (is_xacq Glab a))).
 
 Notation "'Loc_' l" := (fun x => Gloc x = Some l) (at level 1).
@@ -168,7 +168,7 @@ Lemma E0_in_Gf : E0 ⊆₁ FE.
 Proof using WF ETCCOH.
   unfold E0.
   rewrite coveredE, issuedE; try apply TCCOH.
-  rewrite ETCCOH.(etc_S_in_E).
+  rewrite (etc_S_in_E ETCCOH).
   rewrite (dom_l (@wf_sbE Gf)).
   rewrite (dom_l (wf_rmwE WF)).
   basic_solver.
@@ -269,7 +269,7 @@ Proof using WF ETCCOH.
   { arewrite (⦗I⦘ ⊆ ⦗Tid_ thread ∩₁ I⦘ ∪ ⦗NTid_ thread ∩₁ I⦘).
     { by unfolder; ins; desf; tauto. }
     relsf; unionL; splits.
-    { rewrite (rmw_in_sb WF) at 1. rewrite ETCCOH.(etc_I_in_S) at 1. basic_solver 20. }
+    { rewrite (rmw_in_sb WF) at 1. rewrite (etc_I_in_S ETCCOH) at 1. basic_solver 20. }
     unionR right.
     unfolder; ins; desf; splits; eauto. }
   { rewrite dom_rel_eqv_dom_rel.
@@ -290,7 +290,7 @@ Qed.
 (*        clear. type_solver. } *)
 (*   { rewrite <- I_in_E. *)
 (*     rewrite (rmw_in_sb WF) at 1. *)
-(*     rewrite (dom_rel_helper TCCOH.(dom_sb_covered)). *)
+(*     rewrite (dom_rel_helper (dom_sb_covered TCCOH)). *)
 (*     arewrite (Frfe ⊆ Frf). rewrite <- !seqA. *)
 (*     rewrite (dom_rel_helper (dom_rf_covered WF TCCOH)). *)
 (*     clear. basic_solver. } *)
@@ -303,9 +303,9 @@ Qed.
 (*   { arewrite (S ⊆₁ FW ∩₁ S) at 1. *)
 (*     2: clear; basic_solver. *)
 (*     apply set_subset_inter_r. split; [|done]. apply (reservedW WF ETCCOH). } *)
-(*   sin_rewrite WF.(rmw_sb_cr_W_in_rppo). *)
+(*   sin_rewrite (rmw_sb_cr_W_in_rppo WF). *)
 (*   etransitivity. *)
-(*   2: by apply ETCCOH.(etc_rppo_S). *)
+(*   2: by apply (etc_rppo_S ETCCOH). *)
 (*   rewrite <- inclusion_id_rt. clear. basic_solver 20. *)
 (* Qed. *)
 
@@ -318,7 +318,7 @@ rewrite !id_union; relsf; unionL; splits.
 - arewrite (⦗I⦘ ⊆ ⦗Tid_ thread ∩₁ I⦘ ∪ ⦗NTid_ thread ∩₁ I⦘).
   by unfolder; ins; desf; tauto.
   relsf; unionL; splits.
-  { rewrite (rmw_in_sb WF) at 1. rewrite ETCCOH.(etc_I_in_S) at 1. basic_solver 20. }
+  { rewrite (rmw_in_sb WF) at 1. rewrite (etc_I_in_S ETCCOH) at 1. basic_solver 20. }
   unionR right.
   unfolder; ins; desf; splits; eauto.
 - rewrite dom_rel_eqv_dom_rel.
@@ -339,8 +339,8 @@ Proof using WF ETCCOH.
   rewrite !seq_union_r, dom_union.
   unionL.
   { unionR left -> right.
-    rewrite <- ETCCOH.(etc_I_in_S). unfold eissued; simpls.
-    rewrite WF.(rmw_in_sb). basic_solver 10. }
+    rewrite <- (etc_I_in_S ETCCOH). unfold eissued; simpls.
+    rewrite (rmw_in_sb WF). basic_solver 10. }
   unionR right.
   unfolder. ins. desf. splits; eauto.
 Qed.
@@ -468,7 +468,7 @@ Proof using thread WF ETCCOH RELCOV.
   rewrite id_union, seq_union_r, dom_union.
   unionL.
   { rewrite (reservedW WF ETCCOH). type_solver. }
-  generalize ETCCOH.(etc_F_sb_S), (dom_sb_covered TCCOH). unfold ecovered; simpls.
+  generalize (etc_F_sb_S ETCCOH), (dom_sb_covered TCCOH). unfold ecovered; simpls.
   basic_solver 21.
 Qed.
 
@@ -547,7 +547,7 @@ Proof using WF ETCCOH.
   clear RELCOV.
   arewrite (Frfe ⨾ (Frmw ⨾ Frfi)＊ ⊆ (Frfe ⨾ (Frmw ⨾ Frfi)＊) ⨾ ⦗R⦘).
   { apply codom_rel_helper.
-    rewrite (dom_r WF.(wf_rfiD)), (dom_r WF.(wf_rfeD)).
+    rewrite (dom_r (wf_rfiD WF)), (dom_r (wf_rfeD WF)).
     rewrite rtE. rewrite <- !seqA.
     rewrite inclusion_ct_seq_eqv_r.
     basic_solver. }
@@ -568,7 +568,7 @@ Proof using WF ETCCOH.
        { basic_solver. }
        rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel.
        rewrite rfe_in_rf, rfi_in_rf. rewrite !seqA.
-       rewrite (dom_l WF.(wf_rfD)) at 1. rewrite !seqA.
+       rewrite (dom_l (wf_rfD WF)) at 1. rewrite !seqA.
        seq_rewrite <- clos_trans_rotl.
        arewrite (Frf ⨾ Frmw ⊆ Far ∪ Frf ⨾ Frmw).
        apply (ar_rfrmw_ct_I_in_I WF TCCOH). }
@@ -581,7 +581,7 @@ Proof using WF ETCCOH.
   rewrite set_interC.
   rewrite id_inter. rewrite <- !seqA.
   rewrite dom_rel_eqv_dom_rel.
-  generalize ETCCOH.(etc_dr_R_acq_I).
+  generalize (etc_dr_R_acq_I ETCCOH).
   unfold eissued. simpls.
   basic_solver 40.
 Qed.
@@ -617,7 +617,7 @@ Proof using WF ETCCOH.
   unionL.
   { rewrite (reservedW WF ETCCOH). type_solver. }
   arewrite (Tid_ thread ∩₁ S ⊆₁ S) by basic_solver.
-  sin_rewrite (dom_rel_helper ETCCOH.(etc_F_sb_S)).
+  sin_rewrite (dom_rel_helper (etc_F_sb_S ETCCOH)).
   unfold ecovered. simpls.
   generalize (dom_rf_covered WF TCCOH) (dom_sb_covered TCCOH).
   ie_unfolder; basic_solver 21.
@@ -794,9 +794,9 @@ Proof using WF ETCCOH RELCOV RMWCOV.
   unionL.
   { rewrite <- C_in_E. unfolder. ins. desf.
     eapply RMWCOV with (r:=x0); eauto. }
-  { rewrite TCCOH.(issuedW).
-    rewrite WF.(wf_rmwD). type_solver. }
-  { rewrite (dom_l WF.(wf_rmwD)).
+  { rewrite (issuedW TCCOH).
+    rewrite (wf_rmwD WF). type_solver. }
+  { rewrite (dom_l (wf_rmwD WF)).
     unfolder. ins. desf.
     { subst x0 z. 
       match goal with
@@ -805,7 +805,7 @@ Proof using WF ETCCOH RELCOV RMWCOV.
       type_solver. }
     subst z.
     assert (Fsb^? x y) as [|SB]; try subst x.
-    { apply WF.(transp_rmw_sb). eexists; eauto. }
+    { apply (transp_rmw_sb WF). eexists; eauto. }
     { apply tid_S_in_E. by split. }
     apply dom_sb_TS_in_E. basic_solver 10. }
   unfolder. ins. desf.
@@ -918,14 +918,14 @@ Lemma E_to_S: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘).
 Proof using WF ETCCOH.
   rewrite E_E0. unfold E0. unionL.
   { basic_solver. }
-  { rewrite ETCCOH.(etc_I_in_S); simpls.
+  { rewrite (etc_I_in_S ETCCOH); simpls.
     basic_solver 10. }
   all: unionR right; rewrite (sub_sb SUB).
   { rewrite <- dom_sb_S_tid_in_E.
     unfolder. ins. desf; eauto 20. }
   erewrite <- inclusion_step_cr; [|reflexivity].
   rewrite <- I_in_E at 2.
-  rewrite <- ETCCOH.(etc_I_in_S). unfold eissued; simpls.
+  rewrite <- (etc_I_in_S ETCCOH). unfold eissued; simpls.
   rewrite <- dom_rmw_ntid_I_in_E.
   unfolder. ins. desf. eexists. splits; eauto 10.
     by apply (rmw_in_sb WF).
@@ -938,7 +938,7 @@ Proof using WF ETCCOH.
   rewrite (sub_sb_in SUB).
   unfolder; ins; desf.
   { apply (reservedW WF ETCCOH) in H2. type_solver. }
-  generalize ETCCOH.(etc_F_sb_S). unfold ecovered. simpls.
+  generalize (etc_F_sb_S ETCCOH). unfold ecovered. simpls.
   basic_solver 21.
 Qed.
 
@@ -953,7 +953,7 @@ Lemma COMP_RMWRFI_ACQ :
   dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 Proof using WF ETCCOH IMMCON.
   assert (dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ E ∩₁ R) as AA.
-  { rewrite rtE. rewrite (dom_l rstWF.(wf_rmwE)), (dom_l rstWF.(wf_rmwD)).
+  { rewrite rtE. rewrite (dom_l (wf_rmwE rstWF)), (dom_l (wf_rmwD rstWF)).
     rewrite !seqA. clear. rewrite !inclusion_ct_seq_eqv_l. basic_solver 10. }
   rewrite (dom_rel_helper AA).
   intros r IN.
@@ -1065,7 +1065,7 @@ Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
   hahn_rewrite rfi_union_rfe in x1; unfolder in x1; desf.
   { eapply rfi_E. basic_solver 21. }
   eapply I_in_E.
-  apply ETCCOH.(etc_rppo_S). simpls.
+  apply (etc_rppo_S ETCCOH). simpls.
   basic_solver 21.
 Qed.
 
@@ -1157,10 +1157,10 @@ Qed.
 Lemma dom_rfe_rmw_ct_rfi_Acq_in_I :
   dom_rel (Grfe ⨾ Grmw ⨾ (Grfi ⨾ Grmw)＊ ⨾ Grfi ⨾ ⦗Acq⦘) ⊆₁ I.
 Proof using All.
-  rewrite (dom_r rstWF.(wf_rfiE)) at 2. rewrite !seqA. rewrite seq_eqvC.
+  rewrite (dom_r (wf_rfiE rstWF)) at 2. rewrite !seqA. rewrite seq_eqvC.
   rewrite E_E0. unfold E0.
   rewrite !id_union, !seq_union_r, !dom_union. unionL.
-  { rewrite rstWF.(rmw_in_sb). arewrite (Grfi ⊆ Gsb).
+  { rewrite (rmw_in_sb rstWF). arewrite (Grfi ⊆ Gsb).
     arewrite (Gsb ⨾ (Gsb ⨾ Gsb)＊ ⨾ Gsb ⨾ ⦗Acq⦘ ⊆ Gsb).
     { generalize (@sb_trans rstG). ins. relsf. basic_solver. }
     rewrite (sub_rfe_in SUB).
@@ -1171,7 +1171,7 @@ Proof using All.
     sin_rewrite (dom_rel_helper (dom_rf_covered WF TCCOH)).
     basic_solver. }
   { rewrite (issuedW TCCOH) at 1. 
-    rewrite rstWF.(wf_rfiD) at 2. rewrite (sub_R SUB).
+    rewrite (wf_rfiD rstWF) at 2. rewrite (sub_R SUB).
     type_solver. }
   { rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel. rewrite !seqA.
     rewrite (sub_rfe_in SUB).
@@ -1191,9 +1191,9 @@ Proof using All.
     rewrite rmw_W_ex. rewrite rtE. rewrite <- !seqA.
     rewrite inclusion_ct_seq_eqv_r. basic_solver. }
   arewrite (⦗FW_ex⦘ ⊆ ⦗FW⦘ ⨾ ⦗FW_ex⦘).
-  { generalize WF.(W_ex_in_W). basic_solver. }
+  { generalize (W_ex_in_W WF). basic_solver. }
   arewrite (Frmw ⨾ (Frfi ⨾ Frmw)＊ ⨾ ⦗W⦘ ⊆ Fppo).
-  { rewrite (dom_l WF.(wf_rmwD)) at 1.
+  { rewrite (dom_l (wf_rmwD WF)) at 1.
     rewrite seqA. unfold ppo. hahn_frame.
     rewrite ct_begin. apply seq_mori; [eauto with hahn|].
     rewrite <- rt_of_ct with
@@ -1203,10 +1203,10 @@ Proof using All.
     rewrite <- ct_ct, <- ct_step.
     apply seq_mori; eauto with hahn. }
   arewrite (⦗FW_ex⦘ ⨾ Frfi ⨾ ⦗FAcq⦘ ⊆ ar_int Gf).
-  { unfold ar_int. unionR right. rewrite WF.(wf_rfiD) at 1. basic_solver 10. }
-  rewrite WF.(rmw_in_ppo).
+  { unfold ar_int. unionR right. rewrite (wf_rfiD WF) at 1. basic_solver 10. }
+  rewrite (rmw_in_ppo WF).
   rewrite ppo_in_ar_int.
-  rewrite (dom_l WF.(wf_rfeD)).
+  rewrite (dom_l (wf_rfeD WF)).
   rewrite rfe_in_ar with (sc:=sc).
   arewrite (ar_int Gf ⊆ Far).
   arewrite (Far ⨾ Far ⨾ Far ⨾ Far ⊆ Far⁺).
@@ -1428,7 +1428,7 @@ Proof using WF ETCCOH.
     rewrite !seq_union_r, dom_union.
     unionL.
     { rewrite (reservedW WF ETCCOH). type_solver. }
-    rewrite <- ETCCOH.(etc_dr_R_acq_I).
+    rewrite <- (etc_dr_R_acq_I ETCCOH).
     rewrite rtE.
     basic_solver 20. }
   rewrite (rmw_in_ppo WF).
@@ -1553,22 +1553,22 @@ Qed.
 (*   GW_ex ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread. *)
 (* Proof using. *)
 (*   unfold W_ex. *)
-(*   rewrite (dom_l WF_rst.(wf_rmwE)). *)
-(*   rewrite (dom_r WF_rst.(wf_rmwD)). *)
+(*   rewrite (dom_l (wf_rmwE WF_rst)). *)
+(*   rewrite (dom_r (wf_rmwD WF_rst)). *)
 (*   rewrite E_to_S. rewrite id_union, !seq_union_l, codom_union. *)
 (*   unionL. *)
 (*   { unionR left. rewrite <- w_covered_issued; eauto. *)
 (*     2: by apply TCCOH. *)
-(*     rewrite SUB.(sub_W). rewrite SUB.(sub_rmw_in). *)
+(*     rewrite (sub_W SUB). rewrite (sub_rmw_in SUB). *)
 (*     clear -RMWCOV. *)
 (*     unfolder. ins. desf. split; auto. by apply RMWCOV with (r:=x0) (w:=x). } *)
 (*   arewrite (⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⨾ Grmw ⊆ ⦗dom_rel (Gsb ⨾ ⦗S⦘)⦘ ⨾ Grmw). *)
 (*   { rewrite crE. rewrite seq_union_l, dom_union, id_union. *)
 (*     rewrite seq_union_l. unionL; [|done]. *)
 (*     transitivity (fun (x y : actid) => False); [|clear; basic_solver]. *)
-(*     rewrite (reservedW WF ETCCOH). rewrite SUB.(sub_rmw_in). *)
-(*     rewrite WF.(wf_rmwD). type_solver. } *)
-(*   rewrite SUB.(sub_rmw). rewrite SUB.(sub_sb_in). *)
+(*     rewrite (reservedW WF ETCCOH). rewrite (sub_rmw_in SUB). *)
+(*     rewrite (wf_rmwD WF). type_solver. } *)
+(*   rewrite (sub_rmw SUB). rewrite (sub_sb_in SUB). *)
 (*   intros x [y HH]. *)
 (*   apply seq_eqv_l in HH. destruct HH as [AA HH]. *)
 (*   apply seq_eqv_r in HH. destruct HH as [HH BB]. *)
@@ -1576,15 +1576,15 @@ Qed.
 (*   assert (SBYX : Fsb y x) by (by apply rmw_in_sb). *)
 (*   destruct AA as [z AA]. apply seq_eqv_r in AA. destruct AA as [SBYZ SZ]. *)
   
-(*   apply WF.(wf_rmwE) in RMW. apply seq_eqv_lr in RMW. destruct RMW as [FEY [RMW FEX]]. *)
-(*   apply WF.(wf_rmwD) in RMW. apply seq_eqv_lr in RMW. destruct RMW as [FRY [RMW FWX]]. *)
+(*   apply (wf_rmwE WF) in RMW. apply seq_eqv_lr in RMW. destruct RMW as [FEY [RMW FEX]]. *)
+(*   apply (wf_rmwD WF) in RMW. apply seq_eqv_lr in RMW. destruct RMW as [FRY [RMW FWX]]. *)
   
 (*   destruct (classic (C x)) as [CX|NCX]. *)
-(*   { left. apply TCCOH.(w_covered_issued). split; auto. } *)
+(*   { left. apply (w_covered_issued TCCOH). split; auto. } *)
 (*   assert (~ is_init x) as NINITX. *)
-(*   { intros HH. apply NCX. apply TCCOH.(init_covered). by split. } *)
+(*   { intros HH. apply NCX. apply (init_covered TCCOH). by split. } *)
 (*   assert (~ is_init y) as NINITY. *)
-(*   { intros HH. apply WF.(init_w) in HH. type_solver. } *)
+(*   { intros HH. apply (init_w WF) in HH. type_solver. } *)
 
 (*   enough (S x) as SX. *)
 (*   { apply E_E0 in EX. red in EX. *)
@@ -1594,12 +1594,12 @@ Qed.
 (*     { right. split; auto. *)
 (*       eapply ninit_sb_same_tid. *)
 (*       apply seq_eqv_l. split; eauto. } *)
-(*     apply (dom_l WF.(wf_rmwD)) in EX. apply seq_eqv_l in EX. *)
+(*     apply (dom_l (wf_rmwD WF)) in EX. apply seq_eqv_l in EX. *)
 (*     type_solver 10. } *)
 (*   destruct (classic (x = z)) as [|NEQ]; subst; auto. *)
 (*   eapply sb_semi_total_l with (x:=y) in NEQ; eauto. *)
 (*   destruct NEQ as [SB|SB]. *)
-(*   2: { exfalso. eapply WF.(wf_rmwi) with (c:=z); eauto. } *)
+(*   2: { exfalso. eapply (wf_rmwi WF) with (c:=z); eauto. } *)
 (*   (* eapply ETCCOH. *) *)
 (* Admitted. *)
 

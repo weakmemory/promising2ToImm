@@ -41,26 +41,26 @@ Variable WF : Wf G.
 Variable sc : relation actid.
 Variable CON : imm_consistent G sc.
 
-Notation "'E'" := G.(acts_set).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'co'" := G.(co).
-Notation "'rmw'" := G.(rmw).
-Notation "'data'" := G.(data).
-Notation "'addr'" := G.(addr).
-Notation "'ctrl'" := G.(ctrl).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
 
-Notation "'fr'" := G.(fr).
-Notation "'coe'" := G.(coe).
-Notation "'coi'" := G.(coi).
-Notation "'deps'" := G.(deps).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'detour'" := G.(detour).
-Notation "'hb'" := G.(hb).
-Notation "'sw'" := G.(sw).
+Notation "'fr'" := (fr G).
+Notation "'coe'" := (coe G).
+Notation "'coi'" := (coi G).
+Notation "'deps'" := (deps G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'detour'" := (detour G).
+Notation "'hb'" := (hb G).
+Notation "'sw'" := (sw G).
 
-Notation "'lab'" := G.(lab).
+Notation "'lab'" := (lab G).
 
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
@@ -78,7 +78,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
-Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Lemma issue_rel_step_next PC T S f_to f_from thread w wnext smode
@@ -143,7 +143,7 @@ Proof using WF CON.
   simpls; desf.
 
   set (rel'' := TView.cur (Local.tview local)).
-  set (rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
+  set (rel' := (View.join (View.join rel'' (View.unwrap p_rel))
                           (View.singleton_ur locw (f_to' w)))).
 
   assert (p_rel = None); subst.
@@ -164,14 +164,14 @@ Proof using WF CON.
 
   apply clos_rt_rt1n in ESTEPS.
   eapply (rtc_lang_tau_step_rtc_thread_tau_step
-            _ _ _ local PC.(Configuration.sc) PC.(Configuration.memory)) in ESTEPS.
+            _ _ _ local (Configuration.sc PC) (Configuration.memory PC)) in ESTEPS.
 
   assert (exists ex ordw, lab w = Astore ex ordw locw valw) as PARAMS; desf.
   { unfold is_w in WW. unfold loc in WLOC. unfold val in WVAL.
     destruct (lab w); desf; eauto. }
 
   assert (~ dom_rel rmw w) as NNRMW.
-  { intros [x RMW]. apply (dom_l WF.(wf_rmwD)) in RMW.
+  { intros [x RMW]. apply (dom_l (wf_rmwD WF)) in RMW.
     apply seq_eqv_l in RMW. type_solver. }
 
   assert (Event_imm_promise.same_g_events lab (w :: nil) ev) as SAME.
@@ -336,7 +336,7 @@ Proof using WF CON.
         exfalso.
         apply COVWB; left.
         apply NEXTCOV. eexists; apply seq_eqv_r; eauto.
-        2: by do 2 left; apply TCCOH.(etc_I_in_S).
+        2: by do 2 left; apply (etc_I_in_S TCCOH).
         clear. basic_solver. }
       desc. exists p_rel.
       destruct (classic (l = locw)) as [|LL]; subst.
@@ -354,7 +354,7 @@ Proof using WF CON.
         enough (Some locw = Some l) as HH.
         { inv HH. }
         rewrite <- LOC, <- WLOC.
-        eapply WF.(wf_rfrmwl). eexists; eauto. }
+        eapply (wf_rfrmwl WF). eexists; eauto. }
       exists p. splits; eauto.
       { red; eauto. }
       exists p_v. split; auto. rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }

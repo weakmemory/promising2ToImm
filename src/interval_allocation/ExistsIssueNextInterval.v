@@ -35,21 +35,21 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 
-Notation "'acts'" := G.(acts).
-Notation "'co'" := G.(co).
-Notation "'sw'" := G.(sw).
-Notation "'hb'" := G.(hb).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'rmw'" := G.(rmw).
-Notation "'lab'" := G.(lab).
+Notation "'acts'" := (acts G).
+Notation "'co'" := (co G).
+Notation "'sw'" := (sw G).
+Notation "'hb'" := (hb G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'rmw'" := (rmw G).
+Notation "'lab'" := (lab G).
 Notation "'msg_rel'" := (msg_rel G sc).
 Notation "'urr'" := (urr G sc).
-Notation "'release'" := G.(release).
+Notation "'release'" := (release G).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
@@ -84,10 +84,10 @@ Variable thread : thread_id.
 Variable PC : Configuration.t.
 Variable local : Local.t.
 
-Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread.
-Hypothesis INHAB : Memory.inhabited PC.(Configuration.memory).
-Hypothesis PLN_RLX_EQ : pln_rlx_eq local.(Local.tview).
-Hypothesis MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory).
+Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) thread.
+Hypothesis INHAB : Memory.inhabited (Configuration.memory PC).
+Hypothesis PLN_RLX_EQ : pln_rlx_eq (Local.tview local).
+Hypothesis MEM_CLOSE : memory_close (Local.tview local) (Configuration.memory PC).
 
 Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
       (ISSUABLE : issuable G sc T w)
@@ -99,23 +99,23 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
       (WTID : thread = tid w)
       (PROM_IN_MEM :
          forall thread' langst local
-                (TID : IdentMap.find thread' PC.(Configuration.threads) =
+                (TID : IdentMap.find thread' (Configuration.threads PC) =
                        Some (langst, local)),
-           Memory.le local.(Local.promises) PC.(Configuration.memory))
+           Memory.le (Local.promises local) (Configuration.memory PC))
       (RESERVED_TIME:
-         reserved_time G T S f_to f_from smode PC.(Configuration.memory))
+         reserved_time G T S f_to f_from smode (Configuration.memory PC))
       (SIM_RES_MEM :
          sim_res_mem G T S f_to f_from (tid w) local (Configuration.memory PC))
       (SIM_MEM : sim_mem G sc T f_to f_from
-                         (tid w) local PC.(Configuration.memory))
-      (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local))
+                         (tid w) local (Configuration.memory PC))
+      (TID : IdentMap.find (tid w) (Configuration.threads PC) = Some (langst, local))
       (RMWREX : dom_rel rmw ⊆₁ R_ex lab) :
-  let promises := local.(Local.promises) in
-  let memory   := PC.(Configuration.memory) in
+  let promises := (Local.promises local) in
+  let memory   := (Configuration.memory PC) in
   let T'       := mkTC (covered T) (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists p_rel,
-    rfrmw_prev_rel G sc T f_to f_from PC.(Configuration.memory) w locw p_rel /\
+    rfrmw_prev_rel G sc T f_to f_from (Configuration.memory PC) w locw p_rel /\
     ⟪ FOR_ISSUE :
          exists f_to' f_from',
            let rel'' :=
@@ -123,7 +123,7 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
                then (TView.cur (Local.tview local))
                else (TView.rel (Local.tview local) locw)
            in
-           let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
+           let rel' := (View.join (View.join rel'' (View.unwrap p_rel))
                                   (View.singleton_ur locw (f_to' w))) in
            ⟪ RELWFEQ : View.pln rel' = View.rlx rel' ⟫ /\
            ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
@@ -148,7 +148,7 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
 
            exists promises_add memory_add promises_rel promises' memory',
              ⟪ PADD :
-                 Memory.add local.(Local.promises) locw (f_from' w) (f_to' w)
+                 Memory.add (Local.promises local) locw (f_from' w) (f_to' w)
                             (Message.full valw (Some rel')) promises_add ⟫ /\
              ⟪ MADD :
                  Memory.add memory locw (f_from' w) (f_to' w)
@@ -178,7 +178,7 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
                    (View.join (View.join (if is_rel lab w
                                           then (TView.cur (Local.tview local))
                                           else (TView.rel (Local.tview local) locw))
-                                         p_rel.(View.unwrap))
+                                         (View.unwrap p_rel))
                               (View.singleton_ur locw (f_to' w))) ⟫ /\
 
              ⟪ RESERVED_TIME :
@@ -197,7 +197,7 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
 (*                then (TView.cur (Local.tview local)) *)
 (*                else (TView.rel (Local.tview local) locw) *)
 (*            in *)
-(*            let rel' := (View.join (View.join rel'' p_rel.(View.unwrap)) *)
+(*            let rel' := (View.join (View.join rel'' (View.unwrap p_rel)) *)
 (*                                   (View.singleton_ur locw (f_to' w))) in *)
 (*            ⟪ WSISS  : S ws ⟫ /\ *)
 (*            ⟪ WSNCOV : ~ covered T ws ⟫ /\ *)
@@ -254,7 +254,7 @@ Lemma exists_time_interval_for_issue_next w wnext locw valw langst smode
 (*                    (View.join (View.join (if is_rel lab w *)
 (*                                           then (TView.cur (Local.tview local)) *)
 (*                                           else (TView.rel (Local.tview local) locw)) *)
-(*                                          p_rel.(View.unwrap)) *)
+(*                                          (View.unwrap p_rel)) *)
 (*                               (View.singleton_ur locw (f_to' w))) ⟫ /\ *)
 
 (*              ⟪ RESERVED_TIME : *)
@@ -284,7 +284,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
   forward (eapply dom_sb_S_rfrmw_single_props with (w:=w) (wnext:=wnext)); eauto.
   intros HH. desc.
   assert (w <> wnext) as WNEXTNEQ.
-  { intros HH. subst. eapply WF.(co_irr); eauto. }
+  { intros HH. subst. eapply (co_irr WF); eauto. }
 
   assert ((E ∩₁ W ∩₁ Loc_ locw) w) as WEW.
   { split; [split|]; auto. }
@@ -316,7 +316,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
   assert (wprev <> wnext) as NEQCONEXTP by (by intros HH; subst).
   assert (co wprev wnext) as WNEXTCOPREV.
-  { eapply WF.(co_trans) with (y:=w); eauto. }
+  { eapply (co_trans WF) with (y:=w); eauto. }
   assert (immediate (⦗S⦘ ⨾ co) wprev wnext) as PREVNEXTCOIMM.
   (* TODO: make a lemma. *)
   { split.
@@ -324,10 +324,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     ins.
     destruct_seq_l R1 as AA. destruct_seq_l R2 as BB.
     eapply PCOIMM with (c:=c); apply seq_eqv_l; split; auto.
-    edestruct WF.(wf_co_total) with (a:=c) (b:=w) as [|HH]; eauto.
-    { apply (dom_l WF.(wf_coE)) in R2. destruct_seq_l R2 as CE.
-      apply (dom_l WF.(wf_coD)) in R2. destruct_seq_l R2 as CD.
-      split; [split|]; auto. rewrite <- WNEXTLOC. by apply WF.(wf_col). }
+    edestruct (wf_co_total WF) with (a:=c) (b:=w) as [|HH]; eauto.
+    { apply (dom_l (wf_coE WF)) in R2. destruct_seq_l R2 as CE.
+      apply (dom_l (wf_coD WF)) in R2. destruct_seq_l R2 as CD.
+      split; [split|]; auto. rewrite <- WNEXTLOC. by apply (wf_col WF). }
     { by intros HH; subst. }
     exfalso. eapply rf_rmw_in_coimm; eauto. }
 
@@ -346,7 +346,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     assert ((co ⨾ ⦗set_compl S⦘ ⨾ co) wprev wconext) as CONS.
     { exists w. split; auto. apply seq_eqv_l. by split. }
     assert (co wprev wconext) as COPN.
-    { eapply WF.(co_trans) with (y:=w); eauto. }
+    { eapply (co_trans WF) with (y:=w); eauto. }
 
     assert (immediate (⦗S⦘ ⨾ co ⨾ ⦗S⦘) wprev wconext) as COSIMM.
     { apply P_co_nP_co_P_imm; auto.
@@ -360,7 +360,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     
     assert (wconext <> wnext) as NEQCONEXT by (by intros HH; subst).
     assert (co wnext wconext) as WNEXTCONEXT.
-    { edestruct WF.(wf_co_total) with (a:=wnext) (b:=wconext) as [|HH]; eauto.
+    { edestruct (wf_co_total WF) with (a:=wnext) (b:=wconext) as [|HH]; eauto.
       { split; [split|]; eauto. }
       exfalso. eapply rf_rmw_in_coimm; eauto. }
 
@@ -371,7 +371,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       ins.
       destruct_seq_r R1 as AA. destruct_seq_r R2 as BB.
       eapply NCOIMM with (c:=c); apply seq_eqv_r; split; auto.
-      eapply WF.(co_trans) with (y:=wnext); auto. }
+      eapply (co_trans WF) with (y:=wnext); auto. }
 
     assert (issued T wconext /\ ~ W_ex wconext) as [WSISS NWEXCONEXT].
     { eapply codom_nS_imm_co_S_in_I with (T:=mkETC T S); eauto.
@@ -406,7 +406,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
              { red in HH. desf. }
              apply ct_end in RFRMW. destruct RFRMW as [z [RFRMW AA]].
              assert (z = w); subst.
-             { eapply WF.(wf_rfirmwf); eauto. }
+             { eapply (wf_rfirmwf WF); eauto. }
              apply rtE in RFRMW. destruct RFRMW as [HH|RFRMW].
              { red in HH. desf. }
              apply NWEX. red.
@@ -423,20 +423,20 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            assert (co cs wconext) as COCSWCONEXT.
            { apply rf_rmw_rt_in_co in RFRMWS; auto.
              apply rewrite_trans_seq_cr_l.
-             { apply WF.(co_trans). }
+             { apply (co_trans WF). }
              eexists; eauto. }
            assert (cs <> w) as NEQCS.
            { intros HH. by subst. }
-           apply (dom_l WF.(wf_coD)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as WCS.
-           apply (dom_l WF.(wf_coE)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as ECS.
+           apply (dom_l (wf_coD WF)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as WCS.
+           apply (dom_l (wf_coE WF)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as ECS.
            assert (loc lab cs = Some locw) as CSLOC.
-           { rewrite <- LOCNEXT. by apply WF.(wf_col). }
-           edestruct WF.(wf_co_total) with (a:=w) (b:=cs) as [COCSW|COWCS]; eauto.
+           { rewrite <- LOCNEXT. by apply (wf_col WF). }
+           edestruct (wf_co_total WF) with (a:=w) (b:=cs) as [COCSW|COWCS]; eauto.
            { unfolder. by splits. }
            { apply NCOIMM with (c:=cs); basic_solver. }
            
            assert (co w c) as COWC'.
-           { eapply WF.(co_trans) with (y:=wnext); eauto. }
+           { eapply (co_trans WF) with (y:=wnext); eauto. }
            
            assert (co^? w cs) as AA.
            { eapply n_Wex_co_rf_rmw_rt_transp_in_co_cr; eauto.
@@ -444,7 +444,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
              exists c. split; auto. }
 
            destruct AA as [|AA]; desf.
-           eapply WF.(co_irr). eapply WF.(co_trans); eauto. }
+           eapply (co_irr WF). eapply (co_trans WF); eauto. }
 
          exfalso. apply WNISS. eapply rf_ppo_loc_I_in_I; eauto.
          exists wconext. apply seqA. apply seq_eqv_r. split; auto.
@@ -507,7 +507,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          (* set (f_from' := upd (upd (upd f_from w (f_from wconext)) wnext n_to) wconext nn_to). *)
 
          (* set (rel' := View.join *)
-         (*                (View.join rel'' p_rel.(View.unwrap)) *)
+         (*                (View.join rel'' (View.unwrap p_rel)) *)
          (*                (View.singleton_ur locw (f_to' w))). *)
          (* assert (View.opt_wf (Some rel')) as RELWF. *)
          (* { apply View.opt_wf_some. *)
@@ -544,7 +544,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          (*     do 2 (rewrite updo; auto; try by intros HH; subst). *)
          (*       by apply FCOH. } *)
          (*   { assert (x <> y) as HXY. *)
-         (*     { by intros HH; subst; apply WF.(co_irr) in H1. } *)
+         (*     { by intros HH; subst; apply (co_irr WF) in H1. } *)
          (*     destruct H as [[H|]|H]; destruct H0 as [[H0|]|H0]; subst. *)
          (*     all: try (rewrite !upds). *)
          (*     all: try repeat (rewrite updo; [|by intros HH; subst]). *)
@@ -564,7 +564,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          (*     all: try by (Time.le_lteq; eauto). *)
          (*     all: try by *)
          (*         match goal with  *)
-         (*         | H : co ?X ?X |- _ => exfalso; eapply WF.(co_irr); eauto *)
+         (*         | H : co ?X ?X |- _ => exfalso; eapply (co_irr WF); eauto *)
          (*         end. *)
          (*     { destruct (classic (y = wconext)) as [|NEQ]; subst; *)
          (*         [rewrite upds | rewrite updo; auto]. *)
@@ -575,7 +575,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          (*       unfold n_to. *)
          (*       eapply TimeFacts.le_lt_lt with (b:=f_from wconext); auto. *)
          (*         by apply FCOH. } *)
-         (*     { apply FCOH; auto. eapply WF.(co_trans); eauto. } *)
+         (*     { apply FCOH; auto. eapply (co_trans WF); eauto. } *)
          (*     { assert (co^? x wprev) as [|COX]; subst; auto. *)
          (*       { eapply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto. *)
          (*         exists wnext. split; auto.  *)
@@ -588,7 +588,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          (*         apply seq_eqv_r. by split. } *)
          (*       { rewrite upds. apply Time.le_lteq; eauto. } *)
          (*       assert (y <> wconext). *)
-         (*       { intros HH. subst. eapply WF.(co_irr). eauto. } *)
+         (*       { intros HH. subst. eapply (co_irr WF). eauto. } *)
          (*       repeat (rewrite updo; [|by intros HH; subst]). *)
          (*       transitivity (f_to wconext); auto. *)
          (*       2: by apply FCOH. *)
@@ -599,12 +599,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          (*         apply seq_eqv_r. by split. } *)
          (*       { rewrite upds. apply Time.le_lteq; eauto. } *)
          (*       assert (y <> wconext). *)
-         (*       { intros HH. subst. eapply WF.(co_irr). eauto. } *)
+         (*       { intros HH. subst. eapply (co_irr WF). eauto. } *)
          (*       repeat (rewrite updo; [|by intros HH; subst]). *)
          (*       transitivity (f_to wconext); auto. *)
          (*       2: by apply FCOH. *)
          (*       apply Time.le_lteq; eauto. } *)
-         (*     exfalso. eapply WF.(co_irr). eapply WF.(co_trans); eauto. } *)
+         (*     exfalso. eapply (co_irr WF). eapply (co_trans WF); eauto. } *)
          (*   destruct H0 as [[H0|]|H0]; subst. *)
          (*   3: { assert (y = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst. *)
          (*        assert (x = w) by (eapply wf_rfrmwf; eauto); subst. *)
@@ -623,10 +623,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          (*   exfalso.  *)
          (*   assert (co x wconext) as AA by (by apply rf_rmw_in_co). *)
          (*   apply NCOIMM with (c:=x); apply seq_eqv_r; split; auto. *)
-         (*   edestruct WF.(wf_co_total) with (a:=w) (b:=x) as [|HH]; eauto. *)
-         (*   { apply (dom_l WF.(wf_coE)) in AA. destruct_seq_l AA as CE. *)
-         (*     apply (dom_l WF.(wf_coD)) in AA. destruct_seq_l AA as CD. *)
-         (*     split; [split|]; auto. rewrite <- LOCNEXT. by apply WF.(wf_col). } *)
+         (*   edestruct (wf_co_total WF) with (a:=w) (b:=x) as [|HH]; eauto. *)
+         (*   { apply (dom_l (wf_coE WF)) in AA. destruct_seq_l AA as CE. *)
+         (*     apply (dom_l (wf_coD WF)) in AA. destruct_seq_l AA as CD. *)
+         (*     split; [split|]; auto. rewrite <- LOCNEXT. by apply (wf_col WF). } *)
          (*   { by intros HH; subst. } *)
          (*   exfalso. eapply rf_rmw_in_coimm; eauto. } *)
 
@@ -864,7 +864,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       assert (co^? x wprev) as COX; subst; auto.
       { eapply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
         exists wnext. split; auto. 
-        apply seq_eqv_l. split; auto. eapply WF.(co_trans); eauto. }
+        apply seq_eqv_l. split; auto. eapply (co_trans WF); eauto. }
       assert (Time.le (f_to x) (f_to wprev)) as LEA.
       { destruct COX; subst; [reflexivity|].
         apply Time.le_lteq; left. eapply f_to_co_mon; eauto. }
@@ -898,21 +898,21 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     
     assert (forall x (SX : S x), co x w <-> co x wnext) as COPREVEQ.
     { ins. split; intros HH.
-      { eapply WF.(co_trans); eauto. }
+      { eapply (co_trans WF); eauto. }
       assert (co^? x wprev) as [|COX]; subst; auto.
       { eapply P_co_immediate_P_co_transp_in_co_cr with (P:=S); auto.
         exists wnext. split; auto. 
         apply seq_eqv_l. split; auto. }
-      eapply WF.(co_trans); eauto. }
+      eapply (co_trans WF); eauto. }
 
     assert (forall x (SX : S x), co w x <-> co wnext x) as CONEXTEQ.
     { ins. split; intros HH.
-      2: { by eapply WF.(co_trans); [|by apply HH]. }
+      2: { by eapply (co_trans WF); [|by apply HH]. }
       assert (co^? wconext x) as [|COX]; subst; eauto.
       { eapply immediate_co_P_transp_co_P_in_co_cr with (P:=S); auto.
         exists w. split; auto. 
         apply seq_eqv_r. by split. }
-        by eapply WF.(co_trans); [|by apply COX]. }
+        by eapply (co_trans WF); [|by apply COX]. }
 
     assert (f_to_coherent G S' f_to' f_from') as FCOH_NEW.
     (* TODO: make a lemma. *)
@@ -932,7 +932,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
                 rewrite updo with (a:=w); [|by intros HH; subst]).
           by apply FCOH. }
       { assert (x <> y) as HXY.
-        { by intros HH; subst; apply WF.(co_irr) in H1. }
+        { by intros HH; subst; apply (co_irr WF) in H1. }
         destruct H as [[H|]|H]; destruct H0 as [[H0|]|H0]; subst.
         all: try (rewrite !upds).
         all: try repeat (rewrite updo; [|by intros HH; subst]).
@@ -950,7 +950,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
         all: try reflexivity.
         all: try by
             match goal with 
-            | H : co ?X ?X |- _ => exfalso; eapply WF.(co_irr); eauto
+            | H : co ?X ?X |- _ => exfalso; eapply (co_irr WF); eauto
             end.
         { by apply FCOH. }
         { by apply LENSFROM. }
@@ -958,7 +958,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
         { etransitivity; [|apply LENSFROMCONEXT]; eauto. by apply CONEXTEQ. }
         { rewrite updo; [|by intros HH; subst].
           etransitivity; [|apply LENSFROMCONEXT]; eauto. }
-        exfalso. eapply WF.(co_irr). eapply WF.(co_trans); eauto. }
+        exfalso. eapply (co_irr WF). eapply (co_trans WF); eauto. }
       destruct H0 as [[H0|]|H0]; subst.
       3: { assert (y = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst.
            assert (x = w) by (eapply wf_rfrmwf; eauto); subst.
@@ -976,10 +976,10 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       exfalso. 
       assert (co x wconext) as AA by (by apply rf_rmw_in_co).
       apply NCOIMM with (c:=x); apply seq_eqv_r; split; auto.
-      edestruct WF.(wf_co_total) with (a:=w) (b:=x) as [|HH]; eauto.
-      { apply (dom_l WF.(wf_coE)) in AA. destruct_seq_l AA as CE.
-        apply (dom_l WF.(wf_coD)) in AA. destruct_seq_l AA as CD.
-        split; [split|]; auto. rewrite <- LOCNEXT. by apply WF.(wf_col). }
+      edestruct (wf_co_total WF) with (a:=w) (b:=x) as [|HH]; eauto.
+      { apply (dom_l (wf_coE WF)) in AA. destruct_seq_l AA as CE.
+        apply (dom_l (wf_coD WF)) in AA. destruct_seq_l AA as CD.
+        split; [split|]; auto. rewrite <- LOCNEXT. by apply (wf_col WF). }
       { by intros HH; subst. }
       exfalso. eapply rf_rmw_in_coimm; eauto. }
     assert (n_to <> nn_to) as NNTONEQ.
@@ -1042,7 +1042,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
         eapply TimeFacts.lt_le_lt; [|apply LENSFROMCONEXT]; eauto.
         2: by apply CONEXTEQ.
         rewrite <- HH. by eapply TimeFacts.lt_le_lt; [|by apply LENNTOWCONEXT]. }
-      { exfalso. subst. by apply WF.(co_irr) with (x:=y). }
+      { exfalso. subst. by apply (co_irr WF) with (x:=y). }
       { exfalso.
         eapply Time.lt_strorder with (x:=f_from y).
         eapply TimeFacts.lt_le_lt; [|apply LENSFROMCONEXT]; eauto.
@@ -1101,7 +1101,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
   assert (WNEXTNONEXT : ~ (exists wconext : actid, (co ⨾ ⦗S⦘) wnext wconext)).
   { intros [x HH]. destruct_seq_r HH as AA. eapply WNONEXT. exists x.
-    apply seq_eqv_r. split; auto. eapply WF.(co_trans); eauto. }
+    apply seq_eqv_r. split; auto. eapply (co_trans WF); eauto. }
 
   set (ts := Memory.max_ts locw (Configuration.memory PC)).
   set ( n_to := (Time.incr (Time.incr ts))).
@@ -1208,7 +1208,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     eapply PROM_IN_MEM; eauto. }
 
   edestruct (@Memory.add_exists
-               PC.(Configuration.memory) locw (f_from' w) (f_to' w)
+               (Configuration.memory PC) locw (f_from' w) (f_to' w)
                (Message.full valw (Some rel')))
     as [memory_add MADD]; auto.
 
@@ -1283,7 +1283,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       assert (x = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst.
         by rewrite !upds. }
     { assert (x <> y) as HXY.
-      { by intros HH; subst; apply WF.(co_irr) in H1. }
+      { by intros HH; subst; apply (co_irr WF) in H1. }
       destruct H as [[H|]|H]; destruct H0 as [[H0|]|H0]; subst.
       all: try repeat (rewrite updo; [|by intros HH; subst]).
       all: try (rewrite !upds).
@@ -1304,19 +1304,19 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       { etransitivity; [|by apply LENFROM_R].
         edestruct reserved_to_message with (l:=locw) (b:=x)
           as [wconextmsg [WCONEXTMEM WCONEXTPROM']]; eauto.
-        { rewrite <- LOC. by apply WF.(wf_col). }
+        { rewrite <- LOC. by apply (wf_col WF). }
         subst ts. eapply Memory.max_ts_spec; eauto. }
       { apply Time.le_lteq; left.
         eapply TimeFacts.le_lt_lt; [|by apply NNLT].
         etransitivity; [|by apply LENFROM_R].
         edestruct reserved_to_message with (l:=locw) (b:=x)
           as [wconextmsg [WCONEXTMEM WCONEXTPROM']]; eauto.
-        { rewrite <- WNEXTLOC. by apply WF.(wf_col). }
+        { rewrite <- WNEXTLOC. by apply (wf_col WF). }
         subst ts. eapply Memory.max_ts_spec; eauto. }
       { exfalso. eapply WNONEXT. eexists. apply seq_eqv_r. eauto. }
       { exfalso. eapply WNEXTNONEXT. eexists. apply seq_eqv_r. eauto. }
-      { exfalso. eapply WF.(co_irr). eapply WF.(co_trans); eauto. }
-      exfalso. eapply WF.(co_irr); eauto. }
+      { exfalso. eapply (co_irr WF). eapply (co_trans WF); eauto. }
+      exfalso. eapply (co_irr WF); eauto. }
     destruct H0 as [[H0|]|H0]; subst.
     3: { assert (y = wnext) by (eapply dom_sb_S_rfrmwf; eauto); subst.
          assert (x = w) by (eapply wf_rfrmwf; eauto); subst.
@@ -1392,16 +1392,16 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     all: try rewrite !upds.
     all: intros HH; eauto.
     7: { exfalso; eauto. }
-    4: { exfalso; eapply WF.(co_irr); eauto. }
+    4: { exfalso; eapply (co_irr WF); eauto. }
     1,2: exfalso; eapply Time.lt_strorder with (x:=f_to x); rewrite HH at 2.
     { eapply TimeFacts.le_lt_lt; [|by apply Time.incr_spec].
-      apply LESTS; auto. rewrite <- LOC. by apply WF.(wf_col). }
+      apply LESTS; auto. rewrite <- LOC. by apply (wf_col WF). }
     { eapply TimeFacts.le_lt_lt.
-      { apply LESTS; auto. rewrite <- WNEXTLOC. by apply WF.(wf_col). }
+      { apply LESTS; auto. rewrite <- WNEXTLOC. by apply (wf_col WF). }
       unfold n_to. etransitivity; apply Time.incr_spec. }
     { exfalso. apply WNONEXT. eexists. apply seq_eqv_r. split; eauto. }
     { exfalso. apply WNEXTNONEXT. eexists. apply seq_eqv_r. split; eauto. }
-    exfalso. eapply WF.(co_irr) with (x:=wnext). eapply WF.(co_trans); eauto. }
+    exfalso. eapply (co_irr WF) with (x:=wnext). eapply (co_trans WF); eauto. }
 
   assert (View.pln
             (View.join

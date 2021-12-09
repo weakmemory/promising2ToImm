@@ -35,21 +35,21 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 
-Notation "'acts'" := G.(acts).
-Notation "'co'" := G.(co).
-Notation "'sw'" := G.(sw).
-Notation "'hb'" := G.(hb).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'rmw'" := G.(rmw).
-Notation "'lab'" := G.(lab).
+Notation "'acts'" := (acts G).
+Notation "'co'" := (co G).
+Notation "'sw'" := (sw G).
+Notation "'hb'" := (hb G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'rmw'" := (rmw G).
+Notation "'lab'" := (lab G).
 Notation "'msg_rel'" := (msg_rel G sc).
 Notation "'urr'" := (urr G sc).
-Notation "'release'" := G.(release).
+Notation "'release'" := (release G).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
@@ -84,10 +84,10 @@ Variable thread : thread_id.
 Variable PC : Configuration.t.
 Variable local : Local.t.
 
-Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to local.(Local.tview) thread.
-Hypothesis INHAB : Memory.inhabited PC.(Configuration.memory).
-Hypothesis PLN_RLX_EQ : pln_rlx_eq local.(Local.tview).
-Hypothesis MEM_CLOSE : memory_close local.(Local.tview) PC.(Configuration.memory).
+Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) thread.
+Hypothesis INHAB : Memory.inhabited (Configuration.memory PC).
+Hypothesis PLN_RLX_EQ : pln_rlx_eq (Local.tview local).
+Hypothesis MEM_CLOSE : memory_close (Local.tview local) (Configuration.memory PC).
 
 Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
       (ISSUABLE : issuable G sc T w)
@@ -99,22 +99,22 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
       (WTID : thread = tid w)
       (PROM_IN_MEM :
          forall thread' langst local
-                (TID : IdentMap.find thread' PC.(Configuration.threads) =
+                (TID : IdentMap.find thread' (Configuration.threads PC) =
                        Some (langst, local)),
-           Memory.le local.(Local.promises) PC.(Configuration.memory))
+           Memory.le (Local.promises local) (Configuration.memory PC))
       (RESERVED_TIME:
-         reserved_time G T S f_to f_from smode PC.(Configuration.memory))
+         reserved_time G T S f_to f_from smode (Configuration.memory PC))
       (SIM_RES_MEM :
          sim_res_mem G T S f_to f_from (tid w) local (Configuration.memory PC))
       (SIM_MEM : sim_mem G sc T f_to f_from
-                         (tid w) local PC.(Configuration.memory))
-      (TID : IdentMap.find (tid w) PC.(Configuration.threads) = Some (langst, local)) :
-  let promises := local.(Local.promises) in
-  let memory   := PC.(Configuration.memory) in
+                         (tid w) local (Configuration.memory PC))
+      (TID : IdentMap.find (tid w) (Configuration.threads PC) = Some (langst, local)) :
+  let promises := (Local.promises local) in
+  let memory   := (Configuration.memory PC) in
   let T'       := mkTC (covered T) (issued T ∪₁ eq w) in
   let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists p_rel,
-    rfrmw_prev_rel G sc T f_to f_from PC.(Configuration.memory) w locw p_rel /\
+    rfrmw_prev_rel G sc T f_to f_from (Configuration.memory PC) w locw p_rel /\
     ⟪ SEW' : S' ⊆₁ E ∩₁ W ⟫ /\
     (⟪ FOR_ISSUE :
          exists f_to' f_from',
@@ -123,7 +123,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                then (TView.cur (Local.tview local))
                else (TView.rel (Local.tview local) locw)
            in
-           let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
+           let rel' := (View.join (View.join rel'' (View.unwrap p_rel))
                                   (View.singleton_ur locw (f_to' w))) in
            ⟪ RELWFEQ : View.pln rel' = View.rlx rel' ⟫ /\
            ⟪ REL_VIEW_LT : Time.lt (View.rlx rel'' locw) (f_to' w) ⟫ /\
@@ -141,7 +141,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
 
            exists promises' memory',
              ⟪ PADD :
-                 Memory.add local.(Local.promises) locw (f_from' w) (f_to' w)
+                 Memory.add (Local.promises local) locw (f_from' w) (f_to' w)
                             (Message.full valw (Some rel')) promises' ⟫ /\
              ⟪ MADD :
                  Memory.add memory locw (f_from' w) (f_to' w)
@@ -164,7 +164,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                    (View.join (View.join (if is_rel lab w
                                           then (TView.cur (Local.tview local))
                                           else (TView.rel (Local.tview local) locw))
-                                         p_rel.(View.unwrap))
+                                         (View.unwrap p_rel))
                               (View.singleton_ur locw (f_to' w))) ⟫ /\
 
              ⟪ RESERVED_TIME :
@@ -178,7 +178,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                then (TView.cur (Local.tview local))
                else (TView.rel (Local.tview local) locw)
            in
-           let rel' := (View.join (View.join rel'' p_rel.(View.unwrap))
+           let rel' := (View.join (View.join rel'' (View.unwrap p_rel))
                                   (View.singleton_ur locw (f_to' w))) in
            ⟪ NREL    : ~ Rel w ⟫ /\
            ⟪ EWS     : E ws ⟫ /\
@@ -253,7 +253,7 @@ Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
                    (View.join (View.join (if is_rel lab w
                                           then (TView.cur (Local.tview local))
                                           else (TView.rel (Local.tview local) locw))
-                                         p_rel.(View.unwrap))
+                                         (View.unwrap p_rel))
                               (View.singleton_ur locw (f_to' w))) ⟫ /\
 
              ⟪ RESERVED_TIME :
@@ -325,7 +325,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     assert ((co ⨾ ⦗set_compl S⦘ ⨾ co) wprev wconext) as CONS.
     { exists w. split; auto. apply seq_eqv_l. by split. }
     assert (co wprev wconext) as COPN.
-    { eapply WF.(co_trans); eauto. }
+    { eapply (co_trans WF); eauto. }
 
     assert (immediate (⦗S⦘ ⨾ co ⨾ ⦗S⦘) wprev wconext) as COSIMM.
     { apply P_co_nP_co_P_imm; auto.
@@ -376,15 +376,15 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            assert (co cs wconext) as COCSWCONEXT.
            { apply rf_rmw_rt_in_co in RFRMWS; auto.
              apply rewrite_trans_seq_cr_l.
-             { apply WF.(co_trans). }
+             { apply (co_trans WF). }
              eexists; eauto. }
            assert (cs <> w) as NEQCS.
            { intros HH. by subst. }
-           apply (dom_l WF.(wf_coD)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as WCS.
-           apply (dom_l WF.(wf_coE)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as ECS.
+           apply (dom_l (wf_coD WF)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as WCS.
+           apply (dom_l (wf_coE WF)) in COCSWCONEXT. destruct_seq_l COCSWCONEXT as ECS.
            assert (loc lab cs = Some locw) as CSLOC.
-           { rewrite <- LOCNEXT. by apply WF.(wf_col). }
-           edestruct WF.(wf_co_total) with (a:=w) (b:=cs) as [COCSW|COWCS]; eauto.
+           { rewrite <- LOCNEXT. by apply (wf_col WF). }
+           edestruct (wf_co_total WF) with (a:=w) (b:=cs) as [COCSW|COWCS]; eauto.
            { unfolder. by splits. }
            { apply NCOIMM with (c:=cs); basic_solver. }
            
@@ -393,7 +393,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
              apply seq_eqv_l. split; auto.
              exists c. split; auto. }
            destruct AA as [|AA]; desf.
-           eapply WF.(co_irr). eapply WF.(co_trans); eauto. }
+           eapply (co_irr WF). eapply (co_trans WF); eauto. }
 
          assert (~ Rel w) as NREL.
          { intros RR. apply WNCOV.
@@ -429,7 +429,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          { unfold n_to. by apply DenseOrder.middle_spec. }
 
          set (rel' := View.join
-                        (View.join rel'' p_rel.(View.unwrap))
+                        (View.join rel'' (View.unwrap p_rel))
                         (View.singleton_ur locw n_to)).
          assert (View.opt_wf (Some rel')) as RELWF.
          { apply View.opt_wf_some.
@@ -453,7 +453,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
            as [promises' PSPLIT]; eauto.
 
          edestruct (@Memory.split_exists
-                      PC.(Configuration.memory)
+                      (Configuration.memory PC)
                            locw (f_from wconext) n_to (f_to wconext)
                            (Message.full valw (Some rel')) wconextmsg)
            as [memory' MSPLIT]; eauto.
@@ -677,7 +677,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     { ins. eapply DISJOINT.
       eapply PROM_IN_MEM; eauto. }
 
-    edestruct (@Memory.add_exists PC.(Configuration.memory)
+    edestruct (@Memory.add_exists (Configuration.memory PC)
                                   locw (f_from' w) (f_to' w)
                                   (Message.full valw (Some rel')))
       as [memory' MADD]; eauto.
@@ -752,12 +752,12 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
       { intros HH. subst.
         apply Time.lt_strorder with (x:=f_from wprev).
         apply TimeFacts.le_lt_lt with (b:=f_to wprev); eauto. }
-      edestruct WF.(wf_co_total) with (a:=wto) (b:=wconext) as [AA|AA]; eauto.
+      edestruct (wf_co_total WF) with (a:=wto) (b:=wconext) as [AA|AA]; eauto.
       1,2: by unfolder; eauto.
       2: { eapply f_from_co_mon with (I:=S) in AA; eauto.
            eapply Time.lt_strorder with (x:=f_from wconext).
            etransitivity; eauto. }
-      edestruct WF.(wf_co_total) with (a:=wto) (b:=wprev) as [BB|BB]; eauto.
+      edestruct (wf_co_total WF) with (a:=wto) (b:=wprev) as [BB|BB]; eauto.
       1,2: by unfolder; eauto.
       { eapply f_to_co_mon with (I:=S) in BB; eauto.
         eapply Time.lt_strorder with (x:=f_from wto).
@@ -871,7 +871,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
     eapply PROM_IN_MEM; eauto. }
 
   edestruct (@Memory.add_exists
-               PC.(Configuration.memory) locw (f_from' w) (f_to' w)
+               (Configuration.memory PC) locw (f_from' w) (f_to' w)
                (Message.full valw (Some rel')))
     as [memory' MADD]; auto.
 

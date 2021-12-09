@@ -13,31 +13,31 @@ Variable COM : complete G.
 Variable sc : relation actid.
 Variable IMMCON : imm_consistent G sc.
 
-Notation "'acts'" := G.(acts).
-Notation "'sb'" := G.(sb).
-Notation "'rmw'" := G.(rmw).
-Notation "'data'" := G.(data).
-Notation "'addr'" := G.(addr).
-Notation "'ctrl'" := G.(ctrl).
-Notation "'rmw_dep'" := G.(rmw_dep).
-Notation "'rf'" := G.(rf).
-Notation "'co'" := G.(co).
-Notation "'coe'" := G.(coe).
-Notation "'fr'" := G.(fr).
+Notation "'acts'" := (acts G).
+Notation "'sb'" := (sb G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'coe'" := (coe G).
+Notation "'fr'" := (fr G).
 
-Notation "'eco'" := G.(eco).
+Notation "'eco'" := (eco G).
 
-Notation "'bob'" := G.(bob).
-Notation "'fwbob'" := G.(fwbob).
-Notation "'ppo'" := G.(ppo).
-Notation "'fre'" := G.(fre).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'deps'" := G.(deps).
-Notation "'detour'" := G.(detour).
-Notation "'release'" := G.(release).
-Notation "'sw'" := G.(sw).
-Notation "'hb'" := G.(hb).
+Notation "'bob'" := (bob G).
+Notation "'fwbob'" := (fwbob G).
+Notation "'ppo'" := (ppo G).
+Notation "'fre'" := (fre G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'deps'" := (deps G).
+Notation "'detour'" := (detour G).
+Notation "'release'" := (release G).
+Notation "'sw'" := (sw G).
+Notation "'hb'" := (hb G).
 
 Notation "'urr'" := (urr G sc).
 Notation "'c_acq'" := (c_acq G sc).
@@ -46,17 +46,17 @@ Notation "'c_rel'" := (c_rel G sc).
 Notation "'t_acq'" := (t_acq G sc).
 Notation "'t_cur'" := (t_cur G sc).
 Notation "'t_rel'" := (t_rel G sc).
-Notation "'S_tm'" := G.(S_tm).
-Notation "'S_tmr'" := G.(S_tmr).
+Notation "'S_tm'" := (S_tm G).
+Notation "'S_tmr'" := (S_tmr G).
 Notation "'msg_rel'" := (msg_rel G sc).
 
-Notation "'lab'" := G.(lab).
+Notation "'lab'" := (lab G).
 Notation "'loc'" := (loc lab).
 Notation "'val'" := (val lab).
 Notation "'mod'" := (Events.mod lab).
 Notation "'same_loc'" := (same_loc lab).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun x => is_true (is_r lab x)).
 Notation "'W'" := (fun x => is_true (is_w lab x)).
 Notation "'F'" := (fun x => is_true (is_f lab x)).
@@ -91,11 +91,11 @@ Lemma wf_rppoE : rppo ≡ ⦗E⦘ ⨾ rppo ⨾ ⦗E⦘.
 Proof using WF.
   split; [|basic_solver].
   unfold rppo.
-  rewrite WF.(wf_ctrlE) at 1.
-  rewrite WF.(wf_addrE) at 1.
+  rewrite (wf_ctrlE WF) at 1.
+  rewrite (wf_addrE WF) at 1.
   rewrite wf_sbE at 1 2 3.
-  rewrite WF.(wf_rmw_depE) at 1.
-  (* rewrite WF.(wf_rmwE) at 1. *)
+  rewrite (wf_rmw_depE WF) at 1.
+  (* rewrite (wf_rmwE WF) at 1. *)
   basic_solver 10.
 Qed.
 
@@ -103,10 +103,10 @@ Lemma wf_rppoD : rppo ≡ ⦗R⦘ ⨾ rppo ⨾ ⦗W⦘.
 Proof using WF.
   split; [|basic_solver].
   unfold rppo.
-  rewrite WF.(wf_ctrlD) at 1.
-  rewrite WF.(wf_addrD) at 1.
-  rewrite WF.(wf_rmw_depD) at 1.
-  (* rewrite WF.(wf_rmwD) at 1. *)
+  rewrite (wf_ctrlD WF) at 1.
+  rewrite (wf_addrD WF) at 1.
+  rewrite (wf_rmw_depD WF) at 1.
+  (* rewrite (wf_rmwD WF) at 1. *)
   generalize R_ex_in_R.
   basic_solver 20.
 Qed.
@@ -123,7 +123,7 @@ Qed.
 
 Lemma rmw_dep_sb_W_in_rppo : rmw_dep ⨾ sb ⨾ ⦗W⦘ ⊆ rppo.
 Proof using WF.
-  rewrite (dom_r WF.(wf_rmw_depD)).
+  rewrite (dom_r (wf_rmw_depD WF)).
   unfold rppo. basic_solver 10.
 Qed.
 
@@ -135,10 +135,10 @@ Qed.
 Lemma rppo_in_ppo : rppo ⊆ ppo.
 Proof using WF.
   unfold rppo, imm_s_ppo.ppo. hahn_frame.
-  rewrite WF.(wf_ctrlD) at 1.
-  rewrite (dom_l WF.(wf_addrD)) at 1.
-  (* rewrite (dom_l WF.(wf_rmwD)) at 1. rewrite R_ex_in_R at 1. *)
-  rewrite (dom_l WF.(wf_rmw_depD)) at 1.
+  rewrite (wf_ctrlD WF) at 1.
+  rewrite (dom_l (wf_addrD WF)) at 1.
+  (* rewrite (dom_l (wf_rmwD WF)) at 1. rewrite R_ex_in_R at 1. *)
+  rewrite (dom_l (wf_rmw_depD WF)) at 1.
   arewrite (⦗R_ex⦘ ⊆ ⦗R⦘ ⨾ ⦗R_ex⦘).
   { type_solver. }
   rewrite <- !seq_union_r.
@@ -155,7 +155,7 @@ Proof using WF.
   unfold rppo.
   hahn_frame. arewrite_id ⦗W⦘. rewrite seq_id_l.
   rewrite !seq_union_l, !seqA.
-  rewrite WF.(ctrl_sb).
+  rewrite (ctrl_sb WF).
   arewrite (sb^? ⨾ sb ⊆ sb^?).
   { generalize (@sb_trans G). basic_solver. }
   arewrite (sb ⨾ sb ⊆ sb).
@@ -189,8 +189,8 @@ Qed.
 Lemma detour_rfe_data_rfi_rmw_rppo_in_detour_rfe_ppo :
   (detour ∪ rfe) ⨾ (data ∪ rfi ∪ rmw)＊ ⨾ rppo ⊆ (detour ∪ rfe) ⨾ ppo.
 Proof using WF.
-  rewrite (dom_r WF.(wf_detourD)) at 1.
-  rewrite (dom_r WF.(wf_rfeD)) at 1.
+  rewrite (dom_r (wf_detourD WF)) at 1.
+  rewrite (dom_r (wf_rfeD WF)) at 1.
   rewrite <- seq_union_l, !seqA.
     by rewrite data_rfi_rmw_rppo_in_ppo.
 Qed.
@@ -204,13 +204,13 @@ Qed.
 
 (* Lemma rmw_in_rppo : rmw ⊆ rppo. *)
 (* Proof using WF. *)
-(*   rewrite (dom_r WF.(wf_rmwD)). *)
+(*   rewrite (dom_r (wf_rmwD WF)). *)
 (*   unfold rppo. basic_solver 10. *)
 (* Qed. *)
 
 (* Lemma rmw_sb_W_in_rppo : rmw ⨾ sb ⨾ ⦗W⦘ ⊆ rppo. *)
 (* Proof using WF. *)
-(*   rewrite (dom_l WF.(wf_rmwD)), WF.(rmw_in_sb), !seqA. *)
+(*   rewrite (dom_l (wf_rmwD WF)), (rmw_in_sb WF), !seqA. *)
 (*   arewrite (sb ⨾ sb ⊆ sb). *)
 (*   { apply transitiveI. apply sb_trans. } *)
 (*   unfold rppo. basic_solver 10. *)
@@ -227,7 +227,7 @@ End RPPO.
 
 Lemma sub_rppo_in G G' sc sc'
       (SUB : sub_execution G G' sc sc')
-      (RMWCLOS : codom_rel (⦗G'.(acts_set)⦘ ⨾ G.(rmw)) ⊆₁ G'.(acts_set)) :
+      (RMWCLOS : codom_rel (⦗G'.(acts_set)⦘ ⨾ (rmw G)) ⊆₁ G'.(acts_set)) :
   rppo G' ⊆ rppo G.
 Proof using.
   unfold rppo.

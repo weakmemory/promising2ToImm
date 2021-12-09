@@ -28,5 +28,5 @@ Definition promise_allows (prog : Prog.t) (final_memory : Loc.t -> value) :=
   exists PC,
     ⟪STEPS   : conf_step＊ (conf_init prog) PC⟫ /\
     ⟪FINAL   : Configuration.is_terminal PC⟫ /\
-    ⟪OUTCOME : forall loc, final_memory_state PC.(Configuration.memory) loc =
+    ⟪OUTCOME : forall loc, final_memory_state (Configuration.memory PC) loc =
                            Some (final_memory loc)⟫.

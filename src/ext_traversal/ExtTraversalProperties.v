@@ -15,32 +15,32 @@ Variable COM : complete G.
 Variable sc : relation actid.
 Variable IMMCON : imm_consistent G sc.
 
-Notation "'acts'" := G.(acts).
-Notation "'sb'" := G.(sb).
-Notation "'rmw'" := G.(rmw).
-Notation "'data'" := G.(data).
-Notation "'addr'" := G.(addr).
-Notation "'ctrl'" := G.(ctrl).
-Notation "'rmw_dep'" := G.(rmw_dep).
-Notation "'rf'" := G.(rf).
-Notation "'co'" := G.(co).
-Notation "'coe'" := G.(coe).
-Notation "'fr'" := G.(fr).
+Notation "'acts'" := (acts G).
+Notation "'sb'" := (sb G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
+Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'coe'" := (coe G).
+Notation "'fr'" := (fr G).
 
-Notation "'eco'" := G.(eco).
+Notation "'eco'" := (eco G).
 
-Notation "'bob'" := G.(bob).
-Notation "'fwbob'" := G.(fwbob).
-Notation "'ppo'" := G.(ppo).
-Notation "'fre'" := G.(fre).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'deps'" := G.(deps).
-Notation "'detour'" := G.(detour).
-Notation "'release'" := G.(release).
-Notation "'sw'" := G.(sw).
-Notation "'hb'" := G.(hb).
-Notation "'rppo'" := G.(rppo).
+Notation "'bob'" := (bob G).
+Notation "'fwbob'" := (fwbob G).
+Notation "'ppo'" := (ppo G).
+Notation "'fre'" := (fre G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'deps'" := (deps G).
+Notation "'detour'" := (detour G).
+Notation "'release'" := (release G).
+Notation "'sw'" := (sw G).
+Notation "'hb'" := (hb G).
+Notation "'rppo'" := (rppo G).
 
 Notation "'urr'" := (urr G sc).
 Notation "'c_acq'" := (c_acq G sc).
@@ -49,17 +49,17 @@ Notation "'c_rel'" := (c_rel G sc).
 Notation "'t_acq'" := (t_acq G sc).
 Notation "'t_cur'" := (t_cur G sc).
 Notation "'t_rel'" := (t_rel G sc).
-Notation "'S_tm'" := G.(S_tm).
-Notation "'S_tmr'" := G.(S_tmr).
+Notation "'S_tm'" := (S_tm G).
+Notation "'S_tmr'" := (S_tmr G).
 Notation "'msg_rel'" := (msg_rel G sc).
 
-Notation "'lab'" := G.(lab).
+Notation "'lab'" := (lab G).
 Notation "'loc'" := (loc lab).
 Notation "'val'" := (val lab).
 Notation "'mod'" := (Events.mod lab).
 Notation "'same_loc'" := (same_loc lab).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun x => is_true (is_r lab x)).
 Notation "'W'" := (fun x => is_true (is_w lab x)).
 Notation "'F'" := (fun x => is_true (is_f lab x)).
@@ -94,7 +94,7 @@ Lemma dom_rf_rmw_S_in_I : dom_rel (rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ I.
 Proof using WF ETCCOH.
   rewrite rmw_W_ex, !seqA.
   arewrite (⦗W_ex⦘ ⨾ ⦗S⦘ ⊆ ⦗S ∩₁ W_ex⦘) by basic_solver.
-  rewrite ETCCOH.(etc_S_W_ex_rfrmw_I).
+  rewrite (etc_S_W_ex_rfrmw_I ETCCOH).
   rewrite <- seqA with (r2:=rmw).
   intros x [y HH].
   destruct_seq_r HH as BB.
@@ -106,7 +106,7 @@ Qed.
 
 Lemma dom_rf_rmw_S : dom_rel (rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ S.
 Proof using WF ETCCOH.
-  rewrite <- ETCCOH.(etc_I_in_S) at 2.
+  rewrite <- (etc_I_in_S ETCCOH) at 2.
   apply dom_rf_rmw_S_in_I.
 Qed.
 
@@ -236,8 +236,8 @@ rewrite !seqA.
 arewrite (rmw ⨾ rfi ⨾ (rmw ⨾ rfi)＊ ⊆ (rmw ⨾ rfi)＊).
 { rewrite rtE. rewrite ct_begin at 2. 
   basic_solver 21. }
-rewrite (dom_r WF.(wf_rfeD)), !seqA.
-rewrite (dom_r WF.(wf_rfiD)).
+rewrite (dom_r (wf_rfeD WF)), !seqA.
+rewrite (dom_r (wf_rfiD WF)).
 arewrite (⦗R⦘ ⨾ (rmw ⨾ rfi ⨾ ⦗R⦘)＊ ⊆ (rmw ⨾ rfi)＊ ⨾ ⦗R⦘).
 { rewrite !rtE, <- !seqA, inclusion_ct_seq_eqv_r.
   basic_solver. }
@@ -246,7 +246,7 @@ arewrite (⦗S⦘ ⊆ ⦗S⦘ ⨾ ⦗W⦘).
   basic_solver. }
 arewrite (⦗R⦘ ⨾ ⦗Acq⦘ ⨾ sb^? ⨾ ⦗S⦘ ⨾ ⦗W⦘ ⊆ ⦗R⦘ ⨾ ⦗Acq⦘ ⨾ sb ⨾ ⦗S⦘).
 { type_solver 21. }
-generalize (ETCCOH.(etc_dr_R_acq_I)).
+generalize ((etc_dr_R_acq_I ETCCOH)).
 basic_solver 21.
 Qed.
 
@@ -274,16 +274,16 @@ Proof using WF ETCCOH.
   assert (S wnext /\ co w wnext) as [ISSNEXT CONEXT].
   { destruct NIMMCO as [AA _]. by destruct_seq_r AA as BB. }
   assert (E wnext) as ENEXT.
-  { by apply ETCCOH.(etc_S_in_E). }
+  { by apply (etc_S_in_E ETCCOH). }
   assert (W wnext) as WNEXT.
   { by apply (reservedW WF ETCCOH). }
   assert (Loc_ locw wnext) as LOCNEXT.
-  { apply WF.(wf_col) in CONEXT. by rewrite <- CONEXT. }
+  { apply (wf_col WF) in CONEXT. by rewrite <- CONEXT. }
   assert (exists vnext, val wnext = Some vnext) as [vnext VNEXT].
   { unfold Events.val, is_w in *. desf.
     all: eexists; eauto. }
   exists wnext, vnext. splits; eauto.
-  intros H; subst. by apply WF.(co_irr) in CONEXT.
+  intros H; subst. by apply (co_irr WF) in CONEXT.
 Qed.
 
 Lemma co_prev_to_imm_co_prev w locw
@@ -313,13 +313,13 @@ Proof using WF IMMCON ETCCOH.
       assert (eissued T (InitEvent locw)) as II.
       { apply (init_issued WF TCCOH). by split. }
       assert (S (InitEvent locw)) as IS.
-      { by apply ETCCOH.(etc_I_in_S). }
+      { by apply (etc_I_in_S ETCCOH). }
       assert (InitEvent locw <> w) as NEQ.
       { intros H; subst. desf. }
       assert (loc (InitEvent locw) = Some locw) as LI.
-      { unfold Events.loc. by rewrite WF.(wf_init_lab). }
+      { unfold Events.loc. by rewrite (wf_init_lab WF). }
       apply seq_eqv_l; split; auto.
-      edestruct WF.(wf_co_total).
+      edestruct (wf_co_total WF).
       3: by apply NEQ.
       1,2: split; [split|]; auto.
       { by rewrite LOC. }
@@ -337,16 +337,16 @@ Proof using WF IMMCON ETCCOH.
   assert (S wprev /\ co wprev w) as [ISSPREV COPREV].
   { destruct PIMMCO as [AA _]. by destruct_seq_l AA as BB. }
   assert (E wprev) as EPREV.
-  { by apply ETCCOH.(etc_S_in_E). }
+  { by apply (etc_S_in_E ETCCOH). }
   assert (W wprev) as WPREV.
   { by apply (reservedW WF ETCCOH). }
   assert (Loc_ locw wprev) as LOCPREV.
-  { apply WF.(wf_col) in COPREV. by rewrite COPREV. }
+  { apply (wf_col WF) in COPREV. by rewrite COPREV. }
   assert (exists vprev, val wprev = Some vprev) as [vprev VPREV].
   { unfold Events.val, is_w in *. desf.
     all: eexists; eauto. }
   exists wprev, vprev. splits; eauto.
-  intros H; subst. by apply WF.(co_irr) in COPREV.
+  intros H; subst. by apply (co_irr WF) in COPREV.
 Qed.
 
 Lemma dom_sb_S_rfrmwf w wn1 wn2
@@ -370,7 +370,7 @@ Qed.
 
 Lemma dom_sb_S_rfrmwE rrf P : dom_sb_S_rfrmw G T rrf P ⊆₁ E.
 Proof using WF.
-  unfold dom_sb_S_rfrmw. rewrite WF.(wf_rmwE). basic_solver.
+  unfold dom_sb_S_rfrmw. rewrite (wf_rmwE WF). basic_solver.
 Qed.
 
 Lemma dom_sb_S_rfrmw_in_W_ex rrf P : dom_sb_S_rfrmw G T rrf P ⊆₁ W_ex.
@@ -402,11 +402,11 @@ Proof using WF ETCCOH IMMCON.
   edestruct is_w_loc as [l XLOC].
   { apply WX. }
   assert (loc y = Some l) as YLOC.
-  { rewrite <- XLOC. by apply WF.(wf_col). }
+  { rewrite <- XLOC. by apply (wf_col WF). }
   assert (co z x) as COZX.
   { apply rf_rmw_in_co; eauto. }
   assert (loc z = Some l) as ZLOC.
-  { rewrite <- XLOC. by apply WF.(wf_col). }
+  { rewrite <- XLOC. by apply (wf_col WF). }
   
   assert (S z) as SZ.
   { apply dom_rf_rmw_S. exists x. apply seqA. basic_solver. }
@@ -414,12 +414,12 @@ Proof using WF ETCCOH IMMCON.
   destruct (classic (z = y)) as [|NEQ]; subst.
   { by apply AA. }
 
-  apply (dom_l WF.(wf_coE)) in COZX. destruct_seq_l COZX as EZ.
-  apply (dom_l WF.(wf_coD)) in COZX. destruct_seq_l COZX as WZ.
-  apply (dom_l WF.(wf_coE)) in COYX. destruct_seq_l COYX as EY.
-  apply (dom_l WF.(wf_coD)) in COYX. destruct_seq_l COYX as WY.
+  apply (dom_l (wf_coE WF)) in COZX. destruct_seq_l COZX as EZ.
+  apply (dom_l (wf_coD WF)) in COZX. destruct_seq_l COZX as WZ.
+  apply (dom_l (wf_coE WF)) in COYX. destruct_seq_l COYX as EY.
+  apply (dom_l (wf_coD WF)) in COYX. destruct_seq_l COYX as WY.
   
-  edestruct WF.(wf_co_total) with (a:=z) (b:=y) as [COZY|COYZ]; eauto.
+  edestruct (wf_co_total WF) with (a:=z) (b:=y) as [COZY|COYZ]; eauto.
   1,2: by unfolder; splits; eauto.
   { eapply rf_rmw_in_coimm; eauto. }
   eapply HH with (c:=z).
@@ -453,7 +453,7 @@ Proof using WF IMMCON ETCCOH WNEXT.
   assert (sb w wnext) as SBWWNEXT.
   { destruct WNEXT as [_ AA].
     clear -AA WF.
-    generalize (@sb_trans G), (@rfi_in_sb G), WF.(rmw_in_sb), AA.
+    generalize (@sb_trans G), (@rfi_in_sb G), (rmw_in_sb WF), AA.
     basic_solver. }
   assert (W wnext) as WWNEXT.
   { eapply dom_sb_S_rfrmwD; eauto. }
@@ -474,15 +474,15 @@ Proof using WF IMMCON ETCCOH WNEXT.
     eapply dom_rf_rmw_S_in_I; eauto.
     exists wnext. apply seqA. apply seq_eqv_r. split; auto. }
   assert (~ eissued T wnext) as NIWNEXT.
-  { intros HH. apply NSWNEXT. by apply ETCCOH.(etc_I_in_S). }
+  { intros HH. apply NSWNEXT. by apply (etc_I_in_S ETCCOH). }
   assert (~ is_init wnext) as WNEXTINIT.
   { intros HH. apply WNEXTCOV. eapply init_covered; eauto. by split. }
 
   assert (loc wnext = Some locw) as WNEXTLOC.
-  { rewrite <- WLOC. symmetry. by apply WF.(wf_col). }
+  { rewrite <- WLOC. symmetry. by apply (wf_col WF). }
   
   assert (E w) as EW.
-  { apply (dom_l WF.(wf_rfrmwE)) in RFRMWNEXT.
+  { apply (dom_l (wf_rfrmwE WF)) in RFRMWNEXT.
     destruct_seq_l RFRMWNEXT as AA; auto. }
   assert (WNEXTTID : tid wnext = tid w).
   { symmetry. eapply ninit_sb_same_tid. apply seq_eqv_l. split; eauto.

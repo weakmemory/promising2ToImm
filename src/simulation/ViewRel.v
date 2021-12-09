@@ -24,24 +24,24 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 
-Notation "'acts'" := G.(acts).
-Notation "'co'" := G.(co).
-Notation "'sw'" := G.(sw).
-Notation "'hb'" := G.(hb).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'rmw'" := G.(rmw).
-Notation "'lab'" := G.(lab).
-Notation "'msg_rel'" := G.(msg_rel).
+Notation "'acts'" := (acts G).
+Notation "'co'" := (co G).
+Notation "'sw'" := (sw G).
+Notation "'hb'" := (hb G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'rmw'" := (rmw G).
+Notation "'lab'" := (lab G).
+Notation "'msg_rel'" := (msg_rel G).
 Notation "'urr'" := (urr G sc).
-Notation "'release'" := G.(release).
+Notation "'release'" := (release G).
 Notation "'t_cur'" := (t_cur G sc).
 Notation "'t_acq'" := (t_acq G sc).
 Notation "'t_rel'" := (t_rel G sc).
-Notation "'rfe'" := G.(rfe).
-Notation "'rfi'" := G.(rfi).
+Notation "'rfe'" := (rfe G).
+Notation "'rfi'" := (rfi G).
 
-Notation "'E'" := G.(acts_set).
+Notation "'E'" := (acts_set G).
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
 Notation "'F'" := (fun a => is_true (is_f lab a)).
@@ -62,7 +62,7 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 Definition sim_msg f_to b rel :=
   forall l, max_value f_to 
               (fun a => msg_rel sc l a b \/ Loc_ l b /\ a = b) 
-              (LocFun.find l rel.(View.rlx)).
+              (LocFun.find l (View.rlx rel)).
 
 Definition sim_mem_helper f_to b from v rel :=
   ⟪ VAL: Some v = val lab b ⟫ /\
@@ -81,17 +81,17 @@ Definition sim_rel C f_to rel i :=
 Definition sim_cur C f_to cur i :=
   forall l,
     max_value f_to (t_cur i l C)
-              (LocFun.find l cur.(View.rlx)).
+              (LocFun.find l (View.rlx cur)).
 
 Definition sim_acq C f_to acq i :=
   forall l,
     max_value f_to (t_acq i l C) 
-    (LocFun.find l acq.(View.rlx)).
+    (LocFun.find l (View.rlx acq)).
 
 Definition sim_tview C f_to tview i :=
-  ⟪ CUR: sim_cur C f_to tview.(TView.cur) i ⟫ /\
-  ⟪ ACQ: sim_acq C f_to tview.(TView.acq) i ⟫ /\
-  ⟪ REL: sim_rel C f_to tview.(TView.rel) i ⟫.
+  ⟪ CUR: sim_cur C f_to (TView.cur tview) i ⟫ /\
+  ⟪ ACQ: sim_acq C f_to (TView.acq tview) i ⟫ /\
+  ⟪ REL: sim_rel C f_to (TView.rel tview) i ⟫.
 
 Lemma sim_tview_read_step
       f_to f_from
@@ -108,7 +108,7 @@ Lemma sim_tview_read_step
       (RPARAMS : lab r = Aload xrmw ordr locr valr)
       (GET : Memory.get locr (f_to w) mem =
              Some (f_from w, Message.full valr rel))
-      (HELPER : sim_mem_helper f_to w (f_from w) valr rel.(View.unwrap)) :
+      (HELPER : sim_mem_helper f_to w (f_from w) valr (View.unwrap rel)) :
   sim_tview
     (C ∪₁ eq r) f_to
     (TView.read_tview tview locr (f_to w) rel (rmod ordr))
@@ -234,7 +234,7 @@ Lemma sim_tview_write_step f_to f_from
       (WPARAMS : lab w = Astore xmw ordw locw valw)
       (GET : Memory.get locw (f_to w) mem =
              Some (f_from w, Message.full valw rel))
-      (HELPER : sim_mem_helper f_to w (f_from w) valw rel.(View.unwrap))
+      (HELPER : sim_mem_helper f_to w (f_from w) valw (View.unwrap rel))
  : sim_tview
     (C ∪₁ eq w) f_to
     (TView.write_tview
@@ -497,8 +497,8 @@ Qed.
 
 
 Lemma rel_le_cur PC thread T f_to l langst local
-      (SIM_TVIEW : sim_tview (covered T) f_to local.(Local.tview) thread)
-      (TID : IdentMap.find thread PC.(Configuration.threads) = Some (langst, local)) :
+      (SIM_TVIEW : sim_tview (covered T) f_to (Local.tview local) thread)
+      (TID : IdentMap.find thread (Configuration.threads PC) = Some (langst, local)) :
   TimeMap.le (View.rlx (TView.rel (Local.tview local) l))
              (View.rlx (TView.cur (Local.tview local))).
 Proof using WF.

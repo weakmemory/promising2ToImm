@@ -38,26 +38,26 @@ Variable WF : Wf G.
 Variable sc : relation actid.
 Variable CON : imm_consistent G sc.
 
-Notation "'E'" := G.(acts_set).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'co'" := G.(co).
-Notation "'rmw'" := G.(rmw).
-Notation "'data'" := G.(data).
-Notation "'addr'" := G.(addr).
-Notation "'ctrl'" := G.(ctrl).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
 
-Notation "'fr'" := G.(fr).
-Notation "'coe'" := G.(coe).
-Notation "'coi'" := G.(coi).
-Notation "'deps'" := G.(deps).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'detour'" := G.(detour).
-Notation "'hb'" := G.(hb).
-Notation "'sw'" := G.(sw).
+Notation "'fr'" := (fr G).
+Notation "'coe'" := (coe G).
+Notation "'coi'" := (coi G).
+Notation "'deps'" := (deps G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'detour'" := (detour G).
+Notation "'hb'" := (hb G).
+Notation "'sw'" := (sw G).
 
-Notation "'lab'" := G.(lab).
+Notation "'lab'" := (lab G).
 
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
@@ -75,7 +75,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
-Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Lemma rlx_rmw_cover_step PC T S f_to f_from thread r w smode
@@ -121,7 +121,7 @@ Proof using WF CON.
 
   apply clos_rt_rt1n in ESTEPS.
   eapply (rtc_lang_tau_step_rtc_thread_tau_step
-            _ _ _ local PC.(Configuration.sc) PC.(Configuration.memory)) in ESTEPS.
+            _ _ _ local (Configuration.sc PC) (Configuration.memory PC)) in ESTEPS.
 
   assert (E r /\ E w) as [RACT WACT].
   { apply (wf_rmwE WF) in RMW.
@@ -267,9 +267,9 @@ Proof using WF CON.
     destruct ordw; simpls. }
 
   assert (S w) as WS.
-  { by apply TCCOH.(etc_I_in_S). }
+  { by apply (etc_I_in_S TCCOH). }
   assert (S w') as WS'.
-  { by apply TCCOH.(etc_I_in_S). }
+  { by apply (etc_I_in_S TCCOH). }
 
   assert (Time.lt (f_from w) (f_to w)) as LTFF.
   { apply FCOH; auto. }
@@ -282,11 +282,11 @@ Proof using WF CON.
   { eauto. }
 
   assert (S ⊆₁ E ∩₁ W) as SEW.
-  { generalize TCCOH.(etc_S_in_E). generalize (reservedW WF TCCOH).
+  { generalize (etc_S_in_E TCCOH). generalize (reservedW WF TCCOH).
     basic_solver. }
 
   assert (is_init ∩₁ E ⊆₁ S) as IES.
-  { rewrite <- TCCOH.(etc_I_in_S).
+  { rewrite <- (etc_I_in_S TCCOH).
     eapply init_issued; eauto. }
   
   assert (Time.lt Time.bot (f_to w)) as LT_BOT.
@@ -339,7 +339,7 @@ Proof using WF CON.
     { apply wf_urrD in CCUR; auto. 
       apply seq_eqv_l in CCUR. apply CCUR. }
     eapply f_to_co_mon; eauto.
-    edestruct WF.(wf_co_total) as [|CO].
+    edestruct (wf_co_total WF) as [|CO].
     3: by apply AWNEQ.
     1,2: split; [split|]; auto.
     { by rewrite LOCA. }
@@ -351,7 +351,7 @@ Proof using WF CON.
          apply r_step. by apply sb_in_hb. }
     { done. }
     all: try apply CON.
-      by apply TCCOH.(etc_I_in_S). }
+      by apply (etc_I_in_S TCCOH). }
 
   assert (Time.lt (View.rlx (View.unwrap rel') locr) (f_to w)) as REL_LT.
   { red in HELPER0. desc.
@@ -383,7 +383,7 @@ Proof using WF CON.
            exists w. split; eauto. }
       { done. }
       all: apply CON. }
-    edestruct WF.(wf_co_total) as [|CO].
+    edestruct (wf_co_total WF) as [|CO].
     3: by apply AWNEQ.
     1,2: split; [split|]; auto.
     { by rewrite LOCA. }
@@ -397,7 +397,7 @@ Proof using WF CON.
          apply XX. eexists. split; eauto. }
     { done. }
     all: try apply CON.
-      by apply TCCOH.(etc_I_in_S). }
+      by apply (etc_I_in_S TCCOH). }
 
   eexists.
   apply and_assoc. apply pair_app.
@@ -439,7 +439,7 @@ Proof using WF CON.
         { etransitivity; eauto.
           apply Time.le_lteq; left.
           eapply f_to_co_mon; eauto.
-            by apply TCCOH.(etc_I_in_S). }
+            by apply (etc_I_in_S TCCOH). }
         exfalso.
         eapply transp_rf_co_urr_irr; eauto.
         1-3: by apply CON.
@@ -480,7 +480,7 @@ Proof using WF CON.
     red; splits; red; splits; simpls.
     { apply TS2. }
     { etransitivity; eauto. basic_solver. }
-    { ins. apply WF.(wf_rmwD) in RMW0.
+    { ins. apply (wf_rmwD WF) in RMW0.
       apply seq_eqv_l in RMW0; destruct RMW0 as [RR RMW0].
       apply seq_eqv_r in RMW0; destruct RMW0 as [RMW0 WW].
       split; intros [[HH|HH]|HH].
@@ -549,7 +549,7 @@ Proof using WF CON.
         exfalso. simpls. destruct EQ as [EQ1 EQ2]. rewrite EQ1 in *. clear l EQ1.
         eapply f_to_eq with (I:=S) in EQ2; eauto.
         { red. by rewrite LOC. }
-          by apply TCCOH.(etc_I_in_S). }
+          by apply (etc_I_in_S TCCOH). }
       desc. exists p_rel.
       split; auto.
       destruct (Ordering.le Ordering.acqrel (Event_imm_promise.wmod ordw)); [by desf|].
@@ -578,7 +578,7 @@ Proof using WF CON.
       apply Time.le_lteq. left. eapply f_to_co_mon; eauto.
       assert (E b /\ W b) as [EB WB].
       { apply TCCOH in ISSB. apply ISSB. }
-      edestruct WF.(wf_co_total) with (a:=w) (b:=b) as [CO|CO]; eauto.
+      edestruct (wf_co_total WF) with (a:=w) (b:=b) as [CO|CO]; eauto.
       1,2: split; [split|]; eauto.
       exfalso.
       assert (sb w b) as SBWB.
@@ -593,7 +593,7 @@ Proof using WF CON.
       cdes CON. eapply Cint. exists b. split.
       { apply sb_in_hb; eauto. }
       { apply r_step. by apply co_in_eco. }
-        by apply TCCOH.(etc_I_in_S). }
+        by apply (etc_I_in_S TCCOH). }
     { red. ins. splits.
       { by apply SIM_RES_MEM. }
       ins. erewrite Memory.remove_o; eauto. desf.
@@ -628,17 +628,17 @@ Proof using WF CON.
       { intros y [[COVY|HH] TIDYW].
         { rewrite TIDWR in TIDYW.
           eapply sb_trans.
-          2: by apply WF.(rmw_in_sb); eauto.
+          2: by apply (rmw_in_sb WF); eauto.
           apply SBYR_gen; auto. }
         rewrite <- HH in *.
-          by apply WF.(rmw_in_sb). }
+          by apply (rmw_in_sb WF). }
       red. ins. apply seq_eqv_r in REL0. destruct REL0 as [REL0 HH].
       rewrite <- HH in *. clear y HH.
       destruct (classic (x = r)) as [|NEQ].
       { by right. }
       edestruct sb_semi_total_r with (x:=w) (y:=x) (z:=r) as [AA|AA]; eauto.
       { left. apply NEXT. eexists. apply seq_eqv_r. eauto. }
-      exfalso. eapply WF.(wf_rmwi); eauto. }
+      exfalso. eapply (wf_rmwi WF); eauto. }
     { cdes PLN_RLX_EQ. 
       unfold TView.write_tview, TView.read_tview; simpls.
       unfold View.singleton_ur_if.

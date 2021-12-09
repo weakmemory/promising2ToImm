@@ -42,26 +42,26 @@ Variable WF : Wf G.
 Variable sc : relation actid.
 Variable CON : imm_consistent G sc.
 
-Notation "'E'" := G.(acts_set).
-Notation "'sb'" := G.(sb).
-Notation "'rf'" := G.(rf).
-Notation "'co'" := G.(co).
-Notation "'rmw'" := G.(rmw).
-Notation "'data'" := G.(data).
-Notation "'addr'" := G.(addr).
-Notation "'ctrl'" := G.(ctrl).
+Notation "'E'" := (acts_set G).
+Notation "'sb'" := (sb G).
+Notation "'rf'" := (rf G).
+Notation "'co'" := (co G).
+Notation "'rmw'" := (rmw G).
+Notation "'data'" := (data G).
+Notation "'addr'" := (addr G).
+Notation "'ctrl'" := (ctrl G).
 
-Notation "'fr'" := G.(fr).
-Notation "'coe'" := G.(coe).
-Notation "'coi'" := G.(coi).
-Notation "'deps'" := G.(deps).
-Notation "'rfi'" := G.(rfi).
-Notation "'rfe'" := G.(rfe).
-Notation "'detour'" := G.(detour).
-Notation "'hb'" := G.(hb).
-Notation "'sw'" := G.(sw).
+Notation "'fr'" := (fr G).
+Notation "'coe'" := (coe G).
+Notation "'coi'" := (coi G).
+Notation "'deps'" := (deps G).
+Notation "'rfi'" := (rfi G).
+Notation "'rfe'" := (rfe G).
+Notation "'detour'" := (detour G).
+Notation "'hb'" := (hb G).
+Notation "'sw'" := (sw G).
 
-Notation "'lab'" := G.(lab).
+Notation "'lab'" := (lab G).
 (* Notation "'loc'" := (loc lab). *)
 (* Notation "'val'" := (val lab). *)
 (* Notation "'mod'" := (mod lab). *)
@@ -83,7 +83,7 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
-Notation "'W_ex'" := G.(W_ex).
+Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Lemma read_step PC T S f_to f_from thread r smode
@@ -122,7 +122,7 @@ Proof using WF CON.
 
   apply clos_rt_rt1n in ESTEPS.
   eapply (rtc_lang_tau_step_rtc_thread_tau_step
-            _ _ _ local PC.(Configuration.sc) PC.(Configuration.memory)) in ESTEPS.
+            _ _ _ local (Configuration.sc PC) (Configuration.memory PC)) in ESTEPS.
 
   assert (E r) as RACT.
   { apply NEXT. }
@@ -234,7 +234,7 @@ Proof using WF CON.
       { etransitivity; eauto.
         cdes FCOH.
         apply Time.le_lteq; left. eapply f_to_co_mon; eauto.
-        all: by apply TCCOH.(etc_I_in_S). }
+        all: by apply (etc_I_in_S TCCOH). }
       exfalso.
       eapply transp_rf_co_urr_irr; eauto.
       1-3: by apply CON.
@@ -245,7 +245,7 @@ Proof using WF CON.
     { done. }
     desc. unnw.
     red; splits; red; splits; simpls; eauto.
-    { intros. apply WF.(wf_rmwD) in RMW.
+    { intros. apply (wf_rmwD WF) in RMW.
       apply seq_eqv_l in RMW; destruct RMW as [RR RMW].
       apply seq_eqv_r in RMW; destruct RMW as [RMW WW].
       split; intros [HH|HH]; left; auto.
