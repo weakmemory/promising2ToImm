@@ -45,7 +45,7 @@ Section MaxValue.
     max_value f P'' (Time.join t t').
   Proof using.
     assert (SAME: forall x, P'' x <-> P x \/ P' x).
-      by unfolder in *; basic_solver 12.
+    { ins. eapply (set_equiv_exp) in SAME_; eauto. }  
     unfold max_value in *; ins; desf; splits; ins.
     all: try apply SAME in INa; desf.
     all: try apply SAME0 in INa; desf.
@@ -75,7 +75,7 @@ Section MaxValue.
     max_value f' P'  (Time.join t (f' b)).
   Proof using.
     assert (SAME: forall x, P' x <-> P x \/ eq b x).
-      by unfolder in *; basic_solver 12.
+    { ins. eapply (set_equiv_exp) in SAME_; eauto. }  
     eapply max_value_join with (P':= eq b); eauto.
     eapply max_value_new_f with (f:=f); eauto.
     eapply max_value_singleton; done.
