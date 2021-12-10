@@ -145,7 +145,7 @@ Lemma same_other_threads_step thread label PC PC'
       thread' (TNEQ : thread' <> thread) langst local :
   IdentMap.find thread' PC .(Configuration.threads) = Some (langst, local) <->
   IdentMap.find thread' PC'.(Configuration.threads) = Some (langst, local).
-Proof using. destruct PCSTEP. simpls. rewrite IdentMap.gso; auto. Qed.
+Proof using. destruct PCSTEP. simpls. rewrite IdentMap.gso; tauto. Qed.
 
 Lemma same_other_threads_steps thread label PC PC' 
       (PCSTEPS : (plain_step label thread)⁺ PC PC')

@@ -263,7 +263,7 @@ Proof using sc WF TCCOH.
     unionR left -> right.
     rewrite (dom_l (wf_rmwE WF)) at 1. 
     rewrite (wf_rmwt WF) at 1.
-    clear; unfold same_tid; basic_solver 12. }
+    clear. unfold same_tid. unfolder. intros. desf. split; congruence. }
   { rewrite dom_rel_eqv_dom_rel.
     rewrite (rmw_in_ppo WF) at 1.
     rewrite (dom_r (@wf_ppoD G)) at 1.
@@ -405,7 +405,7 @@ Proof using WF TCCOH.
     rewrite sb_tid_init' at 1; relsf; unionL; split.
     { unionR left -> left -> left -> left.
       unionR left -> right.
-      unfold same_tid; unfolder; ins; desf; eauto 20. }
+      unfold same_tid; unfolder; ins; desf; intuition. }
     arewrite (⦗E⦘ ⨾ ⦗fun a : actid => is_init a⦘ ⊆ ⦗D⦘).
     { generalize D_init. clear. basic_solver. }
     arewrite (dom_rel (⦗D⦘ ⨾ Gsb ⨾ ⦗E ∩₁ NTid_ thread⦘) ⊆₁ D) by basic_solver.
@@ -483,7 +483,7 @@ Proof using WF TCCOH.
     { unfold D.
       unionR left -> left -> left -> left.
       unionR left -> right.
-      unfold same_tid. clear. basic_solver. }
+      unfold same_tid. clear. unfolder. intros. desc. split; congruence. }
     transitivity D; [|unfold D; clear; basic_solver 21].
     rewrite <- D_init; clear; basic_solver. }
   { rewrite dom_rel_eqv_dom_rel.

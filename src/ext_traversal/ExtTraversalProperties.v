@@ -252,7 +252,19 @@ Qed.
 
 (* TODO: move and got rid of duplicate *)
 Lemma TODO_mem_fair2: fsupp co /\ fsupp fr.
-Proof using. Admitted. 
+Proof using. Admitted.
+
+(* Lemma exists_co_imm_helper w w' (D1 D2: actid -> Prop) *)
+(*       (WNEXT: (⦗D1⦘ ⨾ co ⨾ ⦗D2⦘) w w'): *)
+(*   exists w'', immediate (⦗D1⦘ ⨾ co ⨾ ⦗D2⦘) w w''. *)
+(* Proof.  *)
+(*  apply fsupp_imm_t in WNEXT. *)
+(*  { apply ct_begin in WNEXT as (? & ? & _). eauto. } *)
+(*  3: { generalize (co_trans WF). basic_solver 10. }  *)
+(*  all: rewrite inclusion_seq_eqv_r, inclusion_seq_eqv_l. *)
+(*  { apply TODO_mem_fair2. } *)
+(*  by apply co_irr.  *)
+(* Qed.  *)
 
 Lemma co_next_to_imm_co_next w locw
       (LOC : loc w = Some locw)
@@ -268,12 +280,15 @@ Lemma co_next_to_imm_co_next w locw
     ⟪ NEQNEXT : wnext <> w ⟫.
 Proof using WF ETCCOH.
   assert (exists wnext, immediate (co ⨾ ⦗ S ⦘) w wnext) as [wnext NIMMCO].
-  { desc. apply fsupp_imm_t in WNEXT.
+  {
+    (* desc. apply seq_id_l, exists_co_imm_helper in WNEXT. desc. *)
+    (* eexists. eapply immediate_more; [by symmetry; apply seq_id_l| eauto ]. *)
+    desc. apply fsupp_imm_t in WNEXT.
     { apply ct_begin in WNEXT as (? & ? & _). eauto. }
-    all: try rewrite inclusion_seq_eqv_r.
+    3: { generalize (co_trans WF). basic_solver 10. } 
+    all: rewrite inclusion_seq_eqv_r. 
     { apply TODO_mem_fair2. }
-    { by apply co_irr. }
-    generalize (co_trans WF); unfold transitive; basic_solver 21. }
+    by apply co_irr. }
   clear WNEXT.
   assert (S wnext /\ co w wnext) as [ISSNEXT CONEXT].
   { destruct NIMMCO as [AA _]. by destruct_seq_r AA as BB. }
@@ -332,12 +347,12 @@ Proof using WF IMMCON ETCCOH.
       eexists; split.
       2: { apply r_step. by apply Execution_eco.co_in_eco; apply H. }
       apply sb_in_hb. apply init_ninit_sb; auto. }
-    desc; eapply clos_trans_immediate2 in WPREV.
-    apply ct_end in WPREV; unfold seq in *; desc; eauto.
-    generalize (co_trans WF); unfold transitive; basic_solver 21.
-    generalize (co_irr WF); basic_solver 21.
-    unfolder; ins; desc; hahn_rewrite (dom_r (wf_coE WF)) in REL0.
-    unfolder in REL0; desc; eauto. }
+    desc. apply fsupp_imm_t in WPREV.
+    { apply ct_end in WPREV as (? & ? & ?). eauto. }
+    3: { generalize (co_trans WF). basic_solver 10. } 
+    all: rewrite inclusion_seq_eqv_l. 
+    { apply TODO_mem_fair2. }
+    by apply co_irr. }    
   assert (S wprev /\ co wprev w) as [ISSPREV COPREV].
   { destruct PIMMCO as [AA _]. by destruct_seq_l AA as BB. }
   assert (E wprev) as EPREV.

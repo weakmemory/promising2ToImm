@@ -1,4 +1,4 @@
-Require Import PArith Omega Setoid.
+Require Import PArith Lia Setoid.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
 From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration.
@@ -71,10 +71,10 @@ Proof using.
   destruct (classic (index < (eindex state))) as [LT|GE].
   { exfalso. apply NEXT. by apply PCOV. }
   destruct (classic (index > (eindex state))) as [GT|].
-  2: omega.
+  2: lia.
   exfalso.
   assert (covered T (ThreadEvent thread (eindex state))) as HH.
-  2: { apply PCOV in HH. omega. }
+  2: { apply PCOV in HH. lia. }
   apply NEXT. red. eexists. apply seq_eqv_r. split; eauto.
   unfold Execution.sb.
   apply seq_eqv_l; split.
@@ -90,7 +90,7 @@ Proof using.
   eapply GPC'.(acts_clos).
   eapply acts_rep in EI'; eauto.
   desc. inv REP.
-  omega.
+  lia.
 Qed.
 
 Lemma step_to_lts_step thread :
@@ -174,7 +174,7 @@ Proof using WF.
     apply GPC'.(wft_rmwIndex) in AA. desc.
     unfold r in RI. inv RI.
     apply GPC'.(acts_rep) in ZZ. desc.
-    inv REP. omega. }
+    inv REP. lia. }
   splits; eauto.
   { apply rt_refl. }
   { red. eexists. splits; eauto. }
@@ -188,7 +188,7 @@ Proof using WF.
     erewrite steps_preserve_lab with (state0:=yst) (state':=state'); eauto.
     2: { rewrite UG. unfold add, acts_set. simpls. by left. }
     rewrite UG. unfold add. simpl. by rewrite upds. }
-  { omega. }
+  { lia. }
   red. splits; eauto.
 Qed.
 
@@ -238,16 +238,16 @@ Proof using.
   { red. eexists. splits; eauto. }
   1-4: ins; desf.
   3: by red; splits; eauto.
-  2: omega.
+  2: lia.
   red. unfold map.
   assert (acts_set (ProgToExecution.G yst) (ThreadEvent thread (eindex state)))
     as EI'.
   { rewrite UG. unfold add_rmw, acts_set. simpls.
-    right. by left. }
+    vauto. }
   assert (acts_set (ProgToExecution.G yst) (ThreadEvent thread (S (eindex state))))
     as EI.
   { rewrite UG. unfold add_rmw, acts_set. simpls.
-    left. by rewrite plus_comm. }
+    left. rewrite Const.add_comm. vauto. }
   assert (E (ThreadEvent thread (S (eindex state)))) as EEI.
   { eapply (tr_acts_set TEH).
     eapply steps_preserve_E; eauto. }
@@ -259,8 +259,8 @@ Proof using.
   erewrite steps_preserve_lab with (state0:=yst) (state':=state'); eauto.
   erewrite steps_preserve_lab with (state0:=yst) (state':=state'); eauto.
   rewrite UG. unfold add_rmw. simpls.
-  rewrite plus_comm. rewrite upds. rewrite updo.
-  2: { intros HH. inv HH. omega. }
+  rewrite Const.add_comm. rewrite upds. rewrite updo.
+  2: { intros HH. inv HH. lia. }
   rewrite upds. apply LABS.
 Qed.
  
@@ -293,7 +293,7 @@ Proof using WF.
     assert (acts_set (ProgToExecution.G s) (ThreadEvent thread (eindex s))) as TT.
     { apply (tr_acts_set TEH). by split. }
     apply (acts_rep GPC) in TT.
-    desc. inv REP. omega. }
+    desc. inv REP. lia. }
   destruct H as [llab H].
   cdes H. cdes ISTEP.
   destruct ISTEP0.
@@ -386,7 +386,7 @@ Proof using.
     2: by inv HH.
     etransitivity; [by apply PCOV|].
     done. }
-  intros II. apply lt_n_Sm_le in II. apply le_lt_or_eq in II.
+  intros II. apply Lt.lt_n_Sm_le in II. apply Lt.le_lt_or_eq in II.
   destruct II as [II|II].
   { left. by apply PCOV. }
   right. by subst.
@@ -402,15 +402,15 @@ Lemma sim_state_cover_rmw_events C e e' index'
 Proof using.
   ins. split.
   { rewrite <- REPR1, <- REPR2. intros [[HH|HH]|HH]; simpls.
-    2-3: inv HH; omega.
+    2-3: inv HH; lia.
     etransitivity; [by apply PCOV|].
-    omega. }
+    lia. }
   intros II.
-  apply lt_n_Sm_le in II. apply le_lt_or_eq in II.
+  apply Lt.lt_n_Sm_le in II. apply Lt.le_lt_or_eq in II.
   destruct II as [II|II].
   2: by right; subst.
   left.
-  apply lt_n_Sm_le in II. apply le_lt_or_eq in II.
+  apply Lt.lt_n_Sm_le in II. apply Lt.le_lt_or_eq in II.
   destruct II as [II|II].
   { left. by apply PCOV. }
   right. by subst.

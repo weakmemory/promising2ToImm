@@ -38,7 +38,7 @@ Variable sc : relation actid.
 Notation "'Init'" := (fun a => is_true (is_init a)).
 
 Notation "'E'" := (acts_set G).
-Notation "'Gacts'" := (acts G).
+(* Notation "'Gacts'" := (acts G). *)
 Notation "'Glab'" := (lab G).
 Notation "'Gsb'" := (sb G).
 Notation "'Grf'" := (rf G).

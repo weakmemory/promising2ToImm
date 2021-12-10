@@ -39,7 +39,7 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 
-Notation "'acts'" := (acts G).
+(* Notation "'acts'" := (acts G). *)
 Notation "'co'" := (co G).
 Notation "'sw'" := (sw G).
 Notation "'hb'" := (hb G).

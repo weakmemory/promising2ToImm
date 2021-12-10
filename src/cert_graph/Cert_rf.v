@@ -33,7 +33,7 @@ Variable sc : relation actid.
 Notation "'Init'" := (fun a => is_true (is_init a)).
 
 Notation "'E'" := (acts_set G).
-Notation "'Gacts'" := (acts G).
+(* Notation "'Gacts'" := (acts G). *)
 Notation "'Glab'" := (lab G).
 Notation "'Gsb'" := (sb G).
 Notation "'Grf'" := (rf G).
@@ -191,6 +191,32 @@ Proof using WF WF_SC IT_new_co ST_in_E S_in_W.
   all: unfolder in H12; unfolder in H5; basic_solver 40.
 Qed.
 
+(* TODO: is this true? *)
+Lemma cert_co_furr_fin (b: actid) (l: location):
+  exists findom, forall c (REL: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)＊ (InitEvent l) c),
+      In c findom.
+Proof using. 
+  (* ins. *)
+  (* assert (A: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)^? (InitEvent l) c). *)
+  (* { apply rt_of_trans; try done. *)
+  (*   apply transitiveI; unfolder; ins; desf; splits; eauto. *)
+  (*   eapply cert_co_trans; eauto. } *)
+  
+  (* unfolder in A; desf. *)
+  (* { apply in_filterP_iff; split; auto. } *)
+  (* apply in_filterP_iff. *)
+  (* eapply wf_cert_coE in A; try edone. *)
+  (* unfolder in A; desc. *)
+  (* eapply wf_cert_coD in A1; try edone. *)
+  (* unfolder in A1; desc. *)
+  (* eapply wf_cert_col in A3; try edone. *)
+  (* unfold same_loc in *. *)
+  (* unfolder in A. *)
+  (* desf; splits; eauto. red. splits; auto. *)
+  (* congruence.  *)
+Admitted.
+
+
 Lemma new_rf_comp : forall b (IN: ((E \₁ D) ∩₁ R) b) , exists a, new_rf a b.
 Proof using WF WF_SC IT_new_co ST_in_E S_in_W.
   ins; unfolder in IN; desf.
@@ -211,28 +237,15 @@ Proof using WF WF_SC IT_new_co ST_in_E S_in_W.
     hahn_rewrite <- sb_in_hb.
     basic_solver 12. }
 
+  edestruct (cert_co_furr_fin b l) as [findom FINDOM]; eauto.
+  
   forward (eapply last_exists with (s:=cert_co ⨾ ⦗fun x=> Gfurr x b⦘) 
-                                   (dom:= filterP (W_ l) (acts G)) (a:=(InitEvent l))).
+                                   (* (dom:= filterP (W_ l) (acts G)) *)
+                                   (a:=(InitEvent l))).
   { eapply acyclic_mon.
     apply trans_irr_acyclic; [eapply cert_co_irr| eapply cert_co_trans]; try edone.
     basic_solver. }
-  { ins.
-    assert (A: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)^? (InitEvent l) c).
-    { apply rt_of_trans; try done.
-      apply transitiveI; unfolder; ins; desf; splits; eauto.
-      eapply cert_co_trans; eauto. }
-    unfolder in A; desf.
-    { apply in_filterP_iff; split; auto. }
-    apply in_filterP_iff.
-    eapply wf_cert_coE in A; try edone.
-    unfolder in A; desc.
-    eapply wf_cert_coD in A1; try edone.
-    unfolder in A1; desc.
-    eapply wf_cert_col in A3; try edone.
-    unfold same_loc in *.
-    unfolder in A.
-    desf; splits; eauto. red. splits; auto.
-    congruence. }
+  { eauto. }
   ins; desf.
   assert (A: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)^? (InitEvent l) b0).
   { apply rt_of_trans; try done.
@@ -290,6 +303,7 @@ Proof using WF WF_SC CSC COH ACYC_EXT IT_new_co.
   { unfold Cert_D.D. clear. unfolder. ins. desf; tauto. }
   clear -new_rf_hb WF.
   unfolder; ins; desf.
+  rewrite <- H6 in H3. 
   eapply (@same_thread G) in H3; desf.
   destruct H3; [subst x; type_solver|].
   2: intro K; apply (init_w WF) in K; type_solver.

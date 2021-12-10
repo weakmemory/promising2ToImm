@@ -35,7 +35,7 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 
-Notation "'acts'" := (acts G).
+(* Notation "'acts'" := (acts G). *)
 Notation "'co'" := (co G).
 Notation "'sw'" := (sw G).
 Notation "'hb'" := (hb G).
@@ -364,6 +364,7 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
          { eapply nS_imm_co_in_sb; auto.
            4: by apply FOR_SPLIT.
            1,3: done.
+           (* all: try done.  *)
            red. split.
            { apply seq_eqv_r. split; auto. }
            ins.

@@ -14,7 +14,7 @@ Variable COM : complete G.
 Variable sc : relation actid.
 Variable IMMCON : imm_consistent G sc.
 
-Notation "'acts'" := (acts G).
+(* Notation "'acts'" := (acts G). *)
 Notation "'sb'" := (sb G).
 Notation "'rmw'" := (rmw G).
 Notation "'data'" := (data G).

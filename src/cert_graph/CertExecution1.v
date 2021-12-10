@@ -27,7 +27,7 @@ Variable sc : relation actid.
 Notation "'Init'" := (fun a => is_true (is_init a)).
 
 Notation "'FE'" := (acts_set Gf).
-Notation "'Facts'" := (acts Gf).
+(* Notation "'Facts'" := (acts Gf). *)
 Notation "'Flab'" := (lab Gf).
 Notation "'Fsb'" := (sb Gf).
 Notation "'Frf'" := (rf Gf).
@@ -108,7 +108,7 @@ Definition rstG := restrict Gf E0.
 Definition rst_sc := ⦗ E0 ⦘ ⨾ sc ⨾ ⦗ E0 ⦘.
 
 Notation "'E'" := (acts_set rstG).
-Notation "'Gacts'" := (acts rstG).
+(* Notation "'Gacts'" := (acts rstG). *)
 Notation "'Glab'" := (lab rstG).
 Notation "'Gsb'" := (sb rstG).
 Notation "'Grf'" := (rf rstG).
@@ -512,10 +512,10 @@ Proof using WF ETCCOH IMMCON.
     unfolder; ins; desf; exfalso.
     { eapply rfe_n_same_tid; eauto.
       { apply IMMCON. }
-      split; eauto. by red. }
+      split; eauto. congruence. }
     cdes IMMCON.
     eapply (thread_rfe_sb WF (coherence_sc_per_loc Cint)).
-    unfold same_tid. unfolder. eauto. }
+    unfold same_tid. unfolder. split; eauto. congruence. }
   rewrite (dom_l (wf_rmwD WF)).
   rewrite (dom_l (wf_rfeD rstWF)).
   clear. type_solver.
@@ -798,12 +798,12 @@ Proof using WF ETCCOH RELCOV RMWCOV.
     rewrite (wf_rmwD WF). type_solver. }
   { rewrite (dom_l (wf_rmwD WF)).
     unfolder. ins. desf.
-    { subst x0 z. 
+    { subst. 
       match goal with
       | H : S _ |- _ => eapply (reservedW WF ETCCOH) in H
       end.
       type_solver. }
-    subst z.
+    subst.
     assert (Fsb^? x y) as [|SB]; try subst x.
     { apply (transp_rmw_sb WF). eexists; eauto. }
     { apply tid_S_in_E. by split. }
