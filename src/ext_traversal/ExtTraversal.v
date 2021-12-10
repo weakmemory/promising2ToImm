@@ -7,6 +7,7 @@ Require Import AuxRel.
 Require Export ExtTravRelations.
 From imm Require Import TraversalProperties.
 Require Import ExtTraversalConfig.
+Require Import Lia.
 
 Set Implicit Arguments.
 
@@ -17,7 +18,7 @@ Variable COM : complete G.
 Variable sc : relation actid.
 Variable IMMCON : imm_consistent G sc.
 
-Notation "'acts'" := (acts G).
+(* Notation "'acts'" := (acts G). *)
 Notation "'sb'" := (sb G).
 Notation "'rmw'" := (rmw G).
 Notation "'data'" := (data G).
@@ -115,6 +116,18 @@ Definition ext_itrav_step (e : actid) T T' :=
 
 Definition ext_trav_step T T' := exists e, ext_itrav_step e T T'.
 
+(* TODO: *)
+(* MOVE_TO_IMM *)
+Lemma wf_sb : well_founded sb.
+Proof.
+  unfold Execution.sb.
+  rewrite <- restr_relE. eapply wf_mon; [by apply inclusion_restr| ].
+  apply Wf_nat.well_founded_lt_compat
+    with (f := fun (e: actid) => if e then 0 else index e + 1).
+  intros x y SB. destruct x, y; simpl in *; lia. 
+Qed.
+
+
 Lemma exists_next_to_reserve w T
       (NRES : ~ reserved T w) :
   exists w',
@@ -126,7 +139,7 @@ Proof using.
               exists w',
                 ⟪ SBB : (⦗W_ex \₁ reserved T⦘ ⨾ sb)^? w' w ⟫ /\
                 ⟪ NB  : ~ codom_rel (⦗W_ex \₁ reserved T⦘ ⨾ sb) w' ⟫).
-  apply (@well_founded_ind _ sb (wf_sb G) Q).
+  apply (@well_founded_ind _ sb (wf_sb) Q).
   intros x IND; subst Q; simpls.
   intros NRESX.
   destruct (classic (exists w', (⦗W_ex \₁ reserved T⦘ ⨾ sb) w' x)) as [[w' HH]|NEX].
@@ -461,15 +474,18 @@ Proof using WF IMMCON ETCCOH.
   rewrite EQEISS. arewrite (detour ⊆ detour ∪ rfe). by apply dom_detour_rfe_ppo_issuable.
 Qed.
 
-Lemma exists_ext_trav_step e (N_FIN : next G (ecovered T) e) :
-  exists T', ext_trav_step T T'.
-Proof using WF IMMCON ETCCOH.
-  edestruct exists_trav_step; eauto.
-  { apply ETCCOH. }
-  eapply trav_step_to_ext_trav_step; eauto.
-Qed.
-
 End Props.
+
+
+(* Lemma exists_ext_trav_step e (T: ext_trav_config) *)
+(*       (N_FIN : next G (ecovered T) e) : *)
+(*   exists T', ext_trav_step T T'. *)
+(* Proof using WF IMMCON ETCCOH. *)
+(*   edestruct exists_trav_step; eauto. *)
+(*   { apply ETCCOH. } *)
+(*   eapply trav_step_to_ext_trav_step; eauto. *)
+(* Qed. *)
+
 
 Definition same_ext_trav_config (T T' : ext_trav_config) :=
   ecovered T ≡₁ ecovered T' /\ eissued T ≡₁ eissued T' /\

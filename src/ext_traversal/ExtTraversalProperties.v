@@ -15,7 +15,7 @@ Variable COM : complete G.
 Variable sc : relation actid.
 Variable IMMCON : imm_consistent G sc.
 
-Notation "'acts'" := (acts G).
+(* Notation "'acts'" := (acts G). *)
 Notation "'sb'" := (sb G).
 Notation "'rmw'" := (rmw G).
 Notation "'data'" := (data G).
@@ -250,6 +250,10 @@ generalize ((etc_dr_R_acq_I ETCCOH)).
 basic_solver 21.
 Qed.
 
+(* TODO: move and got rid of duplicate *)
+Lemma TODO_mem_fair2: fsupp co /\ fsupp fr.
+Proof using. Admitted. 
+
 Lemma co_next_to_imm_co_next w locw
       (LOC : loc w = Some locw)
       (WNEXT : exists wnext, (co ⨾ ⦗ S ⦘) w wnext) :
@@ -264,12 +268,12 @@ Lemma co_next_to_imm_co_next w locw
     ⟪ NEQNEXT : wnext <> w ⟫.
 Proof using WF ETCCOH.
   assert (exists wnext, immediate (co ⨾ ⦗ S ⦘) w wnext) as [wnext NIMMCO].
-  { desc; eapply clos_trans_immediate2 in WNEXT.
-    apply ct_begin in WNEXT; unfold seq in *; desc; eauto.
-    generalize (co_trans WF); unfold transitive; basic_solver 21.
-    generalize (co_irr WF); basic_solver 21.
-    unfolder; ins; desc; hahn_rewrite (dom_r (wf_coE WF)) in REL.
-    unfolder in REL; desc; eauto. }
+  { desc. apply fsupp_imm_t in WNEXT.
+    { apply ct_begin in WNEXT as (? & ? & _). eauto. }
+    all: try rewrite inclusion_seq_eqv_r.
+    { apply TODO_mem_fair2. }
+    { by apply co_irr. }
+    generalize (co_trans WF); unfold transitive; basic_solver 21. }
   clear WNEXT.
   assert (S wnext /\ co w wnext) as [ISSNEXT CONEXT].
   { destruct NIMMCO as [AA _]. by destruct_seq_r AA as BB. }

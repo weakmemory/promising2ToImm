@@ -17,7 +17,7 @@ Variable sc : relation actid.
 Variable IMMCON : imm_consistent G sc.
 Variable I : actid -> Prop.
 
-Notation "'acts'" := (acts G).
+(* Notation "'acts'" := (acts G). *)
 Notation "'co'" := (co G).
 Notation "'coi'" := (coi G).
 Notation "'sb'" := (sb G).

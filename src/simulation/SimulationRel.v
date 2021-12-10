@@ -33,7 +33,7 @@ Variable T : trav_config.
 Variable S : actid -> Prop. (* A set of reserved events *)
 Variables f_to f_from : actid -> Time.t.
 
-Notation "'acts'" := (acts G).
+(* Notation "'acts'" := (acts G). *)
 Notation "'co'" := (co G).
 Notation "'coi'" := (coi G).
 Notation "'sw'" := (sw G).

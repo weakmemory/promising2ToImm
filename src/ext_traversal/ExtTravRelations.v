@@ -13,7 +13,7 @@ Variable COM : complete G.
 Variable sc : relation actid.
 Variable IMMCON : imm_consistent G sc.
 
-Notation "'acts'" := (acts G).
+(* Notation "'acts'" := (acts_set G). *)
 Notation "'sb'" := (sb G).
 Notation "'rmw'" := (rmw G).
 Notation "'data'" := (data G).
@@ -227,7 +227,7 @@ End RPPO.
 
 Lemma sub_rppo_in G G' sc sc'
       (SUB : sub_execution G G' sc sc')
-      (RMWCLOS : codom_rel (⦗G'.(acts_set)⦘ ⨾ (rmw G)) ⊆₁ G'.(acts_set)) :
+      (RMWCLOS : codom_rel (⦗acts_set G'⦘ ⨾ (rmw G)) ⊆₁ acts_set G') :
   rppo G' ⊆ rppo G.
 Proof using.
   unfold rppo.

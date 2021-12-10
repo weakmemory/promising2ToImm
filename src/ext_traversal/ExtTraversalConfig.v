@@ -13,7 +13,7 @@ Section ExtTraversalConfig.
 Variable G : execution.
 Variable sc : relation actid.
 
-Notation "'acts'" := (acts G).
+(* Notation "'acts'" := (acts G). *)
 Notation "'sb'" := (sb G).
 Notation "'rmw'" := (rmw G).
 Notation "'data'" := (data G).

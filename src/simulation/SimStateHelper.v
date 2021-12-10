@@ -23,7 +23,7 @@ Section SimStateHelper.
   Variable sc : relation actid.
 
 Notation "'E'" := (acts_set G).
-Notation "'acts'" := (acts G).
+(* Notation "'acts'" := (acts G). *)
 Notation "'co'" := (co G).
 Notation "'coi'" := (coi G).
 Notation "'sb'" := (sb G).

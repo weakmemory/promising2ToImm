@@ -35,7 +35,7 @@ Variable sc : relation actid.
 Notation "'Init'" := (fun a => is_true (is_init a)).
 
 Notation "'E'" := (acts_set G).
-Notation "'Gacts'" := (acts G).
+(* Notation "'Gacts'" := (acts G). *)
 Notation "'Glab'" := (lab G).
 Notation "'Gsb'" := (sb G).
 Notation "'Grf'" := (rf G).
@@ -263,8 +263,8 @@ Proof using WF S_in_W ST_in_E IT_new_co S_I_in_W_ex COH.
     red. eauto. }
   unfolder in H; desc.
   assert (B: (E ∩₁ W) x).
-  { hahn_rewrite (wf_new_coE IST_new_co (wf_coE WF)) in H0.
-    hahn_rewrite (wf_new_coD IST_new_co (wf_coD WF)) in H0.
+  { hahn_rewrite (wf_new_coE G IST_new_co (wf_coE WF)) in H0.
+    hahn_rewrite (wf_new_coD G IST_new_co (wf_coD WF)) in H0.
     unfolder in H0. clear -H0. basic_solver. }
   apply IST_new_co in B; unfolder in B.
   destruct B as [B|[[B1 B2] B3]].
@@ -278,7 +278,7 @@ Proof using WF S_in_W ST_in_E IT_new_co S_I_in_W_ex COH.
     clear -H0 A B1 B2 B3.
     basic_solver. }
   desf.
-  eapply same_thread in A0; try edone.
+  rewrite <- B3 in A0. eapply same_thread in A0; try edone.
   { desf.
     exfalso.
     unfolder in D; desf.
@@ -395,19 +395,77 @@ Proof using WF COH TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co I_in_S.
     generalize (init_issued WF TCCOH).
     basic_solver 21. }
   rewrite ninit_sb_same_tid.
-  unfold same_tid; basic_solver.
+  red. intros ? REL. destruct REL as (? & ? & ? & ? & ? & ?). 
+  unfold same_tid in *. unfolder in *. desc. subst. congruence.   
 Qed.
 
+(* TODO: insert proof from RC11 op2decl *)
+Lemma fsupp_bunion_disj {A: Type} B (ss : B -> A -> Prop) (rr: B -> relation A)
+      (FS: forall b1 b2 (NEQ: b1 <> b2), set_disjoint (ss b1) (ss b2))
+      (FSUPP: forall b, fsupp (restr_rel (ss b) (rr b))):
+  fsupp (⋃ b, restr_rel (ss b) (rr b)).
+Proof. Admitted. 
+
+Lemma bunion_alt {A B: Type} (R': B -> relation A):
+  (fun (x y: A) => exists b, R' b x y) ≡ ⋃ b, R' b.
+Proof. basic_solver. Qed.
+
+(* TODO: move upper in the project? *)
+Require Import PropExtensionality.
+
+Lemma rel_extensionality A (r r' : relation A) :
+  r ≡ r' -> r = r'.
+Proof using.
+  ins; extensionality x; extensionality y.
+  apply propositional_extensionality; split; apply H.
+Qed.
+
+Lemma pref_union_alt {A: Type} (r1 r2: relation A):
+  pref_union r1 r2 ≡ r1 ∪ r2 \ (r1)⁻¹.
+Proof. basic_solver. Qed.
+
+
+(* TODO: make a premise *)
+Lemma TODO_mem_fair: fsupp (co G) /\ fsupp (fr G).
+Proof. Admitted. 
+
+
+Lemma fsupp_cert_co: fsupp cert_co.
+Proof using WF.
+  unfold cert_co, new_co.
+  rewrite bunion_alt.
+  erewrite bunion_more; cycle 1. 
+  { apply set_equiv_refl2. }
+  { extensionality l. apply rel_extensionality.
+    rewrite restr_relE with (d := Loc_ l). unfold new_col. apply dom_helper_3.
+    rewrite pref_union_alt. apply inclusion_union_l; [| basic_solver].
+    unfold col0, col. apply inclusion_t_ind; basic_solver. }
+  apply fsupp_bunion_disj; [basic_solver| ].
+  intros l. rewrite pref_union_alt. rewrite restr_union. apply fsupp_union.
+  { unfold col0, col. rewrite inclusion_restr.
+    eapply fsupp_mon; [| apply (proj1 TODO_mem_fair)].
+    apply inclusion_t_ind; [basic_solver | by apply co_trans]. }
+  rewrite inclusion_restr.
+  eapply fsupp_mon.
+  { red. ins. eapply proj1. apply H. }
+  apply fsupp_cross.
+  (* TODO: is it true that cert_co_base is finite? *)
+Admitted. 
+  
+(* TODO: *)
 Lemma imm_cert_co_inv_exists : E ∩₁ W ∩₁ set_compl Init ⊆₁ codom_rel (immediate cert_co).
 Proof using WF TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co COH I_in_S.
 unfolder; ins.
 ins; eapply fsupp_immediate_pred.
-{ eapply fsupp_mon; [| eapply fsupp_cross].
-  apply dom_helper_3.
-  eapply wf_cert_coE.
-  unfold acts_set.
-  unfold set_finite.
-  eauto. }
+{
+  (* eapply fsupp_mon; [| eapply fsupp_cross]. *)
+  (* apply dom_helper_3. *)
+  (* eapply wf_cert_coE. *)
+  (* unfold acts_set. *)
+  (* unfold set_finite. *)
+  (* eauto. *)
+  apply fsupp_cert_co. 
+}
 { eapply cert_co_irr. }
 { eapply cert_co_trans. }
 unfolder; intro HH.
