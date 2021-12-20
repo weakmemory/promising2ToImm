@@ -12,6 +12,7 @@ From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import AuxDef.
+From imm Require Import FairExecution.
 
 From imm Require Import TraversalConfig.
 From imm Require Import ViewRelHelpers.
@@ -138,7 +139,9 @@ Lemma issue_step_helper_no_next w valw locw ordw langst
       (LOC : loc lab w = Some locw)
       (VAL : val lab w = Some valw)
       (ORD : mod lab w = ordw)
-      (WTID : thread = tid w) :
+      (WTID : thread = tid w)
+      (FAIR: mem_fair G)
+  :
   let promises := (Local.promises local) in
   let memory   := (Configuration.memory PC) in
   let sc_view  := (Configuration.sc PC) in
@@ -446,7 +449,7 @@ Proof using All.
                   Memory.get l to memory' = Some (from, msg) <->
                   Memory.get l to (Configuration.memory PC) = Some (from, msg))
          as NOTNEWM.
-       { ins. erewrite Memory.split_o; eauto. rewrite !loc_ts_eq_dec_neq; auto. }
+       { ins. erewrite Memory.split_o; eauto. by rewrite !loc_ts_eq_dec_neq. }
 
        assert (forall l to from msg
                       (NEQ  : l <> locw \/ to <> f_to' w)
@@ -454,7 +457,7 @@ Proof using All.
                   Memory.get l to promises' = Some (from, msg) <->
                   Memory.get l to (Local.promises local) = Some (from, msg))
          as NOTNEWA.
-       { ins. erewrite Memory.split_o; eauto. rewrite !loc_ts_eq_dec_neq; auto. }
+       { ins. erewrite Memory.split_o; eauto. by rewrite !loc_ts_eq_dec_neq. }
 
        assert (forall l to from msg
                       (NEQ  : l <> locw \/ to <> f_to' w)
@@ -800,16 +803,14 @@ Proof using All.
              Memory.get l to memory' = Some (from, msg) <->
              Memory.get l to (Configuration.memory PC) = Some (from, msg))
     as NOTNEWM.
-  { ins. erewrite Memory.add_o; eauto.
-    rewrite loc_ts_eq_dec_neq; auto. }
+  { ins. erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_neq. }
 
   assert (forall l to from msg
                  (NEQ : l <> locw \/ to <> f_to' w),
              Memory.get l to promises' = Some (from, msg) <->
              Memory.get l to (Local.promises local) = Some (from, msg))
     as NOTNEWA.
-  { ins. erewrite Memory.add_o; eauto.
-    rewrite loc_ts_eq_dec_neq; auto. }
+  { ins. erewrite Memory.add_o; eauto. by rewrite loc_ts_eq_dec_neq. }
 
   assert (forall l to from msg
                  (NEQ : l <> locw \/ to <> f_to' w),
@@ -817,7 +818,7 @@ Proof using All.
              Memory.get l to (Local.promises local) = Some (from, msg))
     as NOTNEWP.
   { ins. destruct (Rel w); subst; auto.
-    erewrite Memory.remove_o; eauto. rewrite loc_ts_eq_dec_neq; auto. }
+    erewrite Memory.remove_o; eauto. rewrite loc_ts_eq_dec_neq; eauto. }
 
   assert (~ Rel w ->
           Memory.get locw (f_to' w) promises'' =

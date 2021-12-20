@@ -11,6 +11,7 @@ From imm Require Import imm_s.
 From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import AuxDef.
+From imm Require Import FairExecution.
 
 From imm Require Import AuxRel2.
 From imm Require Import TraversalConfig.
@@ -35,7 +36,7 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 
-Notation "'acts'" := (acts G).
+(* Notation "'acts'" := (acts G). *)
 Notation "'co'" := (co G).
 Notation "'sw'" := (sw G).
 Notation "'hb'" := (hb G).
@@ -95,7 +96,9 @@ Lemma exists_time_interval_for_reserve PC w locw langst local smode
                          (tid w) local (Configuration.memory PC))
       (MEM_CLOSE : memory_close (Local.tview local) (Configuration.memory PC))
       (TID : IdentMap.find (tid w) (Configuration.threads PC) = Some (langst, local))
-      (RMWREX : dom_rel rmw ⊆₁ R_ex lab) :
+      (RMWREX : dom_rel rmw ⊆₁ R_ex lab)
+      (FAIR: mem_fair G)
+  :
   let memory := (Configuration.memory PC) in
   exists f_to' f_from' promises' memory',
     ⟪ PADD :

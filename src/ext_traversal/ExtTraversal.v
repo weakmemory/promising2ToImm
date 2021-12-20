@@ -477,14 +477,16 @@ Qed.
 End Props.
 
 
-(* Lemma exists_ext_trav_step e (T: ext_trav_config) *)
-(*       (N_FIN : next G (ecovered T) e) : *)
-(*   exists T', ext_trav_step T T'. *)
-(* Proof using WF IMMCON ETCCOH. *)
-(*   edestruct exists_trav_step; eauto. *)
-(*   { apply ETCCOH. } *)
-(*   eapply trav_step_to_ext_trav_step; eauto. *)
-(* Qed. *)
+Lemma exists_ext_trav_step e (T: ext_trav_config)
+      (N_FIN : next G (ecovered T) e)
+      (ETCCOH : etc_coherent G sc T)
+      (FINDOM: set_finite (acts_set G)):
+  exists T', ext_trav_step T T'.
+Proof using WF IMMCON.
+  edestruct exists_trav_step; eauto.
+  { apply ETCCOH. }
+  eapply trav_step_to_ext_trav_step; eauto.
+Qed.
 
 
 Definition same_ext_trav_config (T T' : ext_trav_config) :=

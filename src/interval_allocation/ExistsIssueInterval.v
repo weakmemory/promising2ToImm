@@ -11,6 +11,7 @@ From imm Require Import imm_s.
 From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import AuxDef.
+From imm Require Import FairExecution.
 
 From imm Require Import AuxRel2.
 From imm Require Import TraversalConfig.
@@ -90,6 +91,7 @@ Hypothesis PLN_RLX_EQ : pln_rlx_eq (Local.tview local).
 Hypothesis MEM_CLOSE : memory_close (Local.tview local) (Configuration.memory PC).
 
 Lemma exists_time_interval_for_issue_no_next w locw valw langst smode
+      (FAIR: mem_fair G)
       (ISSUABLE : issuable G sc T w)
       (WNISS : ~ issued T w)
       (NWEX : ~ W_ex w)
@@ -362,8 +364,8 @@ Proof using WF IMMCON ETCCOH RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE.
 
          assert (sb w wconext) as SBNEXT.
          { eapply nS_imm_co_in_sb; auto.
-           4: by apply FOR_SPLIT.
-           1,3: done.
+           3: by apply FOR_SPLIT.
+           { done. }
            (* all: try done.  *)
            red. split.
            { apply seq_eqv_r. split; auto. }

@@ -12,6 +12,7 @@ From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import AuxDef.
+From imm Require Import FairExecution.
 
 From imm Require Import TraversalConfig.
 From imm Require Import ViewRelHelpers.
@@ -139,7 +140,8 @@ Lemma issue_step_helper_next w wnext valw locw ordw langst
       (LOC : loc lab w = Some locw)
       (VAL : val lab w = Some valw)
       (ORD : mod lab w = ordw)
-      (WTID : thread = tid w) :
+      (WTID : thread = tid w)
+      (FAIR: mem_fair G):
   let promises := (Local.promises local) in
   let memory   := (Configuration.memory PC) in
   let sc_view  := (Configuration.sc PC) in
@@ -379,7 +381,7 @@ Proof using All.
              Memory.get l to memory' = Some (from, msg) <->
              Memory.get l to (Configuration.memory PC) = Some (from, msg))
     as NOTNEWM.
-  { ins. repeat (erewrite Memory.add_o; eauto; rewrite loc_ts_eq_dec_neq; auto). }
+  { ins. by repeat (erewrite Memory.add_o; eauto; rewrite loc_ts_eq_dec_neq; auto). }
 
   assert (forall l to from msg
                  (NEQ  : l <> locw \/ to <> f_to' w)
@@ -390,7 +392,7 @@ Proof using All.
   { ins.
     destruct (Rel w); subst.
     erewrite Memory.remove_o; eauto; rewrite loc_ts_eq_dec_neq; auto.
-    all: erewrite Memory.add_o; eauto; rewrite loc_ts_eq_dec_neq; auto. }
+    all: by erewrite Memory.add_o; eauto; rewrite loc_ts_eq_dec_neq; auto. }
 
   assert (forall l to from msg
                  (NEQ  : l <> locw \/ to <> f_to' w)

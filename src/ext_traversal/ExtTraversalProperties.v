@@ -4,6 +4,7 @@ From imm Require Import Events Execution Execution_eco
      imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxDef AuxRel2.
 Require Import AuxRel.
 From imm Require Import TraversalConfig Traversal.
+From imm Require Import FairExecution.
 Require Import ExtTraversalConfig.
 
 Set Implicit Arguments.
@@ -250,10 +251,6 @@ generalize ((etc_dr_R_acq_I ETCCOH)).
 basic_solver 21.
 Qed.
 
-(* TODO: move and got rid of duplicate *)
-Lemma TODO_mem_fair2: fsupp co /\ fsupp fr.
-Proof using. Admitted.
-
 (* Lemma exists_co_imm_helper w w' (D1 D2: actid -> Prop) *)
 (*       (WNEXT: (⦗D1⦘ ⨾ co ⨾ ⦗D2⦘) w w'): *)
 (*   exists w'', immediate (⦗D1⦘ ⨾ co ⨾ ⦗D2⦘) w w''. *)
@@ -268,7 +265,8 @@ Proof using. Admitted.
 
 Lemma co_next_to_imm_co_next w locw
       (LOC : loc w = Some locw)
-      (WNEXT : exists wnext, (co ⨾ ⦗ S ⦘) w wnext) :
+      (WNEXT : exists wnext, (co ⨾ ⦗ S ⦘) w wnext)
+      (FAIR: mem_fair G):
   exists wnext vnext,
     ⟪ NCOIMM   : immediate (co ⨾ ⦗ S ⦘) w wnext ⟫ /\
     ⟪ ISSNEXT : S wnext ⟫  /\
@@ -287,7 +285,7 @@ Proof using WF ETCCOH.
     { apply ct_begin in WNEXT as (? & ? & _). eauto. }
     3: { generalize (co_trans WF). basic_solver 10. } 
     all: rewrite inclusion_seq_eqv_r. 
-    { apply TODO_mem_fair2. }
+    { apply FAIR. }
     by apply co_irr. }
   clear WNEXT.
   assert (S wnext /\ co w wnext) as [ISSNEXT CONEXT].
@@ -309,7 +307,8 @@ Lemma co_prev_to_imm_co_prev w locw
       (EW    : E w)
       (WW    : W w)
       (WNCOV : ~ ecovered T w)
-      (LOC   : loc w = Some locw) :
+      (LOC   : loc w = Some locw)
+      (FAIR: mem_fair G):
   exists wprev vprev,
     ⟪ PCOIMM   : immediate (⦗ S ⦘ ⨾ co) wprev w ⟫ /\
     ⟪ ISSPREV : S wprev ⟫  /\
@@ -351,7 +350,7 @@ Proof using WF IMMCON ETCCOH.
     { apply ct_end in WPREV as (? & ? & ?). eauto. }
     3: { generalize (co_trans WF). basic_solver 10. } 
     all: rewrite inclusion_seq_eqv_l. 
-    { apply TODO_mem_fair2. }
+    { apply FAIR. }
     by apply co_irr. }    
   assert (S wprev /\ co wprev w) as [ISSPREV COPREV].
   { destruct PIMMCO as [AA _]. by destruct_seq_l AA as BB. }

@@ -14,6 +14,7 @@ From imm Require Import CombRelations.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution ProgToExecutionProperties.
 From imm Require Import Receptiveness.
+From imm Require Import FairExecution.
 
 Require Import Cert_views.
 Require Import Cert_rf.
@@ -31,6 +32,8 @@ Require Import ExtTraversalConfig.
 Require Import CertExecution1.
 Require Import ExtTraversalProperties.
 
+Require Import IndefiniteDescription.
+
 Set Implicit Arguments.
 Remove Hints plus_n_O.
 
@@ -39,10 +42,122 @@ Section Cert.
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 
+
+Definition mkCT (Gf: execution) (T: trav_config) (S: actid -> Prop) (thread: thread_id)
+  := E0 Gf T S thread ∩₁ Tid_ thread.
+
+Lemma tc_fin G sc T (COH: tc_coherent G sc T):
+  set_finite (covered T) /\ set_finite (issued T).
+Proof. Admitted.
+
+Lemma etc_fin G sc ETC (COH: etc_coherent G sc ETC):
+  set_finite (reserved ETC).
+Proof. Admitted. 
+
+Lemma fin_dom_rel_fsupp {A: Type} (r: relation A) (S: A -> Prop)
+      (FINS: set_finite S) (FSUPPr: fsupp r):
+  set_finite (dom_rel (r ⨾ ⦗S⦘)).
+Proof.
+  red in FSUPPr. apply functional_choice in FSUPPr as [supp_map FSUPPr].
+  destruct FINS as [Sl DOMS]. 
+  exists (concat (map supp_map Sl)).
+  intros a [s DOM%seq_eqv_r]. desc.
+  apply in_concat_iff. eexists. split.
+  - eapply FSUPPr; eauto.
+  - apply in_map. intuition.
+Qed. 
+
+
+(* Lemma get_elem G (WF: Wf G) thread index : *)
+(*   exists ! eo, *)
+(*     match eo with *)
+(*       None => ~ acts_set G (ThreadEvent thread index) *)
+(*     | Some (ThreadEvent t i) => *)
+(*       acts_set G (ThreadEvent t i) /\ t = thread /\ i = index *)
+(*     | Some (InitEvent _) => False *)
+(*     end. *)
+(* Proof using. *)
+(*   ins; tertium_non_datur (acts_set G (ThreadEvent thread index)) as [X|X]; desc. *)
+(*   exists (Some (ThreadEvent thread index)); split; ins; desf; desf; *)
+(*       [|by edestruct H; eauto]. *)
+(*     now f_equal; eapply (wf_index WF); splits; ins. *)
+(*   exists None; split; try red; ins; desf; desf; exfalso; eauto. *)
+(* Qed. *)
+
+(* TODO: move to IMM.Execution *)
+Lemma fsupp_sb G (WF: Wf G):
+  fsupp (⦗set_compl is_init⦘ ⨾ sb G).
+Proof using.
+  unfold sb, ext_sb; unfolder; ins.
+  destruct y; [exists nil; ins; desf|].
+  exists (map (fun i => ThreadEvent thread i) (List.seq 0 index)).
+  intros e ((NIe & E0) & (SB & E)).
+  destruct e; [done| ]. destruct SB as [-> LT].
+  apply in_map_iff. eexists. split; eauto. by apply in_seq0_iff.
+(* Qed.  *)
+Admitted. 
+
+
+Lemma CT_fin G ETC thread sc
+      (COH: etc_coherent G sc ETC) (NT0: thread <> tid_init) (WF: Wf G):
+  set_finite (mkCT G (etc_TC ETC) (reserved ETC) thread).
+Proof.
+  forward eapply tc_fin as [FINcov FINiss]; [by apply COH| ].
+  forward eapply etc_fin as ETC_FIN; eauto.
+  unfold mkCT, E0.
+  repeat rewrite set_inter_union_l, set_finite_union. splits.
+  1: generalize FINcov. 2: generalize FINiss. 
+  1, 2: eapply set_finite_mori; eauto; red; basic_solver. 
+  { rewrite set_interC, <- dom_eqv1. 
+    rewrite <- seqA. 
+    rewrite crE. repeat case_union _ _. rewrite dom_union. 
+    apply set_finite_union. split.
+    { rewrite !AuxRel.seq_eqv, set_inter_full_r, dom_eqv.
+      eapply set_finite_mori; eauto. red. basic_solver. }
+    apply fin_dom_rel_fsupp.
+    { eapply set_finite_mori; eauto. red. basic_solver. }
+    eapply fsupp_mori; [| apply fsupp_sb; eauto].
+    red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
+    generalize is_init_tid. basic_solver. }
+  rewrite set_interC, <- dom_eqv1. rewrite <- seqA.  
+  apply fin_dom_rel_fsupp.
+  { generalize FINiss. eapply set_finite_mori; eauto. red. basic_solver. }
+  rewrite rmw_in_sb; auto. 
+  eapply fsupp_mori; [| apply fsupp_sb; eauto].
+  red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
+  generalize is_init_tid. basic_solver.
+Qed.
+
+Lemma codom_seq_eqv_r {A: Type} (r: relation A) (S: A -> Prop):
+  codom_rel (r ⨾ ⦗S⦘) ⊆₁ S. 
+Proof. basic_solver. Qed.
+
+(* TODO: move to IMM.FairExecution *)
+Lemma restrict_fair (G: execution) (S: actid -> Prop)
+      (FAIR: mem_fair G):
+  mem_fair (restrict G S).
+Proof.
+  unfold restrict, mem_fair, fr. simpl. destruct FAIR as [FSco FSfr].
+  split.
+  - eapply fsupp_mori; [| by apply FSco]. red. basic_solver.
+  - eapply fsupp_mori; [| by apply FSfr]. red. unfold fr. basic_solver.
+    (* Qed.  *)
+Admitted. 
+
+(* TODO: move to IMM.FairExecution *)
+Lemma rstG_fair G T S thread (FAIR: mem_fair G):
+  mem_fair (rstG G T S thread).
+Proof.
+  unfold rstG. by apply restrict_fair.
+  (* Qed. *)
+Admitted. 
+
 Lemma cert_graph_init Gf sc T S PC f_to f_from thread
       (WF : Wf Gf)
       (IMMCON : imm_consistent Gf sc)
-      (SIMREL : simrel_thread Gf sc PC T S f_to f_from thread sim_normal) :
+      (SIMREL : simrel_thread Gf sc PC T S f_to f_from thread sim_normal)
+      (FAIRf: mem_fair Gf)
+  :
   exists G' sc' T' S',
     ⟪ WF : Wf G' ⟫ /\
     ⟪ IMMCON : imm_consistent G' sc' ⟫ /\
@@ -50,6 +165,7 @@ Lemma cert_graph_init Gf sc T S PC f_to f_from thread
     ⟪ SIMREL : simrel_thread G' sc' PC T' S' f_to f_from thread sim_certification ⟫.
 Proof using All.
 assert (exists G, G = rstG Gf T S thread) by eauto; desc.
+forward eapply (rstG_fair) as FAIR; cycle 1; [rewrite <- H in FAIR| done]. 
 
 assert (WF_SC: wf_sc Gf sc).
 by apply IMMCON.
@@ -165,10 +281,11 @@ cdes SIMREL. cdes LOCAL.
 red in STATE. desc.
 cdes STATE0.
 
-set (CT := E0 Gf T S thread ∩₁ Tid_ thread).
+(* set (CT := E0 Gf T S thread ∩₁ Tid_ thread). *)
+set (CT := mkCT Gf T S thread).
 assert (CT ≡₁ (covered T ∪₁ issued T ∪₁ dom_rel ((sb Gf)^? ⨾ ⦗Tid_ thread ∩₁ S⦘))
            ∩₁ Tid_ thread) as CTALT.
-{ unfold CT. unfold E0.
+{ subst CT. unfold mkCT.  unfold E0.
   arewrite (rmw Gf ⨾ ⦗NTid_ thread ∩₁ issued T⦘ ≡
             ⦗NTid_ thread⦘ ⨾ rmw Gf ⨾ ⦗NTid_ thread ∩₁ issued T⦘).
   { split; [|basic_solver].
@@ -209,13 +326,26 @@ assert (exists ctindex,
   desc.
   assert (acyclic (sb Gf ⨾ ⦗ CT ⦘)) as AC.
   { arewrite (sb Gf ⨾ ⦗CT⦘ ⊆ sb Gf). apply sb_acyclic. }
-  set (doml := filterP CT (acts Gf)).
-  assert (forall c, (sb Gf ⨾ ⦗CT⦘)＊ e c -> In c doml) as UU.
-  { intros c SCC. apply rtE in SCC. destruct SCC as [SCC|SCC].
-    { red in SCC. desf. apply in_filterP_iff. split; auto. by apply CTEE. }
-    apply inclusion_ct_seq_eqv_r in SCC. apply seq_eqv_r in SCC.
-    apply in_filterP_iff. split; auto; [apply CTEE|]; desf. }
+  (* set (doml := filterP CT (acts Gf)). *)
+  (* assert (forall c, (sb Gf ⨾ ⦗CT⦘)＊ e c -> In c doml) as UU. *)
+  (* { intros c SCC. apply rtE in SCC. destruct SCC as [SCC|SCC]. *)
+  (*   { red in SCC. desf. apply in_filterP_iff. split; auto. by apply CTEE. } *)
+  (*   apply inclusion_ct_seq_eqv_r in SCC. apply seq_eqv_r in SCC. *)
+  (*   apply in_filterP_iff. split; auto; [apply CTEE|]; desf. } *)
+  assert (exists doml, (forall c, (sb Gf ⨾ ⦗CT⦘)＊ e c -> In c doml)) as [doml UU].
+  { fold (set_finite ((sb Gf ⨾ ⦗CT⦘)＊ e)).
+    arewrite ((sb Gf ⨾ ⦗CT⦘)＊ e ⊆₁ codom_rel (⦗eq e⦘ ⨾ (sb Gf ⨾ ⦗CT⦘)＊)) by vauto.
+    arewrite ((sb Gf ⨾ ⦗CT⦘)＊ ⊆ (sb Gf ⨾ ⦗CT⦘)^?).
+    { rewrite crE, rtE. apply union_mori; [basic_solver| ].
+      apply inclusion_t_ind; [basic_solver| ].
+      generalize (@sb_trans Gf). basic_solver. }
+    rewrite crE, seq_union_r, codom_union. apply set_finite_union. split.
+    { exists [e]. basic_solver. }
+    rewrite <- seqA, codom_seq_eqv_r. 
+    subst CT. forward eapply CT_fin; eauto. }
+    
   edestruct (last_exists doml AC UU) as [max [MM1 MM2]].
+  
   assert (CT max) as CTMAX.
   { apply rtE in MM1. destruct MM1 as [MM1|MM1].
     { red in MM1. desf. }
@@ -335,28 +465,28 @@ assert (exists state'',
               ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ rmw Gf ⨾
               ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘).
     { basic_solver. }
-    seq_rewrite <- (tr_rmw TEH). basic_solver. }
+    seq_rewrite <- (tr_rmw TEH). unfold mkCT. basic_solver. }
   { rewrite ODATA. rewrite CACTS. unfold CT.
     rewrite !seqA.
     arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘ ⨾ data Gf ⨾ ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
               ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ data Gf ⨾
               ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘).
     { basic_solver. }
-    seq_rewrite <- (tr_data TEH). basic_solver. }
+    seq_rewrite <- (tr_data TEH). unfold mkCT. basic_solver. }
   { rewrite OADDR. rewrite CACTS. unfold CT.
     rewrite !seqA.
     arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘ ⨾ addr Gf ⨾ ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
               ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ addr Gf ⨾
               ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘).
     { basic_solver. }
-    seq_rewrite <- (tr_addr TEH). basic_solver. }
+    seq_rewrite <- (tr_addr TEH). unfold mkCT. basic_solver. }
   { rewrite OCTRL. rewrite CACTS. unfold CT.
     rewrite !seqA.
     arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘ ⨾ ctrl Gf ⨾ ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ≡
               ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ctrl Gf ⨾
               ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘).
     { basic_solver. }
-    seq_rewrite <- (tr_ctrl TEH). basic_solver. }
+    seq_rewrite <- (tr_ctrl TEH). unfold mkCT. basic_solver. }
   rewrite OFAILDEP. rewrite CACTS. unfold CT.
   rewrite !seqA.
   arewrite (⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘ ⨾ rmw_dep Gf ⨾
@@ -364,7 +494,7 @@ assert (exists state'',
             ⦗E0 Gf T S thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ rmw_dep Gf ⨾
             ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T S thread⦘).
   { basic_solver. }
-  seq_rewrite <- (tr_rmw_dep TEH). basic_solver. }
+  seq_rewrite <- (tr_rmw_dep TEH). unfold mkCT. basic_solver. }
 desc.
 
 assert (acts_set (ProgToExecution.G state) ⊆₁ covered T) as STATECOV.
@@ -606,7 +736,7 @@ assert (same_lab_u2v_dom (ProgToExecution.G s').(acts_set)
 assert (same_lab_u2v_dom
           (ProgToExecution.G s').(acts_set)
           (ProgToExecution.G state'').(lab) (lab G)) as SAME2.
-{ unfold acts_set. rewrite <- RACTS.
+{ rewrite <- RACTS.
   apply same_lab_u2v_dom_comm.
   eapply same_lab_u2v_dom_restricted; auto.
   apply TEH''. }
@@ -626,9 +756,7 @@ assert (same_lab_u2v lab' (lab G)) as SAME'.
 assert (thread_restricted_execution (certG G Gsc T S thread lab') thread
                                     (ProgToExecution.G s')) as YY.
 { constructor; auto.
-  { rewrite cert_E.
-    unfold acts_set. rewrite <- RACTS.
-      by rewrite TEH''.(tr_acts_set). }
+  { rewrite cert_E. rewrite <- RACTS. by rewrite TEH''.(tr_acts_set). }
   { ins. unfold lab'. desf. }
   all: unfold certG; simpls.
   { rewrite <- RRMW. apply TEH''.(tr_rmw). }
@@ -666,11 +794,9 @@ assert (forall r w : actid, delta_rf w r -> val lab' w = val lab' r)
     apply seq_eqv_l in NEWRF. destruct NEWRF as [GEW NEWRF].
     apply seq_eqv_r in NEWRF. destruct NEWRF as [NEWRF [GER MOD]].
     assert (s'.(ProgToExecution.G).(acts_set) r) as ERR.
-    { unfold acts_set. rewrite <- RACTS. apply TEH''.(tr_acts_set).
-      split; auto. }
+    { rewrite <- RACTS. apply TEH''.(tr_acts_set). split; auto. }
     assert (s'.(ProgToExecution.G).(acts_set) w) as EWW.
-    { unfold acts_set. rewrite <- RACTS. apply TEH''.(tr_acts_set).
-      split; auto. }
+    { rewrite <- RACTS. apply TEH''.(tr_acts_set). split; auto. }
     unfold lab', val.
     destruct (excluded_middle_informative (acts_set (ProgToExecution.G s') w)) as [HH1|HH1].
     2: by desf.
@@ -686,11 +812,10 @@ assert (forall r w : actid, delta_rf w r -> val lab' w = val lab' r)
   apply seq_eqv_r in NEWRF. destruct NEWRF as [NEWRF [GER MOD]].
   unfold val, lab'.
   destruct (excluded_middle_informative (acts_set (ProgToExecution.G s') w)) as [HH1|HH1].
-  { exfalso. unfold acts_set in HH1. rewrite <- RACTS in HH1.
+  { exfalso. rewrite <- RACTS in HH1.
     apply TEH''.(tr_acts_set) in HH1. destruct HH1 as [_ HH1]. desf. }
   destruct (excluded_middle_informative (acts_set (ProgToExecution.G s') r)) as [HH2|HH2].
-  2: { exfalso. apply HH2.
-       unfold acts_set. rewrite <- RACTS. apply TEH''.(tr_acts_set).
+  2: { exfalso. apply HH2. rewrite <- RACTS. apply TEH''.(tr_acts_set).
        split; auto. }
   apply delta_rfD in NEWRF.
   apply seq_eqv_l in NEWRF. destruct NEWRF as [WW NEWRF].
@@ -743,8 +868,7 @@ assert (forall a : actid, ~ (acts_set G \₁ D G T S thread) a -> val lab' a = v
     rewrite H. eapply E_E0; eauto. }
   specialize (OLD_VAL a XX). clear XX.
   unfold val in OLD_VAL. rewrite OLD_VAL.
-  rewrite TEH''.(tr_lab); auto. 
-  unfold acts_set. by rewrite RACTS. }
+  rewrite TEH''.(tr_lab); auto. by rewrite RACTS. }
 
 assert (forall r w : actid, (cert_rf G Gsc T S thread) w r ->
                             val lab' w = val lab' r)
@@ -876,11 +1000,11 @@ cdes SIMREL. cdes COMMON.
 red. splits.
 { red. splits; eauto; simpls; try by apply SIMREL.
   { erewrite same_lab_u2v_is_rlx; eauto.
-    rewrite cert_E. rewrite acts_G_in_acts_Gf.
+    rewrite <- cert_E. rewrite acts_G_in_acts_Gf.
     rewrite lab_G_eq_lab_Gf. apply SIMREL. }
   { erewrite same_lab_u2v_is_ra; eauto.
-    rewrite cert_E, cert_F; eauto. }
-  { by apply ETCCOH_cert. }
+    rewrite <- cert_E, cert_F; eauto. }
+  { apply ETCCOH_cert; eauto. }
   { erewrite same_lab_u2v_is_rel; eauto.
     erewrite same_lab_u2v_is_w; eauto.
     rewrite RELCOV_G. basic_solver. }
@@ -916,8 +1040,7 @@ red. splits.
     erewrite same_lab_u2v_is_f; eauto.
     unfold certG, acts_set. simpls.
     rewrite H.
-    arewrite ((fun x => In x (acts (rstG Gf T S thread))) ⊆₁
-              (acts_set (rstG Gf T S thread))).
+    arewrite (acts_set (rstG Gf T S thread) ⊆₁ acts_set (rstG Gf T S thread)).
     erewrite E_F_Sc_in_C; eauto.
     basic_solver. }
   { rewrite same_lab_u2v_R_ex; eauto. }
@@ -957,8 +1080,7 @@ all: eauto.
 { red. ins. eapply SIM_PROM in PROM. (* sim_prom *) 
   desc. exists b. splits; auto.
   { unfold certG. unfold acts_set. simpls.
-    rewrite H. unfold rstG, restrict. simpls.
-    apply in_filterP_iff. split; auto.
+    rewrite H. unfold rstG, restrict. simpls. split; auto.
     red. left. left. by right. }
   { intros [HH|[_ HH]]; desf. }
   { erewrite same_lab_u2v_loc; eauto.
@@ -1160,7 +1282,11 @@ eexists. red. splits.
 { apply STEPS'. }
 { intros HH. inv HH. }
 done.
-Unshelve. clear; eapply (fun _ => Afence Orel).
-Qed.
+Unshelve.
+all: clear. 
+all: exact (fun _ => Afence Orel) || exact (fun _ => True) || exact 0 ||
+           exact (fun _ _ => True) || exact xH ||
+           exact {| covered := ∅;  issued := ∅ |}.
+Qed. 
 
 End Cert.

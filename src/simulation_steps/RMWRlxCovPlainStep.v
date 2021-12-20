@@ -652,9 +652,8 @@ Proof using WF CON.
       1-3: reflexivity.
       all: intros l; unfold LocFun.add.
       all: destruct (Loc.eq_dec l locr) as [|NEQ]; subst.
-      2,4: by apply EQ_REL.
-      all: unfold View.join; simpls.
-      all: by rewrite EQ_REL. }
+      2: by apply EQ_REL.
+      unfold View.join; simpls. by rewrite EQ_REL. }
     { unfold TView.write_tview, TView.read_tview; simpls.
       red; splits; simpls.
       all: desf; ins.

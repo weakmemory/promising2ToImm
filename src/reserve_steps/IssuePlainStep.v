@@ -11,6 +11,7 @@ From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
+From imm Require Import FairExecution.
 
 From imm Require Import TraversalConfig.
 Require Import ExtTraversalConfig.
@@ -91,7 +92,9 @@ Lemma issue_rlx_step_no_next PC T S f_to f_from thread w smode
       (NWEX : ~ W_ex w)
       (NREL : ~ Rel w)
       (NONEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ ∅)
-      (WTID : thread = tid w) :
+      (WTID : thread = tid w)
+      (FAIR: mem_fair G)
+  :
   let T' := mkTC (covered T) (issued T ∪₁ eq w) in
   let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
   exists f_to' f_from' PC',

@@ -374,8 +374,7 @@ Proof using All.
              Memory.get l to promises_cancel = Some (from, msg) <->
              Memory.get l to (Local.promises local) = Some (from, msg))
     as NOTNEWC.
-  { ins. erewrite Memory.remove_o; eauto.
-    rewrite loc_ts_eq_dec_neq; auto. }
+  { ins. erewrite Memory.remove_o; eauto. by rewrite loc_ts_eq_dec_neq. }
 
   assert (forall l to from msg 
                  (NEQ  : l <> locw \/ to <> f_to  w)
@@ -385,8 +384,7 @@ Proof using All.
     as NOTNEWM.
   { ins. erewrite Memory.add_o; eauto.
     rewrite loc_ts_eq_dec_neq; auto.
-    erewrite Memory.remove_o; eauto.
-    rewrite loc_ts_eq_dec_neq; auto. }
+    erewrite Memory.remove_o; eauto. by rewrite loc_ts_eq_dec_neq. }
 
   assert (forall l to from msg 
                  (NEQ  : l <> locw \/ to <> f_to  w)
@@ -924,7 +922,7 @@ Proof using All.
              Memory.get l to (Configuration.memory PC) = omsg)
     as NOTNEWM.
   { ins. erewrite Memory.split_o; eauto.
-    repeat (rewrite loc_ts_eq_dec_neq; auto). }
+    by repeat (rewrite loc_ts_eq_dec_neq; auto). }
 
   assert (REQ_TO : forall e (SE : S e) (NEQ : e <> w), f_to' e = f_to e).
   { ins. unfold f_to'. by repeat (rewrite updo; [|by intros HH; desf]). }
@@ -943,7 +941,7 @@ Proof using All.
              Memory.get l to (Local.promises local) = omsg)
     as NOTNEWA.
   { ins. erewrite Memory.split_o; eauto.
-    repeat (rewrite loc_ts_eq_dec_neq; auto). }
+    by repeat (rewrite loc_ts_eq_dec_neq; auto). }
 
   assert (forall l to omsg 
                  (NEQ : l <> locw \/ to <> f_to' w)

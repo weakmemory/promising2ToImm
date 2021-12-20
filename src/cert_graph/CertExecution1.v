@@ -828,7 +828,7 @@ Qed.
 (******************************************************************************)
 
 Lemma sb_total_W : (W ∩₁ (E \₁ I)) × (W ∩₁ (E \₁ I)) ⊆ Gsb^? ∪ Gsb⁻¹.
-Proof using WF ETCCOH.
+Proof using WF ETCCOH.  
   clear RELCOV.
   unfolder; ins; desf.
   cut ((x = y \/ Fsb x y) \/ Fsb y x).
@@ -847,6 +847,7 @@ Proof using WF ETCCOH.
   { intros II. apply H2. eapply init_issued; eauto.
     { apply TCCOH. }
     split; auto. }
+  clear H3 H1. 
   unfold E0 in *; unfolder in *; ins; desf.
   all: try by exfalso; generalize (w_covered_issued TCCOH); basic_solver 4.
   all: try (apply (dom_l (wf_rmwD WF)) in AA; unfolder in AA; type_solver).
@@ -855,7 +856,7 @@ Proof using WF ETCCOH.
     apply seqA;
     do 2 (apply seq_eqv_r; split; auto); red; auto.
   { apply sb_tid_init' in AA. unfold same_tid in *.
-    unfolder in AA. desf. rewrite AA0. desf. }
+    unfolder in AA. desf. rewrite AA0. congruence. }
   { apply sb_tid_init' in BB. unfold same_tid in *.
     unfolder in BB. desf. rewrite BB0. desf. }
   apply sb_tid_init' in AA. unfold same_tid in *.
@@ -892,9 +893,9 @@ Proof using WF ETCCOH.
 split.
 - rewrite C_in_E; basic_solver.
 - unfolder; ins; desf.
-  destruct (classic (tid x = thread)); eauto.
+  destruct (classic (tid x = thread)); eauto. left. 
   apply E_E0 in H.
-  unfold E0 in *.
+  unfold E0 in *. 
   unfolder in *; desf; eauto.
   * apply (issuedW TCCOH) in H; type_solver.
   * apply (dom_l (@wf_sbE Gf)) in H; unfolder in H; desf.
@@ -966,7 +967,8 @@ Proof using WF ETCCOH IMMCON.
   unfolder; ins ;desf.
   cut (E0 x /\ E0 z).
   { basic_solver 12. }
-  split; apply E_E0; [|done].
+  split; apply E_E0.
+  2: { by apply IN5. }
   hahn_rewrite rfi_union_rfe in x0; unfolder in x0; desf.
   { eapply rfi_E. basic_solver 21. }
   eapply I_in_E.
@@ -1006,7 +1008,8 @@ apply (sub_R SUB); basic_solver.
 - unfolder; ins ;desf.
 cut (E0 x0 /\ E0 x).
 basic_solver 12.
-split; apply E_E0; [|done].
+split; apply E_E0.
+2: { by apply H. }
 hahn_rewrite rfi_union_rfe in x1; unfolder in x1; desf.
 eapply rfi_E.
  basic_solver 21.
@@ -1027,7 +1030,8 @@ Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
   unfolder; ins ;desf.
   cut (E0 x0 /\ E0 x).
   { basic_solver 12. }
-  split; apply E_E0; [|done].
+  split; apply E_E0.
+  2: { by apply H. }
   hahn_rewrite rfi_union_rfe in x1; unfolder in x1; desf.
   { eapply rfi_E. basic_solver 21. }
   eapply I_in_E.
@@ -1061,7 +1065,8 @@ Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
   unfolder; ins ;desf.
   cut (E0 x0 /\ E0 x).
   { basic_solver 12. }
-  split; apply E_E0; [|done].
+  split; apply E_E0.
+  2: { by apply H3. }
   hahn_rewrite rfi_union_rfe in x1; unfolder in x1; desf.
   { eapply rfi_E. basic_solver 21. }
   eapply I_in_E.
@@ -1083,7 +1088,8 @@ Proof using WF ETCCOH IMMCON.
   unfolder; ins ;desf.
   cut (E0 x0 /\ E0 x).
   { basic_solver 12. }
-  split; apply E_E0; [|done].
+  split; apply E_E0.
+  2: { by apply H. }
   hahn_rewrite rfi_union_rfe in x1; unfolder in x1; desf.
   { eapply rfi_E. basic_solver 21. }
   eapply I_in_E. eapply rfe_rmw_S with (T:=mkETC T S); eauto.
@@ -1447,13 +1453,15 @@ Proof using WF ETCCOH RELCOV RMWCOV.
   red; splits.
   { rewrite (sub_E_in SUB). apply TCCOH. }
   { unfold coverable in *; repeat (splits; try apply set_subset_inter_r).
-    { rewrite E_E0. unfold E0. basic_solver. }
+    { unfold E0. basic_solver. }
+    { rewrite CC. basic_solver. } 
     { rewrite (sub_sb_in SUB). rewrite CC at 1. basic_solver 12. }
     rewrite (sub_rf_in SUB), (sub_W SUB), (sub_R SUB), (sub_F SUB).
     arewrite (rst_sc ⊆ sc) by (unfold rst_sc; basic_solver).
     rewrite CC at 1. basic_solver 21. }
   unfold issuable in *; repeat (splits; try apply set_subset_inter_r).
-  { apply I_in_E. }
+  { rewrite <- E_E0. apply I_in_E. }
+  { rewrite II. basic_solver. }
   { rewrite (sub_W SUB). rewrite II at 1. basic_solver 12. }
   { rewrite (sub_fwbob_in SUB). rewrite II at 1. basic_solver 12. }
   rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_ppo_in SUB).
@@ -1481,7 +1489,7 @@ Proof using WF WF_SC ETCCOH.
   rewrite (rmw_from_non_init WF).
   rewrite (rmw_in_sb WF).
   rewrite sb_tid_init'.
-  basic_solver.
+  unfolder. ins. desf. congruence.
 Qed.
 
 Lemma TCCOH_rst_new_T : tc_coherent rstG rst_sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
@@ -1497,7 +1505,9 @@ Proof using All.
     { rewrite (sub_sb_in SUB). rewrite tc_sb_C. basic_solver. }
     { rewrite sb_tid_init'.
       relsf; splits.
-      rewrite (dom_l (@wf_sbE rstG)); basic_solver.
+      { rewrite (dom_l (@wf_sbE rstG)).
+        unfolder. ins. desf. red in H4, H2.
+        right. splits; try basic_solver. congruence. }
       rewrite (dom_l (@wf_sbE rstG)); rewrite (sub_E_in SUB) at 1. 
       revert tc_init. basic_solver. }
     rewrite dom_rel_eqv_dom_rel.
@@ -1510,7 +1520,7 @@ Proof using All.
 
     rewrite sb_tid_init'.
     relsf; splits.
-    basic_solver.
+    { unfolder. ins. desf. red in H4. intuition. }
     rewrite (sub_E_in SUB) at 1. 
     revert tc_init. basic_solver. }
   { rewrite C_E_NTid.

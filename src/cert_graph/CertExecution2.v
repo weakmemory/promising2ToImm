@@ -9,6 +9,7 @@ From imm Require Import imm_s.
 From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
+From imm Require Import FairExecution.
 
 From imm Require Import AuxRel2.
 From imm Require Import TraversalConfig.
@@ -191,7 +192,7 @@ Proof using SAME. ins; erewrite same_lab_u2v_same_loc; eauto. Qed.
 (******************************************************************************)
 
 Definition certG :=
-    {| acts := (acts G);
+    {| acts_set := (acts_set G);
        lab := lab' ;
        rmw := Grmw ;
        data := Gdata ;
@@ -388,10 +389,12 @@ constructor.
 - apply WF_SC.
 Qed.
 
-Lemma cert_complete : complete certG.
+Lemma cert_complete (FAIR: mem_fair G):
+  complete certG.
 Proof using All.
   unfold complete; ins.
-  rewrite cert_R, cert_E.
+  rewrite cert_R.
+  (* rewrite cert_E. *)
   unfold Cert_rf.cert_rf.
   arewrite (E ∩₁ R ⊆₁ E ∩₁ R ∩₁ D ∪₁ 
                       E ∩₁ R ∩₁ set_compl (dom_rel Grmw) ∩₁ set_compl D ∪₁ 

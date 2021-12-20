@@ -11,6 +11,7 @@ From imm Require Import imm_s.
 From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import AuxDef.
+From imm Require Import FairExecution.
 
 From imm Require Import TraversalConfig.
 From imm Require Import ViewRelHelpers.
@@ -132,7 +133,9 @@ Lemma reserve_step_helper w locw langst
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
       (LOC : loc lab w = Some locw)
-      (WTID : thread = tid w) :
+      (WTID : thread = tid w)
+      (FAIR: mem_fair G)
+  :
   let memory := (Configuration.memory PC) in
   let sc_view := (Configuration.sc PC) in
   exists f_to' f_from' promises' memory',

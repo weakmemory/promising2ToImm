@@ -10,6 +10,7 @@ From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 From imm Require Import AuxDef.
+From imm Require Import FairExecution.
 
 
 (* From imm Require Import Events Execution Execution_eco *)
@@ -425,13 +426,11 @@ Lemma pref_union_alt {A: Type} (r1 r2: relation A):
 Proof. basic_solver. Qed.
 
 
-(* TODO: make a premise *)
-Lemma TODO_mem_fair: fsupp (co G) /\ fsupp (fr G).
-Proof. Admitted. 
 
-
-Lemma fsupp_cert_co: fsupp cert_co.
+Lemma fsupp_cert_co (FAIR: mem_fair G):
+  fsupp cert_co.
 Proof using WF.
+  
   unfold cert_co, new_co.
   rewrite bunion_alt.
   erewrite bunion_more; cycle 1. 
@@ -443,17 +442,20 @@ Proof using WF.
   apply fsupp_bunion_disj; [basic_solver| ].
   intros l. rewrite pref_union_alt. rewrite restr_union. apply fsupp_union.
   { unfold col0, col. rewrite inclusion_restr.
-    eapply fsupp_mon; [| apply (proj1 TODO_mem_fair)].
+    eapply fsupp_mon; [| by apply (proj1 FAIR)]. 
     apply inclusion_t_ind; [basic_solver | by apply co_trans]. }
   rewrite inclusion_restr.
   eapply fsupp_mon.
   { red. ins. eapply proj1. apply H. }
+
   apply fsupp_cross.
+  unfold cert_co_base. 
   (* TODO: is it true that cert_co_base is finite? *)
 Admitted. 
   
 (* TODO: *)
-Lemma imm_cert_co_inv_exists : E ∩₁ W ∩₁ set_compl Init ⊆₁ codom_rel (immediate cert_co).
+Lemma imm_cert_co_inv_exists (FAIR: mem_fair G):
+  E ∩₁ W ∩₁ set_compl Init ⊆₁ codom_rel (immediate cert_co).
 Proof using WF TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co COH I_in_S.
 unfolder; ins.
 ins; eapply fsupp_immediate_pred.
@@ -464,7 +466,7 @@ ins; eapply fsupp_immediate_pred.
   (* unfold acts_set. *)
   (* unfold set_finite. *)
   (* eauto. *)
-  apply fsupp_cert_co. 
+  by apply fsupp_cert_co. 
 }
 { eapply cert_co_irr. }
 { eapply cert_co_trans. }

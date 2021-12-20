@@ -386,7 +386,7 @@ Proof using WF CON.
   { ins. erewrite Memory.add_o; eauto.
     rewrite loc_ts_eq_dec_neq; auto.
     erewrite Memory.remove_o; eauto.
-    rewrite loc_ts_eq_dec_neq; auto. }
+    by rewrite loc_ts_eq_dec_neq. }
 
   set (pe_cancel :=
          ThreadEvent.promise

@@ -9,6 +9,7 @@ From imm Require Import imm_s.
 From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
+From imm Require Import FairExecution.
 
 From imm Require Import AuxRel2.
 From imm Require Import TraversalConfig.
@@ -261,9 +262,10 @@ Notation "'CAcqrel'" := (fun a => is_true (is_acqrel Clab a)).
 Notation "'CAcq/Rel'" := (fun a => is_true (is_ra Clab a)).
 Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 
-Lemma cert_imm_consistent : imm_consistent certG sc.
+Lemma cert_imm_consistent (FAIR: mem_fair G)
+  : imm_consistent certG sc.
 Proof using All.
-  red; splits; eauto using WF_SC_cert, cert_acyc_ext, cert_coh_sc, cert_complete, cert_coherence, cert_rmw_atomicity.
+  red; splits; eauto 20 using WF_SC_cert, cert_acyc_ext, cert_coh_sc, cert_complete, cert_coherence, cert_rmw_atomicity.
 Qed.
 
 Lemma dom_fwbob_I : dom_rel (Gfwbob ⨾ ⦗C ∪₁ I⦘) ⊆₁ C ∪₁ I.
@@ -368,15 +370,19 @@ Unshelve.
 all:auto.
 Qed.
 
-Lemma dom_cert_ar_rf_ppo_loc_I : dom_rel (⦗is_w (lab certG)⦘ ⨾ (Car ∪ Crf ⨾ Cppo ∩ Csame_loc)⁺ ⨾ ⦗I⦘) ⊆₁ I.
+Lemma dom_cert_ar_rf_ppo_loc_I
+      (FAIR: mem_fair G):
+  dom_rel (⦗is_w (lab certG)⦘ ⨾ (Car ∪ Crf ⨾ Cppo ∩ Csame_loc)⁺ ⨾ ⦗I⦘) ⊆₁ I.
 Proof using All.
   eapply otc_I_ar_rf_ppo_loc_I_implied_helper_2 with (T:=mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
   { apply WF_cert. }
-  { apply cert_imm_consistent. }
+  { by apply cert_imm_consistent. }
   apply TCCOH_cert_old.
 Qed.
 
-Lemma TCCOH_cert : tc_coherent certG sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
+Lemma TCCOH_cert
+      (FAIR: mem_fair G):
+  tc_coherent certG sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
 Proof using All.
   assert (TCCOH1:= TCCOH_rst_new_T).
   apply (tc_coherent_implies_tc_coherent_alt WF WF_SC) in TCCOH1.
@@ -393,7 +399,7 @@ Proof using All.
     generalize tc_sb_C, tc_W_C_in_I; basic_solver 21. }
   { ins; rewrite cert_W; edone. }
   { ins; rewrite cert_fwbob; edone. }
-  ins. apply dom_cert_ar_rf_ppo_loc_I.
+  ins. by apply dom_cert_ar_rf_ppo_loc_I.
 Qed.
 
 Lemma cert_detour_rfe_D : (Cdetour ∪ (rfe certG)) ⨾ ⦗D⦘ ⊆ ⦗I⦘ ⨾ (Gdetour ∪ Grfe).
@@ -441,7 +447,9 @@ Lemma ETCCOH_cert
       (ISTex_rf_I : (I ∪₁ S ∩₁ Tid_ thread) ∩₁ GW_ex ⊆₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ Grmw))
       (DOM_SB_S_rf_I :
          dom_rel (Gsb ⨾ ⦗I ∪₁ S ∩₁ Tid_ thread⦘) ∩₁ codom_rel (⦗I⦘ ⨾ Grf ⨾ ⦗GR_ex⦘ ⨾ Grmw)
-                 ⊆₁ I ∪₁ S ∩₁ Tid_ thread) :
+                 ⊆₁ I ∪₁ S ∩₁ Tid_ thread)
+      (FAIR: mem_fair G)
+  :
   etc_coherent certG sc (mkETC (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I)
                                (I ∪₁ S ∩₁ Tid_ thread)).
 Proof using All.
@@ -453,7 +461,7 @@ Proof using All.
     rewrite wf_new_rfE. clear. basic_solver 10. }*)
   constructor.
   all: unfold eissued, ecovered; simpls.
-  { apply TCCOH_cert. }
+  { by apply TCCOH_cert. }
   { arewrite (I ∪₁ S ∩₁ Tid_ thread ⊆₁ E ∩₁ W).
     2: { unfold CertExecution2.certG. unfold acts_set. basic_solver. }
     rewrite <- IST_new_co; try edone.
