@@ -15,6 +15,7 @@ From imm Require Import CombRelations.
 From imm Require Import ProgToExecutionProperties.
 From imm Require Import RMWinstrProps.
 From imm Require Import AuxRel2.
+From imm Require Import FairExecution.
 
 Require Import SimulationRel.
 Require Import PlainStepBasic.
@@ -106,7 +107,8 @@ Lemma cert_sim_step G sc thread PC T T' f_to f_from smode
       (WF : Wf G) (IMMCON : imm_consistent G sc)
       (STEP : ext_isim_trav_step G sc thread T T')
       (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
-      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ ecovered T) :
+      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ ecovered T)
+      (FAIR: mem_fair G):
     exists PC' f_to' f_from',
       ⟪ PSTEP : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
       ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread smode ⟫.
@@ -122,7 +124,8 @@ Lemma cert_sim_steps G sc thread PC T T' f_to f_from smode
       (WF : Wf G) (IMMCON : imm_consistent G sc)
       (STEPS : (ext_isim_trav_step G sc thread)⁺ T T')
       (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
-      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ ecovered T) :
+      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ ecovered T)
+      (FAIR: mem_fair G):
     exists PC' f_to' f_from',
       ⟪ PSTEP : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
       ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread  smode ⟫.
@@ -152,7 +155,9 @@ Qed.
 Lemma cert_simulation G sc thread PC T S f_to f_from
       (WF : Wf G) (IMMCON : imm_consistent G sc)
       (SIMREL : simrel_thread G sc PC T S f_to f_from thread sim_certification)
-      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T) :
+      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T)
+      (FIN: set_finite (acts_set G))
+      (FAIR: mem_fair G):
   exists T' S' PC' f_to' f_from',
     ⟪ FINALT : (acts_set G) ⊆₁ covered T' ⟫ /\
     ⟪ PSTEP  : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
@@ -160,7 +165,7 @@ Lemma cert_simulation G sc thread PC T S f_to f_from
 Proof using.
   assert (etc_coherent G sc (mkETC T S)) as ETCCOH.
   { apply SIMREL. }
-  generalize (sim_step_cov_full_traversal WF IMMCON ETCCOH NCOV); intros H.
+  generalize (sim_step_cov_full_traversal WF FIN IMMCON ETCCOH NCOV); intros H.
   destruct H as [T'].
   1,2: by apply SIMREL.
   desc.
@@ -630,7 +635,8 @@ Proof using All.
       2: by apply Local.step_silent. 
       apply STEP. }
     { done. }
-    red. ins. splits; eauto. }
+    red. ins. splits; eauto.
+    unfold sflib.NW. eauto. }
   2: { ins; clear - QQ.
        apply NoDup_Permutation; eauto using NoDup_map_NoDupA, IdentMap.elements_3w.
        ins; rewrite !in_map_iff; split; intros ([i v] & <- & IN); ins;
@@ -836,7 +842,9 @@ Qed.
 
 Lemma sim_step PC T S T' S' f_to f_from
       (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
-      (SIMREL : simrel G sc PC T S f_to f_from) :
+      (SIMREL : simrel G sc PC T S f_to f_from)
+      (FAIR: mem_fair G)
+      (FIN: set_finite (acts_set G)):
     exists PC' f_to' f_from',
       ⟪ PSTEP : (conf_step)^? PC PC' ⟫ /\
       ⟪ SIMREL : simrel G sc PC' T' S' f_to' f_from' ⟫.

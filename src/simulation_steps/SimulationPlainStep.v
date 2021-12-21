@@ -13,6 +13,7 @@ From imm Require Import ProgToExecution.
 From imm Require Import CombRelations CombRelationsMore.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution.
+From imm Require Import FairExecution.
 
 Require Import AuxRel.
 From imm Require Import AuxRel2.
@@ -49,7 +50,7 @@ Require Import IssueReservedRelNextPlainStep.
 Set Implicit Arguments.
 
 Section PlainStep.
-
+                        
 Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
@@ -97,7 +98,8 @@ Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Lemma plain_sim_step thread PC T S f_to f_from T' S' smode
       (TCSTEP : ext_isim_trav_step G sc thread (mkETC T S) (mkETC T' S'))
-      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode) :
+      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
+      (FAIR: mem_fair G):
     exists PC' f_to' f_from',
       ⟪ PSTEP : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
       ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\

@@ -11,6 +11,7 @@ From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
+From imm Require Import FairExecution.
 
 From imm Require Import TraversalConfig.
 Require Import ExtTraversalConfig.
@@ -85,7 +86,8 @@ Lemma reserve_step PC T S f_to f_from thread w smode
       (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
       (TSTEP : ext_itrav_step
                  G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
-      (WTID : thread = tid w) :
+      (WTID : thread = tid w)
+      (FAIR: mem_fair G):
   let S' := S ∪₁ eq w in
   exists PC' f_to' f_from',
     ⟪ PCSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
