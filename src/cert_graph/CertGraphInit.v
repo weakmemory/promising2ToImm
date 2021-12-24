@@ -1474,13 +1474,22 @@ Section CertGraphInit.
     
   End SimRelCert.
 
+  (* TODO: move upper *)
+  Require Import FinExecutionExt.
+
+  (* TODO: in principle, it's possible to construct a fully finite graph here
+     without requiring it from the input graph
+     by stripping unused init events,
+     but so far it's easier to assume the input is finite *)
   
-  Lemma cert_graph_init:
+  Lemma cert_graph_init (FIN_FULL: fin_exec_full Gf):
     exists G' sc' T' S',
       ⟪ WF : Wf G' ⟫ /\
       ⟪ IMMCON : imm_consistent G' sc' ⟫ /\
       ⟪ NTID  : NTid_ thread ∩₁ G'.(acts_set) ⊆₁ covered T' ⟫ /\
-      ⟪ SIMREL : simrel_thread G' sc' PC T' S' f_to f_from thread sim_certification ⟫.
+      ⟪ SIMREL : simrel_thread G' sc' PC T' S' f_to f_from thread sim_certification ⟫ /\
+      ⟪ FIN': fin_exec_full G' ⟫ /\
+      ⟪ FAIR': mem_fair G' ⟫. 
   Proof using WF T SIMREL S IMMCON FAIRf.
     cdes SIMREL.
     forward eapply (proj1 (simrel_thread_local_equiv sim_normal)); eauto.
@@ -1509,11 +1518,21 @@ Section CertGraphInit.
     exists (mkTC ((covered T) ∪₁ ((acts_set G) ∩₁ NTid_ thread)) (issued T)).
     exists ((issued T) ∪₁ S ∩₁ Tid_ thread).
 
+    assert (fin_exec_full (certG G Gsc T S thread (lab' s'))) as FIN'. 
+    { (* TODO: seems that the resulting graph can be separated 
+         into mkCT-like subgraphs which are finite *)
+      (* so far just use the full finiteness premise *)
+      red. unfold G, certG. simpl. eapply set_finite_mori; eauto.
+      red. basic_solver. }
+    
     splits; eauto using WF_CERT. 
     { eapply cert_imm_consistent;
         eauto using WF_CERT, WF_SC_CERT, FACQREL, SAME_VAL_RF_CERT, SAME_VAL, SAME'. }
     { unfold certG, acts_set; ins; basic_solver. }
-    red. splits; eauto using simrel_cert_common, simrel_cert_local.
+    { red. splits; eauto using simrel_cert_common, simrel_cert_local. }
+    { (* since we can probably make the certification graph finite,
+         a simple proof should suffice here*)
+      apply FinExecution.fin_exec_fair; eauto using WF_CERT. } 
   Qed. 
 
 End CertGraphInit.

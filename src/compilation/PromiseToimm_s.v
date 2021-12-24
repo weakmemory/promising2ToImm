@@ -17,6 +17,7 @@ From imm Require Import RMWinstrProps.
 From imm Require Import AuxRel2.
 From imm Require Import FairExecution.
 
+Require Import FinExecutionExt.
 Require Import SimulationRel.
 Require Import PlainStepBasic.
 Require Import SimulationPlainStep.
@@ -156,7 +157,7 @@ Lemma cert_simulation G sc thread PC T S f_to f_from
       (WF : Wf G) (IMMCON : imm_consistent G sc)
       (SIMREL : simrel_thread G sc PC T S f_to f_from thread sim_certification)
       (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T)
-      (FIN: set_finite (acts_set G))
+      (FIN: fin_exec_full G)
       (FAIR: mem_fair G):
   exists T' S' PC' f_to' f_from',
     ⟪ FINALT : (acts_set G) ⊆₁ covered T' ⟫ /\
@@ -844,7 +845,7 @@ Lemma sim_step PC T S T' S' f_to f_from
       (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
       (SIMREL : simrel G sc PC T S f_to f_from)
       (FAIR: mem_fair G)
-      (FIN: set_finite (acts_set G)):
+      (FIN: fin_exec_full G):
     exists PC' f_to' f_from',
       ⟪ PSTEP : (conf_step)^? PC PC' ⟫ /\
       ⟪ SIMREL : simrel G sc PC' T' S' f_to' f_from' ⟫.
@@ -942,7 +943,9 @@ Qed.
 
 Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)⁺ TS TS')
-      (SIMREL  : simrel G sc PC (etc_TC TS) (reserved TS) f_to f_from) :
+      (SIMREL  : simrel G sc PC (etc_TC TS) (reserved TS) f_to f_from)
+      (FAIR: mem_fair G)
+      (FIN: fin_exec_full G) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : conf_step＊ PC PC' ⟫ /\
       ⟪ SIMREL : simrel G sc PC' (etc_TC TS') (reserved TS') f_to' f_from' ⟫.
@@ -965,13 +968,15 @@ Proof using All.
   eapply rt_trans; eauto. 
 Qed.
 
-Lemma simulation :
+Lemma simulation 
+      (FAIR: mem_fair G)
+      (FIN: fin_exec_full G):
   exists T S PC f_to f_from,
     ⟪ FINALT : (acts_set G) ⊆₁ covered T ⟫ /\
     ⟪ PSTEP  : conf_step＊ (conf_init prog) PC ⟫ /\
     ⟪ SIMREL : simrel G sc PC T S f_to f_from ⟫.
 Proof using All.
-  generalize (sim_traversal WF IMMCON); ins; desc.
+  generalize (sim_traversal WF FIN IMMCON); ins; desc.
   destruct T as [T S].
   exists T, S. apply rtE in H.
   destruct H as [H|H].
@@ -981,17 +986,20 @@ Proof using All.
     { apply rtE. left. red. eauto. }
     unfold ext_init_trav in *. inv H.
     apply simrel_init. }
-  eapply sim_steps in H.
+  eapply sim_steps in H; eauto. 
   2: by apply simrel_init.
   desf.
   eexists. eexists. eexists.
   splits; eauto.
 Qed.
 
-Theorem promise2imm : promise_allows prog final_memory.
+Theorem promise2imm 
+      (FAIR: mem_fair G)
+      (FIN: fin_exec_full G) :
+  promise_allows prog final_memory.
 Proof using All.
   red.
-  destruct simulation as [T [PC H]]. desc.
+  destruct simulation as [T [PC H]]; eauto. desc.
   edestruct sim_covered_exists_terminal as [PC']; eauto.
   desc.
   exists PC'. splits; eauto.

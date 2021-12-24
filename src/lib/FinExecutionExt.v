@@ -4,10 +4,30 @@ From imm Require Import Execution Events SubExecution.
 Require Import Lia.
 
 (* TODO: merge with FinExecution *)
+Lemma set_full_split {A: Type} (S: A -> Prop):
+  set_full ≡₁ S ∪₁ set_compl S.
+Proof.
+  split; [| basic_solver]. red. ins. destruct (classic (S x)); basic_solver.
+Qed. 
+
 
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
 
 Definition fin_exec (G: execution) := set_finite (acts_set G \₁ Tid_ tid_init).
+(* TODO: currently seems that the full finiteness is needed 
+   to support traversal as is*)
+Definition fin_exec_full (G: execution) :=
+  (* fin_exec G /\ set_finite (acts_set G ∩₁ Tid_ tid_init).  *)
+  set_finite (acts_set G).
+
+Lemma fin_exec_full_equiv (G: execution):
+  fin_exec_full G <-> fin_exec G /\ set_finite (acts_set G ∩₁ Tid_ tid_init).
+Proof.
+  unfold fin_exec, fin_exec_full.
+  rewrite <- set_finite_union. apply set_finite_more. 
+  rewrite set_minusE, set_unionC, <- set_inter_union_r, <- set_full_split.
+  basic_solver.
+Qed. 
 
 
 (* TODO: move to SubExecution *)
@@ -26,12 +46,6 @@ Qed.
 (* TODO: move to separate file *)
 Definition threads_bound (G: execution) (b: thread_id) :=
   forall e (Ge: acts_set G e), BinPos.Pos.lt (tid e) b.
-
-Lemma set_full_split {A: Type} (S: A -> Prop):
-  set_full ≡₁ S ∪₁ set_compl S.
-Proof.
-  split; [| basic_solver]. red. ins. destruct (classic (S x)); basic_solver.
-Qed. 
 
 Lemma BinPos_lt_fin b:
   set_finite (fun t => BinPos.Pos.lt t b). 
@@ -60,5 +74,3 @@ Proof.
   2: { by apply FIN_B. }
   exists nil. unfold restrict. simpl. unfolder. ins. by desc. 
 Qed.
-
-End FinExecution.  

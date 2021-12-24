@@ -10,6 +10,7 @@ Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
+Require Import FinExecutionExt. 
 
 Require Import IndefiniteDescription.
 
@@ -70,7 +71,7 @@ Section ExtTraversalCounting.
 
   (* TODO: get rid while generalizing to infinite case *)
   (***********)
-  Hypothesis FINDOM: set_finite (acts_set G).  
+  Hypothesis FINDOM: fin_exec_full G. 
   Definition acts_list: list actid :=
     filterP (acts_set G)
             (proj1_sig (@constructive_indefinite_description _ _ FINDOM)).
@@ -101,6 +102,7 @@ Section ExtTraversalCounting.
                countP (W ∩₁ set_compl (reserved T ∪₁ eq e)) acts_list) as AA.
     { intros e. red. apply countP_mori; auto.
       basic_solver. }
+
 
     red in STEP. desc. red in STEP.
     desf.
