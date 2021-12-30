@@ -39,6 +39,8 @@ Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
 Require Import AuxTime.
 
+Require Import Coq.Program.Basics.
+
 Set Implicit Arguments.
 Remove Hints plus_n_O.
 
@@ -978,7 +980,8 @@ Lemma simulation
 Proof using All.
   generalize (sim_traversal WF FIN IMMCON); ins; desc.
   destruct T as [T S].
-  exists T, S. apply rtE in H.
+  exists T, S.
+  apply rtE in H.
   destruct H as [H|H].
   { red in H. desf.
     eexists. eexists. eexists.
@@ -986,11 +989,28 @@ Proof using All.
     { apply rtE. left. red. eauto. }
     unfold ext_init_trav in *. inv H.
     apply simrel_init. }
-  eapply sim_steps in H; eauto. 
-  2: by apply simrel_init.
+  eapply sim_steps in H; eauto.
+  2: { by apply simrel_init. }
   desf.
   eexists. eexists. eexists.
   splits; eauto.
+Qed.
+
+Lemma simulation_enum
+      (FAIR: mem_fair G)
+      (FIN: fin_exec_full G):
+  exists (TSPs: nat -> (trav_config * (actid -> Prop) * Configuration.t))
+    (f_to f_from: actid -> Time.t) (len: nat_omega),
+    ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
+                             covered (fst (fst (TSPs i))) ⟫ /\
+    ⟪ PINIT: snd (TSPs 0) = conf_init prog ⟫ /\
+    ⟪ PSTEP: forall i (DOM: NOmega.lt_nat_l i len),
+        conf_step＊ (snd (TSPs i)) (snd (TSPs (S i))) ⟫ /\
+    ⟪ PSTEP: forall i (DOM: NOmega.lt_nat_l i len),
+        simrel G sc (snd (TSPs i)) (fst (fst (TSPs i))) (snd (fst (TSPs i)))
+               f_to f_from⟫. 
+Proof using All.
+  
 Qed.
 
 Theorem promise2imm 
