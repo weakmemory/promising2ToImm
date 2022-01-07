@@ -21,6 +21,7 @@ From imm Require Import TraversalConfig.
 From imm Require Import TraversalConfigAlt.
 From imm Require Import TraversalConfigAltOld.
 Require Import ExtTraversalConfig.
+Require Import AuxRel.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -400,29 +401,8 @@ Proof using WF COH TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co I_in_S.
   unfold same_tid in *. unfolder in *. desc. subst. congruence.   
 Qed.
 
-(* TODO: insert proof from RC11 op2decl *)
-Lemma fsupp_bunion_disj {A: Type} B (ss : B -> A -> Prop) (rr: B -> relation A)
-      (FS: forall b1 b2 (NEQ: b1 <> b2), set_disjoint (ss b1) (ss b2))
-      (FSUPP: forall b, fsupp (restr_rel (ss b) (rr b))):
-  fsupp (⋃ b, restr_rel (ss b) (rr b)).
-Proof. Admitted. 
-
 Lemma bunion_alt {A B: Type} (R': B -> relation A):
   (fun (x y: A) => exists b, R' b x y) ≡ ⋃ b, R' b.
-Proof. basic_solver. Qed.
-
-(* TODO: move upper in the project? *)
-Require Import PropExtensionality.
-
-Lemma rel_extensionality A (r r' : relation A) :
-  r ≡ r' -> r = r'.
-Proof using.
-  ins; extensionality x; extensionality y.
-  apply propositional_extensionality; split; apply H.
-Qed.
-
-Lemma pref_union_alt {A: Type} (r1 r2: relation A):
-  pref_union r1 r2 ≡ r1 ∪ r2 \ (r1)⁻¹.
 Proof. basic_solver. Qed.
 
 
@@ -450,7 +430,7 @@ Proof using WF.
 
   apply fsupp_cross.
   unfold cert_co_base. 
-  (* TODO: is it true that cert_co_base is finite? *)
+  (* TODO: is it true that cert_co_base is always finite? *)
 Admitted. 
   
 (* TODO: *)

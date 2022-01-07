@@ -6,13 +6,15 @@ From imm Require Import Events Execution imm_s.
 From imm Require Import AuxRel2.
 From imm Require Import TraversalConfig.
 From imm Require Import Traversal.
+From imm Require Import FinExecution. 
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
-Require Import FinExecutionExt. 
+(* Require Import FinExecutionExt.  *)
 
 Require Import IndefiniteDescription.
+Require Import SetSize.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -102,8 +104,6 @@ Section ExtTraversalCounting.
                countP (W ∩₁ set_compl (reserved T ∪₁ eq e)) acts_list) as AA.
     { intros e. red. apply countP_mori; auto.
       basic_solver. }
-
-
     red in STEP. desc. red in STEP.
     desf.
     { clear AA.

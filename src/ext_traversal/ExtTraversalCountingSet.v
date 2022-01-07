@@ -6,16 +6,16 @@ From imm Require Import Events Execution imm_s.
 From imm Require Import AuxRel2.
 From imm Require Import TraversalConfig.
 From imm Require Import Traversal.
+From imm Require Import FinExecution. 
+From imm Require Import FairExecution. 
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
-Require Import FinExecutionExt. 
 Require Import SetSize.
 
 Require Import IndefiniteDescription.
 Require Import Coq.Program.Basics.
-(* Require Import Coq.Logic.ChoiceFacts.  *)
 Require Import Coq.Logic.ClassicalChoice.
 
 Set Implicit Arguments.
@@ -375,57 +375,57 @@ Section ExtTraversalCounting.
     etransitivity; eauto. 
   Qed.
 
-  next
+  (* Lemma acts_nexts_enum T *)
+  (*       (IMMCON : imm_consistent G sc) *)
+  (*       (ETCCOH : etc_coherent G sc T) *)
+  (*       (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T) *)
+  (*       (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w) : *)
+  (* exists (len: nat_omega) (enum: nat -> actid), *)
+  (*   ⟪ COVERS: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len), eq (enum i) ⟫ *)
+  (*   /\ *)
+  (*   ⟪ STEPS: forall i (DOM: NOmega.lt_nat_l i len), *)
+  (*         (ext_sim_trav_step G sc)＊ T (T's i) ⟫. *)
+  (* Proof. *)
+  (* Abort.  *)
 
-  Definition trav_before
-    
-  Lemma acts_nexts_enum
-        (IMMCON : imm_consistent G sc)
-        (ETCCOH : etc_coherent G sc T)
-        (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
-        (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w) :
-  exists (len: nat_omega) (enum: nat -> actid),
-    ⟪ COVERS: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len), eq (enum i) ⟫ /\
-    (* ⟪ STEPS: forall i (DOM: NOmega.lt_nat_l i len), *)
-    (*     (ext_sim_trav_step G sc)＊ T (T's i) ⟫. *)
-  Proof.
-
+Lemma simulation_enum_impl T
+      (FAIR: mem_fair G)
+      (IMMCON : imm_consistent G sc)
+      (ETCCOH : etc_coherent G sc T)
+      (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
+      (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w):      
+  exists (len: nat_omega) (Ts: nat -> ext_trav_config),
+    ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
+                             ecovered (Ts i) ⟫ /\
+    ⟪ TINIT: Ts 0 = T ⟫ /\
+    ⟪ TSTEP: forall i (DOM: NOmega.lt_nat_l i len),
+        (ext_sim_trav_step G sc)＊ T (Ts i)⟫. 
+Proof using All.
+  (* See notes in PromiseToImm_s *)
+Admitted. 
   
-  Lemma sim_set_traversal_helper T
-        (IMMCON : imm_consistent G sc)
-        (ETCCOH : etc_coherent G sc T)
-        (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
-        (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w) :
-    (* exists T', (ext_sim_trav_step G sc)＊ T T' /\ ((acts_set G) ⊆₁ ecovered T'). *)
-  exists (len: nat_omega) (T's: nat -> ext_trav_config),
-    ⟪ COVERS: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
-                             ecovered (T's i) ⟫ /\
-    (* ⟪ PINIT: T's 0 = T ⟫ /\ *)
-    ⟪ STEPS: forall i (DOM: NOmega.lt_nat_l i len),
-        (ext_sim_trav_step G sc)＊ T (T's i) ⟫.
-  Proof.
-    exists (set_size E).
-    
-    enough (exists T's : nat -> ext_trav_config,
-               forall i (DOM: NOmega.lt_nat_l i (set_size E)),
-                 set_size (ecovered (T's i)) = NOnum i /\
-                 (ext_sim_trav_step G sc)＊ T (T's i)) as [T's PROP]. 
-    { exists T's. splits.
-      { 
 
-      admit. }
+Lemma simulation_enum
+      (FAIR: mem_fair G)
+      (IMMCON : imm_consistent G sc):
+  exists (len: nat_omega) (Ts: nat -> ext_trav_config),
+    ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
+                             ecovered (Ts i) ⟫ /\
+    (* ⟪ TINIT: Ts 0 = ext_trav_init G ⟫ /\ *)
+    ⟪ TSTEP: forall i (DOM: NOmega.lt_nat_l i len),
+        (ext_sim_trav_step G sc)＊ (ext_init_trav G) (Ts i)⟫. 
+Proof using All.
+  forward eapply simulation_enum_impl with (T := ext_init_trav G); eauto.
+  { by eapply ext_init_trav_coherent. }
+  { unfold ext_init_trav. simpls. basic_solver. }
+  { unfold ecovered, eissued.
+    ins. split; intros [HH AA].
+    { apply (init_w WF) in HH.
+      apply (dom_l (wf_rmwD WF)) in RMW. apply seq_eqv_l in RMW.
+      type_solver. }
+    apply (rmw_in_sb WF) in RMW. apply no_sb_to_init in RMW.
+    apply seq_eqv_r in RMW. desf. }
+  ins. desc. do 2 eexists. splits; eauto. 
+Qed.  
 
-    remember (fun i fi => NOmega.lt_nat_l i (set_size E) -> (ext_sim_trav_step G sc)＊ T fi) as P.
-    (* cannot directly apply choice *)
-    edestruct functional_choice with (R := P) as [T's P_HOLDS]. 
-    2: { subst P. eexists. eauto. }
-    
-    intros i. induction i as [| i [Ti IH]]. 
-    { exists T. subst P. ins. apply rt_refl. }
-    subst P. destruct (classic (NOmega.lt_nat_l (S i) (set_size E))).
-    2: { exists Ti. done. }
-
-    
-  
-  
 End ExtTraversalCounting.

@@ -191,7 +191,8 @@ Proof using WF WF_SC IT_new_co ST_in_E S_in_W.
   all: unfolder in H12; unfolder in H5; basic_solver 40.
 Qed.
 
-(* TODO: is this true? *)
+(* TODO: is this provable in infinite case? 
+   Anyway, see notes in PromiseToImm_s *)
 Lemma cert_co_furr_fin (b: actid) (l: location):
   exists findom, forall c (REL: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)＊ (InitEvent l) c),
       In c findom.
@@ -617,21 +618,11 @@ Proof using All.
   clear. basic_solver.
 Qed.
 
-(* TODO: move to CombRelations.v *)
-Lemma rf_in_furr : Grf ⊆ Gfurr.
-Proof using WF.
-  unfold furr, urr.
-  do 2 rewrite (dom_l (wf_rfD WF)).
-  unfolder; ins; desc.
-  apply is_w_loc in H1; desf.
-  basic_solver 21.
-Qed.
-
 Lemma cert_rf_in_furr : cert_rf ⨾ ⦗set_compl (dom_rel Grmw)⦘ ⊆ Gfurr.
 Proof using WF.
   unfold cert_rf.
   rewrite new_rf_in_furr.
-  rewrite rf_in_furr.
+  rewrite rf_in_furr with (sc := sc); auto. 
   unfolder; ins; desf; splits; eauto 20.
   exfalso; eauto.
 Qed.
@@ -725,8 +716,7 @@ Proof using All.
     1,3: basic_solver.
     unfold new_rf.
     unfold rfe.
-    rewrite rf_in_furr.
-    basic_solver. }
+    rewrite rf_in_furr with (sc := sc); basic_solver. }
 
   unfold cert_rf.
   rewrite !seq_union_r, !inter_union_l, !seq_union_l.

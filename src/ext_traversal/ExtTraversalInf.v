@@ -14,6 +14,11 @@ From imm Require Import TraversalConfig.
 From imm Require Import imm_s_rfppo.
 From imm Require Import Traversal. 
 From imm Require Import FairExecution.
+From imm Require Import FinExecution.
+
+Require Import CertGraphInit.
+Require Import ImmFair.
+Import ListNotations.
 
 Set Implicit Arguments.
 
@@ -24,6 +29,7 @@ Section Traversal.
   Hypothesis WF : Wf G.
   Variable sc : relation actid.
   Hypothesis IMMCON : imm_consistent G sc.
+  Hypothesis IMM_FAIR: imm_fair G sc. 
 
   Notation "'sb'" := (sb G).
   Notation "'rmw'" := (rmw G).
@@ -118,127 +124,6 @@ Proof.
     apply NEXT.
 Qed.
 
-(* TODO: move upper *)
-Hypothesis IMM_FAIR: fsupp (ar G sc)⁺.
-
-(* TODO: move to IMM.FairExecution *)
-Lemma fsupp_rf:
-  fsupp rf.
-Proof using WF.
-  apply functional_inv_fsupp. by inversion WF.
-  (* Qed.  *)
-Admitted.
-
-(* TODO: move to IMM.FairExecution *)
-(* TODO: fix imports *)
-Require Import FinExecutionExt.
-Require Import CertGraphInit.
-Import ListNotations.
-
-(* TODO: move to IMM*)
-Lemma is_f_loc (e : actid) (Fe: is_f lab e):
-  loc e = None.
-Proof.
-  unfold Events.loc. destruct e; type_solver.
-Qed. 
-
-
-Lemma fsupp_sb_loc:
-  fsupp (sb ∩ same_loc).
-Proof using WF.
-  rewrite <- seq_id_l.
-  rewrite set_full_split with (S := is_init), id_union, seq_union_l.
-  apply fsupp_union.
-  2: { eapply fsupp_mori; [| by apply fsupp_sb; eauto].
-       red. basic_solver. }
-  
-  red. ins.
-  remember (loc y) as ly. destruct ly. 
-  { exists [InitEvent l].
-    intros x REL%seq_eqv_l. desc. destruct x; [| done].
-    simpl. left. f_equal. apply proj2 in REL0.
-    red in REL0.
-    unfold Events.loc in REL0 at 1. rewrite wf_init_lab in REL0; auto.
-    congruence. }
-  exists []. red. intros x REL%seq_eqv_l. desc.
-  apply proj2 in REL0. red in REL0.
-  destruct x; [| done]. 
-  unfold Events.loc in REL0 at 1. rewrite wf_init_lab in REL0; auto.
-  congruence.
-Qed.
-  
-  
-Lemma fsupp_rf_ppo_loc: fsupp (rf ⨾ ppo ∩ same_loc).
-Proof using WF. 
-  apply fsupp_seq; [by apply fsupp_rf| ]. 
-  rewrite ppo_in_sb; auto. by apply fsupp_sb_loc. 
-Qed.
-
-(* TODO: move to IMM *)
-Lemma rf_sbl_w_in_co:
-  rf ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⊆ co.
-Proof using WF IMMCON.
-  red. intros w1 w2 [w' [RF HH]]. apply seq_eqv_r in HH as [[SB LOC] W2].
-  forward eapply is_w_loc as [l Ll]; eauto.
-  red in LOC. pose proof (wf_rfl WF _ _ RF) as Ll'. red in Ll'.
-  eapply same_relation_exp in RF.
-  2: { rewrite wf_rfE, wf_rfD; auto. }
-  apply wf_sbE in SB. 
-  
-  forward eapply (@wf_co_total _ WF (Some l)) with (a := w1) (b := w2). 
-  1, 2: unfolder in *; desc; splits; congruence.
-  { intros <-. cdes IMMCON. red in Cint. destruct (Cint w').
-    exists w1. split.
-    - apply sb_in_hb. generalize SB. basic_solver.
-    - right. apply rf_in_eco. generalize RF. basic_solver. }
-  ins. des; auto.
-  cdes IMMCON. red in Cint. destruct (Cint w').
-  exists w2. split.
-  { apply sb_in_hb. generalize SB. basic_solver. }
-  right. red. left. right. eexists. splits; eauto.
-  generalize RF. basic_solver.
-(* Qed.  *)
-Admitted. 
-
-Lemma fsupp_rf_ppo_loc_ct (FAIR: mem_fair G):
-  fsupp (rf ⨾ ppo ∩ same_loc)⁺.
-Proof using WF IMMCON.
-  eapply fsupp_mori with (x := co^* ⨾ rf ⨾ ppo ∩ same_loc).
-  2: { apply fsupp_seq; [| by apply fsupp_rf_ppo_loc].
-       apply fsupp_ct_rt. rewrite ct_of_trans; [| by apply WF].
-       apply FAIR. }
-  red.
-  rewrite ctEE. apply inclusion_bunion_l. intros i _. induction i.
-  { simpl. apply seq_mori; basic_solver. }
-  rewrite pow_S_end. rewrite IHi.
-  arewrite (rf ≡ ⦗W⦘ ⨾ rf) at 2.
-  { rewrite wf_rfD; basic_solver. }
-  hahn_frame.
-  etransitivity; [| apply inclusion_t_rt]. rewrite ct_end. hahn_frame_l.
-  rewrite ppo_in_sb; auto. apply rf_sbl_w_in_co; auto. 
-Qed.
-  
-
-Lemma wf_ar_rf_ppo_loc_ct_inf
-      (WFSC: wf_sc G sc) (COM: complete G) (FAIR: mem_fair G):
-  well_founded (ar G sc ∪ rf ;; ppo ∩ same_loc)⁺.
-Proof using WF IMMCON IMM_FAIR. 
-  apply fsupp_well_founded.
-  3: by apply transitive_ct.
-  2: by apply ar_rf_ppo_loc_acyclic.
-
-  rewrite ct_unionE. apply fsupp_union.
-  { by apply fsupp_rf_ppo_loc_ct. }
-  apply fsupp_seq.
-  { apply fsupp_ct_rt, fsupp_rf_ppo_loc_ct; auto. }  
-
-  eapply fsupp_mori; [| by apply IMM_FAIR].
-  red. rewrite rtE, seq_union_r, seq_id_r.
-  rewrite ar_rf_ppo_loc_ct_in_ar_ct; auto.
-  etransitivity.
-  2: { rewrite <- ct_of_ct. reflexivity. }
-  apply clos_trans_mori. basic_solver. 
-Qed.
 
 
 Lemma WMIN T (TCCOH : tc_coherent G sc T)
@@ -250,7 +135,8 @@ Lemma WMIN T (TCCOH : tc_coherent G sc T)
     dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ ppo ∩ same_loc)⁺) (issued T) w /\ E w.
 Proof using WF IMM_FAIR IMMCON. 
   intros P; desf.
-  induction w using (well_founded_ind (wf_ar_rf_ppo_loc_ct_inf WFSC COM FAIR)).
+  forward eapply wf_ar_rf_ppo_loc_ct_inf as WFar'; eauto.
+  induction w using (well_founded_ind WFar').
   destruct (classic (dom_cond (⦗W⦘ ⨾ (ar G sc ∪ rf ⨾ ppo ∩ same_loc)⁺) (issued T) w)); eauto.
   unfolder in H0. unfold dom_rel in H0.
   apply not_all_ex_not in H0; desf.
@@ -271,7 +157,8 @@ Lemma FMIN T (TCCOH : tc_coherent G sc T)
        E f.
 Proof using WF IMM_FAIR IMMCON. 
   intros P; desf.
-  induction f using (well_founded_ind (wf_ar_rf_ppo_loc_ct_inf WFSC COM FAIR)).
+  forward eapply wf_ar_rf_ppo_loc_ct_inf as WFar'; eauto.
+  induction f using (well_founded_ind WFar').
   destruct (classic (doma (⦗F∩₁Sc⦘ ⨾ (ar G sc ∪ rf ⨾ ppo ∩ same_loc)⁺ ⨾ ⦗eq f⦘) (covered T)))
     as [H0 | H0]; eauto.
   rewrite seq_eqv_r, seq_eqv_l in H0.
@@ -577,5 +464,8 @@ Proof using WF IMMCON IMM_FAIR.
   edestruct trav_step_contra; eauto.
   exists e; splits; try by apply N_FIN. by apply FSC.
 Qed.
+
+(* TODO: move import upper *)
+From hahn Require Import HahnCountable. 
 
 End Traversal.

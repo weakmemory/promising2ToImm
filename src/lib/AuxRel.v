@@ -1,5 +1,6 @@
 Require Import Program.Basics.
 From hahn Require Import Hahn.
+Require Import PropExtensionality.
 
 Set Implicit Arguments.
 Local Open Scope program_scope.
@@ -920,6 +921,36 @@ Proof.
   { apply set_equiv_exp. }
   intros HH. by split; red; ins; apply HH.
 Qed.
+
+Lemma fsupp_bunion_disj (ss : B -> A -> Prop) (rr: B -> relation A)
+      (FS: forall b1 b2 (NEQ: b1 <> b2), set_disjoint (ss b1) (ss b2)) 
+      (FSUPP: forall b, fsupp (restr_rel (ss b) (rr b))):
+  fsupp (⋃ b, restr_rel (ss b) (rr b)). 
+Proof.
+  red. ins.
+  destruct (classic ((fun x => (⋃b, restr_rel (ss b) (rr b)) x y) ≡₁ ∅)).
+  { exists nil. ins. eapply H. eauto. }
+  apply set_nonemptyE in H. desc. red in H. desc.
+  specialize (FSUPP a). red in FSUPP. specialize (FSUPP y). desc.
+  exists findom. ins. red in REL. desc.
+  enough (a0 = a).
+  { subst a0. apply FSUPP. red in REL0. by desc. }
+  red in H0, REL0. desc.
+  destruct (classic (a0 = a)); auto.
+  specialize (FS _ _ H3 _ REL2). vauto.
+Qed.
+
+Lemma rel_extensionality (r1 r2 : relation A) :
+  r1 ≡ r2 -> r1 = r2.
+Proof using.
+  ins; extensionality x; extensionality y.
+  apply propositional_extensionality; split; apply H.
+Qed.
+
+Lemma pref_union_alt (r1 r2: relation A):
+  pref_union r1 r2 ≡ r1 ∪ r2 \ (r1)⁻¹.
+Proof. basic_solver. Qed.
+
 
 Lemma minus_eqv_r : r ⨾ ⦗ s ⦘ \ r' ≡ (r \ r') ⨾ ⦗ s ⦘.
 Proof.

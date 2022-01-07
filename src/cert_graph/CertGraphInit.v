@@ -15,6 +15,7 @@ From imm Require Import Prog.
 From imm Require Import ProgToExecution ProgToExecutionProperties.
 From imm Require Import Receptiveness.
 From imm Require Import FairExecution.
+From imm Require Import FinExecution.
 
 From imm Require Import RMWinstrProps.
 Require Import promise_basics.PromiseLTS.
@@ -51,6 +52,11 @@ Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 Definition mkCT (Gf: execution) (T: trav_config) (S: actid -> Prop) (thread: thread_id)
   := E0 Gf T S thread ∩₁ Tid_ thread.
 
+(* TODO: this is not true since, according to tc_coherent_alt,
+   traversal configurations include init events.
+   But for this proof it should suffice to require the finiteness 
+   of non-initializing part of these sets only. 
+   Also see remark in PromiseToImm_s. *)
 Lemma tc_fin G sc T (COH: tc_coherent G sc T):
   set_finite (covered T) /\ set_finite (issued T).
 Proof. Admitted.
@@ -72,19 +78,11 @@ Proof.
   - apply in_map. intuition.
 Qed. 
 
-
-(* TODO: move to IMM.Execution *)
-Lemma fsupp_sb G (WF: Wf G):
-  fsupp (⦗set_compl is_init⦘ ⨾ sb G).
-Proof using.
-  unfold sb, ext_sb; unfolder; ins.
-  destruct y; [exists nil; ins; desf|].
-  exists (map (fun i => ThreadEvent thread i) (List.seq 0 index)).
-  intros e ((NIe & E0) & (SB & E)).
-  destruct e; [done| ]. destruct SB as [-> LT].
-  apply in_map_iff. eexists. split; eauto. by apply in_seq0_iff.
-  (* Qed.  *)
-Admitted. 
+Lemma rstG_fair G T S thread (FAIR: mem_fair G):
+  mem_fair (rstG G T S thread).
+Proof.
+  unfold rstG. by apply restrict_fair.
+Qed.
 
 
 Lemma CT_fin G ETC thread sc
@@ -120,26 +118,6 @@ Qed.
 Lemma codom_seq_eqv_r {A: Type} (r: relation A) (S: A -> Prop):
   codom_rel (r ⨾ ⦗S⦘) ⊆₁ S. 
 Proof. basic_solver. Qed.
-
-(* TODO: move to IMM.FairExecution *)
-Lemma restrict_fair (G: execution) (S: actid -> Prop)
-      (FAIR: mem_fair G):
-  mem_fair (restrict G S).
-Proof.
-  unfold restrict, mem_fair, fr. simpl. destruct FAIR as [FSco FSfr].
-  split.
-  - eapply fsupp_mori; [| by apply FSco]. red. basic_solver.
-  - eapply fsupp_mori; [| by apply FSfr]. red. unfold fr. basic_solver.
-    (* Qed.  *)
-Admitted. 
-
-(* TODO: move to IMM.FairExecution *)
-Lemma rstG_fair G T S thread (FAIR: mem_fair G):
-  mem_fair (rstG G T S thread).
-Proof.
-  unfold rstG. by apply restrict_fair.
-  (* Qed. *)
-Admitted.
 
 Section CertGraphInit.
   Variable (Gf: execution) (sc: relation actid) (T: trav_config) (S: actid -> Prop).
@@ -1474,9 +1452,6 @@ Section CertGraphInit.
     
   End SimRelCert.
 
-  (* TODO: move upper *)
-  Require Import FinExecutionExt.
-
   (* TODO: in principle, it's possible to construct a fully finite graph here
      without requiring it from the input graph
      by stripping unused init events,
@@ -1532,7 +1507,7 @@ Section CertGraphInit.
     { red. splits; eauto using simrel_cert_common, simrel_cert_local. }
     { (* since we can probably make the certification graph finite,
          a simple proof should suffice here*)
-      apply FinExecution.fin_exec_fair; eauto using WF_CERT. } 
+      apply fin_exec_fair; eauto using WF_CERT. } 
   Qed. 
 
 End CertGraphInit.

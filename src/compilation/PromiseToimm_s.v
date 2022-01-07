@@ -16,8 +16,8 @@ From imm Require Import ProgToExecutionProperties.
 From imm Require Import RMWinstrProps.
 From imm Require Import AuxRel2.
 From imm Require Import FairExecution.
+From imm Require Import FinExecution.
 
-Require Import FinExecutionExt.
 Require Import SimulationRel.
 Require Import PlainStepBasic.
 Require Import SimulationPlainStep.
@@ -38,7 +38,9 @@ Require Import ExtTraversalCounting.
 Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
 Require Import AuxTime.
-
+Require Import ExtTraversalCountingSet.
+Require Import IndefiniteDescription.
+Require Import ImmFair. 
 Require Import Coq.Program.Basics.
 
 Set Implicit Arguments.
@@ -76,21 +78,6 @@ Proof using.
     eauto using SetoidList.InA.
 Qed.
 
-(* TODO: move to to imm/RMWinstrProps.v. *)
-Lemma dom_rmw_in_rex_thread_steps thread s s'
-      (RMWREX : rmw_is_rex_instrs (instrs s))
-      (WF : wf_thread_state thread s)
-      (STEPS : (step thread)^* s s')
-      (SS : dom_rmw_in_rex s) :
-  dom_rmw_in_rex s'.
-Proof using.
-  apply clos_rt_rtn1_iff in STEPS.
-  induction STEPS; auto.
-  apply clos_rt_rtn1_iff in STEPS.
-  eapply dom_rmw_in_rex_thread_step with (s:=y); eauto.
-  { erewrite steps_preserve_instrs; eauto. }
-  eapply wf_thread_state_steps; eauto.
-Qed.
 
 Definition execution_final_memory (G : execution) final_memory :=
   forall l,
@@ -995,24 +982,56 @@ Proof using All.
   eexists. eexists. eexists.
   splits; eauto.
 Qed.
+  
 
 Lemma simulation_enum
       (FAIR: mem_fair G)
-      (FIN: fin_exec_full G):
-  exists (TSPs: nat -> (trav_config * (actid -> Prop) * Configuration.t))
-    (f_to f_from: actid -> Time.t) (len: nat_omega),
+      (IMM_FAIR: imm_fair G sc)
+  :
+  exists (len: nat_omega) (f_to f_from: actid -> Time.t)
+    (TSPs: nat -> (ext_trav_config * (actid -> Prop) * Configuration.t)),
     ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
-                             covered (fst (fst (TSPs i))) ⟫ /\
+                             ecovered (fst (fst (TSPs i))) ⟫ /\
     ⟪ PINIT: snd (TSPs 0) = conf_init prog ⟫ /\
+    (* too weak: adjacent states may be not related *)
+    (* ⟪ PSTEP: forall i (DOM: NOmega.lt_nat_l i len), *)
+    (*     conf_step＊ (conf_init prog) (snd (TSPs i)) ⟫ /\ *)
     ⟪ PSTEP: forall i (DOM: NOmega.lt_nat_l i len),
-        conf_step＊ (snd (TSPs i)) (snd (TSPs (S i))) ⟫ /\
-    ⟪ PSTEP: forall i (DOM: NOmega.lt_nat_l i len),
-        simrel G sc (snd (TSPs i)) (fst (fst (TSPs i))) (snd (fst (TSPs i)))
+        conf_step⁺ (snd (TSPs i)) (snd (TSPs (S i))) ⟫ /\
+    ⟪ SIMREL: forall i (DOM: NOmega.lt_nat_l i len),
+          simrel G sc (snd (TSPs i)) (etc_TC (fst (fst (TSPs i))))
+                 (snd (fst (TSPs i)))
                f_to f_from⟫. 
 Proof using All.
-  
-Qed.
+  (* 
+     1. Does TRAV condition denote what we need? 
+     2. This is too technical; we need something similar to promise2imm theorem
+     3. Currently I see two ways to proving this lemma:
+        - Prove ExtTraversalCountingSet.simulation_enum_impl lemma
+          to construct an infinite sequence of traversal configurations 
+          and then convert it to sequence of configurations
+        - Construct an infinite sequence of po-prefix-closed finite subgraphs,
+          apply the finite case 'simulation' theorem to them
+          and declare the sequence of their final states as the one needed here
+    
+     Some results we may need at some point:
+     - ImmFair.wf_ar_rf_ppo_loc_ct_inf states that
+       (ar | rf ;; ppo ∩ same_loc)^+ is well founded in infinite fair graphs;
+       in finite case this fact is used to pick the 'next' event
+     - ExtTraversalInf.exists_trav_step states that 'next' event can be used
+       to advance the current traversal configuration in infinite case
 
+     Also, there are some admits left in cert_graph/ files. 
+     They are related to proving various fsupp properties 
+     in (possibly) infinite graphs.
+     Despite they could be (?) proved as is, 
+     we instead can explicitly require certification to be finite 
+     (which should continue to hold even for infinite executions),
+     which will allow us to simply reuse previous cert_graph results.      
+
+*)
+Admitted. 
+  
 Theorem promise2imm 
       (FAIR: mem_fair G)
       (FIN: fin_exec_full G) :
