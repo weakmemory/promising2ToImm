@@ -37,6 +37,7 @@ Require Import SimState.
 Require Import ExtTraversalConfig.
 Require Import CertExecution1.
 Require Import ExtTraversalProperties.
+Require Import FinTravConfigs. 
 
 Require Import IndefiniteDescription.
 
@@ -52,32 +53,6 @@ Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 Definition mkCT (Gf: execution) (T: trav_config) (S: actid -> Prop) (thread: thread_id)
   := E0 Gf T S thread ∩₁ Tid_ thread.
 
-(* TODO: this is not true since, according to tc_coherent_alt,
-   traversal configurations include init events.
-   But for this proof it should suffice to require the finiteness 
-   of non-initializing part of these sets only. 
-   Also see remark in PromiseToImm_s. *)
-Lemma tc_fin G sc T (COH: tc_coherent G sc T):
-  set_finite (covered T) /\ set_finite (issued T).
-Proof. Admitted.
-
-Lemma etc_fin G sc ETC (COH: etc_coherent G sc ETC):
-  set_finite (reserved ETC).
-Proof. Admitted. 
-
-Lemma fin_dom_rel_fsupp {A: Type} (r: relation A) (S: A -> Prop)
-      (FINS: set_finite S) (FSUPPr: fsupp r):
-  set_finite (dom_rel (r ⨾ ⦗S⦘)).
-Proof.
-  red in FSUPPr. apply functional_choice in FSUPPr as [supp_map FSUPPr].
-  destruct FINS as [Sl DOMS]. 
-  exists (concat (map supp_map Sl)).
-  intros a [s DOM%seq_eqv_r]. desc.
-  apply in_concat_iff. eexists. split.
-  - eapply FSUPPr; eauto.
-  - apply in_map. intuition.
-Qed. 
-
 Lemma rstG_fair G T S thread (FAIR: mem_fair G):
   mem_fair (rstG G T S thread).
 Proof.
@@ -85,30 +60,45 @@ Proof.
 Qed.
 
 
+Lemma tid_is_init_fin_helper (S: actid -> Prop) thread
+      (NT: thread <> tid_init)
+      (FIN: set_finite (S \₁ is_init)):
+  set_finite (S ∩₁ Tid_ thread).
+Proof. 
+  rewrite AuxRel.set_split_comlete with (s := is_init).
+  apply set_finite_union. split.
+  { eapply set_finite_mori; [| by apply set_finite_empty].
+    red. unfolder. ins. desc. vauto. by destruct x. }
+  eapply set_finite_mori; [| by apply FIN].
+  red. basic_solver.
+Qed. 
+
 Lemma CT_fin G ETC thread sc
-      (COH: etc_coherent G sc ETC) (NT0: thread <> tid_init) (WF: Wf G):
+      (COH: etc_coherent G sc ETC) (NT0: thread <> tid_init) (WF: Wf G)
+      (ETC_FIN: etc_fin ETC):
   set_finite (mkCT G (etc_TC ETC) (reserved ETC) thread).
 Proof.
-  forward eapply tc_fin as [FINcov FINiss]; [by apply COH| ].
-  forward eapply etc_fin as ETC_FIN; eauto.
   unfold mkCT, E0.
+  red in ETC_FIN. desc. red in TC_FIN. desc.
   repeat rewrite set_inter_union_l, set_finite_union. splits.
-  1: generalize FINcov. 2: generalize FINiss. 
-  1, 2: eapply set_finite_mori; eauto; red; basic_solver. 
+  1, 2: by apply tid_is_init_fin_helper. 
   { rewrite set_interC, <- dom_eqv1. 
     rewrite <- seqA. 
     rewrite crE. repeat case_union _ _. rewrite dom_union. 
     apply set_finite_union. split.
     { rewrite !AuxRel.seq_eqv, set_inter_full_r, dom_eqv.
-      eapply set_finite_mori; eauto. red. basic_solver. }
+      rewrite <- set_interA, set_interK, set_interC.
+      by apply tid_is_init_fin_helper. }
+    rewrite no_sb_to_init. do 2 rewrite seqA. rewrite <- id_inter, <- seqA.   
     apply fin_dom_rel_fsupp.
     { eapply set_finite_mori; eauto. red. basic_solver. }
     eapply fsupp_mori; [| apply fsupp_sb; eauto].
     red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
     generalize is_init_tid. basic_solver. }
-  rewrite set_interC, <- dom_eqv1. rewrite <- seqA.  
+  rewrite (dom_r (rmw_non_init_lr WF)), seqA, <- id_inter.  
+  rewrite set_interC, <- dom_eqv1. rewrite <- seqA.
   apply fin_dom_rel_fsupp.
-  { generalize FINiss. eapply set_finite_mori; eauto. red. basic_solver. }
+  { eapply set_finite_mori; [| by apply ISS_FIN]. red. basic_solver. }
   rewrite rmw_in_sb; auto. 
   eapply fsupp_mori; [| apply fsupp_sb; eauto].
   red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
@@ -129,6 +119,8 @@ Section CertGraphInit.
   Hypothesis (FAIRf: mem_fair Gf).
   Hypothesis (IMMCON : imm_consistent Gf sc).
   Hypothesis (SIMREL : simrel_thread Gf sc PC T S f_to f_from thread sim_normal).
+
+  Hypothesis (ETC_FIN: etc_fin (mkETC T S)).
   
   Definition G := rstG Gf T S thread.
   Definition Gsc := ⦗E0 Gf T S thread⦘ ⨾ sc ⨾ ⦗E0 Gf T S thread⦘. 
@@ -327,7 +319,7 @@ Section CertGraphInit.
           exists index : nat,
             ⟪ EREP : e = ThreadEvent thread index ⟫ /\
             ⟪ ILT : index < ctindex ⟫ ⟫.
-  Proof using WF SIMREL.
+  Proof using WF SIMREL ETC_FIN.
     destruct (classic (exists e, CT e)) as [|NCT].
     2: { exists 0. splits.
          { ins. inv LT. }
@@ -1465,7 +1457,7 @@ Section CertGraphInit.
       ⟪ SIMREL : simrel_thread G' sc' PC T' S' f_to f_from thread sim_certification ⟫ /\
       ⟪ FIN': fin_exec_full G' ⟫ /\
       ⟪ FAIR': mem_fair G' ⟫. 
-  Proof using WF T SIMREL S IMMCON FAIRf.
+  Proof using WF T SIMREL S IMMCON FAIRf ETC_FIN.
     cdes SIMREL.
     forward eapply (proj1 (simrel_thread_local_equiv sim_normal)); eauto.
     rename LOCAL into LOCAL_. ins. desc. rename H into LOCAL. cdes LOCAL.    

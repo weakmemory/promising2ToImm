@@ -42,6 +42,7 @@ Require Import ExtTraversalCountingSet.
 Require Import IndefiniteDescription.
 Require Import ImmFair. 
 Require Import Coq.Program.Basics.
+Require Import FinTravConfigs.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -832,6 +833,7 @@ Qed.
 
 Lemma sim_step PC T S T' S' f_to f_from
       (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
+      (ETC_FIN: etc_fin (mkETC T S))
       (SIMREL : simrel G sc PC T S f_to f_from)
       (FAIR: mem_fair G)
       (FIN: fin_exec_full G):
@@ -840,6 +842,7 @@ Lemma sim_step PC T S T' S' f_to f_from
       ⟪ SIMREL : simrel G sc PC' T' S' f_to' f_from' ⟫.
 Proof using All.
   destruct STEP as [thread STEP].
+  forward eapply isim_step_preserves_fin as FIN'; eauto. 
   cdes SIMREL. cdes COMMON.
   eapply plain_sim_step in STEP; eauto.
   2: { split; eauto. apply THREADS.
@@ -932,6 +935,7 @@ Qed.
 
 Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)⁺ TS TS')
+      (ETC_FIN: etc_fin TS)
       (SIMREL  : simrel G sc PC (etc_TC TS) (reserved TS) f_to f_from)
       (FAIR: mem_fair G)
       (FIN: fin_exec_full G) :
@@ -949,13 +953,15 @@ Proof using All.
     eapply sim_step in H; eauto. desf.
     do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
   ins.
-  eapply IHTCSTEPS1 in SIMREL.
+  eapply IHTCSTEPS1 in SIMREL; auto. 
   desc.
   eapply IHTCSTEPS2 in SIMREL0.
+  2: { apply inclusion_t_rt in TCSTEPS1. eapply sim_steps_preserves_fin; eauto. }
   desf. eexists. eexists. eexists. splits.
   2: eauto.
   eapply rt_trans; eauto. 
 Qed.
+  
 
 Lemma simulation 
       (FAIR: mem_fair G)
@@ -977,7 +983,8 @@ Proof using All.
     unfold ext_init_trav in *. inv H.
     apply simrel_init. }
   eapply sim_steps in H; eauto.
-  2: { by apply simrel_init. }
+  3: { by apply simrel_init. }
+  2: { by apply init_etc_fin. }
   desf.
   eexists. eexists. eexists.
   splits; eauto.
