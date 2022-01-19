@@ -1448,14 +1448,92 @@ Section CertGraphInit.
      without requiring it from the input graph
      by stripping unused init events,
      but so far it's easier to assume the input is finite *)
+
+  (* TODO: move to FinExecution *)
+  Lemma fin_exec_full_same_events G G'
+        (SAME: acts_set G ≡₁ acts_set G') (FIN: fin_exec_full G):
+    fin_exec_full G'.
+  Proof. unfold fin_exec_full in *. by rewrite <- SAME. Qed.
+
+  Lemma fin_exec_same_events G G'
+        (SAME: acts_set G ≡₁ acts_set G') (FIN: fin_exec G):
+    fin_exec G'.
+  Proof. unfold fin_exec in *. by rewrite <- SAME. Qed.
+
+  From imm Require Import SubExecution. 
+  From imm Require Import ThreadBoundedExecution.
+  (* TODO: use one from updated imm *)
+  Lemma set_full_split {A: Type} (S_: A -> Prop):
+    set_full ≡₁ S_ ∪₁ set_compl S_.
+  Proof.
+    split; [| basic_solver]. red. ins. destruct (classic (S_ x)); basic_solver.
+  Qed.
   
-  Lemma cert_graph_init (FIN_FULL: fin_exec_full Gf):
+  (* (* TODO: move to SubExecution *) *)
+  (* Lemma fin_exec_full_bounded_threads G b *)
+  (*       (TB: threads_bound G b) *)
+  (*       (FIN_B: forall t (NI: t <> tid_init) (LTB: BinPos.Pos.lt t b), *)
+  (*           fin_exec_full (restrict G (Tid_ t))): *)
+  (*   fin_exec_full G.  *)
+  (* Proof. *)
+  (*   red. rewrite events_separation.  *)
+  (*   rewrite set_full_split with (S_ := fun t => BinPos.Pos.lt t b). *)
+  (*   rewrite set_bunion_union_l. apply set_finite_union. split. *)
+  (*   2: { exists nil. unfold restrict. simpl. unfolder. ins. desc. *)
+  (*        red in TB. apply TB in IN1. congruence. } *)
+  (*   apply set_finite_bunion; [by apply BinPos_lt_fin| ]. *)
+  (*   intros t LT. *)
+  (*   destruct (classic (t = tid_init)) as [-> | NI].  *)
+  (*   2: { by apply FIN_B. } *)
+  (*   exists nil. unfold restrict. simpl. unfolder. ins. by desc.  *)
+  (* Qed. *)
+
+  (* TODO: move upper *)
+  Definition mkCT' (Gf: execution) (T: trav_config) (S: actid -> Prop) (thread1 thread2: thread_id)
+    := E0 Gf T S thread1 ∩₁ Tid_ thread2.
+  
+  (* TODO: compare to previous version and simplify? *)
+  Lemma CT_fin' thread1 thread2
+        (NT1: thread1 <> tid_init) (NT2: thread2 <> tid_init):
+    set_finite (mkCT' Gf T S thread1 thread2).
+  Proof.
+    unfold mkCT', E0.
+    cdes ETC_FIN. cdes TC_FIN. simpl in *. 
+    repeat rewrite set_inter_union_l, set_finite_union. splits.
+    1, 2: by apply tid_is_init_fin_helper. 
+    { rewrite set_interC, <- dom_eqv1. 
+      rewrite <- seqA. 
+      rewrite crE. repeat case_union _ _. rewrite dom_union. 
+      apply set_finite_union. split.
+      { rewrite !AuxRel.seq_eqv, set_inter_full_r, dom_eqv.
+        eapply set_finite_mori. 
+        2: { apply tid_is_init_fin_helper; [| apply RES_FIN]. eauto. }
+        red. basic_solver. }
+      rewrite no_sb_to_init. do 2 rewrite seqA. rewrite <- id_inter, <- seqA.
+      apply fin_dom_rel_fsupp.
+      { eapply set_finite_mori; [| by apply RES_FIN]. red. basic_solver. }
+      eapply fsupp_mori; [| apply fsupp_sb; eauto].
+      red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
+      generalize is_init_tid. basic_solver. }
+    rewrite (dom_r (rmw_non_init_lr WF)), seqA, <- id_inter.  
+    rewrite set_interC, <- dom_eqv1. rewrite <- seqA.
+    apply fin_dom_rel_fsupp.
+    { eapply set_finite_mori; [| by apply ISS_FIN]. red. basic_solver. }
+    rewrite rmw_in_sb; auto. 
+    eapply fsupp_mori; [| apply fsupp_sb; eauto].
+    red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
+    generalize is_init_tid. basic_solver.
+  Qed.
+      
+      
+  (* TODO: move to hypotheses *)
+  Lemma cert_graph_init b (TB: threads_bound G b):
     exists G' sc' T' S',
       ⟪ WF : Wf G' ⟫ /\
       ⟪ IMMCON : imm_consistent G' sc' ⟫ /\
       ⟪ NTID  : NTid_ thread ∩₁ G'.(acts_set) ⊆₁ covered T' ⟫ /\
       ⟪ SIMREL : simrel_thread G' sc' PC T' S' f_to f_from thread sim_certification ⟫ /\
-      ⟪ FIN': fin_exec_full G' ⟫ /\
+      ⟪ FIN': fin_exec G' ⟫ /\
       ⟪ FAIR': mem_fair G' ⟫. 
   Proof using WF T SIMREL S IMMCON FAIRf ETC_FIN.
     cdes SIMREL.
@@ -1480,26 +1558,32 @@ Section CertGraphInit.
     forward eapply (@receptiveness_impl state state'' new_val); eauto.
     intros RECP. desc. cdes RECP. 
     
+    assert (fin_exec (certG G Gsc T S thread (lab' s'))) as FIN'. 
+    { apply fin_exec_same_events with (G := G); [done| ]. 
+      unfold G, certG, rstG.
+      eapply fin_exec_bounded_threads; eauto. ins.
+      unfold restrict, fin_exec. simpl.
+      eapply set_finite_mori.
+      2: { eapply CT_fin' with (thread1 := thread) (thread2 := t); eauto. }
+      red. simpl. unfold mkCT. basic_solver 10. }
+
     exists (certG G Gsc T S thread (lab' s')).
     exists Gsc.
     exists (mkTC ((covered T) ∪₁ ((acts_set G) ∩₁ NTid_ thread)) (issued T)).
     exists ((issued T) ∪₁ S ∩₁ Tid_ thread).
-
-    assert (fin_exec_full (certG G Gsc T S thread (lab' s'))) as FIN'. 
-    { (* TODO: seems that the resulting graph can be separated 
-         into mkCT-like subgraphs which are finite *)
-      (* so far just use the full finiteness premise *)
-      red. unfold G, certG. simpl. eapply set_finite_mori; eauto.
-      red. basic_solver. }
+    
     
     splits; eauto using WF_CERT. 
     { eapply cert_imm_consistent;
         eauto using WF_CERT, WF_SC_CERT, FACQREL, SAME_VAL_RF_CERT, SAME_VAL, SAME'. }
     { unfold certG, acts_set; ins; basic_solver. }
     { red. splits; eauto using simrel_cert_common, simrel_cert_local. }
-    { (* since we can probably make the certification graph finite,
+    { (* since we can make the certification graph finite,
          a simple proof should suffice here*)
-      apply fin_exec_fair; eauto using WF_CERT. } 
-  Qed. 
+      apply fin_exec_fair; eauto using WF_CERT.
+      (* TODO: update imm *)
+      admit. 
+    }
+  Admitted. 
 
 End CertGraphInit.
