@@ -17,6 +17,7 @@ From imm Require Import RMWinstrProps.
 From imm Require Import AuxRel2.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
+From imm Require Import ThreadBoundedExecution. 
 
 Require Import SimulationRel.
 Require Import PlainStepBasic.
@@ -147,8 +148,9 @@ Lemma cert_simulation G sc thread PC T S f_to f_from
       (WF : Wf G) (IMMCON : imm_consistent G sc)
       (SIMREL : simrel_thread G sc PC T S f_to f_from thread sim_certification)
       (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T)
-      (FIN: fin_exec_full G)
-      (FAIR: mem_fair G):
+      (FIN: fin_exec G)
+      (FAIR: mem_fair G)
+      (IMM_FAIR: imm_fair G sc):
   exists T' S' PC' f_to' f_from',
     ⟪ FINALT : (acts_set G) ⊆₁ covered T' ⟫ /\
     ⟪ PSTEP  : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
@@ -156,7 +158,8 @@ Lemma cert_simulation G sc thread PC T S f_to f_from
 Proof using.
   assert (etc_coherent G sc (mkETC T S)) as ETCCOH.
   { apply SIMREL. }
-  generalize (sim_step_cov_full_traversal WF FIN IMMCON ETCCOH NCOV); intros H.
+  assert (complete G) as CG by apply IMMCON. 
+  generalize (sim_step_cov_full_traversal WF CG FAIR IMM_FAIR FIN IMMCON ETCCOH NCOV); intros H.
   destruct H as [T'].
   1,2: by apply SIMREL.
   desc.
@@ -228,6 +231,8 @@ Hypothesis RMWREX  : forall thread linstr
 Hypothesis WF : Wf G.
 Variable sc : relation actid.
 Hypothesis IMMCON : imm_consistent G sc.
+Variable (tb: thread_id).
+Hypothesis (THREADS_BOUND : threads_bound G tb).
 
 Lemma conf_steps_preserve_thread tid PC PC'
       (STEPS : (plain_step MachineEvent.silent tid)＊ PC PC') :

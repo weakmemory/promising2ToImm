@@ -52,7 +52,7 @@ Section ImmFairProperties.
     { rewrite wf_rfD; basic_solver. }
     hahn_frame.
     etransitivity; [| apply inclusion_t_rt]. rewrite ct_end. hahn_frame_l.
-    rewrite ppo_in_sb; auto. apply rf_sbl_w_in_co; auto.
+    rewrite ppo_in_sb; auto. apply rf_sb_loc_w_in_co; auto.
     cdes IMMCON. by apply imm_s_hb.coherence_sc_per_loc. 
   Qed.  
 

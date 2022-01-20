@@ -14,6 +14,7 @@ From imm Require Import AuxRel2.
 From imm Require Import TraversalConfig.
 From imm Require Import TraversalConfigAlt.
 From imm Require Import TraversalConfigAltOld.
+From imm Require Import FinExecution. 
 Require Import ExtTraversalConfig.
 
 Require Import Cert_co.
@@ -121,6 +122,7 @@ Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
 Hypothesis AT : rmw_atomicity G.
+Hypothesis FIN : fin_exec G. 
 
 Hypothesis IT_new_co: I ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
 Hypothesis E_to_S: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘).

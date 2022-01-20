@@ -14,6 +14,7 @@ From imm Require Import AuxRel2.
 From imm Require Import TraversalConfig.
 From imm Require Import TraversalConfigAlt.
 From imm Require Import TraversalConfigAltOld.
+From imm Require Import FinExecution. 
 Require Import ExtTraversalConfig.
 
 Require Import Cert_co.
@@ -120,6 +121,7 @@ Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
 Hypothesis AT : rmw_atomicity G.
+Hypothesis FIN : fin_exec G. 
 
 Hypothesis IT_new_co: I ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
 Hypothesis E_to_S: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘).
@@ -413,9 +415,8 @@ Proof using All.
     {  type_solver 21. }
     rewrite rtE. basic_solver 21. }
     arewrite (Grfe ⊆ Grf).
-arewrite (Grf
-    ⨾ ⦗dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘)⦘  ⊆ Crf).
-{ apply Grf_to_Acq_S_in_cert_rf; eauto. } 
+    arewrite (Grf ⨾ ⦗dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ Gsb ⨾ ⦗S⦘)⦘ ⊆ Crf).
+    { apply Grf_to_Acq_S_in_cert_rf; eauto. }
 
     rewrite Grfi_in_cert_rfi at 1; try edone.
     arewrite_id ⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘.

@@ -199,7 +199,7 @@ Qed.
 Lemma cert_co_furr_fin (b: actid) (l: location):
   exists findom, forall c (REL: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)＊ (InitEvent l) c),
       In c findom.
-Proof using.
+Proof using WF S_in_W ST_in_E IT_new_co FIN.
   cdes FIN. destruct FIN as [findom FINDOM].
   exists (InitEvent l :: findom). 
 
@@ -214,20 +214,16 @@ Proof using.
   eapply wf_cert_coE in A; try edone. unfolder in A; desc.
   eapply wf_cert_coD in A1; try edone. unfolder in A1; desc.
   eapply wf_cert_col in A3; try edone. unfold same_loc in *. unfolder in A.
-
-  (* TODO: use updated imm *)
-  assert (Tid_ tid_init = is_init) as EQ by admit. rewrite EQ in *. clear EQ.
   
   destruct (classic (is_init c)).
   2: { right. apply FINDOM. split; auto. }
   destruct c; [| done]. unfold "Gloc" in A3.
-  rewrite !wf_init_lab in A3; auto. left. congruence. 
-
-Admitted.
+  rewrite !wf_init_lab in A3; auto. left. congruence.
+Qed.
 
 
 Lemma new_rf_comp : forall b (IN: ((E \₁ D) ∩₁ R) b) , exists a, new_rf a b.
-Proof using WF WF_SC IT_new_co ST_in_E S_in_W.
+Proof using WF WF_SC IT_new_co ST_in_E S_in_W FIN.
   ins; unfolder in IN; desf.
   assert (exists l, Gloc b = Some l); desc.
   { generalize (is_r_loc Glab). basic_solver 12. }
@@ -277,7 +273,7 @@ Proof using WF WF_SC IT_new_co ST_in_E S_in_W.
 Qed.
 
 Lemma new_rf_mod: (E \₁ D) ∩₁ is_r Glab ≡₁ codom_rel new_rf.
-Proof using WF WF_SC IT_new_co ST_in_E S_in_W.
+Proof using WF WF_SC IT_new_co ST_in_E S_in_W FIN.
   split.
   unfolder; ins; desf.
   apply new_rf_comp; basic_solver.

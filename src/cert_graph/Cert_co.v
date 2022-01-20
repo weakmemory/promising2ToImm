@@ -24,6 +24,8 @@ From imm Require Import TraversalConfigAltOld.
 Require Import ExtTraversalConfig.
 Require Import AuxRel.
 
+Import ListNotations. 
+
 Set Implicit Arguments.
 Remove Hints plus_n_O.
 
@@ -222,7 +224,7 @@ Proof using WF S_in_W ST_in_E IT_new_co.
 Qed.
 
 Lemma Gco_in_cert_co_sym_clos : Gco ⊆ cert_co ∪ cert_co^{-1}.
-Proof.
+Proof using WF S_in_W ST_in_E IT_new_co.
   rewrite (wf_coE WF). do 2 rewrite (wf_coD WF).
   arewrite (W ⊆₁ fun x => exists l, loc Glab x = Some l) at 1.
   { clear. unfolder. ins. by apply is_w_loc. }
@@ -234,7 +236,7 @@ Proof.
 Qed.
 
 Lemma cert_co_in_Gco_sym_clos : cert_co ⊆ Gco ∪ Gco^{-1}.
-Proof.
+Proof using WF S_in_W ST_in_E IT_new_co.
   rewrite (wf_cert_coE). do 2 rewrite (wf_cert_coD).
   arewrite (W ⊆₁ fun x => exists l, loc Glab x = Some l) at 1.
   { clear. unfolder. ins. by apply is_w_loc. }
@@ -406,36 +408,26 @@ Qed.
 
 Lemma bunion_alt {A B: Type} (R': B -> relation A):
   (fun (x y: A) => exists b, R' b x y) ≡ ⋃ b, R' b.
-Proof. basic_solver. Qed.
+Proof using. basic_solver. Qed.
 
 
 (* TODO: move to lib / hahn *)
 Lemma fsupp_fin_dom {A: Type} (r: relation A) (M: A -> Prop)
       (FINM: set_finite M):
   fsupp (⦗M⦘ ⨾ r).
-Proof.
+Proof using.
   destruct FINM as [findom FINDOM]. 
   red. ins. exists findom. ins. apply FINDOM.
   apply seq_eqv_l in REL. by desc.
 Qed.
 
-(* TODO: move upper *)
-Import ListNotations. 
-
 Lemma fsupp_cert_co (FAIR: mem_fair G):
   fsupp cert_co.
-Proof using WF.  
-  
+Proof using WF S_in_W ST_in_E RELCOV IT_new_co FIN.
   rewrite (dom_l wf_cert_coE).
   rewrite set_split_comlete with (s := is_init) at 1.
   rewrite id_union, seq_union_l. apply fsupp_union.
-  2: { apply fsupp_fin_dom. rewrite <- set_minusE.
-       red in FIN. 
-
-       (* TODO: use updated imm *)
-       assert (Tid_ tid_init = is_init) as EQ by admit. rewrite EQ in *. clear EQ.
-
-       auto. }
+  2: { apply fsupp_fin_dom. by rewrite <- set_minusE. }
 
   rewrite (dom_r wf_cert_coD), wf_cert_col.
   red. ins. 
@@ -447,24 +439,14 @@ Proof using WF.
   destruct x; [| type_solver].
   red in REL0. rewrite LOC in REL0. 
   unfold "Gloc" in REL0. rewrite wf_init_lab in REL0; auto. congruence.  
-
-Admitted. 
+Qed. 
   
-(* TODO: *)
 Lemma imm_cert_co_inv_exists (FAIR: mem_fair G):
   E ∩₁ W ∩₁ set_compl Init ⊆₁ codom_rel (immediate cert_co).
-Proof using WF TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co COH I_in_S.
+Proof using WF TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co COH I_in_S RELCOV FIN.
 unfolder; ins.
 ins; eapply fsupp_immediate_pred.
-{
-  (* eapply fsupp_mon; [| eapply fsupp_cross]. *)
-  (* apply dom_helper_3. *)
-  (* eapply wf_cert_coE. *)
-  (* unfold acts_set. *)
-  (* unfold set_finite. *)
-  (* eauto. *)
-  by apply fsupp_cert_co. 
-}
+{ by apply fsupp_cert_co. }
 { eapply cert_co_irr. }
 { eapply cert_co_trans. }
 unfolder; intro HH.

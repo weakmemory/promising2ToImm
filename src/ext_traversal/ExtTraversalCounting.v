@@ -11,7 +11,8 @@ Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
-(* Require Import FinExecutionExt.  *)
+From imm Require Import FairExecution. 
+Require Import ImmFair. 
 
 Require Import IndefiniteDescription.
 Require Import SetSize.
@@ -64,6 +65,10 @@ Section ExtTraversalCounting.
   Variable sc : relation actid.
   Variable WF : Wf G.
   
+  Hypothesis COMP: complete G. 
+  Hypothesis FAIR: mem_fair G. 
+  Hypothesis IMM_FAIR: imm_fair G sc. 
+                    
   Notation "'E'" := (acts_set G).
   Notation "'lab'" := (lab G).
   Notation "'W'" := (fun x => is_true (is_w lab x)).
@@ -239,7 +244,7 @@ Section ExtTraversalCounting.
         (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
         (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w) :
     exists T', (ext_sim_trav_step G sc)＊ T T' /\ ((acts_set G) ⊆₁ ecovered T').
-  Proof using WF FINDOM.
+  Proof using WF FINDOM IMM_FAIR FAIR COMP.
     assert
       (exists T' : ext_trav_config,
           (ext_sim_trav_step G sc)＊ T T' /\ trav_steps_left T' = 0).
@@ -282,7 +287,7 @@ Section ExtTraversalCounting.
   
   Lemma sim_traversal (IMMCON : imm_consistent G sc) :
     exists T, (ext_sim_trav_step G sc)＊ (ext_init_trav G) T /\ ((acts_set G) ⊆₁ ecovered T).
-  Proof using WF FINDOM.
+  Proof using WF FINDOM IMM_FAIR FAIR COMP.
     apply sim_traversal_helper; auto.
     { by apply ext_init_trav_coherent. }
     { unfold ext_init_trav. simpls. basic_solver. }
@@ -321,7 +326,7 @@ Section ExtTraversalCounting.
         (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
         (RMWCOV : forall r w : actid, rmw r w -> ecovered T r <-> ecovered T w) : 
     exists T', (ext_isim_trav_step G sc thread)＊ T T' /\ ((acts_set G) ⊆₁ ecovered T').
-  Proof using WF FINDOM.
+  Proof using WF FINDOM IMM_FAIR FAIR COMP.
     edestruct sim_traversal_helper as [T']; eauto.
     desc. exists T'. splits; auto.
     clear H0.

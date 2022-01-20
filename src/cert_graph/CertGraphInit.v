@@ -1,6 +1,7 @@
 Require Import Arith Omega.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
+From imm Require Import AuxRel2.
 
 From imm Require Import Events.
 From imm Require Import Execution.
@@ -16,6 +17,8 @@ From imm Require Import ProgToExecution ProgToExecutionProperties.
 From imm Require Import Receptiveness.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
+From imm Require Import SubExecution. 
+From imm Require Import ThreadBoundedExecution.
 
 From imm Require Import RMWinstrProps.
 Require Import promise_basics.PromiseLTS.
@@ -43,6 +46,7 @@ Require Import IndefiniteDescription.
 
 From Promising2 Require Import Configuration Local.
 
+
 Set Implicit Arguments.
 Remove Hints plus_n_O.
 
@@ -50,21 +54,31 @@ Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 
 
-Definition mkCT (Gf: execution) (T: trav_config) (S: actid -> Prop) (thread: thread_id)
-  := E0 Gf T S thread ∩₁ Tid_ thread.
+Definition mkCT (G: execution) (T: trav_config) (S: actid -> Prop) (t1 t2: thread_id)
+  := E0 G T S t1 ∩₁ Tid_ t2.
+
 
 Lemma rstG_fair G T S thread (FAIR: mem_fair G):
   mem_fair (rstG G T S thread).
-Proof.
+Proof using.
   unfold rstG. by apply restrict_fair.
 Qed.
+
+(* TODO: move to imm*)
+Lemma restrict_threads_bound (G: execution) (b: thread_id) (S: actid -> Prop)
+      (BOUND: threads_bound G b):
+  threads_bound (restrict G S) b.
+Proof using.
+  unfold restrict, threads_bound. simpl.
+  ins. apply BOUND, Ge.
+Qed. 
 
 
 Lemma tid_is_init_fin_helper (S: actid -> Prop) thread
       (NT: thread <> tid_init)
       (FIN: set_finite (S \₁ is_init)):
   set_finite (S ∩₁ Tid_ thread).
-Proof. 
+Proof using. 
   rewrite AuxRel.set_split_comlete with (s := is_init).
   apply set_finite_union. split.
   { eapply set_finite_mori; [| by apply set_finite_empty].
@@ -73,47 +87,17 @@ Proof.
   red. basic_solver.
 Qed. 
 
-Lemma CT_fin G ETC thread sc
-      (COH: etc_coherent G sc ETC) (NT0: thread <> tid_init) (WF: Wf G)
-      (ETC_FIN: etc_fin ETC):
-  set_finite (mkCT G (etc_TC ETC) (reserved ETC) thread).
-Proof.
-  unfold mkCT, E0.
-  red in ETC_FIN. desc. red in TC_FIN. desc.
-  repeat rewrite set_inter_union_l, set_finite_union. splits.
-  1, 2: by apply tid_is_init_fin_helper. 
-  { rewrite set_interC, <- dom_eqv1. 
-    rewrite <- seqA. 
-    rewrite crE. repeat case_union _ _. rewrite dom_union. 
-    apply set_finite_union. split.
-    { rewrite !AuxRel.seq_eqv, set_inter_full_r, dom_eqv.
-      rewrite <- set_interA, set_interK, set_interC.
-      by apply tid_is_init_fin_helper. }
-    rewrite no_sb_to_init. do 2 rewrite seqA. rewrite <- id_inter, <- seqA.   
-    apply fin_dom_rel_fsupp.
-    { eapply set_finite_mori; eauto. red. basic_solver. }
-    eapply fsupp_mori; [| apply fsupp_sb; eauto].
-    red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
-    generalize is_init_tid. basic_solver. }
-  rewrite (dom_r (rmw_non_init_lr WF)), seqA, <- id_inter.  
-  rewrite set_interC, <- dom_eqv1. rewrite <- seqA.
-  apply fin_dom_rel_fsupp.
-  { eapply set_finite_mori; [| by apply ISS_FIN]. red. basic_solver. }
-  rewrite rmw_in_sb; auto. 
-  eapply fsupp_mori; [| apply fsupp_sb; eauto].
-  red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
-  generalize is_init_tid. basic_solver.
-Qed.
 
 Lemma codom_seq_eqv_r {A: Type} (r: relation A) (S: A -> Prop):
   codom_rel (r ⨾ ⦗S⦘) ⊆₁ S. 
-Proof. basic_solver. Qed.
+Proof using. basic_solver. Qed.
 
 Section CertGraphInit.
   Variable (Gf: execution) (sc: relation actid) (T: trav_config) (S: actid -> Prop).
   Variable (PC: Configuration.Configuration.t). 
   Variable (f_to f_from: actid -> Time.Time.t). 
   Variable (thread: thread_id).
+  Variable (b: thread_id). 
 
   Hypothesis (WF: Wf Gf).
   Hypothesis (FAIRf: mem_fair Gf).
@@ -121,9 +105,61 @@ Section CertGraphInit.
   Hypothesis (SIMREL : simrel_thread Gf sc PC T S f_to f_from thread sim_normal).
 
   Hypothesis (ETC_FIN: etc_fin (mkETC T S)).
-  
+
+  Hypothesis (Gf_THREADS_BOUND: threads_bound Gf b).
+
   Definition G := rstG Gf T S thread.
-  Definition Gsc := ⦗E0 Gf T S thread⦘ ⨾ sc ⨾ ⦗E0 Gf T S thread⦘. 
+  Definition Gsc := ⦗E0 Gf T S thread⦘ ⨾ sc ⨾ ⦗E0 Gf T S thread⦘.
+
+  Lemma thread_ninit: thread <> tid_init.
+  Proof using SIMREL. cdes SIMREL. cdes LOCAL. auto. Qed.
+  
+  Lemma CT_fin t1 t2:
+    set_finite (mkCT Gf T S t1 t2 \₁ is_init).
+  Proof using WF ETC_FIN.
+    unfold mkCT, E0.
+    cdes ETC_FIN. cdes TC_FIN. simpl in *.
+
+    rewrite set_minus_inter_l. eapply set_finite_mori.
+    { red. unfold set_inter. intros ?. apply proj1. }
+    rewrite set_unionA.
+    repeat rewrite set_minus_union_l, set_finite_union. splits; auto. 
+    { rewrite set_minusE, set_interC, <- dom_eqv1. 
+      rewrite <- seqA. 
+      rewrite crE. repeat case_union _ _. rewrite dom_union. 
+      apply set_finite_union. split.
+      { rewrite !AuxRel.seq_eqv, set_inter_full_r, dom_eqv.
+        eapply set_finite_mori; [| apply RES_FIN]. red. basic_solver. }
+      rewrite no_sb_to_init. do 2 rewrite seqA. rewrite <- id_inter, <- seqA.
+      apply fin_dom_rel_fsupp.
+      { eapply set_finite_mori; [| by apply RES_FIN]. red. basic_solver. }
+      eapply fsupp_mori; [| apply fsupp_sb; eauto].
+      red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
+      generalize is_init_tid. basic_solver. }    
+    rewrite (dom_r (rmw_non_init_lr WF)), seqA, <- id_inter.  
+    rewrite set_minusE, set_interC, <- dom_eqv1. rewrite <- seqA.
+    apply fin_dom_rel_fsupp.
+    { eapply set_finite_mori; [| by apply ISS_FIN]. red. basic_solver. }
+    rewrite rmw_in_sb; auto. 
+    eapply fsupp_mori; [| apply fsupp_sb; eauto].
+    red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
+    generalize is_init_tid. basic_solver.
+  Qed.
+ 
+  Lemma G_threads_bound: threads_bound G b.
+  Proof using Gf_THREADS_BOUND. by apply restrict_threads_bound. Qed. 
+  
+  Lemma G_fin: fin_exec G.
+  Proof using WF Gf_THREADS_BOUND ETC_FIN.
+    unfold G, certG, rstG.
+    eapply fin_exec_bounded_threads; eauto.
+    { apply G_threads_bound. }
+    ins. unfold restrict, fin_exec. simpl.
+    eapply set_finite_mori.
+    2: { by apply CT_fin with (t1 := thread) (t2 := t). }
+    red. simpl. unfold mkCT. basic_solver 10.
+  Qed.
+  Hint Resolve G_fin: core.
 
   Lemma FAIR: mem_fair G.
   Proof using FAIRf. forward eapply (rstG_fair); eauto. Qed.
@@ -269,7 +305,7 @@ Section CertGraphInit.
 
   Hint Resolve COMP_C COMP_NTID COMP_PPO COM_PPO_ALT acts_G_in_acts_Gf lab_G_eq_lab_Gf rmw_G_rmw_Gf: core. 
   
-  Definition CT := mkCT Gf T S thread. 
+  Definition CT := mkCT Gf T S thread thread. 
   
   Lemma CTALT:
     CT ≡₁ (covered T ∪₁ issued T ∪₁ dom_rel ((sb Gf)^? ⨾ ⦗Tid_ thread ∩₁ S⦘)) ∩₁ Tid_ thread.
@@ -303,8 +339,6 @@ Section CertGraphInit.
     destruct e; desf. simpls. eauto.
   Qed. 
 
-  Lemma thread_ninit: thread <> tid_init.
-  Proof using SIMREL. cdes SIMREL. cdes LOCAL. auto. Qed.
 
   Hint Resolve thread_ninit: core.
 
@@ -336,8 +370,9 @@ Section CertGraphInit.
         generalize (@sb_trans Gf). basic_solver. }
       rewrite crE, seq_union_r, codom_union. apply set_finite_union. split.
       { exists [e]. basic_solver. }
+      rewrite no_sb_to_init, seqA, <- id_inter.
       rewrite <- seqA, codom_seq_eqv_r.
-      unfold CT. forward eapply CT_fin; eauto. }
+      rewrite set_interC. apply CT_fin. }
     
     edestruct (last_exists doml AC UU) as [max [MM1 MM2]].
     
@@ -811,7 +846,7 @@ Section CertGraphInit.
 
   Lemma RFRMW_IST_IN:
     (cert_rf G Gsc T S thread ⨾ rmw G) ⨾ ⦗issued T ∪₁ S ∩₁ Tid_ thread⦘ ⊆ rf Gf ⨾ rmw Gf.
-  Proof using WF SIMREL IMMCON.  
+  Proof using WF SIMREL IMMCON Gf_THREADS_BOUND ETC_FIN.
     rewrite IST_in_S. rewrite seqA.
     rewrite cert_rmw_S_in_rf_rmw_S; auto using COMP_RMW_S. 
     rewrite sub_rf_in; eauto.
@@ -820,7 +855,7 @@ Section CertGraphInit.
   Qed. 
 
   Lemma RFRMW_IN: (cert_rf G Gsc T S thread ⨾ rmw G) ⨾ ⦗issued T⦘ ⊆ rf Gf ⨾ rmw Gf.
-  Proof using WF IMMCON SIMREL.
+  Proof using WF IMMCON SIMREL Gf_THREADS_BOUND ETC_FIN.
     arewrite (issued T ⊆₁ issued T ∪₁ S ∩₁ Tid_ thread).
     rewrite <- seqA. apply RFRMW_IST_IN. 
   Qed. 
@@ -1165,7 +1200,7 @@ Section CertGraphInit.
   Lemma simrel_thread_local_equiv smode:
     simrel_thread_local Gf sc PC T S f_to f_from thread smode <->
     exists state local, simrel_thread_local_impl thread smode state local.
-  Proof. vauto. Qed.  
+  Proof using. vauto. Qed.  
 
 
   (* TODO: merge with Lab'Properties ? *)
@@ -1189,7 +1224,7 @@ Section CertGraphInit.
                     {| covered := covered T ∪₁ acts_set G ∩₁ NTid_ thread;
                        issued := issued T |}
                     (issued T ∪₁ S ∩₁ Tid_ thread) f_to f_from sim_certification.
-    Proof using WF TEH'' SIMREL RECP NV IMMCON FAIRf.
+    Proof using WF TEH'' SIMREL RECP NV IMMCON FAIRf Gf_THREADS_BOUND ETC_FIN.
       cdes SIMREL. cdes COMMON. cdes RECP.
       (* TODO: eauto doesn't use hints? *)
       red. splits; eauto; simpls; try by apply SIMREL.
@@ -1275,7 +1310,7 @@ Section CertGraphInit.
       simrel_thread_local (certG G Gsc T S thread (lab' s')) Gsc PC
                           {| covered := covered T ∪₁ acts_set G ∩₁ NTid_ thread; issued := issued T |}
                           (issued T ∪₁ S ∩₁ Tid_ thread) f_to f_from thread sim_certification. 
-    Proof using WF TEH'' STATE0 SIMREL SAME RECP NV IMMCON FAIRf. 
+    Proof using WF TEH'' STATE0 SIMREL SAME RECP NV IMMCON FAIRf Gf_THREADS_BOUND ETC_FIN.
       cdes STATE0.
       red. splits.
       assert (same_lab_u2v (lab' s') (lab Gf)) as SAME_.      
@@ -1283,7 +1318,7 @@ Section CertGraphInit.
       eexists. eexists. splits; eauto.
       all: eauto.
       { red. ins. eapply SIM_PROM in PROM. (* sim_prom *)
-        desc. exists b. splits; auto.
+        desc. exists b0. splits; auto.
         { unfold certG. unfold acts_set. simpls.
           unfold G. unfold rstG, restrict. simpls. split; auto.
           red. left. left. by right. }
@@ -1298,14 +1333,14 @@ Section CertGraphInit.
         split; (intros x [AA|AA]; [left|right]).
         4: { erewrite <- same_lab_u2v_loc in AA; eauto. }
         2: { erewrite same_lab_u2v_loc in AA; eauto. }
-        { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b) as XX.
+        { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
           2: { apply seq_eqv_r in XX. desf. }
           eapply msg_rel_I; eauto.
           eapply cert_msg_rel with (lab':= (lab' s')); eauto.
           all: unfold G; eauto.
           all: try by unfold rst_sc; rewrite <- HeqGsc.
           apply seq_eqv_r. split; eauto. }
-        assert ((msg_rel (certG G Gsc T S thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b) as XX.
+        assert ((msg_rel (certG G Gsc T S thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
         2: { apply seq_eqv_r in XX. desf. }
         unfold G. simpl. 
         eapply cert_msg_rel; eauto.  
@@ -1315,21 +1350,21 @@ Section CertGraphInit.
       { red. ins. (* sim_res_prom *)
         eapply SIM_RPROM in RES.
         desc.
-        assert (acts_set Gf b) as FEB.
+        assert (acts_set Gf b0) as FEB.
         { by apply (etc_S_in_E ETCCOH). }
-        assert (acts_set G b) as EB.
+        assert (acts_set G b0) as EB.
         { subst. eapply ST_in_E; eauto. by split. }
 
         (* Some commented out code removed from there. 
            See ad483e9 commit *)
         
-        exists b. splits; auto.
+        exists b0. splits; auto.
         { right. by split. }
         erewrite same_lab_u2v_loc in LOC; eauto.
         rewrite <- lab_G_eq_lab_Gf; eauto.
           by apply same_lab_u2v_comm. }
       { red. ins. (* sim_mem *)
-        edestruct SIM_MEM with (b:=b) as [rel_opt]; eauto.
+        edestruct SIM_MEM with (b:=b0) as [rel_opt]; eauto.
         { erewrite same_lab_u2v_loc in LOC; eauto. }
         { erewrite <- ISS_OLD; eauto. }
         simpls. desc.
@@ -1341,12 +1376,12 @@ Section CertGraphInit.
           split; (intros x [AA|AA]; [left|right]).
           4: { erewrite <- same_lab_u2v_loc in AA; eauto. }
           2: { erewrite same_lab_u2v_loc in AA; eauto. }
-          { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b) as XX.
+          { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
             2: { apply seq_eqv_r in XX. desf. }
             eapply msg_rel_I; eauto.
             eapply cert_msg_rel with (lab':=(lab' s')); eauto.
             apply seq_eqv_r. split; auto. }
-          assert ((msg_rel (certG G Gsc T S thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b) as XX.
+          assert ((msg_rel (certG G Gsc T S thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
           2: { apply seq_eqv_r in XX. desf. }
           unfold G.          
           eapply cert_msg_rel; eauto.
@@ -1367,13 +1402,13 @@ Section CertGraphInit.
         exists p. splits; eauto.
         { destruct INRMW as [z [RF RMW]].
           assert ((E0 Gf T S thread) z).
-          { unfold E0; left; right; exists b.
+          { unfold E0; left; right; exists b0.
             generalize (rmw_in_sb WF); basic_solver 12. }
-          assert ((E0 Gf T S thread) b).
+          assert ((E0 Gf T S thread) b0).
           { unfold E0; left; left; right; basic_solver 12. }
           assert ((E0 Gf T S thread) p).
           { unfold E0; left; left; right; basic_solver 12. }
-          assert ((rmw G) z b).
+          assert ((rmw G) z b0).
           apply rmw_G_rmw_Gf; basic_solver 12.
           exists z; splits; [|done].
           cut ((cert_rf G Gsc T S thread ⨾ ⦗D G T S thread⦘) p z).
@@ -1381,12 +1416,12 @@ Section CertGraphInit.
           apply cert_rf_D; auto. apply seq_eqv_r. split; auto.
           {  unfold G, rstG. unfold restrict. ins.
              apply seq_eqv_lr. splits; auto. }
-          eapply dom_rmw_D; eauto. exists b.
+          eapply dom_rmw_D; eauto. exists b0.
           apply seq_eqv_r. split; auto. by apply I_in_D. }
         exists p_v. splits; eauto.
         erewrite ISS_OLD; eauto. }
       { red. ins.
-        assert (loc (lab Gf) b = Some l) as AA.
+        assert (loc (lab Gf) b0 = Some l) as AA.
         { rewrite <- LOC. symmetry.
           erewrite same_lab_u2v_loc; eauto.
           (* by rewrite <- lab_G_eq_lab_Gf. *)
@@ -1444,90 +1479,18 @@ Section CertGraphInit.
     
   End SimRelCert.
 
-  (* TODO: in principle, it's possible to construct a fully finite graph here
-     without requiring it from the input graph
-     by stripping unused init events,
-     but so far it's easier to assume the input is finite *)
-
   (* TODO: move to FinExecution *)
   Lemma fin_exec_full_same_events G G'
         (SAME: acts_set G ≡₁ acts_set G') (FIN: fin_exec_full G):
     fin_exec_full G'.
-  Proof. unfold fin_exec_full in *. by rewrite <- SAME. Qed.
+  Proof using. unfold fin_exec_full in *. by rewrite <- SAME. Qed.
 
   Lemma fin_exec_same_events G G'
         (SAME: acts_set G ≡₁ acts_set G') (FIN: fin_exec G):
     fin_exec G'.
-  Proof. unfold fin_exec in *. by rewrite <- SAME. Qed.
-
-  From imm Require Import SubExecution. 
-  From imm Require Import ThreadBoundedExecution.
-  (* TODO: use one from updated imm *)
-  Lemma set_full_split {A: Type} (S_: A -> Prop):
-    set_full ≡₁ S_ ∪₁ set_compl S_.
-  Proof.
-    split; [| basic_solver]. red. ins. destruct (classic (S_ x)); basic_solver.
-  Qed.
-  
-  (* (* TODO: move to SubExecution *) *)
-  (* Lemma fin_exec_full_bounded_threads G b *)
-  (*       (TB: threads_bound G b) *)
-  (*       (FIN_B: forall t (NI: t <> tid_init) (LTB: BinPos.Pos.lt t b), *)
-  (*           fin_exec_full (restrict G (Tid_ t))): *)
-  (*   fin_exec_full G.  *)
-  (* Proof. *)
-  (*   red. rewrite events_separation.  *)
-  (*   rewrite set_full_split with (S_ := fun t => BinPos.Pos.lt t b). *)
-  (*   rewrite set_bunion_union_l. apply set_finite_union. split. *)
-  (*   2: { exists nil. unfold restrict. simpl. unfolder. ins. desc. *)
-  (*        red in TB. apply TB in IN1. congruence. } *)
-  (*   apply set_finite_bunion; [by apply BinPos_lt_fin| ]. *)
-  (*   intros t LT. *)
-  (*   destruct (classic (t = tid_init)) as [-> | NI].  *)
-  (*   2: { by apply FIN_B. } *)
-  (*   exists nil. unfold restrict. simpl. unfolder. ins. by desc.  *)
-  (* Qed. *)
-
-  (* TODO: move upper *)
-  Definition mkCT' (Gf: execution) (T: trav_config) (S: actid -> Prop) (thread1 thread2: thread_id)
-    := E0 Gf T S thread1 ∩₁ Tid_ thread2.
-  
-  (* TODO: compare to previous version and simplify? *)
-  Lemma CT_fin' thread1 thread2
-        (NT1: thread1 <> tid_init) (NT2: thread2 <> tid_init):
-    set_finite (mkCT' Gf T S thread1 thread2).
-  Proof.
-    unfold mkCT', E0.
-    cdes ETC_FIN. cdes TC_FIN. simpl in *. 
-    repeat rewrite set_inter_union_l, set_finite_union. splits.
-    1, 2: by apply tid_is_init_fin_helper. 
-    { rewrite set_interC, <- dom_eqv1. 
-      rewrite <- seqA. 
-      rewrite crE. repeat case_union _ _. rewrite dom_union. 
-      apply set_finite_union. split.
-      { rewrite !AuxRel.seq_eqv, set_inter_full_r, dom_eqv.
-        eapply set_finite_mori. 
-        2: { apply tid_is_init_fin_helper; [| apply RES_FIN]. eauto. }
-        red. basic_solver. }
-      rewrite no_sb_to_init. do 2 rewrite seqA. rewrite <- id_inter, <- seqA.
-      apply fin_dom_rel_fsupp.
-      { eapply set_finite_mori; [| by apply RES_FIN]. red. basic_solver. }
-      eapply fsupp_mori; [| apply fsupp_sb; eauto].
-      red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
-      generalize is_init_tid. basic_solver. }
-    rewrite (dom_r (rmw_non_init_lr WF)), seqA, <- id_inter.  
-    rewrite set_interC, <- dom_eqv1. rewrite <- seqA.
-    apply fin_dom_rel_fsupp.
-    { eapply set_finite_mori; [| by apply ISS_FIN]. red. basic_solver. }
-    rewrite rmw_in_sb; auto. 
-    eapply fsupp_mori; [| apply fsupp_sb; eauto].
-    red. apply seq_mori; [| basic_solver]. apply eqv_rel_mori.
-    generalize is_init_tid. basic_solver.
-  Qed.
+  Proof using. unfold fin_exec in *. by rewrite <- SAME. Qed.
       
-      
-  (* TODO: move to hypotheses *)
-  Lemma cert_graph_init b (TB: threads_bound G b):
+  Lemma cert_graph_init:
     exists G' sc' T' S',
       ⟪ WF : Wf G' ⟫ /\
       ⟪ IMMCON : imm_consistent G' sc' ⟫ /\
@@ -1535,7 +1498,7 @@ Section CertGraphInit.
       ⟪ SIMREL : simrel_thread G' sc' PC T' S' f_to f_from thread sim_certification ⟫ /\
       ⟪ FIN': fin_exec G' ⟫ /\
       ⟪ FAIR': mem_fair G' ⟫. 
-  Proof using WF T SIMREL S IMMCON FAIRf ETC_FIN.
+  Proof using WF T SIMREL S IMMCON FAIRf ETC_FIN Gf_THREADS_BOUND.
     cdes SIMREL.
     forward eapply (proj1 (simrel_thread_local_equiv sim_normal)); eauto.
     rename LOCAL into LOCAL_. ins. desc. rename H into LOCAL. cdes LOCAL.    
@@ -1559,31 +1522,19 @@ Section CertGraphInit.
     intros RECP. desc. cdes RECP. 
     
     assert (fin_exec (certG G Gsc T S thread (lab' s'))) as FIN'. 
-    { apply fin_exec_same_events with (G := G); [done| ]. 
-      unfold G, certG, rstG.
-      eapply fin_exec_bounded_threads; eauto. ins.
-      unfold restrict, fin_exec. simpl.
-      eapply set_finite_mori.
-      2: { eapply CT_fin' with (thread1 := thread) (thread2 := t); eauto. }
-      red. simpl. unfold mkCT. basic_solver 10. }
+    { apply fin_exec_same_events with (G := G); done. }
 
     exists (certG G Gsc T S thread (lab' s')).
     exists Gsc.
     exists (mkTC ((covered T) ∪₁ ((acts_set G) ∩₁ NTid_ thread)) (issued T)).
-    exists ((issued T) ∪₁ S ∩₁ Tid_ thread).
-    
+    exists ((issued T) ∪₁ S ∩₁ Tid_ thread).    
     
     splits; eauto using WF_CERT. 
     { eapply cert_imm_consistent;
         eauto using WF_CERT, WF_SC_CERT, FACQREL, SAME_VAL_RF_CERT, SAME_VAL, SAME'. }
     { unfold certG, acts_set; ins; basic_solver. }
     { red. splits; eauto using simrel_cert_common, simrel_cert_local. }
-    { (* since we can make the certification graph finite,
-         a simple proof should suffice here*)
-      apply fin_exec_fair; eauto using WF_CERT.
-      (* TODO: update imm *)
-      admit. 
-    }
-  Admitted. 
+    apply fin_exec_fair; eauto using WF_CERT. 
+  Qed.
 
 End CertGraphInit.

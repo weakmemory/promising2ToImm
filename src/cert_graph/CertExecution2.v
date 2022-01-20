@@ -15,6 +15,7 @@ From imm Require Import AuxRel2.
 From imm Require Import TraversalConfig.
 From imm Require Import TraversalConfigAlt.
 From imm Require Import TraversalConfigAltOld.
+From imm Require Import FinExecution.
 Require Import ExtTraversalConfig.
 
 Require Import Cert_co.
@@ -389,7 +390,7 @@ constructor.
 - apply WF_SC.
 Qed.
 
-Lemma cert_complete (FAIR: mem_fair G):
+Lemma cert_complete (FIN: fin_exec G) (FAIR: mem_fair G):
   complete certG.
 Proof using All.
   unfold complete; ins.

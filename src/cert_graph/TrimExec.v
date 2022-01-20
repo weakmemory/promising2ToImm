@@ -42,10 +42,6 @@ Section TrimEvents.
         In l locs.
   Proof using.
     do 2 red in FIN. desc.
-    
-    (* TODO: use updated imm *)
-    assert (Tid_ tid_init = is_init) as EQ by admit. rewrite EQ in *. clear EQ.
-
     destruct (classic (inhabited location)) as [[l0]| ].
     2: { exists []. ins. eauto. }
     set (defloc := fun e => match (loc (lab G) e) with | Some l => l | _ => l0 end).
@@ -54,29 +50,26 @@ Section TrimEvents.
     exists e'. split.
     2: { by apply FIN. }
     unfold defloc. by rewrite <- E'e2, LOC.
-  Admitted.
+  Qed. 
 
   Lemma trim_fin_exec_  (FIN': fin_exec G):
     fin_exec_full (trim_exec G).
-  Proof using.
+  Proof using WF.
     red. unfold trim_exec, trim_events. simpl.
     rewrite AuxRel.set_split_comlete with (s := is_init) at 1.
 
     edestruct trim_fin_exec_locs as [locs FIN_LOCS]; eauto. 
     red in FIN'.
-    (* TODO: use updated imm *)
-    assert (Tid_ tid_init = is_init) as EQ by admit. rewrite EQ in *. clear EQ.
-    
     apply set_finite_union. split.
-    2: { eapply set_finite_mori; eauto. red. basic_solver. } 
-
+    2: { eapply set_finite_mori; eauto. red. basic_solver. }
+    
     exists (map InitEvent locs). ins.
     unfolder in IN. desc. destruct x; [| done]. 
     apply in_map_iff. eexists. split; eauto.
     eapply FIN_LOCS; eauto.
     { red. unfolder. splits; eauto. exists e'. splits; eauto. basic_solver. }
     rewrite <- IN3. unfold loc. rewrite wf_init_lab; auto. 
-  Admitted.
+  Qed.
 
   Lemma trim_events_inclusion:
     trim_events G ⊆₁ acts_set G.
