@@ -11,6 +11,7 @@ From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 From imm Require Import AuxDef.
 From imm Require Import FairExecution.
+From imm Require Import FinExecution.
 
 
 (* From imm Require Import Events Execution Execution_eco *)
@@ -112,6 +113,8 @@ Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
 Hypothesis AT : rmw_atomicity G.
+
+Hypothesis FIN: fin_exec G. 
 
 Hypothesis IT_new_co: I ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
 Hypothesis S_in_W : S ⊆₁ W.
@@ -406,31 +409,45 @@ Lemma bunion_alt {A B: Type} (R': B -> relation A):
 Proof. basic_solver. Qed.
 
 
+(* TODO: move to lib / hahn *)
+Lemma fsupp_fin_dom {A: Type} (r: relation A) (M: A -> Prop)
+      (FINM: set_finite M):
+  fsupp (⦗M⦘ ⨾ r).
+Proof.
+  destruct FINM as [findom FINDOM]. 
+  red. ins. exists findom. ins. apply FINDOM.
+  apply seq_eqv_l in REL. by desc.
+Qed.
+
+(* TODO: move upper *)
+Import ListNotations. 
 
 Lemma fsupp_cert_co (FAIR: mem_fair G):
   fsupp cert_co.
-Proof using WF.
+Proof using WF.  
   
-  unfold cert_co, new_co.
-  rewrite bunion_alt.
-  erewrite bunion_more; cycle 1. 
-  { apply set_equiv_refl2. }
-  { extensionality l. apply rel_extensionality.
-    rewrite restr_relE with (d := Loc_ l). unfold new_col. apply dom_helper_3.
-    rewrite pref_union_alt. apply inclusion_union_l; [| basic_solver].
-    unfold col0, col. apply inclusion_t_ind; basic_solver. }
-  apply fsupp_bunion_disj; [basic_solver| ].
-  intros l. rewrite pref_union_alt. rewrite restr_union. apply fsupp_union.
-  { unfold col0, col. rewrite inclusion_restr.
-    eapply fsupp_mon; [| by apply (proj1 FAIR)]. 
-    apply inclusion_t_ind; [basic_solver | by apply co_trans]. }
-  rewrite inclusion_restr.
-  eapply fsupp_mon.
-  { red. ins. eapply proj1. apply H. }
+  rewrite (dom_l wf_cert_coE).
+  rewrite set_split_comlete with (s := is_init) at 1.
+  rewrite id_union, seq_union_l. apply fsupp_union.
+  2: { apply fsupp_fin_dom. rewrite <- set_minusE.
+       red in FIN. 
 
-  apply fsupp_cross.
-  unfold cert_co_base. 
-  (* TODO: is it true that cert_co_base is always finite? *)
+       (* TODO: use updated imm *)
+       assert (Tid_ tid_init = is_init) as EQ by admit. rewrite EQ in *. clear EQ.
+
+       auto. }
+
+  rewrite (dom_r wf_cert_coD), wf_cert_col.
+  red. ins. 
+  destruct (loc (lab G) y) eqn:LOC.
+  2: { exists []. ins. apply seq_eqv_lr in REL. desc.
+       forward eapply is_w_loc as ?; eauto. desc. congruence. }
+  exists [InitEvent l]. ins. left. 
+  apply seq_eqv_lr in REL. desc.
+  destruct x; [| type_solver].
+  red in REL0. rewrite LOC in REL0. 
+  unfold "Gloc" in REL0. rewrite wf_init_lab in REL0; auto. congruence.  
+
 Admitted. 
   
 (* TODO: *)

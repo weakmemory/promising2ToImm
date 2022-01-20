@@ -14,10 +14,13 @@ From imm Require Import AuxRel2.
 From imm Require Import TraversalConfig.
 From imm Require Import TraversalConfigAlt.
 From imm Require Import TraversalConfigAltOld.
+From imm Require Import FinExecution. 
 Require Import ExtTraversalConfig.
 
 Require Import Cert_co.
 Require Import Cert_D.
+
+Import ListNotations.
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -115,6 +118,8 @@ Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
 Hypothesis AT : rmw_atomicity G.
 
+Hypothesis FIN: fin_exec G. 
+
 Hypothesis IT_new_co: I ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
 Hypothesis E_to_S: E ⊆₁ C ∪₁ dom_rel (Gsb^? ⨾ ⦗S⦘).
 Hypothesis Grfe_E : dom_rel Grfe ⊆₁ I.
@@ -191,30 +196,33 @@ Proof using WF WF_SC IT_new_co ST_in_E S_in_W.
   all: unfolder in H12; unfolder in H5; basic_solver 40.
 Qed.
 
-(* TODO: is this provable in infinite case? 
-   Anyway, see notes in PromiseToImm_s *)
 Lemma cert_co_furr_fin (b: actid) (l: location):
   exists findom, forall c (REL: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)＊ (InitEvent l) c),
       In c findom.
-Proof using. 
-  (* ins. *)
-  (* assert (A: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)^? (InitEvent l) c). *)
-  (* { apply rt_of_trans; try done. *)
-  (*   apply transitiveI; unfolder; ins; desf; splits; eauto. *)
-  (*   eapply cert_co_trans; eauto. } *)
+Proof using.
+  cdes FIN. destruct FIN as [findom FINDOM].
+  exists (InitEvent l :: findom). 
+
+  ins. 
+  assert (A: (cert_co ⨾ ⦗fun x : actid => Gfurr x b⦘)^? (InitEvent l) c).
+  { apply rt_of_trans; try done.
+    apply transitiveI; unfolder; ins; desf; splits; eauto.
+    eapply cert_co_trans; eauto. }
   
-  (* unfolder in A; desf. *)
-  (* { apply in_filterP_iff; split; auto. } *)
-  (* apply in_filterP_iff. *)
-  (* eapply wf_cert_coE in A; try edone. *)
-  (* unfolder in A; desc. *)
-  (* eapply wf_cert_coD in A1; try edone. *)
-  (* unfolder in A1; desc. *)
-  (* eapply wf_cert_col in A3; try edone. *)
-  (* unfold same_loc in *. *)
-  (* unfolder in A. *)
-  (* desf; splits; eauto. red. splits; auto. *)
-  (* congruence.  *)
+  unfolder in A; desf.
+  { tauto. }
+  eapply wf_cert_coE in A; try edone. unfolder in A; desc.
+  eapply wf_cert_coD in A1; try edone. unfolder in A1; desc.
+  eapply wf_cert_col in A3; try edone. unfold same_loc in *. unfolder in A.
+
+  (* TODO: use updated imm *)
+  assert (Tid_ tid_init = is_init) as EQ by admit. rewrite EQ in *. clear EQ.
+  
+  destruct (classic (is_init c)).
+  2: { right. apply FINDOM. split; auto. }
+  destruct c; [| done]. unfold "Gloc" in A3.
+  rewrite !wf_init_lab in A3; auto. left. congruence. 
+
 Admitted.
 
 
