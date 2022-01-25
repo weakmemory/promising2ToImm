@@ -149,6 +149,7 @@ Lemma cert_simulation G sc thread PC T S f_to f_from
       (SIMREL : simrel_thread G sc PC T S f_to f_from thread sim_certification)
       (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T)
       (FIN: fin_exec G)
+      (* (FIN: fin_exec_full G) *)
       (FAIR: mem_fair G)
       (IMM_FAIR: imm_fair G sc):
   exists T' S' PC' f_to' f_from',
@@ -158,8 +159,14 @@ Lemma cert_simulation G sc thread PC T S f_to f_from
 Proof using.
   assert (etc_coherent G sc (mkETC T S)) as ETCCOH.
   { apply SIMREL. }
-  assert (complete G) as CG by apply IMMCON. 
-  generalize (sim_step_cov_full_traversal WF CG FAIR IMM_FAIR FIN IMMCON ETCCOH NCOV); intros H.
+  assert (complete G) as CG by apply IMMCON.
+
+  (* So far ExtTraversalCounting assumes full finiteness.
+     Since we'll most probably rewrite this part, it's easier 
+     to temporarily assume the needed form of finiteness. *)
+  assert (fin_exec_full G) as FIN' by admit.
+  
+  generalize (sim_step_cov_full_traversal WF CG FAIR IMM_FAIR FIN' IMMCON ETCCOH NCOV); intros H.
   destruct H as [T'].
   1,2: by apply SIMREL.
   desc.
@@ -173,7 +180,7 @@ Proof using.
   eapply cert_sim_steps in H; auto.
   2: by eauto.
   desf. eexists. eexists. eexists. splits; eauto.
-Qed.
+Admitted.
 
 Lemma simrel_thread_bigger_sc_memory G sc T S thread f_to f_from threads memory
       sc_view memory' sc_view'
@@ -892,6 +899,8 @@ Proof using All.
     { eapply Memory.cap_closed; eauto. apply SIMREL_THREAD. }
     { apply CAP. }
       by apply Memory.max_full_timemap_closed. }
+  { (* finite graphs are trivially fair *)
+    admit. }
   desc.
 
   assert
@@ -936,8 +945,8 @@ Proof using All.
   eexists. splits.
   { apply PSTEP. }
   simpls.
-Qed.
-
+Admitted. 
+  
 Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)⁺ TS TS')
       (ETC_FIN: etc_fin TS)
@@ -970,13 +979,15 @@ Qed.
 
 Lemma simulation 
       (FAIR: mem_fair G)
-      (FIN: fin_exec_full G):
+      (FIN: fin_exec_full G)
+      (IMM_FAIR: imm_fair G sc):
   exists T S PC f_to f_from,
     ⟪ FINALT : (acts_set G) ⊆₁ covered T ⟫ /\
     ⟪ PSTEP  : conf_step＊ (conf_init prog) PC ⟫ /\
     ⟪ SIMREL : simrel G sc PC T S f_to f_from ⟫.
 Proof using All.
-  generalize (sim_traversal WF FIN IMMCON); ins; desc.
+  assert (complete G) as CG by apply IMMCON. 
+  generalize (sim_traversal WF CG FAIR IMM_FAIR FIN IMMCON); ins; desc.
   destruct T as [T S].
   exists T, S.
   apply rtE in H.
@@ -1057,5 +1068,5 @@ Proof using All.
   { eapply rt_trans; eauto. }
   eapply same_final_memory; eauto. 
 Qed.
-
+x
 End PromiseToIMM.
