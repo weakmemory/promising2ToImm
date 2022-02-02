@@ -1056,7 +1056,8 @@ Proof using All.
 Admitted. 
   
 Theorem promise2imm 
-      (FAIR: mem_fair G)
+        (FAIR: mem_fair G)
+        (IMM_FAIR: imm_fair G sc)
       (FIN: fin_exec_full G) :
   promise_allows prog final_memory.
 Proof using All.
@@ -1068,5 +1069,5 @@ Proof using All.
   { eapply rt_trans; eauto. }
   eapply same_final_memory; eauto. 
 Qed.
-x
+
 End PromiseToIMM.

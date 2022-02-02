@@ -175,6 +175,13 @@ Proof using.
   red in NODUP; ins. apply NODUP; auto.
 Qed.
 
+Module X.
+  Parameter (GG: execution).
+  Lemma foo (WF: Wf GG): True.
+  Proof. vauto. Qed. 
+End X.
+
+
 
 Module ExtTraversalSeq.
   Include IordTraversal.
@@ -189,68 +196,107 @@ From hahn Require Import HahnTrace.
 (*   trace_map f (trace_filter (compose S f) tr) = trace_filter S (trace_map f tr). *)
 (* Proof. *)
   
+Definition ev2step_index (steps_enum: nat -> TraversalOrder.TravLabel.t)
+           (* (ENUM: enumerates steps_enum IordTraversal.graph_steps) *)
+           (e: actid)
+  : nat.
+  (* destruct (excluded_middle_informative ((acts_set G \₁ is_init) e)). *)
+  (* 2: { exact 0. } *)
+  (* apply enumeratesE' in ENUM. desc. *)
+  (* specialize (IND (mkTL TraversalOrder.TravAction.cover e)). specialize_full IND. *)
+  (* { red. basic_solver. } *)
+  (* apply constructive_indefinite_description in IND as [i [DOM I]]. *)
+  (* exact i. *)
+  destruct (excluded_middle_informative (exists i, steps_enum i = mkTL TraversalOrder.TravAction.cover e)) as [I | ?]. 
+  2: { exact 0. }
+  apply constructive_indefinite_description in I as [i I].
+  exact i. 
+Defined. 
+
+Lemma ev2step_index_corr steps_enum
+      (ENUM: enumerates steps_enum IordTraversal.graph_steps)
+      (e: actid)
+      (DOM: (acts_set G \₁ is_init) e):
+  steps_enum (ev2step_index steps_enum e) =
+  mkTL TraversalOrder.TravAction.cover e.
+Proof.
+  apply enumeratesE' in ENUM. desc. 
+  unfold ev2step_index. destruct excluded_middle_informative as [[i I] | N].
+  2: { destruct N. specialize (IND (mkTL TraversalOrder.TravAction.cover e)).
+       specialize_full IND.
+       { red. basic_solver. }
+       desc. eauto. }
+  destruct constructive_indefinite_description. congruence. 
+Qed.
+
+
 
 Lemma sim_traversal WF COMP WFSC CONS MF
-        (IMM_FAIR: fsupp ar⁺):
+      (IMM_FAIR: fsupp ar⁺):
+  (* ⟪ ⟫ *)
   exists (ev_enum: nat -> actid) (tc_enum: nat -> trav_config),
     enumerates ev_enum (acts_set G \₁ is_init) /\
     (forall i (DOMi: NOmega.lt_nat_l i (set_size (acts_set G \₁ is_init))),
-        covered (tc_enum i) ≡₁ (⋃₁ j < i, eq (ev_enum j))) /\
+        covered (tc_enum i) ≡₁ (⋃₁ j < i, eq (ev_enum j)) ∪₁ E ∩₁ is_init) /\
     (forall i (DOMi: NOmega.lt_nat_l i (set_size (acts_set G \₁ is_init))),
         (trav_step G sc)^* (tc_enum (i - 1)) (tc_enum i)). 
 Proof.
-  forward eapply IordTraversal.iord_enum_exists as [steps_enum [ENUM RESP]];eauto.
+  (* forward eapply (trace_of_fun _ steps_enum (set_size IordTraversal.graph_steps)) as [steps_tr EQUIV'].  *)
+  (* set (ev_cov_tr := trace_map event (trace_filter (IordTraversal.action ↓₁ eq TraversalOrder.TravAction.cover) steps_tr)). *)
+  (* set (d := ThreadEvent tid_init 0).  *)
+  (* forward eapply (fun_of_trace _ (inhabits d) ev_cov_tr) as [ev_enum EQUIV'']. *)
+  (* exists ev_enum. *)
 
-  forward eapply (trace_of_fun _ steps_enum (set_size IordTraversal.graph_steps)) as [steps_tr EQUIV'].  c
-  set (ev_cov_tr := trace_map event (trace_filter (IordTraversal.action ↓₁ eq TraversalOrder.TravAction.cover) steps_tr)).
-  set (d := ThreadEvent tid_init 0). 
-  forward eapply (fun_of_trace _ (inhabits d) ev_cov_tr) as [ev_enum EQUIV''].
-  exists ev_enum.
+  (* set (tc_all_enum := *)
+  (*        fun i => set2trav_config (trav_prefix steps_enum *)
+  (*                                           (ev2step_index steps_enum (ev_enum i)))). *)
+  (* exists tc_all_enum.  *)
 
-  set (tc_all_enum := fun i => set2trav_config (trav_prefix steps_enum i)).
-  forward eapply (trace_of_fun _ tc_all_enum (set_size IordTraversal.graph_steps)) as [tc_all_tr EQUIV'''].
-  set (tc_cov_tr := trace_filter 
+  (* assert (trace_elems ev_cov_tr ≡₁ E \₁ is_init) as EV_COV_TR_ELEMS. *)
+  (* { subst ev_cov_tr. rewrite trace_elems_map, trace_elems_filter. *)
+  (*   rewrite equiv_trace_elems; eauto. *)
+  (*   2: { econstructor. vauto. } *)
+  (*   erewrite enumerates_set_bunion; eauto.  *)
+  (*   apply enumeratesE' in ENUM. desc.  *)
+  (*   unfold IordTraversal.graph_steps. *)
+  (*   erewrite AuxRel.set_collect_more; [| reflexivity| ]. *)
+  (*   2: { rewrite set_inter_union_l. *)
+  (*        erewrite set_equiv_union; [by apply set_union_empty_r| | ]. *)
+  (*        { rewrite set_interC, <- set_interA, set_interK. reflexivity. } *)
+  (*        apply set_subset_empty_r. unfolder. ins. desf. congruence. } *)
+  (*   split; unfolder; ins; desf.  *)
+  (*   exists (mkTL TraversalOrder.TravAction.cover x). splits; auto. } *)
   
+  (* remember ((set_size (E \₁ (fun a : actid => is_init a)))) as evs_size. *)
+  
+  (* assert (trace_nodup ev_cov_tr) as EV_COV_TR_NODUP. *)
+  (* { apply trace_nodup_mapE'. *)
+  (*   2: { apply trace_nodup_filter. eapply equiv_trace_nodup_enum; eauto. } *)
+  (*   ins. intros EQ. destruct a as [a1 e], b as [a2 e']. simpl in *. subst e'. *)
+  (*   apply trace_in_filter in INA, INB. desc. red in INA0, INB0. *)
+  (*   simpl in *. congruence. } *)
+  
+  (* assert (trace_length ev_cov_tr = evs_size) as TR_LEN. *)
+  (* { rewrite trace_nodup_size; auto.  *)
+  (*   subst evs_size. apply set_size_equiv. auto. } *)
 
-  assert (trace_elems ev_cov_tr ≡₁ E \₁ is_init) as EV_COV_TR_ELEMS.
-  { subst ev_cov_tr. rewrite trace_elems_map, trace_elems_filter.
-    rewrite equiv_trace_elems; eauto.
-    2: { econstructor. vauto. }
-    erewrite enumerates_set_bunion; eauto. 
-    apply enumeratesE' in ENUM. desc. 
-    unfold IordTraversal.graph_steps.
-    erewrite AuxRel.set_collect_more; [| reflexivity| ].
-    2: { rewrite set_inter_union_l.
-         erewrite set_equiv_union; [by apply set_union_empty_r| | ].
-         { rewrite set_interC, <- set_interA, set_interK. reflexivity. }
-         apply set_subset_empty_r. unfolder. ins. desf. congruence. }
-    split; unfolder; ins; desf. 
-    exists (mkTL TraversalOrder.TravAction.cover x). splits; auto. }
-  
-  remember ((set_size (E \₁ (fun a : actid => is_init a)))) as evs_size.
-  
-  assert (trace_nodup ev_cov_tr) as EV_COV_TR_NODUP.
-  { apply trace_nodup_mapE'.
-    2: { apply trace_nodup_filter. eapply equiv_trace_nodup_enum; eauto. }
-    ins. intros EQ. destruct a as [a1 e], b as [a2 e']. simpl in *. subst e'.
-    apply trace_in_filter in INA, INB. desc. red in INA0, INB0.
-    simpl in *. congruence. }
-  
-  assert (trace_length ev_cov_tr = evs_size) as TR_LEN.
-  { rewrite trace_nodup_size; auto. 
-    subst evs_size. apply set_size_equiv. auto. }
+  (* splits. *)
+  (* { apply enumeratesE'. simpl. cdes EQUIV''.  *)
+  (*   splits. *)
+  (*   { ins. rewrite <- (F_TR_EQ d i). *)
+  (*     2: { congruence. } *)
+  (*     apply EV_COV_TR_ELEMS. apply trace_nth_in. congruence. } *)
+  (*   { ins. rewrite <- !(F_TR_EQ d) in H1; try congruence. *)
+  (*     destruct (Nat.lt_trichotomy i j) as [? | [? | ?]]; auto. *)
+  (*     2: symmetry in H1.  *)
+  (*     all: eapply EV_COV_TR_NODUP in H1; (congruence || done). } *)
+  (*   ins. apply EV_COV_TR_ELEMS, trace_in_nth with (d := d) in H as [i [DOM ITH]]. *)
+  (*   exists i. split; [congruence| ]. erewrite <- F_TR_EQ; eauto. } *)
 
-  splits.
-  { apply enumeratesE'. simpl. cdes EQUIV''. 
-    splits.
-    { ins. rewrite <- (F_TR_EQ d i).
-      2: { congruence. }
-      apply EV_COV_TR_ELEMS. apply trace_nth_in. congruence. }
-    { ins. rewrite <- !(F_TR_EQ d) in H1; try congruence.
-      destruct (Nat.lt_trichotomy i j) as [? | [? | ?]]; auto.
-      2: symmetry in H1. 
-      all: eapply EV_COV_TR_NODUP in H1; (congruence || done). }
-    ins. apply EV_COV_TR_ELEMS, trace_in_nth with (d := d) in H as [i [DOM ITH]].
-    exists i. split; [congruence| ]. erewrite <- F_TR_EQ; eauto. } 
+  (* { ins. split. *)
+  (*   { unfolder. ins. desf; eauto. left. *)
+  (*     destruct H3 as [j fff].  *)
+Admitted.       
+      
 
 End ExtTraversalSeq. 
