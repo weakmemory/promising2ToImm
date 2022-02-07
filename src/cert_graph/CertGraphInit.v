@@ -781,16 +781,16 @@ Section CertGraphInit.
       rewrite cert_rfD; auto. rewrite !seqA.
       repeat seq_rewrite <- id_inter. 
       red. intros x y ?%seq_eqv_lr. unfold set_inter in *. desc. 
-      rewrite <- H0 in *.
-      apply (@same_thread G) in H4; try done.
+      rewrite <- H in *.
+      apply (@same_thread G) in H3; try done.
       2: { intro K; eapply init_w in K; try edone; type_solver. }
-      destruct H4 as [X|Y].
+      destruct H3 as [X|Y].
       2: { unfold sb in Y; unfolder in Y; desf. }
       destruct X; [subst; type_solver|]. 
       exfalso.
-      rewrite -> H0 in *. 
+      rewrite -> H in *. 
       eapply Cert_coherence.hb_rf_irr with (G:=G); eauto.
-      apply sb_in_hb in H; unfolder; basic_solver 12.
+      apply sb_in_hb in H3; unfolder; basic_solver 12.
       (* TODO: get rid of that *)
       Unshelve. exact (fun _ => Afence Opln). }
     { unfold new_rfi. rewrite delta_rfE.

@@ -460,7 +460,7 @@ arewrite (⦗R⦘ ⨾ ⦗dom_rel (Gsb^? ⨾ ⦗S⦘)⦘ ⊆
 ⦗R⦘ ⨾ ⦗dom_rel (Gsb ⨾ ⦗S⦘)⦘).
 { revert S_in_W; clear. unfolder; ins; desf; eauto 10.
 exfalso.
-specialize (H y0 H4).
+specialize (S_in_W H3).
 type_solver 12. }
 
 clear.

@@ -53,11 +53,11 @@ Proof using.
   induction l; simpls.
   ins. desf.
   { unfold countP; simpls. desf. simpls.
-    apply le_lt_n_Sm. by apply countP_mori. }
+    apply Lt.le_lt_n_Sm. by apply countP_mori. }
   unfold countP; simpls. desf; simpls.
-  { apply lt_n_S. eapply IHl; eauto. }
+  { apply Lt.lt_n_S. eapply IHl; eauto. }
   { exfalso. apply n. by apply IN. }
-  { apply le_lt_n_Sm. by apply countP_mori. }
+  { apply Lt.le_lt_n_Sm. by apply countP_mori. }
     by apply IHl with (e:=e).
 Qed.
 

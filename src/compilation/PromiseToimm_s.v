@@ -644,7 +644,7 @@ Proof using All.
        apply NoDup_Permutation; eauto using NoDup_map_NoDupA, IdentMap.elements_3w.
        ins; rewrite !in_map_iff; split; intros ([i v] & <- & IN); ins;
          apply IdentMap.elements_complete in IN;
-       destruct (positive_eq_dec i thread); desf; rewrite ?IdentMap.gss, ?IdentMap.gso in *; ins; desf.
+       destruct (Loc.eq_dec i thread); desf; rewrite ?IdentMap.gss, ?IdentMap.gso in *; ins; desf.
          by eexists (_, _); split; ins; apply IdentMap.elements_correct, IdentMap.gss.
          eby eexists (_, _); split; ins; apply IdentMap.elements_correct; rewrite IdentMap.gso.
        all: eexists (_, _); split; ins; eauto using IdentMap.elements_correct.
@@ -704,7 +704,7 @@ Proof using All.
          = l)
      as [l LL] by eauto.
   generalize dependent PC.
-  induction l using (well_founded_ind lt_wf); ins; desf.
+  induction l using (well_founded_ind Wf_nat.lt_wf); ins; desf.
   destruct (classic (
       forall x (ELEM: In x (IdentMap.elements (Configuration.threads PC))), 
         Language.is_terminal (projT1 (fst (snd x))) (projT2 (fst (snd x))) /\
@@ -731,7 +731,7 @@ Proof using All.
   desf; ins. 
   2: by destruct v as ((lang,st),lc); destruct Y; apply NNPP in n0; apply n0 in FIND; ins.
   clear Y.
-  auto using le_lt_n_Sm, plus_le_compat.
+  auto using Lt.le_lt_n_Sm.
 Qed.
 
 Lemma same_final_memory T S PC f_to f_from
