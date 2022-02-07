@@ -2,7 +2,7 @@
 (** * A compilation correctness proof from the Promising2 memory model to
       the IMM memory model. *)
 (******************************************************************************)
-Require Import Omega.
+Require Import Lia.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
 From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration Local.
@@ -503,7 +503,7 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
     all: apply Memory.closed_timemap_bot.
     all: red; ins. }
   red. splits.
-  { ins. split; ins; [|omega].
+  { ins. split; ins; [|lia].
     destruct H as [H _]. simpls. }
   unfold sim_state_helper.
   red in PROG_EX. destruct PROG_EX as [HH YY].
@@ -724,7 +724,7 @@ Proof using All.
   clear - STEP SAMENUM IN FIND Y TERMINAL PTERMINAL.
   assert (L: forall l, length (filterP (fun x => ~ thread_is_terminal (Configuration.threads PC') x) l)
           <= length (filterP (fun x => ~ thread_is_terminal (Configuration.threads PC) x) l)).
-    clear - PTERMINAL; induction l; ins; desf; ins; eauto; try omega.
+    clear - PTERMINAL; induction l; ins; desf; ins; eauto; try lia.
     exfalso; specialize (PTERMINAL a); tauto.
   rewrite SAMENUM.
   apply in_split_perm in IN; desc; rewrite IN in SAMENUM; ins; rewrite <- SAMENUM; ins. 

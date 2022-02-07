@@ -1,6 +1,6 @@
 Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
-Require Import Omega.
+Require Import Lia.
 
 From imm Require Import Events Execution imm_s.
 From imm Require Import AuxRel2.
@@ -30,7 +30,7 @@ Proof using.
   induction y0.
   { simpls. }
   ins. desf; simpls.
-  1,3: omega.
+  1,3: lia.
   exfalso. apply n. by apply H.
 Qed.
 
@@ -116,7 +116,7 @@ Section ExtTraversalCounting.
       rewrite ISSEQ, RESEQ.
       assert (countP (set_compl (ecovered T)) acts_list >
               countP (set_compl (ecovered T')) acts_list) as HH.
-      2: omega.
+      2: lia.
       eapply countP_strict_mori with (e:=e); auto.
       { rewrite COVEQ. basic_solver. }
       { unfold set_compl. intros HH. apply HH. apply COVEQ. basic_solver. }
@@ -132,7 +132,7 @@ Section ExtTraversalCounting.
       { apply countP_mori; auto. rewrite RESEQ. basic_solver 10. }
       assert (countP (W ∩₁ set_compl (eissued T )) acts_list >
               countP (W ∩₁ set_compl (eissued T')) acts_list).
-      2: omega.
+      2: lia.
       apply countP_strict_mori with (e:=e).
       { rewrite ISSEQ. basic_solver. }
       { intros BB. apply BB. apply ISSEQ. basic_solver. }
@@ -142,7 +142,7 @@ Section ExtTraversalCounting.
     rewrite COVEQ, ISSEQ.
     assert (countP (W ∩₁ set_compl (reserved T )) acts_list >
             countP (W ∩₁ set_compl (reserved T')) acts_list).
-    2: omega.
+    2: lia.
     assert (reserved T' e) as RESE.
     { apply RESEQ. basic_solver. }
     assert (W e) as WE by (by apply (reservedW WF ETCCOH')).
@@ -174,7 +174,7 @@ Section ExtTraversalCounting.
     E ⊆₁ ecovered T.
   Proof using.
     unfold trav_steps_left in *.
-    assert (countP (set_compl (ecovered T)) acts_list = 0) as HH by omega.
+    assert (countP (set_compl (ecovered T)) acts_list = 0) as HH by lia.
     clear NULL.
     unfold countP in *.
     apply length_zero_iff_nil in HH.
@@ -215,9 +215,9 @@ Section ExtTraversalCounting.
     unfold trav_steps_left in *.
     assert (countP (set_compl (ecovered T)) acts_list > 0 \/
             countP (W ∩₁ set_compl (eissued T)) acts_list > 0 \/
-            countP (W ∩₁ set_compl (reserved T)) acts_list > 0) as YY by omega.
+            countP (W ∩₁ set_compl (reserved T)) acts_list > 0) as YY by lia.
     assert (countP (set_compl (ecovered T)) acts_list > 0) as HH.
-    { destruct YY as [|[]]; auto; omega. }
+    { destruct YY as [|[]]; auto; lia. }
     clear YY.
     unfold countP in HH.
     assert (exists h l, filterP (set_compl (ecovered T)) acts_list = h :: l) as YY.
@@ -264,7 +264,7 @@ Section ExtTraversalCounting.
     ins.
     destruct (classic (trav_steps_left T = 0)) as [EQ|NEQ].
     { eexists. splits; eauto. apply rt_refl. }
-    assert (trav_steps_left T > 0) as HH by omega.
+    assert (trav_steps_left T > 0) as HH by lia.
     eapply trav_steps_left_nnull_ncov in HH; auto.
     desc.
     eapply exists_next in HH0; eauto. desc.

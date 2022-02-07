@@ -1,4 +1,5 @@
-Require Import Arith Omega.
+Require Import Arith.
+Require Import Lia.
 From hahn Require Import Hahn.
 Require Import PromisingLib.
 From imm Require Import AuxRel2.
@@ -395,12 +396,12 @@ Section CertGraphInit.
       { apply (tr_acts_set TEH). by split. }
       assert ((acts_set Gf) (ThreadEvent thread index)) as EEE.
       { apply (tr_acts_set TEH). eapply acts_rep in PP; eauto.
-        desc. eapply GPC'.(acts_clos). inv REP. omega. }
+        desc. eapply GPC'.(acts_clos). inv REP. lia. }
       assert (sb Gf (ThreadEvent thread index) (ThreadEvent thread mindex)) as QQ.
       { red.
         apply seq_eqv_l. split; auto.
         apply seq_eqv_r. split; auto.
-        red. split; auto. omega. }
+        red. split; auto. lia. }
       destruct CTMAX as [[[AA|AA]|[z AA]] _].
       { do 2 left. apply TCCOH in AA. apply AA. eexists.
         apply seq_eqv_r. split; eauto. }

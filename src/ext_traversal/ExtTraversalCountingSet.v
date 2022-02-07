@@ -1,6 +1,6 @@
 Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
-Require Import Omega.
+Require Import Lia.
 
 From imm Require Import Events Execution imm_s.
 From imm Require Import AuxRel2.
@@ -31,7 +31,7 @@ Proof using.
   induction y0.
   { simpls. }
   ins. desf; simpls.
-  1,3: omega.
+  1,3: lia.
   exfalso. apply n. by apply H.
 Qed.
 
