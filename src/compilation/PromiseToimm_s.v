@@ -1046,7 +1046,10 @@ Lemma simulation_enum (FAIR: mem_fair G) (IMM_FAIR: imm_fair G sc) :
                f_to f_from⟫. 
 Proof using All.
   destruct (classic (fin_exec_full G)) as [FIN|NFIN].
-  { destruct simulation as [T [PC H]]; eauto. desc.
+  { 
+
+
+destruct simulation as [T [PC H]]; eauto. desc.
     edestruct sim_covered_exists_terminal as [PC']; eauto.
     desc.
     exists PC'. splits; eauto.

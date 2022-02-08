@@ -72,8 +72,6 @@ Section ExtTraversalCounting.
   Notation "'rmw'" := (rmw G).
 
 
-  (* TODO: get rid while generalizing to infinite case *)
-  (***********)
   Hypothesis FINDOM: fin_exec_full G. 
   Definition acts_list: list actid :=
     filterP (acts_set G)
@@ -285,6 +283,76 @@ Section ExtTraversalCounting.
     exists T, (ext_sim_trav_step G sc)＊ (ext_init_trav G) T /\ ((acts_set G) ⊆₁ ecovered T).
   Proof using WF FINDOM COMP.
     apply sim_traversal_helper; auto.
+    { by apply ext_init_trav_coherent. }
+    { unfold ext_init_trav. simpls. basic_solver. }
+    unfold ecovered, eissued.
+    ins. split; intros [HH AA].
+    { apply (init_w WF) in HH.
+      apply (dom_l (wf_rmwD WF)) in RMW. apply seq_eqv_l in RMW.
+      type_solver. }
+    apply (rmw_in_sb WF) in RMW. apply no_sb_to_init in RMW.
+    apply seq_eqv_r in RMW. desf.
+  Qed.
+
+  Lemma sim_traversal_trace_helper T
+        (IMMCON : imm_consistent G sc)
+        (ETCCOH : etc_coherent G sc T)
+        (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
+        (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w) :
+    exists (lst : nat) (TCtr : nat -> ext_trav_config),
+      << TCINIT : TCtr 0 = T >> /\
+      << TCSTEP : forall n (LT : n < lst),
+          ext_sim_trav_step G sc (TCtr n) (TCtr (1 + n)) >> /\
+      << TCLAST : acts_set G ⊆₁ ecovered (TCtr lst) >>.
+  Proof using WF FINDOM COMP.
+    assert (exists lst TCtr,
+               << TCINIT : TCtr 0 = T >> /\
+               << TCSTEP : forall n (LT : n < lst),
+                   ext_sim_trav_step G sc (TCtr n) (TCtr (1 + n)) >> /\
+               << TCLAST : trav_steps_left (TCtr lst) = 0 >>).
+    2: { desc. exists lst, TCtr. splits; auto.
+         by apply trav_steps_left_null_cov. }
+    assert (exists n, n = trav_steps_left T) as [n NN] by eauto.
+    generalize dependent T.
+    pattern n. apply nat_ind_lt. clear n.
+    intros n QQ; ins.
+    destruct (classic (trav_steps_left T = 0)) as [EQ|NEQ].
+    { exists 0, (fun _ => T). splits; eauto. lia. }
+    assert (trav_steps_left T > 0) as HH by lia.
+    eapply trav_steps_left_nnull_ncov in HH; auto.
+    desc.
+    eapply exists_next in HH0; eauto. desc.
+    eapply exists_ext_trav_step in HH1; eauto.
+    desc.
+    apply exists_ext_sim_trav_step in HH1; eauto.
+    2: by apply IMMCON.
+    desc.
+    clear T'. subst.
+    specialize (QQ (trav_steps_left T'')).
+    edestruct QQ as [lst' [TCtr' OO]]; desc.
+    { by apply trav_steps_left_decrease_sim. }
+    { eapply ext_sim_trav_step_coherence; eauto. }
+    { eapply ext_sim_trav_step_rel_covered; eauto. }
+    { eapply ext_sim_trav_step_rmw_covered; eauto. }
+    { done. }
+    exists (1 + lst').
+    exists (fun n =>
+              match n with
+              | 0 => T
+              | S n' => TCtr' n'
+              end).
+    splits; auto.
+    ins. desf. apply TCSTEP. lia.
+  Qed.
+  
+  Lemma sim_traversal_trace (IMMCON : imm_consistent G sc) :
+    exists (lst : nat) (TCtr : nat -> ext_trav_config),
+      << TCINIT : TCtr 0 = ext_init_trav G >> /\
+      << TCSTEP : forall n (LT : n < lst),
+          ext_sim_trav_step G sc (TCtr n) (TCtr (1 + n)) >> /\
+      << TCLAST : acts_set G ⊆₁ ecovered (TCtr lst) >>.
+  Proof using WF FINDOM COMP.
+    apply sim_traversal_trace_helper; auto.
     { by apply ext_init_trav_coherent. }
     { unfold ext_init_trav. simpls. basic_solver. }
     unfold ecovered, eissued.
