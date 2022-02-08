@@ -948,7 +948,7 @@ Proof using All.
 Admitted. 
   
 Lemma sim_steps PC TS TS' f_to f_from
-      (TCSTEPS : (ext_sim_trav_step G sc)⁺ TS TS')
+      (TCSTEPS : (ext_sim_trav_step G sc)^* TS TS')
       (ETC_FIN: etc_fin TS)
       (SIMREL  : simrel G sc PC (etc_TC TS) (reserved TS) f_to f_from)
       (FAIR: mem_fair G) :
@@ -965,11 +965,12 @@ Proof using All.
     destruct y as [T' S'].
     eapply sim_step in H; eauto. desf.
     do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
+  { ins. exists PC, f_to, f_from. splits; eauto. apply rt_refl. }
   ins.
   eapply IHTCSTEPS1 in SIMREL; auto. 
   desc.
   eapply IHTCSTEPS2 in SIMREL0.
-  2: { apply inclusion_t_rt in TCSTEPS1. eapply sim_steps_preserves_fin; eauto. }
+  2: { eapply sim_steps_preserves_fin; eauto. }
   desf. eexists. eexists. eexists. splits.
   2: eauto.
   eapply rt_trans; eauto. 
@@ -997,6 +998,7 @@ Proof using All.
     { apply rtE. left. red. eauto. }
     unfold ext_init_trav in *. inv H.
     apply simrel_init. }
+  apply inclusion_t_rt in H.
   eapply sim_steps in H; eauto.
   3: { by apply simrel_init. }
   2: { by apply init_etc_fin. }
@@ -1048,11 +1050,11 @@ Proof using All.
   assert (exists (len : nat_omega)
                  (TCtr : nat -> ext_trav_config),
              << LENP : NOmega.lt_nat_l 0 len >> /\
-            << TCINIT : TCtr 0 = ext_init_trav G >> /\
-            << TCSTEP : forall n, NOmega.lt_nat_l (1 + n) len ->
-                                  ext_sim_trav_step G sc (TCtr n) (TCtr (1 + n)) >> /\
-            ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
-                ecovered (TCtr i) ⟫); desc.
+             << TCINIT : TCtr 0 = ext_init_trav G >> /\
+             << TCSTEP : forall n, NOmega.lt_nat_l (1 + n) len ->
+                                   (ext_sim_trav_step G sc)^* (TCtr n) (TCtr (1 + n)) >> /\
+             ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
+                 ecovered (TCtr i) ⟫); desc.
   { destruct (classic (fin_exec_full G)) as [FIN|NFIN].
     { destruct (sim_traversal_trace WF CG FIN IMMCON) as [lst [TCtr HH]]; desc.
       assert (forall n, n < S lst -> etc_coherent G sc (TCtr n)) as ETCN.
@@ -1062,7 +1064,7 @@ Proof using All.
         apply TCSTEP. lia. }
       exists (NOnum (1 + lst)), TCtr. splits; auto.
       { ins. lia. }
-      { ins. apply TCSTEP. lia. }
+      { ins. apply rt_step. apply TCSTEP. lia. }
       split.
       { etransitivity; [now apply TCLAST|].
         unfold set_bunion.
@@ -1099,6 +1101,15 @@ Proof using All.
     as [start STNTC].
   { unfold ntc_type. exists (exist _ _ NTC_PRED). ins. }
 
+  
+  assert (forall n (NLT : NOmega.lt_nat_l n len), etc_fin (TCtr n)) as TCtr_etcfin.
+  { clear -WF TCINIT TCSTEP LENP.
+    induction n; ins.
+    { rewrite TCINIT. apply init_etc_fin. }
+    specialize (TCSTEP n NLT).
+    eapply sim_steps_preserves_fin; eauto.
+    apply IHn. eapply NOmega.lt_lt_nat; eauto. }
+
   edestruct FDC 
     with (R := fun (ntc ntc' : ntc_type) =>
                  match proj1_sig ntc, proj1_sig ntc' with
@@ -1119,13 +1130,14 @@ Proof using All.
     destruct (NOmega.eqb (NOnum (1 + n)) len) eqn:NLST.
     { apply NOmega.eqb_eq in NLST; subst.
       exists (exist _ _ NTCx); ins. split; ins. lia. }
+
+
     edestruct sim_steps with (TS:=TCtr n) (TS':=TCtr (1 + n))
       as [conf']; eauto.
-    { apply ct_step. apply TCSTEP.
+    { apply TCSTEP.
       destruct len; ins. destruct n0.
       { lia. }
       apply EqNat.beq_nat_false in NLST. lia. }
-    { admit. }
     desc.
     enough (exists y : ntc_type, proj1_sig y = (S n, conf')) as [y NTCy].
     { exists y. ins. rewrite NTCy. splits; ins.
