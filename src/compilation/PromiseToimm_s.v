@@ -45,6 +45,8 @@ Require Import ImmFair.
 Require Import Coq.Program.Basics.
 Require Import FinTravConfigs.
 
+Require Import ChoiceFacts.
+
 Set Implicit Arguments.
 Remove Hints plus_n_O.
 
@@ -1026,28 +1028,111 @@ Admitted.
   
 
 Lemma simulation_enum (FAIR: mem_fair G) (IMM_FAIR: imm_fair G sc) :
-  exists (len: nat_omega) (f_to f_from: actid -> Time.t)
-    (TCtr : nat -> ext_trav_config)
-    (PRtr : nat -> Configuration.t),
-
-    (* PRtr is a run of the Promising2 machine *)
-    ⟪ PINIT: PRtr 0 = conf_init prog ⟫ /\
-    ⟪ PSTEP: forall i (DOM: NOmega.lt_nat_l i len),
-        conf_step^* (PRtr i) (PRtr (1 + i)) ⟫ /\
-
+  exists (len: nat_omega)
+    (TCtr : nat -> ext_trav_config),
     ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
                              ecovered (TCtr i) ⟫ /\
 
+  exists (PRtr : nat -> Configuration.t),
+    ⟪ PINIT: PRtr 0 = conf_init prog ⟫ /\
+    ⟪ PSTEP: forall i (DOM: NOmega.lt_nat_l (1 + i) len),
+        conf_step^* (PRtr i) (PRtr (1 + i)) ⟫ /\
+
     ⟪ SIMREL: forall i (DOM: NOmega.lt_nat_l i len),
+        exists (f_to f_from: actid -> Time.t),
           simrel G sc
                  (PRtr i)
                  (etc_TC (TCtr i))
                  (reserved (TCtr i))
-               f_to f_from⟫. 
+                 f_to f_from ⟫. 
 Proof using All.
   destruct (classic (fin_exec_full G)) as [FIN|NFIN].
-  { 
+  { assert (complete G) as CG by apply IMMCON.
+    destruct (sim_traversal_trace WF CG FIN IMMCON) as [lst [TCtr HH]]; desc.
+    exists (NOnum (1 + lst)), TCtr.
+    match goal with
+    | |- ?A /\ ?B => enough B
+    end.
+    { splits; auto.
+      split.
+      { etransitivity; [now apply TCLAST|].
+        unfold set_bunion.
+        red; ins. exists lst. splits; ins. }
+      apply set_subset_bunion_l. ins.
+      red in COND. red in COND.
+      erewrite <- etc_dom with (sc:=sc) (T:=TCtr x); eauto with hahn.
+      desf.
+      apply SIMREL in COND. desf.
+      cdes COND. cdes COMMON.
+      clear -TCCOH.
+      destruct (TCtr x); ins. }
 
+    (* assert (FDC : FunctionalDependentChoice). *)
+    (* { apply functional_choice_imp_functional_dependent_choice. *)
+    (*   red. apply functional_choice. } *)
+
+    edestruct functional_choice
+      with (R := fun (n : nat) (ntc  : nat * ext_trav_config * Configuration.t) =>
+                   match ntc, ntc' with
+                   | (n, TC, conf), (n', TC', conf') =>
+                       n < lst ->
+                       TC = TCtr n ->
+                       (exists f_to f_from,
+                           simrel G sc conf
+                                  (etc_TC TC) (reserved TC) f_to f_from) ->
+                       << NEXT    : n'  = 1 + n   >> /\
+                       << TCTR2   : TC' = TCtr n' >> /\
+                       << SIMREL2 :
+                             exists f_to' f_from',
+                               simrel G sc conf'
+                                      (etc_TC TC') (reserved TC') f_to' f_from' >> /\
+                       << STEPS : conf_step＊ conf conf' >>
+                   end)
+           (x0:=((0, TCtr 0), conf_init prog))
+      as [TR AA].
+    { ins. destruct x as [[n TC] conf].
+      destruct (classic (n < lst)) as [LT|NLT].
+      2: { exists ((n, TC), conf); ins. }
+      destruct (classic (exists f_to f_from,
+                            << SIMREL : simrel G sc conf
+                                   (etc_TC TC) (reserved TC) f_to f_from >>)) as [|NLT].
+      2: { exists ((n, TC), conf); ins. }
+      destruct (classic (TC = TCtr n)) as [|NLT]; subst.
+      2: { exists ((n, TC), conf); ins. }
+      desf.
+      edestruct sim_steps with (TS:=TCtr n) (TS':=TCtr (1 + n)); eauto.
+      { apply ct_step. apply TCSTEP. lia. }
+      { admit. }
+      desf.
+      exists ((1 + n, TCtr (1 + n)), x).
+      intros _ _ _. splits; eauto. }
+    desf; ins.
+    exists (fun n => snd (TR n)).
+    splits.
+    { rewrite AA; ins. }
+    { ins. specialize (AA0 i).
+      remember (TR i) as tt. destruct tt as [[tn ttc] tconf].
+      remember (TR (S i)) as tt'. destruct tt' as [[tn' ttc'] tconf'].
+      ins.
+
+      
+
+
+
+
+                   (n : nat) (conf : Configuration.t) =>
+                   << INIT : n = 0 -> conf = conf_init prog >> /\
+                   (n < 1 + lst ->
+                    << STEP : exists conf', conf_step＊ conf conf' >> /\
+                    << SIMREL : exists f_to f_from,
+                          simrel G sc conf (etc_TC (TCtr n))
+                                 (reserved (TCtr n))
+                                 f_to f_from >>))
+      as [PRtr AA].
+    2: { exists PRtr. splits.
+         { specialize (AA 0). now apply AA. }
+         { ins. specialize (AA i). desf.
+           apply AA0 in DOM. desf.
 
 destruct simulation as [T [PC H]]; eauto. desc.
     edestruct sim_covered_exists_terminal as [PC']; eauto.
