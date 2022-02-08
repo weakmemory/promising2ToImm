@@ -1067,53 +1067,71 @@ Proof using All.
       clear -TCCOH.
       destruct (TCtr x); ins. }
 
-    (* assert (FDC : FunctionalDependentChoice). *)
-    (* { apply functional_choice_imp_functional_dependent_choice. *)
-    (*   red. apply functional_choice. } *)
+    assert (FDC : FunctionalDependentChoice).
+    { apply functional_choice_imp_functional_dependent_choice.
+      red. apply functional_choice. }
+    
+    set (ntc_pred := fun ntc : nat * Configuration.t =>
+                       match ntc with
+                       | (n, conf) =>
+                           << NLT : n < 1 + lst >> /\
+                           << SIMREL : exists f_to f_from,
+                                 simrel G sc conf
+                                        (etc_TC (TCtr n)) (reserved (TCtr n)) f_to f_from >>
+                       end).
+    set (ntc_type := { ntc : nat * Configuration.t | ntc_pred ntc}).
+    
+    assert (ntc_pred (0, conf_init prog)) as NTC_PRED.
+    { red. splits; auto.
+      { lia. }
+      do 2 eexists.
+      rewrite TCINIT.
+      eapply simrel_init. }
+    assert (exists start : ntc_type, proj1_sig start = (0, conf_init prog))
+      as [start STNTC].
+    { unfold ntc_type. exists (exist _ _ NTC_PRED). ins. }
 
-    edestruct functional_choice
-      with (R := fun (n : nat) (ntc  : nat * ext_trav_config * Configuration.t) =>
-                   match ntc, ntc' with
-                   | (n, TC, conf), (n', TC', conf') =>
-                       n < lst ->
-                       TC = TCtr n ->
-                       (exists f_to f_from,
-                           simrel G sc conf
-                                  (etc_TC TC) (reserved TC) f_to f_from) ->
-                       << NEXT    : n'  = 1 + n   >> /\
-                       << TCTR2   : TC' = TCtr n' >> /\
-                       << SIMREL2 :
-                             exists f_to' f_from',
-                               simrel G sc conf'
-                                      (etc_TC TC') (reserved TC') f_to' f_from' >> /\
-                       << STEPS : conf_step＊ conf conf' >>
+    edestruct FDC 
+      with (R := fun (ntc ntc' : ntc_type) =>
+                   match proj1_sig ntc, proj1_sig ntc' with
+                   | (n, conf), (n', conf') =>
+                       (n = lst -> (n, conf) = (n', conf')) /\
+                       (n < lst -> 
+                        << NEXT    : n'  = 1 + n   >> /\
+                        << SIMREL2 :
+                              exists f_to' f_from',
+                                simrel G sc conf'
+                                       (etc_TC (TCtr (1 + n)))
+                                       (reserved (TCtr (1 + n))) f_to' f_from' >> /\
+                        << STEPS : conf_step＊ conf conf' >>)
                    end)
-           (x0:=((0, TCtr 0), conf_init prog))
+           (x0:=start)
       as [TR AA].
-    { ins. destruct x as [[n TC] conf].
-      destruct (classic (n < lst)) as [LT|NLT].
-      2: { exists ((n, TC), conf); ins. }
-      destruct (classic (exists f_to f_from,
-                            << SIMREL : simrel G sc conf
-                                   (etc_TC TC) (reserved TC) f_to f_from >>)) as [|NLT].
-      2: { exists ((n, TC), conf); ins. }
-      destruct (classic (TC = TCtr n)) as [|NLT]; subst.
-      2: { exists ((n, TC), conf); ins. }
-      desf.
-      edestruct sim_steps with (TS:=TCtr n) (TS':=TCtr (1 + n)); eauto.
+    { ins. destruct x as [[n conf] NTCx].
+      cdes NTCx. 
+      destruct (classic (n = lst)) as [|NLST]; subst.
+      { exists (exist _ _ NTCx); ins. splits; ins. lia. }
+      edestruct sim_steps with (TS:=TCtr n) (TS':=TCtr (1 + n))
+        as [conf']; eauto.
       { apply ct_step. apply TCSTEP. lia. }
       { admit. }
-      desf.
-      exists ((1 + n, TCtr (1 + n)), x).
-      intros _ _ _. splits; eauto. }
+      desc.
+      enough (exists y : ntc_type, proj1_sig y = (S n, conf')) as [y NTCy].
+      { exists y. ins. rewrite NTCy. splits; ins.
+        splits; eauto. }
+      enough (ntc_pred (S n, conf')) as BB.
+      { exists (exist _ _ BB); ins. }
+      red. splits; eauto. lia. }
     desf; ins.
-    exists (fun n => snd (TR n)).
+    exists (fun n => snd (proj1_sig (TR n))).
     splits.
-    { rewrite AA; ins. }
+    { now rewrite STNTC. }
     { ins. specialize (AA0 i).
-      remember (TR i) as tt. destruct tt as [[tn ttc] tconf].
-      remember (TR (S i)) as tt'. destruct tt' as [[tn' ttc'] tconf'].
-      ins.
+      remember (TR    i)  as tt . destruct tt  as [[n  conf ] NTCtt ]; ins.
+      remember (TR (S i)) as tt'. destruct tt' as [[n' conf'] NTCtt']; ins.
+      enough (i = n); subst.
+      { apply AA0. lia. }
+      admit. }
 
       
 
