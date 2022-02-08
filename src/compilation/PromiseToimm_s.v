@@ -849,14 +849,11 @@ Lemma sim_step PC T S T' S' f_to f_from
       (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
       (ETC_FIN: etc_fin (mkETC T S))
       (SIMREL : simrel G sc PC T S f_to f_from)
-      (FIN: fin_exec_full G):
+      (FAIR: mem_fair G) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : (conf_step)^? PC PC' ⟫ /\
       ⟪ SIMREL : simrel G sc PC' T' S' f_to' f_from' ⟫.
 Proof using All.
-  assert (FAIR: mem_fair G).
-  { (* TODO: Follows from FIN *) admit. }
-
   destruct STEP as [thread STEP].
   forward eapply isim_step_preserves_fin as FIN'; eauto. 
   cdes SIMREL. cdes COMMON.
@@ -903,8 +900,7 @@ Proof using All.
     { eapply Memory.cap_closed; eauto. apply SIMREL_THREAD. }
     { apply CAP. }
       by apply Memory.max_full_timemap_closed. }
-  { (* finite graphs are trivially fair *)
-    admit. }
+  { admit. }
   desc.
 
   assert
@@ -955,8 +951,7 @@ Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)⁺ TS TS')
       (ETC_FIN: etc_fin TS)
       (SIMREL  : simrel G sc PC (etc_TC TS) (reserved TS) f_to f_from)
-      (* (FAIR: mem_fair G) *)
-      (FIN: fin_exec_full G) :
+      (FAIR: mem_fair G) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : conf_step＊ PC PC' ⟫ /\
       ⟪ SIMREL : simrel G sc PC' (etc_TC TS') (reserved TS') f_to' f_from' ⟫.
@@ -981,13 +976,14 @@ Proof using All.
 Qed.
   
 Lemma simulation 
+      (FAIR: mem_fair G)
       (FIN: fin_exec_full G) :
   exists T S PC f_to f_from,
     ⟪ FINALT : (acts_set G) ⊆₁ covered T ⟫ /\
     ⟪ PSTEP  : conf_step＊ (conf_init prog) PC ⟫ /\
     ⟪ SIMREL : simrel G sc PC T S f_to f_from ⟫.
 Proof using All.
-      (* (FAIR: mem_fair G) *)
+      (*  *)
       (* (IMM_FAIR: imm_fair G sc): *)
   assert (complete G) as CG by apply IMMCON. 
   generalize (sim_traversal WF CG FIN IMMCON); ins; desc.
@@ -1030,6 +1026,7 @@ Admitted.
 Lemma simulation_enum (FAIR: mem_fair G) (IMM_FAIR: imm_fair G sc) :
   exists (len: nat_omega)
     (TCtr : nat -> ext_trav_config),
+    << LENP : NOmega.lt_nat_l 0 len >> /\
     ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
                              ecovered (TCtr i) ⟫ /\
 
@@ -1046,137 +1043,129 @@ Lemma simulation_enum (FAIR: mem_fair G) (IMM_FAIR: imm_fair G sc) :
                  (reserved (TCtr i))
                  f_to f_from ⟫. 
 Proof using All.
-  destruct (classic (fin_exec_full G)) as [FIN|NFIN].
-  { assert (complete G) as CG by apply IMMCON.
-    destruct (sim_traversal_trace WF CG FIN IMMCON) as [lst [TCtr HH]]; desc.
-    exists (NOnum (1 + lst)), TCtr.
-    match goal with
-    | |- ?A /\ ?B => enough B
-    end.
-    { splits; auto.
+  assert (complete G) as CG by apply IMMCON.
+
+  assert (exists (len : nat_omega)
+                 (TCtr : nat -> ext_trav_config),
+             << LENP : NOmega.lt_nat_l 0 len >> /\
+            << TCINIT : TCtr 0 = ext_init_trav G >> /\
+            << TCSTEP : forall n, NOmega.lt_nat_l (1 + n) len ->
+                                  ext_sim_trav_step G sc (TCtr n) (TCtr (1 + n)) >> /\
+            ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
+                ecovered (TCtr i) ⟫); desc.
+  { destruct (classic (fin_exec_full G)) as [FIN|NFIN].
+    { destruct (sim_traversal_trace WF CG FIN IMMCON) as [lst [TCtr HH]]; desc.
+      assert (forall n, n < S lst -> etc_coherent G sc (TCtr n)) as ETCN.
+      { induction n; ins. 
+        { rewrite TCINIT. now apply ext_init_trav_coherent. }
+        eapply ext_sim_trav_step_coherence.
+        apply TCSTEP. lia. }
+      exists (NOnum (1 + lst)), TCtr. splits; auto.
+      { ins. lia. }
+      { ins. apply TCSTEP. lia. }
       split.
       { etransitivity; [now apply TCLAST|].
         unfold set_bunion.
         red; ins. exists lst. splits; ins. }
       apply set_subset_bunion_l. ins.
       red in COND. red in COND.
-      erewrite <- etc_dom with (sc:=sc) (T:=TCtr x); eauto with hahn.
-      desf.
-      apply SIMREL in COND. desf.
-      cdes COND. cdes COMMON.
-      clear -TCCOH.
-      destruct (TCtr x); ins. }
+      erewrite <- etc_dom with (sc:=sc) (T:=TCtr x); eauto with hahn. }
 
-    assert (FDC : FunctionalDependentChoice).
-    { apply functional_choice_imp_functional_dependent_choice.
-      red. apply functional_choice. }
-    
-    set (ntc_pred := fun ntc : nat * Configuration.t =>
-                       match ntc with
-                       | (n, conf) =>
-                           << NLT : n < 1 + lst >> /\
-                           << SIMREL : exists f_to f_from,
-                                 simrel G sc conf
-                                        (etc_TC (TCtr n)) (reserved (TCtr n)) f_to f_from >>
-                       end).
-    set (ntc_type := { ntc : nat * Configuration.t | ntc_pred ntc}).
-    
-    assert (ntc_pred (0, conf_init prog)) as NTC_PRED.
-    { red. splits; auto.
+    (* TODO: Infinite case *)
+    admit. }
+  
+  exists len, TCtr. splits; auto.
+
+  assert (FDC : FunctionalDependentChoice).
+  { apply functional_choice_imp_functional_dependent_choice.
+    red. apply functional_choice. }
+  
+  set (ntc_pred := fun ntc : nat * Configuration.t =>
+                     match ntc with
+                     | (n, conf) =>
+                         << NLT : NOmega.lt_nat_l n len >> /\
+                         << SIMREL : exists f_to f_from,
+                             simrel G sc conf
+                                    (etc_TC (TCtr n)) (reserved (TCtr n)) f_to f_from >>
+                     end).
+  set (ntc_type := { ntc : nat * Configuration.t | ntc_pred ntc}).
+  
+  assert (ntc_pred (0, conf_init prog)) as NTC_PRED.
+  { red. splits; auto.
+    do 2 eexists.
+    rewrite TCINIT.
+    eapply simrel_init. }
+  assert (exists start : ntc_type, proj1_sig start = (0, conf_init prog))
+    as [start STNTC].
+  { unfold ntc_type. exists (exist _ _ NTC_PRED). ins. }
+
+  edestruct FDC 
+    with (R := fun (ntc ntc' : ntc_type) =>
+                 match proj1_sig ntc, proj1_sig ntc' with
+                 | (n, conf), (n', conf') =>
+                     (NOmega.eqb (NOnum (1 + n)) len -> (n, conf) = (n', conf')) /\
+                     (NOmega.lt  (NOnum (1 + n)) len -> 
+                      << NEXT    : n'  = 1 + n   >> /\
+                      << SIMREL2 : exists f_to' f_from',
+                           simrel G sc conf'
+                                  (etc_TC (TCtr (1 + n)))
+                                  (reserved (TCtr (1 + n))) f_to' f_from' >> /\
+                     << STEPS : conf_step＊ conf conf' >>)
+                 end)
+         (x0:=start)
+    as [TR AA].
+  { ins. destruct x as [[n conf] NTCx].
+    cdes NTCx. 
+    destruct (NOmega.eqb (NOnum (1 + n)) len) eqn:NLST.
+    { apply NOmega.eqb_eq in NLST; subst.
+      exists (exist _ _ NTCx); ins. split; ins. lia. }
+    edestruct sim_steps with (TS:=TCtr n) (TS':=TCtr (1 + n))
+      as [conf']; eauto.
+    { apply ct_step. apply TCSTEP.
+      destruct len; ins. destruct n0.
       { lia. }
-      do 2 eexists.
-      rewrite TCINIT.
-      eapply simrel_init. }
-    assert (exists start : ntc_type, proj1_sig start = (0, conf_init prog))
-      as [start STNTC].
-    { unfold ntc_type. exists (exist _ _ NTC_PRED). ins. }
-
-    edestruct FDC 
-      with (R := fun (ntc ntc' : ntc_type) =>
-                   match proj1_sig ntc, proj1_sig ntc' with
-                   | (n, conf), (n', conf') =>
-                       (n = lst -> (n, conf) = (n', conf')) /\
-                       (n < lst -> 
-                        << NEXT    : n'  = 1 + n   >> /\
-                        << SIMREL2 :
-                              exists f_to' f_from',
-                                simrel G sc conf'
-                                       (etc_TC (TCtr (1 + n)))
-                                       (reserved (TCtr (1 + n))) f_to' f_from' >> /\
-                        << STEPS : conf_step＊ conf conf' >>)
-                   end)
-           (x0:=start)
-      as [TR AA].
-    { ins. destruct x as [[n conf] NTCx].
-      cdes NTCx. 
-      destruct (classic (n = lst)) as [|NLST]; subst.
-      { exists (exist _ _ NTCx); ins. splits; ins. lia. }
-      edestruct sim_steps with (TS:=TCtr n) (TS':=TCtr (1 + n))
-        as [conf']; eauto.
-      { apply ct_step. apply TCSTEP. lia. }
-      { admit. }
-      desc.
-      enough (exists y : ntc_type, proj1_sig y = (S n, conf')) as [y NTCy].
-      { exists y. ins. rewrite NTCy. splits; ins.
-        splits; eauto. }
-      enough (ntc_pred (S n, conf')) as BB.
-      { exists (exist _ _ BB); ins. }
-      red. splits; eauto. lia. }
-    desf; ins.
-    assert (forall n, n < 1 + lst -> fst (proj1_sig (TR n)) = n) as NNTR.
-    { clear -AA0 STNTC. induction n.
-      { now rewrite STNTC. }
-      intros LT.
-      specialize (AA0 n).
-      assert (n < 1 + lst) as JJ by lia.
-      specialize (IHn JJ).
-      remember (TR    n)  as tt . destruct tt  as [[i  conf ] NTCtt ]; ins.
-      remember (TR (S n)) as tt'. destruct tt' as [[i' conf'] NTCtt']; ins; subst.
-      apply AA0. lia. }
-    exists (fun n => snd (proj1_sig (TR n))).
-    splits.
-    { now rewrite STNTC. }
-    { ins. specialize (AA0 i).
-      remember (TR    i)  as tt . destruct tt  as [[n  conf ] NTCtt ]; ins.
-      remember (TR (S i)) as tt'. destruct tt' as [[n' conf'] NTCtt']; ins.
-      enough (i = n); subst.
-      { apply AA0. lia. }
-      specialize (NNTR i). rewrite <- Heqtt in NNTR. ins.
-      rewrite NNTR; auto. lia. }
-    ins.
-    remember (TR    i)  as tt . destruct tt  as [[n  conf ] NTCtt ]; ins.
-    enough (i = n); subst.
-    { apply NTCtt. }
-    specialize (NNTR i). rewrite <- Heqtt in NNTR. ins.
-    rewrite NNTR; auto. }
-
-
-      
-
-
-
-
-                   (n : nat) (conf : Configuration.t) =>
-                   << INIT : n = 0 -> conf = conf_init prog >> /\
-                   (n < 1 + lst ->
-                    << STEP : exists conf', conf_step＊ conf conf' >> /\
-                    << SIMREL : exists f_to f_from,
-                          simrel G sc conf (etc_TC (TCtr n))
-                                 (reserved (TCtr n))
-                                 f_to f_from >>))
-      as [PRtr AA].
-    2: { exists PRtr. splits.
-         { specialize (AA 0). now apply AA. }
-         { ins. specialize (AA i). desf.
-           apply AA0 in DOM. desf.
-
-destruct simulation as [T [PC H]]; eauto. desc.
-    edestruct sim_covered_exists_terminal as [PC']; eauto.
+      apply EqNat.beq_nat_false in NLST. lia. }
+    { admit. }
     desc.
-    exists PC'. splits; eauto.
-    { eapply rt_trans; eauto. }
-    eapply same_final_memory; eauto. 
-
+    enough (exists y : ntc_type, proj1_sig y = (S n, conf')) as [y NTCy].
+    { exists y. ins. rewrite NTCy. splits; ins.
+      { desf. }
+      splits; eauto. }
+    enough (ntc_pred (S n, conf')) as BB.
+    { exists (exist _ _ BB); ins. }
+    red. splits; eauto. ins.
+    destruct len; ins. destruct n0.
+    { lia. }
+    apply EqNat.beq_nat_false in NLST. lia. }
+  desf; ins.
+  assert (forall n, NOmega.lt_nat_l n len -> fst (proj1_sig (TR n)) = n) as NNTR.
+  { clear -AA0 STNTC. induction n.
+    { now rewrite STNTC. }
+    intros LT.
+    specialize (AA0 n).
+    assert (NOmega.lt_nat_l n len) as JJ.
+    { destruct len; ins. lia. }
+    specialize (IHn JJ).
+    remember (TR    n)  as tt . destruct tt  as [[i  conf ] NTCtt ]; ins.
+    remember (TR (S n)) as tt'. destruct tt' as [[i' conf'] NTCtt']; ins; subst.
+    apply AA0. destruct len; auto. }
+  exists (fun n => snd (proj1_sig (TR n))).
+  splits.
+  { now rewrite STNTC. }
+  { ins. specialize (AA0 i).
+    remember (TR    i)  as tt . destruct tt  as [[n  conf ] NTCtt ]; ins.
+    remember (TR (S i)) as tt'. destruct tt' as [[n' conf'] NTCtt']; ins.
+    enough (i = n); subst.
+    { apply AA0. destruct len; auto. }
+    specialize (NNTR i). rewrite <- Heqtt in NNTR. ins.
+    rewrite NNTR; auto.
+    eapply NOmega.lt_lt_nat; eauto. }
+  ins.
+  remember (TR    i)  as tt . destruct tt  as [[n  conf ] NTCtt ]; ins.
+  enough (i = n); subst.
+  { apply NTCtt. }
+  specialize (NNTR i). rewrite <- Heqtt in NNTR. ins.
+  rewrite NNTR; auto.
 
   (* 
      1. Does TRAV condition denote what we need? 
