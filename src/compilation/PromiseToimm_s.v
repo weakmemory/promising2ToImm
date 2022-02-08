@@ -39,7 +39,6 @@ Require Import ExtTraversalCounting.
 Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
 Require Import AuxTime.
-Require Import ExtTraversalCountingSet.
 Require Import IndefiniteDescription.
 Require Import ImmFair. 
 Require Import Coq.Program.Basics.
@@ -82,6 +81,16 @@ Proof using.
     eauto using SetoidList.InA.
 Qed.
 
+(* TODO: move *)
+Lemma etc_dom G sc T (ETCCOH : etc_coherent G sc T):
+  ecovered T ∪₁ eissued T ∪₁ reserved T ⊆₁ acts_set G.
+Proof.
+  destruct T.
+  unfold ecovered, eissued; ins.
+  assert (tc_coherent G sc etc_TC) by apply ETCCOH.
+  unionL; eauto using coveredE, issuedE.
+  apply ETCCOH.
+Qed. 
 
 Definition execution_final_memory (G : execution) final_memory :=
   forall l,
