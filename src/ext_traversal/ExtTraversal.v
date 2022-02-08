@@ -480,7 +480,7 @@ End Props.
 Lemma exists_ext_trav_step e (T: ext_trav_config)
       (N_FIN : next G (ecovered T) e)
       (ETCCOH : etc_coherent G sc T)
-      (FINDOM: set_finite (acts_set G)):
+      (FINDOM : set_finite (acts_set G \₁ is_init)):
   exists T', ext_trav_step T T'.
 Proof using WF IMMCON COM.
   assert (fsupp (ar G sc ∪ rf ⨾ ppo ∩ same_loc)⁺) as FF.

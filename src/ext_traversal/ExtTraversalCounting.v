@@ -72,11 +72,11 @@ Section ExtTraversalCounting.
   Notation "'rmw'" := (rmw G).
 
 
-  Hypothesis FINDOM: fin_exec_full G. 
+  Hypothesis FINDOM: fin_exec G. 
   Definition acts_list: list actid :=
-    filterP (acts_set G)
+    filterP (acts_set G \₁ is_init)
             (proj1_sig (@constructive_indefinite_description _ _ FINDOM)).
-  Lemma acts_set_findom: acts_set G ≡₁ (fun e => In e acts_list).
+  Lemma acts_set_findom: acts_set G \₁ is_init ≡₁ (fun e => In e acts_list).
   Proof.
     unfold acts_list. destruct constructive_indefinite_description. simpl.
     apply AuxRel.set_equiv_exp_equiv. intros e.
@@ -91,6 +91,7 @@ Section ExtTraversalCounting.
     countP (W ∩₁ set_compl (reserved T)) acts_list.
   
   Lemma trav_steps_left_step_decrease (T T' : ext_trav_config)
+        (ETCCOH : etc_coherent G sc T)
         (STEP : ext_trav_step G sc T T') :
     trav_steps_left T > trav_steps_left T'.
   Proof using WF.
@@ -103,7 +104,10 @@ Section ExtTraversalCounting.
                countP (W ∩₁ set_compl (reserved T ∪₁ eq e)) acts_list) as AA.
     { intros e. red. apply countP_mori; auto.
       basic_solver. }
-    red in STEP. desc. red in STEP.
+    red in STEP. desc.
+    assert (~ is_init e) as NINITE.
+    { eapply ext_itrav_step_ninit with (T:=T); eauto. }
+    red in STEP.
     desf.
     { clear AA.
       unfold trav_steps_left.
@@ -115,6 +119,7 @@ Section ExtTraversalCounting.
       { rewrite COVEQ. basic_solver. }
       { unfold set_compl. intros HH. apply HH. apply COVEQ. basic_solver. }
       apply acts_set_findom. 
+      split; auto.
       apply (coveredE TCCOH'). apply COVEQ. basic_solver. }
     { unfold trav_steps_left.
       rewrite COVEQ.
@@ -131,7 +136,8 @@ Section ExtTraversalCounting.
       { rewrite ISSEQ. basic_solver. }
       { intros BB. apply BB. apply ISSEQ. basic_solver. }
       { by split. }
-      apply acts_set_findom. by apply (etc_S_in_E ETCCOH'). }
+      apply acts_set_findom. split; auto.
+      now apply (etc_S_in_E ETCCOH'). }
     unfold trav_steps_left.
     rewrite COVEQ, ISSEQ.
     assert (countP (W ∩₁ set_compl (reserved T )) acts_list >
@@ -144,26 +150,34 @@ Section ExtTraversalCounting.
     { rewrite RESEQ. basic_solver. }
     { intros BB. apply BB. apply RESEQ. basic_solver. }
     { by split. }
-    apply acts_set_findom. by apply (etc_S_in_E ETCCOH').
+    apply acts_set_findom. split; auto.
+    now apply (etc_S_in_E ETCCOH').
   Qed.
 
   Lemma trav_steps_left_steps_decrease (T T' : ext_trav_config)
+        (ETCCOH : etc_coherent G sc T)
         (STEPS : (ext_trav_step G sc)⁺ T T') :
     trav_steps_left T > trav_steps_left T'.
   Proof using WF.
     induction STEPS.
-    2: by intuition.
-      by apply trav_steps_left_step_decrease.
+    { apply trav_steps_left_step_decrease; auto. }
+    red. etransitivity.
+    2: now apply IHSTEPS1.
+    apply IHSTEPS2. apply clos_trans_tn1 in STEPS1.
+    inv STEPS1.
+    all: red in H; desf; apply H.
   Qed.
 
   Lemma trav_steps_left_decrease_sim (T T' : ext_trav_config)
+        (ETCCOH : etc_coherent G sc T)
         (STEP : ext_sim_trav_step G sc T T') :
     trav_steps_left T > trav_steps_left T'.
   Proof using WF.
-    apply trav_steps_left_steps_decrease. by apply ext_sim_trav_step_in_trav_steps.
+    apply trav_steps_left_steps_decrease; auto. by apply ext_sim_trav_step_in_trav_steps.
   Qed.
   
   Lemma trav_steps_left_null_cov (T : ext_trav_config)
+        (ETCCOH : etc_coherent G sc T)
         (NULL : trav_steps_left T = 0) :
     E ⊆₁ ecovered T.
   Proof using.
@@ -177,10 +191,15 @@ Section ExtTraversalCounting.
     exfalso. 
     assert (In x (filterP (set_compl (ecovered T)) acts_list)) as UU.
     2: { rewrite HH in UU. inv UU. }
-    apply in_filterP_iff. split; [by apply acts_set_findom| done].
+    apply in_filterP_iff. split; [|done].
+    apply acts_set_findom. split; auto.
+    intros BB. apply NN. red. eapply init_covered.
+    { apply ETCCOH. }
+    split; auto.
   Qed.
 
   Lemma trav_steps_left_ncov_nnull (T : ext_trav_config) e
+        (ETCCOH : etc_coherent G sc T)
         (EE : E e) (NCOV : ~ ecovered T e):
     trav_steps_left T <> 0.
   Proof using.
@@ -220,16 +239,21 @@ Section ExtTraversalCounting.
     desc. exists h.
     assert (In h (filterP (set_compl (ecovered T)) acts_list)) as GG.
     { rewrite YY. red. by left. }
-    apply in_filterP_iff in GG. generalize acts_set_findom. basic_solver. 
+    apply in_filterP_iff in GG. desf.
+    split; auto.
+    apply acts_set_findom in GG. apply GG.
   Qed.
 
   Lemma trav_steps_left_decrease_sim_trans (T T' : ext_trav_config)
+        (ETCCOH : etc_coherent G sc T)
         (STEPS : (ext_sim_trav_step G sc)⁺ T T') :
     trav_steps_left T > trav_steps_left T'.
   Proof using WF.
     induction STEPS.
-    { by apply trav_steps_left_decrease_sim. }
-    eapply Lt.lt_trans; eauto.
+    { now apply trav_steps_left_decrease_sim. }
+    eapply Lt.lt_trans with (m:=trav_steps_left y); try intuition.
+    apply IHSTEPS2.
+    eapply ext_sim_trav_step_ct_coherence; eauto.
   Qed.
 
   Lemma sim_traversal_helper T
@@ -242,7 +266,8 @@ Section ExtTraversalCounting.
     assert
       (exists T' : ext_trav_config,
           (ext_sim_trav_step G sc)＊ T T' /\ trav_steps_left T' = 0).
-    2: { desc. eexists. splits; eauto. by apply trav_steps_left_null_cov. }
+    2: { desc. eexists. splits; eauto. apply trav_steps_left_null_cov; auto.
+         eapply ext_sim_trav_step_rt_coherence; eauto. }
     assert (exists n, n = trav_steps_left T) as [n NN] by eauto.
     generalize dependent T. generalize dependent n.
     set (P n :=
@@ -311,7 +336,11 @@ Section ExtTraversalCounting.
                    ext_sim_trav_step G sc (TCtr n) (TCtr (1 + n)) >> /\
                << TCLAST : trav_steps_left (TCtr lst) = 0 >>).
     2: { desc. exists lst, TCtr. splits; auto.
-         by apply trav_steps_left_null_cov. }
+         apply trav_steps_left_null_cov; auto.
+         destruct lst.
+         { now rewrite TCINIT. }
+         eapply ext_sim_trav_step_coherence.
+         apply TCSTEP. lia. }
     assert (exists n, n = trav_steps_left T) as [n NN] by eauto.
     generalize dependent T.
     pattern n. apply nat_ind_lt. clear n.

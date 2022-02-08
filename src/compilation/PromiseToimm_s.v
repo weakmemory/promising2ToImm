@@ -160,7 +160,6 @@ Lemma cert_simulation G sc thread PC T S f_to f_from
       (SIMREL : simrel_thread G sc PC T S f_to f_from thread sim_certification)
       (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T)
       (FIN: fin_exec G)
-      (* (FIN: fin_exec_full G) *)
       (FAIR: mem_fair G)
       (IMM_FAIR: imm_fair G sc):
   exists T' S' PC' f_to' f_from',
@@ -172,12 +171,7 @@ Proof using.
   { apply SIMREL. }
   assert (complete G) as CG by apply IMMCON.
 
-  (* So far ExtTraversalCounting assumes full finiteness.
-     Since we'll most probably rewrite this part, it's easier 
-     to temporarily assume the needed form of finiteness. *)
-  assert (fin_exec_full G) as FIN' by admit.
-  
-  generalize (sim_step_cov_full_traversal WF CG FIN' IMMCON ETCCOH NCOV); intros H.
+  generalize (sim_step_cov_full_traversal WF CG FIN IMMCON ETCCOH NCOV); intros H.
   destruct H as [T'].
   1,2: by apply SIMREL.
   desc.
@@ -191,7 +185,7 @@ Proof using.
   eapply cert_sim_steps in H; auto.
   2: by eauto.
   desf. eexists. eexists. eexists. splits; eauto.
-Admitted.
+Qed.
 
 Lemma simrel_thread_bigger_sc_memory G sc T S thread f_to f_from threads memory
       sc_view memory' sc_view'
@@ -909,7 +903,8 @@ Proof using All.
     { eapply Memory.cap_closed; eauto. apply SIMREL_THREAD. }
     { apply CAP. }
       by apply Memory.max_full_timemap_closed. }
-  { admit. }
+  { (* TODO: follows from FIN'0 : fin_exec G' *)
+    admit. }
   desc.
 
   assert
@@ -1015,24 +1010,6 @@ Proof using All.
   eexists. eexists. eexists.
   splits; eauto.
 Qed.
-
-Theorem promise2imm_finite
-        (FIN: fin_exec_full G) :
-  promise_allows prog final_memory.
-Proof using All.
-  assert (FAIR: mem_fair G).
-  { (* TODO: should follow from FIN *) admit. }
-  assert (IMM_FAIR: imm_fair G sc).
-  { (* TODO: should follow from FIN *) admit. }
-  red.
-  destruct simulation as [T [PC H]]; eauto. desc.
-  edestruct sim_covered_exists_terminal as [PC']; eauto.
-  desc.
-  exists PC'. splits; eauto.
-  { eapply rt_trans; eauto. }
-  eapply same_final_memory; eauto. 
-Admitted.
-  
 
 Lemma simulation_enum (FAIR: mem_fair G) (IMM_FAIR: imm_fair G sc) :
   exists (len: nat_omega)
@@ -1217,4 +1194,21 @@ Proof using All.
 *)
 Admitted. 
 
+(* Theorem promise2imm_finite *)
+(*         (FIN: fin_exec_full G) : *)
+(*   promise_allows prog final_memory. *)
+(* Proof using All. *)
+(*   assert (FAIR: mem_fair G). *)
+(*   { (* TODO: should follow from FIN *) admit. } *)
+(*   assert (IMM_FAIR: imm_fair G sc). *)
+(*   { (* TODO: should follow from FIN *) admit. } *)
+(*   red. *)
+(*   destruct simulation as [T [PC H]]; eauto. desc. *)
+(*   edestruct sim_covered_exists_terminal as [PC']; eauto. *)
+(*   desc. *)
+(*   exists PC'. splits; eauto. *)
+(*   { eapply rt_trans; eauto. } *)
+(*   eapply same_final_memory; eauto.  *)
+(* Admitted. *)
+  
 End PromiseToIMM.
