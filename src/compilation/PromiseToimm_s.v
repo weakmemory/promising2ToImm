@@ -166,7 +166,7 @@ Proof using.
      to temporarily assume the needed form of finiteness. *)
   assert (fin_exec_full G) as FIN' by admit.
   
-  generalize (sim_step_cov_full_traversal WF CG FAIR IMM_FAIR FIN' IMMCON ETCCOH NCOV); intros H.
+  generalize (sim_step_cov_full_traversal WF CG FIN' IMMCON ETCCOH NCOV); intros H.
   destruct H as [T'].
   1,2: by apply SIMREL.
   desc.
@@ -847,12 +847,14 @@ Lemma sim_step PC T S T' S' f_to f_from
       (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
       (ETC_FIN: etc_fin (mkETC T S))
       (SIMREL : simrel G sc PC T S f_to f_from)
-      (FAIR: mem_fair G)
       (FIN: fin_exec_full G):
     exists PC' f_to' f_from',
       ⟪ PSTEP : (conf_step)^? PC PC' ⟫ /\
       ⟪ SIMREL : simrel G sc PC' T' S' f_to' f_from' ⟫.
 Proof using All.
+  assert (FAIR: mem_fair G).
+  { (* TODO: Follows from FIN *) admit. }
+
   destruct STEP as [thread STEP].
   forward eapply isim_step_preserves_fin as FIN'; eauto. 
   cdes SIMREL. cdes COMMON.
@@ -951,7 +953,7 @@ Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)⁺ TS TS')
       (ETC_FIN: etc_fin TS)
       (SIMREL  : simrel G sc PC (etc_TC TS) (reserved TS) f_to f_from)
-      (FAIR: mem_fair G)
+      (* (FAIR: mem_fair G) *)
       (FIN: fin_exec_full G) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : conf_step＊ PC PC' ⟫ /\
@@ -976,18 +978,17 @@ Proof using All.
   eapply rt_trans; eauto. 
 Qed.
   
-
 Lemma simulation 
-      (FAIR: mem_fair G)
-      (FIN: fin_exec_full G)
-      (IMM_FAIR: imm_fair G sc):
+      (FIN: fin_exec_full G) :
   exists T S PC f_to f_from,
     ⟪ FINALT : (acts_set G) ⊆₁ covered T ⟫ /\
     ⟪ PSTEP  : conf_step＊ (conf_init prog) PC ⟫ /\
     ⟪ SIMREL : simrel G sc PC T S f_to f_from ⟫.
 Proof using All.
+      (* (FAIR: mem_fair G) *)
+      (* (IMM_FAIR: imm_fair G sc): *)
   assert (complete G) as CG by apply IMMCON. 
-  generalize (sim_traversal WF CG FAIR IMM_FAIR FIN IMMCON); ins; desc.
+  generalize (sim_traversal WF CG FIN IMMCON); ins; desc.
   destruct T as [T S].
   exists T, S.
   apply rtE in H.
@@ -1005,27 +1006,54 @@ Proof using All.
   eexists. eexists. eexists.
   splits; eauto.
 Qed.
+
+Theorem promise2imm_finite
+        (FIN: fin_exec_full G) :
+  promise_allows prog final_memory.
+Proof using All.
+  assert (FAIR: mem_fair G).
+  { (* TODO: should follow from FIN *) admit. }
+  assert (IMM_FAIR: imm_fair G sc).
+  { (* TODO: should follow from FIN *) admit. }
+  red.
+  destruct simulation as [T [PC H]]; eauto. desc.
+  edestruct sim_covered_exists_terminal as [PC']; eauto.
+  desc.
+  exists PC'. splits; eauto.
+  { eapply rt_trans; eauto. }
+  eapply same_final_memory; eauto. 
+Admitted.
   
 
-Lemma simulation_enum
-      (FAIR: mem_fair G)
-      (IMM_FAIR: imm_fair G sc)
-  :
+Lemma simulation_enum (FAIR: mem_fair G) (IMM_FAIR: imm_fair G sc) :
   exists (len: nat_omega) (f_to f_from: actid -> Time.t)
-    (TSPs: nat -> (ext_trav_config * (actid -> Prop) * Configuration.t)),
-    ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
-                             ecovered (fst (fst (TSPs i))) ⟫ /\
-    ⟪ PINIT: snd (TSPs 0) = conf_init prog ⟫ /\
-    (* too weak: adjacent states may be not related *)
-    (* ⟪ PSTEP: forall i (DOM: NOmega.lt_nat_l i len), *)
-    (*     conf_step＊ (conf_init prog) (snd (TSPs i)) ⟫ /\ *)
+    (TCtr : nat -> ext_trav_config)
+    (PRtr : nat -> Configuration.t),
+
+    (* PRtr is a run of the Promising2 machine *)
+    ⟪ PINIT: PRtr 0 = conf_init prog ⟫ /\
     ⟪ PSTEP: forall i (DOM: NOmega.lt_nat_l i len),
-        conf_step⁺ (snd (TSPs i)) (snd (TSPs (S i))) ⟫ /\
+        conf_step^* (PRtr i) (PRtr (1 + i)) ⟫ /\
+
+    ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
+                             ecovered (TCtr i) ⟫ /\
+
     ⟪ SIMREL: forall i (DOM: NOmega.lt_nat_l i len),
-          simrel G sc (snd (TSPs i)) (etc_TC (fst (fst (TSPs i))))
-                 (snd (fst (TSPs i)))
+          simrel G sc
+                 (PRtr i)
+                 (etc_TC (TCtr i))
+                 (reserved (TCtr i))
                f_to f_from⟫. 
 Proof using All.
+  destruct (classic (fin_exec_full G)) as [FIN|NFIN].
+  { destruct simulation as [T [PC H]]; eauto. desc.
+    edestruct sim_covered_exists_terminal as [PC']; eauto.
+    desc.
+    exists PC'. splits; eauto.
+    { eapply rt_trans; eauto. }
+    eapply same_final_memory; eauto. 
+
+
   (* 
      1. Does TRAV condition denote what we need? 
      2. This is too technical; we need something similar to promise2imm theorem
@@ -1054,20 +1082,5 @@ Proof using All.
 
 *)
 Admitted. 
-  
-Theorem promise2imm 
-        (FAIR: mem_fair G)
-        (IMM_FAIR: imm_fair G sc)
-      (FIN: fin_exec_full G) :
-  promise_allows prog final_memory.
-Proof using All.
-  red.
-  destruct simulation as [T [PC H]]; eauto. desc.
-  edestruct sim_covered_exists_terminal as [PC']; eauto.
-  desc.
-  exists PC'. splits; eauto.
-  { eapply rt_trans; eauto. }
-  eapply same_final_memory; eauto. 
-Qed.
 
 End PromiseToIMM.
