@@ -1123,6 +1123,16 @@ Proof using All.
       { exists (exist _ _ BB); ins. }
       red. splits; eauto. lia. }
     desf; ins.
+    assert (forall n, n < 1 + lst -> fst (proj1_sig (TR n)) = n) as NNTR.
+    { clear -AA0 STNTC. induction n.
+      { now rewrite STNTC. }
+      intros LT.
+      specialize (AA0 n).
+      assert (n < 1 + lst) as JJ by lia.
+      specialize (IHn JJ).
+      remember (TR    n)  as tt . destruct tt  as [[i  conf ] NTCtt ]; ins.
+      remember (TR (S n)) as tt'. destruct tt' as [[i' conf'] NTCtt']; ins; subst.
+      apply AA0. lia. }
     exists (fun n => snd (proj1_sig (TR n))).
     splits.
     { now rewrite STNTC. }
@@ -1131,7 +1141,15 @@ Proof using All.
       remember (TR (S i)) as tt'. destruct tt' as [[n' conf'] NTCtt']; ins.
       enough (i = n); subst.
       { apply AA0. lia. }
-      admit. }
+      specialize (NNTR i). rewrite <- Heqtt in NNTR. ins.
+      rewrite NNTR; auto. lia. }
+    ins.
+    remember (TR    i)  as tt . destruct tt  as [[n  conf ] NTCtt ]; ins.
+    enough (i = n); subst.
+    { apply NTCtt. }
+    specialize (NNTR i). rewrite <- Heqtt in NNTR. ins.
+    rewrite NNTR; auto. }
+
 
       
 
