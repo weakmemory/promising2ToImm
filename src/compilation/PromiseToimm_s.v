@@ -982,7 +982,7 @@ Qed.
   
 Lemma simulation 
       (FAIR: mem_fair G)
-      (FIN: fin_exec_full G) :
+      (FIN: fin_exec G) :
   exists T S PC f_to f_from,
     ⟪ FINALT : (acts_set G) ⊆₁ covered T ⟫ /\
     ⟪ PSTEP  : conf_step＊ (conf_init prog) PC ⟫ /\
@@ -1041,7 +1041,7 @@ Proof using All.
                                    (ext_sim_trav_step G sc)^* (TCtr n) (TCtr (1 + n)) >> /\
              ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
                  ecovered (TCtr i) ⟫); desc.
-  { destruct (classic (fin_exec_full G)) as [FIN|NFIN].
+  { destruct (classic (fin_exec G)) as [FIN|NFIN].
     { destruct (sim_traversal_trace WF CG FIN IMMCON) as [lst [TCtr HH]]; desc.
       assert (forall n, n < S lst -> etc_coherent G sc (TCtr n)) as ETCN.
       { induction n; ins. 
@@ -1195,7 +1195,7 @@ Proof using All.
 Admitted. 
 
 (* Theorem promise2imm_finite *)
-(*         (FIN: fin_exec_full G) : *)
+(*         (FIN: fin_exec G) : *)
 (*   promise_allows prog final_memory. *)
 (* Proof using All. *)
 (*   assert (FAIR: mem_fair G). *)
