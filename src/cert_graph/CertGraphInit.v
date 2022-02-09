@@ -1481,11 +1481,6 @@ Section CertGraphInit.
   End SimRelCert.
 
   (* TODO: move to FinExecution *)
-  Lemma fin_exec_full_same_events G G'
-        (SAME: acts_set G ≡₁ acts_set G') (FIN: fin_exec_full G):
-    fin_exec_full G'.
-  Proof using. unfold fin_exec_full in *. by rewrite <- SAME. Qed.
-
   Lemma fin_exec_same_events G G'
         (SAME: acts_set G ≡₁ acts_set G') (FIN: fin_exec G):
     fin_exec G'.
