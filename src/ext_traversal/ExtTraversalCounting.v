@@ -62,6 +62,7 @@ Section ExtTraversalCounting.
   Variable G : execution.
   Variable sc : relation actid.
   Variable WF : Wf G.
+  Variable WFSC : wf_sc G sc.
   
   Hypothesis COMP: complete G. 
                     
@@ -262,7 +263,7 @@ Section ExtTraversalCounting.
         (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
         (RMWCOV : forall r w (RMW : rmw r w), ecovered T r <-> ecovered T w) :
     exists T', (ext_sim_trav_step G sc)＊ T T' /\ ((acts_set G) ⊆₁ ecovered T').
-  Proof using WF FINDOM COMP.
+  Proof using WF WFSC FINDOM COMP.
     assert
       (exists T' : ext_trav_config,
           (ext_sim_trav_step G sc)＊ T T' /\ trav_steps_left T' = 0).
@@ -290,7 +291,6 @@ Section ExtTraversalCounting.
     eapply exists_ext_trav_step in HH1; eauto.
     desc.
     apply exists_ext_sim_trav_step in HH1; eauto.
-    2: by apply IMMCON.
     desc.
     clear T'. subst.
     specialize (H (trav_steps_left T'')).
@@ -306,7 +306,7 @@ Section ExtTraversalCounting.
   
   Lemma sim_traversal (IMMCON : imm_consistent G sc) :
     exists T, (ext_sim_trav_step G sc)＊ (ext_init_trav G) T /\ ((acts_set G) ⊆₁ ecovered T).
-  Proof using WF FINDOM COMP.
+  Proof using WF WFSC FINDOM COMP.
     apply sim_traversal_helper; auto.
     { by apply ext_init_trav_coherent. }
     { unfold ext_init_trav. simpls. basic_solver. }
@@ -329,7 +329,7 @@ Section ExtTraversalCounting.
       << TCSTEP : forall n (LT : n < lst),
           ext_sim_trav_step G sc (TCtr n) (TCtr (1 + n)) >> /\
       << TCLAST : acts_set G ⊆₁ ecovered (TCtr lst) >>.
-  Proof using WF FINDOM COMP.
+  Proof using WF WFSC FINDOM COMP.
     assert (exists lst TCtr,
                << TCINIT : TCtr 0 = T >> /\
                << TCSTEP : forall n (LT : n < lst),
@@ -354,7 +354,7 @@ Section ExtTraversalCounting.
     eapply exists_ext_trav_step in HH1; eauto.
     desc.
     apply exists_ext_sim_trav_step in HH1; eauto.
-    2: by apply IMMCON.
+    (* 2: by apply IMMCON. *)
     desc.
     clear T'. subst.
     specialize (QQ (trav_steps_left T'')).
@@ -380,7 +380,7 @@ Section ExtTraversalCounting.
       << TCSTEP : forall n (LT : n < lst),
           ext_sim_trav_step G sc (TCtr n) (TCtr (1 + n)) >> /\
       << TCLAST : acts_set G ⊆₁ ecovered (TCtr lst) >>.
-  Proof using WF FINDOM COMP.
+  Proof using WF WFSC FINDOM COMP.
     apply sim_traversal_trace_helper; auto.
     { by apply ext_init_trav_coherent. }
     { unfold ext_init_trav. simpls. basic_solver. }
@@ -419,7 +419,7 @@ Section ExtTraversalCounting.
         (RELCOV : W ∩₁ Rel ∩₁ eissued T ⊆₁ ecovered T)
         (RMWCOV : forall r w : actid, rmw r w -> ecovered T r <-> ecovered T w) : 
     exists T', (ext_isim_trav_step G sc thread)＊ T T' /\ ((acts_set G) ⊆₁ ecovered T').
-  Proof using WF FINDOM COMP.
+  Proof using WF WFSC FINDOM COMP.
     edestruct sim_traversal_helper as [T']; eauto.
     desc. exists T'. splits; auto.
     clear H0.

@@ -1,5 +1,5 @@
 COQMODULE    := promise2ToImm 
-COQTHEORIES  := src/lib/*.v src/imm_fair/*.v src/ext_traversal/*.v src/promise_basics/*.v src/simulation/*.v src/cert_graph/*.v src/interval_allocation/*.v src/reserve_steps/*.v src/simulation_steps/*.v src/compilation/*.v
+COQTHEORIES  := src/lib/*.v src/ext_traversal/*.v src/promise_basics/*.v src/simulation/*.v src/cert_graph/*.v src/interval_allocation/*.v src/reserve_steps/*.v src/simulation_steps/*.v src/compilation/*.v
 
 .PHONY: all theories clean tounicode
 

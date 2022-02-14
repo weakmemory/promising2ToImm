@@ -8,6 +8,7 @@ Require Export ExtTravRelations.
 From imm Require Import TraversalProperties.
 Require Import ExtTraversalConfig.
 Require Import Lia.
+From imm Require Import FinExecution ImmFair. 
 
 Set Implicit Arguments.
 
@@ -18,6 +19,7 @@ Hypothesis WF : Wf G.
 Hypothesis COM : complete G.
 Hypothesis sc : relation actid.
 Hypothesis IMMCON : imm_consistent G sc.
+Hypothesis WFSC : wf_sc G sc.
 
 (* Notation "'acts'" := (acts G). *)
 Notation "'sb'" := (sb G).
@@ -480,15 +482,14 @@ End Props.
 Lemma exists_ext_trav_step e (T: ext_trav_config)
       (N_FIN : next G (ecovered T) e)
       (ETCCOH : etc_coherent G sc T)
-      (FINDOM : set_finite (acts_set G \₁ is_init)):
+      (FINDOM : fin_exec G):
   exists T', ext_trav_step T T'.
-Proof using WF IMMCON COM.
-  assert (fsupp (ar G sc ∪ rf ⨾ ppo ∩ same_loc)⁺) as FF.
-  { (* TODO: follows from FINDOM *) admit. }
+Proof using WF WFSC IMMCON COM.
   edestruct exists_trav_step; eauto.
   { apply ETCCOH. }
-  eapply trav_step_to_ext_trav_step; eauto.
-Admitted.
+  2: { eapply trav_step_to_ext_trav_step; eauto. }
+  apply imm_s_rfppo.fsupp_ar_rf_ppo_loc_fin; auto. 
+Qed.
 
 Definition same_ext_trav_config (T T' : ext_trav_config) :=
   ecovered T ≡₁ ecovered T' /\ eissued T ≡₁ eissued T' /\

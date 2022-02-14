@@ -40,7 +40,7 @@ Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
 Require Import AuxTime.
 Require Import IndefiniteDescription.
-Require Import ImmFair. 
+From imm Require Import ImmFair. 
 Require Import Coq.Program.Basics.
 Require Import FinTravConfigs.
 
@@ -161,7 +161,7 @@ Lemma cert_simulation G sc thread PC T S f_to f_from
       (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T)
       (FIN: fin_exec G)
       (FAIR: mem_fair G)
-      (IMM_FAIR: imm_fair G sc):
+      (IMM_FAIR: imm_s_fair G sc):
   exists T' S' PC' f_to' f_from',
     ⟪ FINALT : (acts_set G) ⊆₁ covered T' ⟫ /\
     ⟪ PSTEP  : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
@@ -170,8 +170,9 @@ Proof using.
   assert (etc_coherent G sc (mkETC T S)) as ETCCOH.
   { apply SIMREL. }
   assert (complete G) as CG by apply IMMCON.
+  assert (wf_sc G sc) as WFSC by apply IMMCON.  
 
-  generalize (sim_step_cov_full_traversal WF CG FIN IMMCON ETCCOH NCOV); intros H.
+  generalize (sim_step_cov_full_traversal WF WFSC CG FIN IMMCON ETCCOH NCOV); intros H.
   destruct H as [T'].
   1,2: by apply SIMREL.
   desc.
@@ -990,8 +991,9 @@ Lemma simulation
 Proof using All.
       (*  *)
       (* (IMM_FAIR: imm_fair G sc): *)
-  assert (complete G) as CG by apply IMMCON. 
-  generalize (sim_traversal WF CG FIN IMMCON); ins; desc.
+  assert (complete G) as CG by apply IMMCON.
+  assert (wf_sc G sc) as WFSC by apply IMMCON.
+  generalize (sim_traversal WF WFSC CG FIN IMMCON); ins; desc.
   destruct T as [T S].
   exists T, S.
   apply rtE in H.
@@ -1011,7 +1013,7 @@ Proof using All.
   splits; eauto.
 Qed.
 
-Lemma simulation_enum (FAIR: mem_fair G) (IMM_FAIR: imm_fair G sc) :
+Lemma simulation_enum (FAIR: mem_fair G) (IMM_FAIR: imm_s_fair G sc) :
   exists (len: nat_omega)
     (TCtr : nat -> ext_trav_config),
     << LENP : NOmega.lt_nat_l 0 len >> /\
@@ -1032,6 +1034,7 @@ Lemma simulation_enum (FAIR: mem_fair G) (IMM_FAIR: imm_fair G sc) :
                  f_to f_from ⟫. 
 Proof using All.
   assert (complete G) as CG by apply IMMCON.
+  assert (wf_sc G sc) as WFSC by apply IMMCON.
 
   assert (exists (len : nat_omega)
                  (TCtr : nat -> ext_trav_config),
@@ -1042,7 +1045,7 @@ Proof using All.
              ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
                  ecovered (TCtr i) ⟫); desc.
   { destruct (classic (fin_exec G)) as [FIN|NFIN].
-    { destruct (sim_traversal_trace WF CG FIN IMMCON) as [lst [TCtr HH]]; desc.
+    { destruct (sim_traversal_trace WF WFSC CG FIN IMMCON) as [lst [TCtr HH]]; desc.
       assert (forall n, n < S lst -> etc_coherent G sc (TCtr n)) as ETCN.
       { induction n; ins. 
         { rewrite TCINIT. now apply ext_init_trav_coherent. }
