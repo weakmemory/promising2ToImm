@@ -3,7 +3,6 @@
       the IMM memory model. *)
 (******************************************************************************)
 Require Import Lia.
-From hahn Require Import Hahn.
 Require Import PromisingLib.
 From Promising2 Require Import TView View Time Event Cell Thread Memory Configuration Local.
 From imm Require Import Prog.
@@ -43,8 +42,9 @@ Require Import IndefiniteDescription.
 From imm Require Import ImmFair. 
 Require Import Coq.Program.Basics.
 Require Import FinTravConfigs.
-
 Require Import ChoiceFacts.
+From hahn Require Import Hahn.
+
 
 Set Implicit Arguments.
 Remove Hints plus_n_O.
@@ -1013,6 +1013,56 @@ Proof using All.
   splits; eauto.
 Qed.
 
+From imm Require Import SimTraversal.
+From imm Require Import SimTraversalProperties.
+From imm Require Import SimTravClosure.
+From imm Require Import TraversalConfigAlt.
+
+Lemma tc_coh2etc_coh tc (COH: tc_coherent G sc tc)
+      (w_ex_is_xacq : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G)):
+  etc_coherent G sc (mkETC tc (issued tc)). 
+Proof using WF IMMCON.
+  forward eapply tc_coherent_implies_tc_coherent_alt as COH_ALT; eauto.
+  { apply IMMCON. }
+  inversion COH_ALT.
+  destruct tc as [C I]. simpl in *. 
+  split; auto; unfold ecovered, eissued; simpl.
+  { basic_solver. }
+  { etransitivity; [| by apply tc_fwbob_I]. apply dom_rel_mori.
+    rewrite <- !seqA. hahn_frame. apply imm_bob.sb_from_f_in_fwbob. }
+  { forward eapply dom_detour_rmwrfi_rfe_acq_sb_issued as IN; eauto. }
+  { forward eapply dom_wex_sb_issued as IN; eauto. }
+  { unfold dom_sb_S_rfrmw. simpl.
+    rewrite rmw_W_ex. repeat rewrite codom_seq. rewrite codom_eqv.
+    rewrite set_interC, <- dom_eqv1.
+    rewrite w_ex_is_xacq. forward eapply dom_wex_sb_issued as IN; eauto. }
+  { sin_rewrite detour_rfe_data_rfi_rmw_rppo_in_detour_rfe_ppo; auto.
+    rewrite seqA. forward eapply dom_detour_rfe_ppo_issued as IN; eauto. }
+  { rewrite (dom_l (wf_detourD WF)); auto. 
+    rewrite detour_in_ar, imm_s_ppo.rmw_in_ar_int, ar_int_in_ar; eauto.
+    etransitivity; [| by apply tc_I_ar_rf_ppo_loc_I]. apply dom_rel_mori.
+    hahn_frame. rewrite <- ct_unit, <- ct_step. apply seq_mori; basic_solver 10. }
+  forward eapply TraversalProperties.issuable_W_ex_in_codom_I_rfrmw as IN; eauto.
+  rewrite <- IN, <- issued_in_issuable; auto.
+Qed. 
+
+Lemma isim_trav_step2ext_isim_trav_step (tc1 tc2: trav_config) t
+      (COH1: tc_coherent G sc tc2)
+      (STEP: isim_trav_step G sc t tc1 tc2)
+      (w_ex_is_xacq : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G)):
+  (ext_isim_trav_step G sc t)^* (mkETC tc1 (issued tc1)) (mkETC tc2 (issued tc2)).
+Proof.
+  inversion STEP; subst.
+  { apply rt_step. eapply ext_fence_trav_step; eauto. simpl.
+    unfold ecovered, eissued. simpl. red. splits.
+    2: { econstructor; simpl; auto; unfold ecovered, eissued; simpl.
+         { admit. }
+         { basic_solver. }
+         { 
+Abort.    
+
+
+
 Lemma simulation_enum (FAIR: mem_fair G) (IMM_FAIR: imm_s_fair G sc) :
   exists (len: nat_omega)
     (TCtr : nat -> ext_trav_config),
@@ -1062,6 +1112,8 @@ Proof using All.
       red in COND. red in COND.
       erewrite <- etc_dom with (sc:=sc) (T:=TCtr x); eauto with hahn. }
 
+    
+    
     (* TODO: Infinite case *)
     admit. }
   
