@@ -508,13 +508,13 @@ Proof using.
   unfold same_ext_trav_config; split; splits; ins; desf; etransitivity; eauto.
 Qed.
 
-Add Parametric Relation : ext_trav_config same_ext_trav_config
+Global Add Parametric Relation : ext_trav_config same_ext_trav_config
     reflexivity proved by same_ext_trav_config_refl
     symmetry proved by same_ext_trav_config_sym
     transitivity proved by same_ext_trav_config_trans
       as same_etc.
 
-Add Parametric Morphism : etc_coherent with signature
+Global Add Parametric Morphism : etc_coherent with signature
     eq ==> eq ==> same_ext_trav_config ==> iff as etc_coherent_more.
 Proof using.
   intros G' sc' T T' EQT. cdes EQT.
@@ -532,7 +532,7 @@ Proof using.
   all: red; unfold ecovered, eissued in *; eauto.
 Qed.
 
-Add Parametric Morphism : ext_itrav_step with signature
+Global Add Parametric Morphism : ext_itrav_step with signature
     eq ==> same_ext_trav_config ==> same_ext_trav_config ==> iff as
         ext_itrav_step_more.
 Proof using.
