@@ -904,8 +904,7 @@ Proof using All.
     { eapply Memory.cap_closed; eauto. apply SIMREL_THREAD. }
     { apply CAP. }
       by apply Memory.max_full_timemap_closed. }
-  { (* TODO: follows from FIN'0 : fin_exec G' *)
-    admit. }
+  { apply fin_exec_imm_s_fair; auto. apply IMMCON0. }
   desc.
 
   assert
@@ -950,7 +949,7 @@ Proof using All.
   eexists. splits.
   { apply PSTEP. }
   simpls.
-Admitted. 
+Qed. 
   
 Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)^* TS TS')
