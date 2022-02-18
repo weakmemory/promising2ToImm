@@ -1604,26 +1604,17 @@ Proof using All.
     intros. desc.
     rewrite ?TMP_EQ_G, ?TMP_EQ_SC in *. 
 
-    exists (set_size IordTraversal.IordTraversal.graph_steps).
+    remember (NOmega.add (set_size IordTraversal.IordTraversal.graph_steps) (NOnum 1)) as len.
+    exists len.
     exists (fun i => let (C, I) := sim_enum i in [C # I # I]).
 
-    assert (sim_enum 0 = init_trav G) as SE0.
-    { (* TODO: add this to sim_enum properties *)
-      admit. }
-    
-    assert (NOmega.lt_nat_l 0 (set_size IordTraversal.IordTraversal.graph_steps)) as LENn0.
-    { destruct (set_size IordTraversal.IordTraversal.graph_steps) eqn:SIZE.
-      { vauto. }
-      destruct n; simpl; try lia. 
-      apply set_size_empty in SIZE.
-      destruct NFIN. exists []. ins.
-      apply (proj1 SIZE (IordTraversal.IordTraversal.mkTL TraversalOrder.TravAction.cover x)).
-      red. splits; basic_solver 10. }
+    assert (NOmega.lt_nat_l 0 len) as LENn0.
+    { subst len. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
     splits; auto.
-    { rewrite SE0. simpl. vauto. }
+    { rewrite INIT. simpl. vauto. }
     { intros i DOMi.
       specialize (STEPS i). specialize_full STEPS. 
-      { liaW (set_size IordTraversal.IordTraversal.graph_steps). }
+      { subst len. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
       remember (sim_enum (1 + i)) as etc'. clear Heqetc'. 
       apply rtEE in STEPS as [n [_ STEPS]].
       generalize dependent etc'. induction n.
@@ -1634,21 +1625,22 @@ Proof using All.
         as EXT_STEPS; eauto.
       2: { by destruct etc', etc''. }
       eapply sim_trav_steps_coherence; [by eapply pow_rt; eauto| ].
-      apply COH. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
+      apply COH.
+      subst len. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
     split.
     2: { apply set_subset_bunion_l. intros.
          specialize (COH x). specialize_full COH.
-         { red in COND. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
+         { red in COND.
+           subst len. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
          apply coveredE in COH. destruct (sim_enum x); vauto. }
     rewrite AuxRel.set_split_comlete with (s' := acts_set G) (s := is_init).
     apply set_subset_union_l. split.
-    { red. ins. exists 0. split; auto. rewrite SE0. unfold ecovered. simpl.
+    { red. ins. exists 0. split; auto. rewrite INIT. unfold ecovered. simpl.
       generalize H. basic_solver. }
     intros e ENIe. specialize (ENUM e). specialize_full ENUM.
     { generalize ENIe. basic_solver. }
     desc. exists i. splits.
-    { (* TODO: add this to sim_enum properties *)
-      admit. }
+    { red. subst len. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
     destruct (sim_enum i). vauto. }
       
   exists len, TCtr. splits; auto.
