@@ -1524,6 +1524,7 @@ Qed.
 (* TODO: move upper *)
 From imm Require Import SimTravClosure. 
 From imm Require Import SetSize.
+Import IordTraversal.
 
 (* TODO: move to SetSize *)
 Lemma set_size_empty {A: Type} (s: A -> Prop):
@@ -1597,28 +1598,24 @@ Proof using All.
       red in COND. red in COND.
       erewrite <- etc_dom with (sc:=sc) (T:=TCtr x); eauto with hahn. }
 
-    assert (SimTravClosure.STCTraversal.G = G) as TMP_EQ_G by admit. 
-    assert (SimTravClosure.STCTraversal.sc = sc) as TMP_EQ_SC by admit. 
-    forward eapply STCTraversal.sim_traversal_inf; eauto.
-    all: try by (rewrite ?TMP_EQ_G, ?TMP_EQ_SC; auto). 
+    forward eapply sim_traversal_inf; eauto.
     intros. desc.
-    rewrite ?TMP_EQ_G, ?TMP_EQ_SC in *. 
 
-    remember (NOmega.add (set_size IordTraversal.IordTraversal.graph_steps) (NOnum 1)) as len.
+    remember (NOmega.add (set_size (graph_steps G)) (NOnum 1)) as len.
     exists len.
     exists (fun i => let (C, I) := sim_enum i in [C # I # I]).
 
     assert (NOmega.lt_nat_l 0 len) as LENn0.
-    { subst len. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
+    { subst len. liaW (set_size (graph_steps G)). }
     splits; auto.
     { rewrite INIT. simpl. vauto. }
     { intros i DOMi.
       specialize (STEPS i). specialize_full STEPS. 
-      { subst len. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
+      { subst len. liaW (set_size (graph_steps G)). }
       remember (sim_enum (1 + i)) as etc'. clear Heqetc'. 
       apply rtEE in STEPS as [n [_ STEPS]].
       generalize dependent etc'. induction n.
-      { ins. simpl in STEPS. destruct STEPS as [-> _]. apply rt_refl. }   
+      { ins. simpl in STEPS. destruct STEPS as [-> _]. apply rt_refl. }
       intros etc'' [etc' [STEPS' STEP]].
       eapply rt_trans; [by apply IHn; eauto | ].
       forward eapply (@sim_trav_step2ext_sim_trav_step etc' etc'') 
@@ -1626,12 +1623,12 @@ Proof using All.
       2: { by destruct etc', etc''. }
       eapply sim_trav_steps_coherence; [by eapply pow_rt; eauto| ].
       apply COH.
-      subst len. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
+      subst len. liaW (set_size (graph_steps G)). }
     split.
     2: { apply set_subset_bunion_l. intros.
          specialize (COH x). specialize_full COH.
          { red in COND.
-           subst len. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
+           subst len. liaW (set_size (graph_steps G)). }
          apply coveredE in COH. destruct (sim_enum x); vauto. }
     rewrite AuxRel.set_split_comlete with (s' := acts_set G) (s := is_init).
     apply set_subset_union_l. split.
@@ -1640,7 +1637,7 @@ Proof using All.
     intros e ENIe. specialize (ENUM e). specialize_full ENUM.
     { generalize ENIe. basic_solver. }
     desc. exists i. splits.
-    { red. subst len. liaW (set_size IordTraversal.IordTraversal.graph_steps). }
+    { red. subst len. liaW (set_size (graph_steps G)). }
     destruct (sim_enum i). vauto. }
       
   exists len, TCtr. splits; auto.
@@ -1745,35 +1742,7 @@ Proof using All.
   { apply NTCtt. }
   specialize (NNTR i). rewrite <- Heqtt in NNTR. ins.
   rewrite NNTR; auto.
-
-  (* 
-     1. Does TRAV condition denote what we need? 
-     2. This is too technical; we need something similar to promise2imm theorem
-     3. Currently I see two ways to proving this lemma:
-        - Prove ExtTraversalCountingSet.simulation_enum_impl lemma
-          to construct an infinite sequence of traversal configurations 
-          and then convert it to sequence of configurations
-        - Construct an infinite sequence of po-prefix-closed finite subgraphs,
-          apply the finite case 'simulation' theorem to them
-          and declare the sequence of their final states as the one needed here
-    
-     Some results we may need at some point:
-     - ImmFair.wf_ar_rf_ppo_loc_ct_inf states that
-       (ar | rf ;; ppo ∩ same_loc)^+ is well founded in infinite fair graphs;
-       in finite case this fact is used to pick the 'next' event
-     - ExtTraversalInf.exists_trav_step states that 'next' event can be used
-       to advance the current traversal configuration in infinite case
-
-     Also, there are some admits left in cert_graph/ files. 
-     They are related to proving various fsupp properties 
-     in (possibly) infinite graphs.
-     Despite they could be (?) proved as is, 
-     we instead can explicitly require certification to be finite 
-     (which should continue to hold even for infinite executions),
-     which will allow us to simply reuse previous cert_graph results.      
-
-*)
-Admitted. 
+Qed. 
 
 (* Theorem promise2imm_finite *)
 (*         (FIN: fin_exec G) : *)
