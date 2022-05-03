@@ -443,7 +443,7 @@ Section CertGraphInit.
         ⟪ STEPS'' : (step thread)＊ state state'' ⟫ /\
         ⟪ TEH'': thread_restricted_execution G thread state''.(ProgToExecution.G) ⟫.
   Proof using WF SIMREL.
-    edestruct steps_middle_set with (C:=CT) (state0:=state) (state':=state')
+    edestruct steps_middle_set with (C:=CT) (state:=state) (state':=state')
       as [state'']; eauto.
     { intros x HH. apply (acts_rep GPC) in HH.
       desc.
@@ -490,7 +490,7 @@ Section CertGraphInit.
     assert (wf_thread_state thread state'') as GPC''.
     { eapply wf_thread_state_steps; [|apply STEP1]; auto. }
     exists state''. splits; auto.
-    edestruct steps_old_restrict with (state0:=state'') (state':=state') as [ORMW]; eauto.
+    edestruct steps_old_restrict with (state:=state'') (state':=state') as [ORMW]; eauto.
     desc. unnw.
     constructor.
     { rewrite CACTS. unfold CT, mkCT, G. 

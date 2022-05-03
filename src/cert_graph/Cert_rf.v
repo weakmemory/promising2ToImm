@@ -647,7 +647,8 @@ Proof using All.
     rewrite (wf_rfeD WF).
     unfolder; ins; desf.
     splits; eauto.
-    exploit new_rf_comp; unfolder; ins; splits; eauto.
+    edestruct new_rf_comp as [a x1].
+    { unfolder; ins; splits; eauto. }
     desf; exists a; splits; eauto.
     {
     assert (H55:=H5).

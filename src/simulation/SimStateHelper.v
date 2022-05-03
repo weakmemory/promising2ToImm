@@ -185,7 +185,7 @@ Proof using WF.
     2: { apply (tr_acts_set TEH). by split. }
     assert (ll = Execution.lab (ProgToExecution.G state')
                                (ThreadEvent thread (eindex state))); subst; auto.
-    erewrite steps_preserve_lab with (state0:=yst) (state':=state'); eauto.
+    erewrite steps_preserve_lab with (state:=yst) (state':=state'); eauto.
     2: { rewrite UG. unfold add, acts_set. simpls. by left. }
     rewrite UG. unfold add. simpl. by rewrite upds. }
   { lia. }
@@ -256,8 +256,8 @@ Proof using.
   erewrite lab_thread_eq_thread_restricted_lab with (G:=G) (G':=(ProgToExecution.G state'));
     eauto.
   2: { apply (tr_acts_set TEH). by split. }
-  erewrite steps_preserve_lab with (state0:=yst) (state':=state'); eauto.
-  erewrite steps_preserve_lab with (state0:=yst) (state':=state'); eauto.
+  erewrite steps_preserve_lab with (state:=yst) (state':=state'); eauto.
+  erewrite steps_preserve_lab with (state:=yst) (state':=state'); eauto.
   rewrite UG. unfold add_rmw. simpls.
   rewrite Const.add_comm. rewrite upds. rewrite updo.
   2: { intros HH. inv HH. lia. }

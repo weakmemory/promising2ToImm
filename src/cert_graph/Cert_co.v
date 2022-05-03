@@ -450,7 +450,7 @@ ins; eapply fsupp_immediate_pred.
 { eapply cert_co_irr. }
 { eapply cert_co_trans. }
 unfolder; intro HH.
-exploit is_w_loc; eauto; ins; desf.
+edestruct is_w_loc as [l LL]; eauto; ins; desf.
 eapply HH with (b := InitEvent l).
 eapply tot_ex.
 { apply wf_cert_co_total. }
@@ -458,7 +458,7 @@ eapply tot_ex.
 { unfolder; splits; try edone.
   eapply (wf_init WF); exists x; splits; eauto.
   { by unfold is_w; rewrite (wf_init_lab WF) in *. }
-  rewrite x1.
+  rewrite LL.
   by unfold loc; rewrite (wf_init_lab WF) in *. }
 { intro A.
   eapply cert_co_sb_irr; eauto.

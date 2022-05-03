@@ -960,16 +960,14 @@ Proof using WF ETCCOH IMMCON.
   intros r IN.
   cdes IMMCON.
   unfolder in IN; desf.
-  exploit (Comp z).
-  { split. 
-    { apply (sub_E SUB); basic_solver. }
-    apply (sub_R SUB); basic_solver. }
+  edestruct (Comp z) as [x FR].
+  { split; auto. apply (sub_E SUB); basic_solver. }
   unfolder; ins ;desf.
   cut (E0 x /\ E0 z).
   { basic_solver 12. }
   split; apply E_E0.
   2: { by apply IN5. }
-  hahn_rewrite rfi_union_rfe in x0; unfolder in x0; desf.
+  hahn_rewrite rfi_union_rfe in FR; unfolder in FR; desf.
   { eapply rfi_E. basic_solver 21. }
   eapply I_in_E.
   eapply rfe_Grmwrfi_rt_Acq_E.
@@ -987,10 +985,10 @@ Lemma COMP_C : C ∩₁ R ⊆₁ codom_rel Grf.
 Proof using WF ETCCOH IMMCON.
 unfolder; ins; desf.
 cdes IMMCON.
-exploit (Comp x).
+edestruct (Comp x) as [y FR].
 - split; [by apply (coveredE TCCOH)| done].
 - unfolder; ins ;desf.
-cut (E0 x0 /\ E0 x).
+cut (E0 y /\ E0 x).
 basic_solver 12.
 unfold E0; split; [|basic_solver].
 generalize (dom_rf_covered WF TCCOH).
@@ -1001,7 +999,7 @@ Lemma COMP_NTID : E ∩₁ NTid_ thread ∩₁ R ⊆₁ codom_rel Grf.
 Proof using WF ETCCOH IMMCON.
 unfolder; ins; desf.
 cdes IMMCON.
-exploit (Comp x).
+edestruct (Comp x) as [x0 x1].
 - split.
 apply (sub_E SUB); basic_solver.
 apply (sub_R SUB); basic_solver.
@@ -1023,7 +1021,7 @@ Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
   rewrite (dom_l (wf_ppoE rstWF)).
   unfolder; ins; desf.
   cdes IMMCON.
-  exploit (Comp x).
+  edestruct (Comp x) as [x0 x1].
   { split.
     apply (sub_E SUB); basic_solver.
     apply (sub_R SUB); basic_solver. }
@@ -1058,7 +1056,7 @@ Proof using WF ETCCOH IMMCON RELCOV RMWCOV.
   2: by apply Frmw_E_prefix_clos.
   unfolder. ins. desf.
   cdes IMMCON.
-  exploit (Comp x).
+  edestruct (Comp x) as [x0 x1].
   { split.
     { apply (sub_E SUB). basic_solver. }
     apply (sub_R SUB); basic_solver. }
@@ -1081,7 +1079,7 @@ Proof using WF ETCCOH IMMCON.
   rewrite (dom_l (wf_rmwD rstWF)).
   unfolder; ins; desf.
   cdes IMMCON.
-  exploit (Comp x).
+  edestruct (Comp x) as [x0 x1].
   { split.
     { apply (sub_E SUB); basic_solver. }
     apply (sub_R SUB); basic_solver. }
