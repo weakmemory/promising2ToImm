@@ -60,7 +60,6 @@ Proof using.
 Qed.
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Lemma memory_init_o loc to from msg
       (GET : Memory.get loc to Memory.init = Some (from, msg)) :

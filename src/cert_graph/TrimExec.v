@@ -3,6 +3,8 @@ From imm Require Import Events.
 From imm Require Import FinExecution.
 From hahn Require Import Hahn.
 From imm Require Import imm_s.
+From imm Require Import imm_hb.
+
 Require Import AuxRel.
 Import ListNotations. 
 
@@ -98,8 +100,6 @@ Section TrimEvents.
     unfold sb. rewrite <- !restr_relE.
     apply restr_rel_mori; [apply trim_events_inclusion | done].
   Qed.
-
-  From imm Require Import imm_hb.
 
   (* Lemma trim_sw_inclusion: *)
   (*   sw (trim_exec G) ⊆ sw G. *)

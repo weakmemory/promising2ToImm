@@ -7,7 +7,6 @@ From imm Require Import Events.
 Require Import Event_imm_promise.
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Definition lts_step (tid : thread_id) (pe : ProgramEvent.t) (s1 s2 : state) : Prop :=
   exists (labels : list label),

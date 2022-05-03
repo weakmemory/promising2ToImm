@@ -15,7 +15,6 @@ Require Import ViewRel.
 Require Import PromiseLTS.
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Section SimStateHelper.
   Variable G : execution.

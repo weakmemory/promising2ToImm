@@ -4,7 +4,6 @@ From Promising2 Require Import View Time Event.
 From imm Require Import AuxRel2.
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Section MaxValue.
   Variable A : Type.

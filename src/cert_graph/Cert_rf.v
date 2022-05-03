@@ -23,7 +23,6 @@ Require Import Cert_D.
 Import ListNotations.
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).

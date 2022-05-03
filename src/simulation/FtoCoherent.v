@@ -8,7 +8,6 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Section FtoCoherent.
 Variable G : execution.

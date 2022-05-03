@@ -5,7 +5,6 @@ Require Import ExtTraversal.
 Require Import ExtSimTraversal.
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Section ExtSimTraversalProperties.
 Variable G : execution.

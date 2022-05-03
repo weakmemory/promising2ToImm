@@ -45,9 +45,15 @@ Require Import FinTravConfigs.
 Require Import ChoiceFacts.
 From hahn Require Import Hahn.
 
+From imm Require Import SimTraversal.
+From imm Require Import SimTraversalProperties.
+(* From imm Require Import SimTravClosure. *)
+From imm Require Import TraversalConfigAlt.
+
+From imm Require Import SetSize.
+(* Require Import IordTraversal. *)
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Lemma istep_nil_eq_silent thread :
   istep thread nil ≡
@@ -1012,11 +1018,6 @@ Proof using All.
   splits; eauto.
 Qed.
 
-From imm Require Import SimTraversal.
-From imm Require Import SimTraversalProperties.
-From imm Require Import SimTravClosure.
-From imm Require Import TraversalConfigAlt.
-
 Lemma tc_coh2etc_coh tc (COH: tc_coherent G sc tc)
       (w_ex_is_xacq : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G)):
   etc_coherent G sc (mkETC tc (issued tc)). 
@@ -1520,11 +1521,6 @@ Proof using WF IMMCON FRELACQ.
   { apply rt_refl. }
   eapply rt_trans; eauto. 
 Qed. 
-
-(* TODO: move upper *)
-From imm Require Import SimTravClosure. 
-From imm Require Import SetSize.
-Import IordTraversal.
 
 (* TODO: move to SetSize *)
 Lemma set_size_empty {A: Type} (s: A -> Prop):

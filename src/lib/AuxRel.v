@@ -51,6 +51,7 @@ Notation "f □₁ s" := (set_collect f s) (at level 39).
 Notation "f ⋄ r"  := (map_rel f r) (at level 45).
 Notation "f □ r"  := (collect_rel f r) (at level 45).
 
+Global
 Hint Unfold 
      clos_sym clos_refl_sym 
      inj_dom restr_fun set_map

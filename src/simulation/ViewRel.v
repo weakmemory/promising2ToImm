@@ -17,7 +17,6 @@ Require Import MaxValue.
 Require Import Event_imm_promise.
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Section ViewRel.
 Variable G : execution.

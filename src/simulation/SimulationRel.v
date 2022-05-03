@@ -22,7 +22,6 @@ Require Import FtoCoherent.
 Require Import ExtTraversalConfig.
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Section SimRel.
 Variable G : execution.

@@ -18,7 +18,6 @@ Require Import ExtTraversalProperties.
 Require Import AuxRel.
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Section ExtSimTraversal.
   Variable G : execution.

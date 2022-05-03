@@ -8,7 +8,6 @@ Require Import Event_imm_promise.
 Require Import PromiseLTS.
 
 Set Implicit Arguments.
-Remove Hints plus_n_O.
 
 Definition init_threads (prog : Prog.t) : Threads.syntax :=
   IdentMap.mapi (fun tid (linstr : list Instr.t) => existT _ (thread_lts tid) linstr) prog.
