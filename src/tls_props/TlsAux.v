@@ -131,15 +131,37 @@ Context
     destruct TLSCOH. apply tls_coh_init. red. split; vauto.
   Qed.
 
+  Lemma dom_rel_collect_event (b : trav_action) A B r
+        (UU : B ⊆₁ action ↓₁ eq b)
+        (AA : dom_rel (⦗action ↓₁ eq b⦘ ⨾ event ↓ r ⨾ ⦗A⦘) ⊆₁ B) :
+    dom_rel (r ⨾ ⦗event ↑₁ A⦘) ⊆₁ event ↑₁ B.
+  Proof using.
+    clear -AA UU. unfolder. ins. desf.
+    exists (mkTL b x); ins.
+    split; auto.
+    apply AA.
+    unfolder. do 2 eexists; ins; eauto.
+    splits; eauto.
+  Qed.
+
+  Lemma dom_rel_iord_parts (a1 a2: trav_action) (r: relation actid)
+        (R_IORD: ⦗action ↓₁ eq a1⦘ ⨾ event ↓ r ⨾ ⦗action ↓₁ eq a2⦘
+                 ⊆ iord_simpl G sc):
+    dom_rel (r ⨾ ⦗event ↑₁ (T ∩₁ action ↓₁ eq a2)⦘)
+    ⊆₁ event ↑₁ (T ∩₁ action ↓₁ eq a1).
+  Proof using WF TLSCOH IORDCOH IMMCON. 
+    eapply dom_rel_collect_event with (b := a1); [basic_solver| ].
+    apply set_subset_inter_r. split; [| basic_solver].
+    rewrite set_interC, id_inter. sin_rewrite R_IORD.
+    eapply iord_coh_implies_iord_simpl_coh; eauto.
+  Qed.
+
   Lemma dom_sb_covered :
     dom_rel (sb ⨾ ⦗ covered T ⦘) ⊆₁ covered T.
   Proof using WF TLSCOH IORDCOH IMMCON.
-    apply iord_coh_implies_iord_simpl_coh in IORDCOH; auto.
-    unfold covered. unfolder. ins. desc. destruct y0; ins; subst.
-    exists (mkTL ta_cover x). splits; auto. apply IORDCOH.
-    eexists. apply seq_eqv_r. split; eauto. red. repeat left.
-    red. apply seq_eqv_lr. splits; vauto.
-  Qed.  
+    apply dom_rel_iord_parts. unfold iord_simpl, SB.
+    rewrite <- ct_step, <- inclusion_union_r1 with (r' := sc). intuition. 
+  Qed. 
 
   Lemma sb_covered :
     sb ⨾ ⦗ covered T ⦘ ≡ ⦗ covered T ⦘ ⨾ sb ⨾ ⦗ covered T ⦘.
@@ -147,24 +169,12 @@ Context
     rewrite (dom_rel_helper dom_sb_covered). basic_solver.
   Qed.
 
-  (* Lemma dom_rf_coverable : *)
-  (*   dom_rel (rf ⨾ ⦗ coverable T ⦘) ⊆₁ issued T. *)
-  (* Proof using WF TCCOH. *)
-  (*   unfold coverable, dom_cond. *)
-  (*   rewrite (dom_r (wf_rfD WF)). *)
-  (*   type_solver 40. *)
-  (* Qed. *)
-
   Lemma dom_rf_covered :
-    dom_rel (rf ⨾ ⦗ covered  T ⦘) ⊆₁ issued T.
+    dom_rel (rf ⨾ ⦗covered T⦘) ⊆₁ issued T.
   Proof using WF TLSCOH IORDCOH IMMCON. 
-    unfold covered, issued. unfolder. ins. desc. destruct y0; ins; subst.
-    exists (mkTL ta_issue x). splits; auto.
-    apply iord_coh_implies_iord_simpl_coh in IORDCOH; auto. apply IORDCOH.
-    eexists. apply seq_eqv_r. split; eauto. red. do 4 left. right. 
-    red. apply seq_eqv_lr. splits; vauto. red. apply seq_eqv_l. split.
-    2: { basic_solver. }
-    apply wf_rfD, seq_eqv_lr in H; basic_solver.
+    apply dom_rel_iord_parts. unfold iord_simpl, RF.
+    rewrite crE, <- inclusion_union_r2 with (r := ⦗_⦘).
+    rewrite (dom_l (wf_rfD WF)) at 1. intuition.
   Qed. 
 
   Lemma rf_covered :
@@ -173,33 +183,15 @@ Context
     rewrite (dom_rel_helper dom_rf_covered). basic_solver.
   Qed.
 
-  (* Lemma dom_sc_coverable : *)
-  (*   dom_rel (sc ⨾ ⦗ coverable T ⦘) ⊆₁ covered T. *)
-  (* Proof using IMMCON. *)
-  (*   cdes IMMCON. *)
-  (*   rewrite (dom_r (@wf_scD G sc Wf_sc)). *)
-  (*   unfold coverable, dom_cond; type_solver 42. *)
-  (* Qed. *)
-
   Lemma dom_sc_covered :
     dom_rel (sc ⨾ ⦗ covered T ⦘) ⊆₁ covered T.
   Proof using WF TLSCOH IORDCOH IMMCON.
-    apply iord_coh_implies_iord_simpl_coh in IORDCOH; auto.
-    unfold covered. unfolder. ins. desc. destruct y0; ins; subst.
-    exists (mkTL ta_cover x). splits; auto. apply IORDCOH.
-    eexists. apply seq_eqv_r. split; eauto. red. repeat left.
-    red. apply seq_eqv_lr. splits; vauto.
+    apply dom_rel_iord_parts. unfold iord_simpl, SB.
+    rewrite <- ct_step, <- inclusion_union_r2 with (r := sb). intuition. 
   Qed.
 
-  (* Lemma sc_coverable  : *)
-  (*   sc ⨾ ⦗ coverable T ⦘ ⊆ ⦗covered T⦘ ⨾ sc. *)
-  (* Proof using IMMCON. *)
-  (*   seq_rewrite (dom_rel_helper dom_sc_coverable). *)
-  (*   basic_solver. *)
-  (* Qed. *)
-
   Lemma sc_covered  :
-    sc ⨾ ⦗ covered T ⦘ ⊆ ⦗covered T⦘ ⨾ sc.
+    sc ⨾ ⦗covered T⦘ ⊆ ⦗covered T⦘ ⨾ sc.
   Proof using WF TLSCOH IORDCOH IMMCON.
     seq_rewrite (dom_rel_helper dom_sc_covered). basic_solver.
   Qed.
@@ -216,39 +208,13 @@ Context
     basic_solver.
   Qed.
 
-  Lemma JJJ (b : trav_action) A B r
-        (UU : B ⊆₁ action ↓₁ eq b)
-        (AA : dom_rel (<| action ↓₁ eq b|> ;; event ↓ r ;; <|A|>) ⊆₁ B) :
-    dom_rel (r ⨾ ⦗event ↑₁ A⦘) ⊆₁ event ↑₁ B.
-  Proof using.
-    clear -AA UU. unfolder. ins. desf.
-    exists (mkTL b x); ins.
-    split; auto.
-    apply AA.
-    unfolder. do 2 eexists; ins; eauto.
-    splits; eauto.
-  Qed.
-
   Lemma ar_rf_ppo_loc_ct_I_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc))⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof using WF TLSCOH IORDCOH IMMCON.
-    unfold issued.
-    rewrite <- !seqA. eapply JJJ.
-    { clear. basic_solver. }
-    apply set_subset_inter_r. split.
-    2: { clear; basic_solver 10. }
-    etransitivity.
-    2: { apply iord_coh_implies_iord_simpl_coh; eauto. }
-    apply dom_rel_mori.
-    assert (AR G sc ⊆ iord_simpl G sc) as AA.
-    { unfold iord_simpl. clear; basic_solver 10. }
-    rewrite <- AA.
-    unfold AR.
-    set (BB:=event_surj). 
-    rewrite <- !map_rel_seq2; auto.
-    repeat hahn_frame_l.
-    generalize (tlsc_I_in_W WF TLSCOH).
-    clear. basic_solver.
+    arewrite (⦗issued T⦘ ⊆ ⦗W⦘ ⨾ ⦗issued T⦘) at 1.
+    { rewrite <- id_inter. apply eqv_rel_mori. split; auto using issuedW. }
+    rewrite <- !seqA. apply dom_rel_iord_parts. rewrite !seqA.
+    unfold iord_simpl, AR. intuition. 
   Qed. 
 
   Lemma ar_rfrmw_ct_I_in_I  :
@@ -459,16 +425,11 @@ Context
 
   Lemma fwbob_I_in_C:
     dom_rel (fwbob ⨾ ⦗issued T⦘) ⊆₁ covered T. 
-  Proof using WF TLSCOH IORDCOH IMMCON. 
-    unfold covered, issued. unfolder. ins. desc. destruct y0; ins; subst.
-    exists (mkTL ta_cover x). splits; auto.    
-    apply iord_coh_implies_iord_simpl_coh in IORDCOH; auto. apply IORDCOH.
-    eexists. apply seq_eqv_r. split; eauto. red. do 3 left. right.
-    red. apply seq_eqv_l. splits; vauto. red. apply seq_eqv_r. split; vauto.
-    red. apply seq_eqv_r. split; auto.
-    apply issuedW. vauto.
-  Qed. 
-    
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    arewrite (⦗issued T⦘ ⊆ ⦗W⦘ ⨾ ⦗issued T⦘) at 1.
+    { rewrite <- id_inter. apply eqv_rel_mori. split; auto using issuedW. }
+    rewrite <- seqA. apply dom_rel_iord_parts. unfold iord_simpl, FWBOB. intuition.
+  Qed.     
 
   Lemma dom_W_Rel_sb_loc_I_in_C :
     dom_rel (⦗W ∩₁ Rel⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⨾ ⦗issued T⦘) ⊆₁ covered T.
