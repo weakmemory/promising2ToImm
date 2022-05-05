@@ -216,15 +216,39 @@ Context
     basic_solver.
   Qed.
 
+  Lemma JJJ (b : trav_action) A B r
+        (UU : B ⊆₁ action ↓₁ eq b)
+        (AA : dom_rel (<| action ↓₁ eq b|> ;; event ↓ r ;; <|A|>) ⊆₁ B) :
+    dom_rel (r ⨾ ⦗event ↑₁ A⦘) ⊆₁ event ↑₁ B.
+  Proof using.
+    clear -AA UU. unfolder. ins. desf.
+    exists (mkTL b x); ins.
+    split; auto.
+    apply AA.
+    unfolder. do 2 eexists; ins; eauto.
+    splits; eauto.
+  Qed.
+
   Lemma ar_rf_ppo_loc_ct_I_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc))⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof using WF TLSCOH IORDCOH IMMCON.
-    unfold issued. unfolder. ins. desc. destruct y0; ins; subst.
-    exists (mkTL ta_issue x). splits; auto.
-    apply iord_coh_implies_iord_simpl_coh in IORDCOH; auto. apply IORDCOH.
-    eexists. apply seq_eqv_r. split; eauto. red. do 2 left. right. 
-    red. apply seq_eqv_lr. splits; vauto. red. apply seq_eqv_lr. splits; auto.
-    forward eapply tlsc_I_in_W with (x := (ta_issue, y)); eauto. vauto. 
+    unfold issued.
+    rewrite <- !seqA. eapply JJJ.
+    { clear. basic_solver. }
+    apply set_subset_inter_r. split.
+    2: { clear; basic_solver 10. }
+    etransitivity.
+    2: { apply iord_coh_implies_iord_simpl_coh; eauto. }
+    apply dom_rel_mori.
+    assert (AR G sc ⊆ iord_simpl G sc) as AA.
+    { unfold iord_simpl. clear; basic_solver 10. }
+    rewrite <- AA.
+    unfold AR.
+    set (BB:=event_surj). 
+    rewrite <- !map_rel_seq2; auto.
+    repeat hahn_frame_l.
+    generalize (tlsc_I_in_W WF TLSCOH).
+    clear. basic_solver.
   Qed. 
 
   Lemma ar_rfrmw_ct_I_in_I  :
