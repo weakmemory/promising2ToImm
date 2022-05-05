@@ -13,7 +13,7 @@ From imm Require Import CombRelations.
 From imm Require Import AuxDef.
 From imm Require Import AuxRel2.
 
-From imm Require Import TraversalConfig.
+(* From imm Require Import TraversalConfig. *)
 From imm Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimState.
@@ -24,6 +24,11 @@ Require Import Event_imm_promise.
 Require Import ExtTraversalConfig.
 Require Import FtoCoherent.
 Require Import AuxTime.
+
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+Require Import TlsAux.
 
 Set Implicit Arguments.
 
@@ -68,44 +73,50 @@ Notation "'Acq'" := (is_acq lab).
 Notation "'Acqrel'" := (is_acqrel lab).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
-Variable T : trav_config.
-Variable S : actid -> Prop.
+(* Variable T : trav_config. *)
+(* Variable S : actid -> Prop. *)
+Variable TLS : trav_label -> Prop.
+
+Notation "'C'" := (tls_covered  TLS).
+Notation "'I'" := (tls_issued   TLS).
+Notation "'S'" := (tls_reserved TLS).
+
 Variables f_to f_from : actid -> Time.t.
 Hypothesis FCOH: f_to_coherent G S f_to f_from.
 
 Variables f_to' f_from' : actid -> Time.t.
 
-Variable REQ_TO   : forall e (SS :        S e), f_to'   e = f_to   e.
-Variable ISSEQ_TO : forall e (ISS: issued T e), f_to'   e = f_to   e.
+Variable REQ_TO   : forall e (SS : S e), f_to'   e = f_to   e.
+Variable ISSEQ_TO : forall e (ISS: I e), f_to'   e = f_to   e.
 
-Variable REQ_FROM   : forall e (SS :        S e), f_from'   e = f_from   e.
-Variable ISSEQ_FROM : forall e (ISS: issued T e), f_from'   e = f_from   e.
+Variable REQ_FROM   : forall e (SS : S e), f_from'   e = f_from   e.
+Variable ISSEQ_FROM : forall e (ISS: I e), f_from'   e = f_from   e.
 
 Variable IMMCON : imm_consistent G sc.
 
-Variable TCCOH : tc_coherent G sc T.
-Variable ETCCOH : etc_coherent G sc (mkETC T S).
+(* Variable TCCOH : tc_coherent G sc T. *)
+(* Variable ETCCOH : etc_coherent G sc (mkETC T S). *)
 
-Variable RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T.
+Variable RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
 
 Lemma sim_msg_f_issued rel b 
-      (ISS : issued T b)
+      (ISS : I b)
       (SIMMEM : sim_msg G sc f_to b rel) :
   sim_msg G sc f_to' b rel.
-Proof using WF IMMCON TCCOH RELCOV ISSEQ_TO.
+Proof using WF IMMCON RELCOV ISSEQ_TO.
   red; red in SIMMEM.
   intros l; specialize (SIMMEM l).
   eapply max_value_new_f; eauto.
   intros x [H|H].
-  2: by desf; apply (ISSEQ_TO  b ISS).
-  assert (issued T x) as ISSX.
-  2: by apply (ISSEQ_TO  x ISSX).
+  2: now desf; eapply (ISSEQ_TO ISS).
+  assert (I x) as ISSX.
+  2: now apply (ISSEQ_TO ISSX).
   eapply (msg_rel_issued WF IMMCON TCCOH); eauto;
       eexists; apply seq_eqv_r; split; eauto.
 Qed.
 
 Lemma sim_mem_helper_f_issued rel b from v
-      (ISS : issued T b)
+      (ISS : I b)
       (HELPER : sim_mem_helper G sc f_to b from v rel) :
   sim_mem_helper G sc f_to' b from v rel.
 Proof using WF IMMCON TCCOH RELCOV ISSEQ_TO.
@@ -116,8 +127,8 @@ Proof using WF IMMCON TCCOH RELCOV ISSEQ_TO.
 Qed.
 
 Lemma sim_mem_covered_mori T' threads thread memory
-      (ISSEQ : issued T ≡₁ issued T')
-      (COVIN : covered T ⊆₁ covered T')
+      (ISSEQ : I ≡₁ tls_issued T')
+      (COVIN : C ⊆₁ covered T')
       (SIMMEM : sim_mem G sc T f_to f_from threads thread memory) :
   sim_mem G sc T' f_to f_from threads thread memory.
 Proof using WF.
@@ -230,9 +241,9 @@ Qed.
 
 Lemma sc_view_f_issued sc_view
       (SC_REQ : forall l,
-          max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view)):
+          max_value f_to (S_tm G l C) (LocFun.find l sc_view)):
   forall l,
-    max_value f_to' (S_tm G l (covered T)) (LocFun.find l sc_view).
+    max_value f_to' (S_tm G l C) (LocFun.find l sc_view).
 Proof using WF RELCOV TCCOH ISSEQ_TO IMMCON.
   intros l; specialize (SC_REQ l).
   eapply max_value_new_f; eauto.
@@ -366,10 +377,10 @@ Lemma reserved_to_message thread local memory
     exists msg,
       Memory.get l (f_to b) memory = Some (f_from b, msg) /\
       (tid b = thread ->
-       ~ covered T b ->
+       ~ C b ->
        Memory.get l (f_to b) (Local.promises local) = Some (f_from b, msg)).
 Proof using TCCOH.
-  ins. destruct (classic (issued T b)) as [AA|AA].
+  ins. destruct (classic (I b)) as [AA|AA].
   2: { eexists. split; ins; apply SIMRESMEM; auto. }
   assert (exists v, val lab b = Some v) as [v BB].
   { apply is_w_val. eapply issuedW; eauto. }
@@ -605,11 +616,11 @@ Qed.
 
 Lemma le_msg_rel_f_to_wprev w wprev locw PC lang state
   (EW : E w)
-  (WNCOV : ~ covered T w)
-  (WNISS : ~ issued T w)
+  (WNCOV : ~ C w)
+  (WNISS : ~ I w)
   (LOC : loc lab w = Some locw)
   (local : Local.t)
-  (SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) (tid w))
+  (SIM_TVIEW : sim_tview G sc C f_to (Local.tview local) (tid w))
   (TID : IdentMap.find (tid w) (Configuration.threads PC) =
          Some (existT (fun lang : language => Language.state lang) lang state, local))
   (PCOIMM : immediate (⦗S⦘ ⨾ co) wprev w) :

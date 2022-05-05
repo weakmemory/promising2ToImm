@@ -21,6 +21,11 @@ Require Import MemoryAux.
 Require Import FtoCoherent.
 Require Import ExtTraversalConfig.
 
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+Require Import TlsAux.
+
 Set Implicit Arguments.
 
 Section SimRel.
@@ -28,8 +33,7 @@ Variable G : execution.
 Variable WF : Wf G.
 Variable sc : relation actid.
 Variable PC : Configuration.t.
-Variable T : trav_config.
-Variable S : actid -> Prop. (* A set of reserved events *)
+Variable TLS : trav_label -> Prop.
 Variables f_to f_from : actid -> Time.t.
 
 (* Notation "'acts'" := (acts G). *)
@@ -67,8 +71,9 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Notation "'C'" := (covered T).
-Notation "'I'" := (issued T).
+Notation "'C'" := (tls_covered  TLS).
+Notation "'I'" := (tls_issued   TLS).
+Notation "'S'" := (tls_reserved TLS).
   
 Definition sim_prom (thread : thread_id) promises :=
   forall l to from v rel
@@ -78,7 +83,7 @@ Definition sim_prom (thread : thread_id) promises :=
     ⟪ ACTS : E b ⟫ /\
     ⟪ TID  : tid b = thread ⟫ /\
     ⟪ ISS  : I b ⟫ /\
-    ⟪ NCOV : ~ covered T b ⟫ /\
+    ⟪ NCOV : ~ C b ⟫ /\
     ⟪ LOC  : Loc_ l b ⟫ /\
     ⟪ FROM : f_from b = from ⟫ /\
     ⟪ TO   : f_to b = to ⟫ /\
@@ -115,7 +120,7 @@ Definition sim_mem (thread : thread_id) (local : Local.t) mem :=
       ⟪ MEM_CLOS : Memory.closed_timemap (View.rlx rel) mem ⟫ /\
 
       (⟪ TID  : tid b = thread ⟫ ->
-       ⟪ NCOV : ~ covered T b ⟫ ->
+       ⟪ NCOV : ~ C b ⟫ ->
        ⟪ PROM: Memory.get l (f_to b) (Local.promises local) =
           Some (f_from b, Message.full v rel_opt) ⟫ /\
        ⟪ REL_REPR :
@@ -179,9 +184,11 @@ Definition simrel_common
   let sc_view := (Configuration.sc PC) in
   ⟪ ALLRLX  : E \₁ is_init ⊆₁ Rlx ⟫ /\
   ⟪ FRELACQ : E ∩₁ F ⊆₁ Acq/Rel ⟫ /\
-  ⟪ TCCOH   : etc_coherent G sc (mkETC T S) ⟫ /\
+  ⟪ TLSCOH  : tls_coherent G TLS ⟫ /\
+  ⟪ IORDCOH : iord_coherent G sc TLS ⟫ /\
+  (* ⟪ TCCOH   : etc_coherent G sc (mkETC T S) ⟫ /\ *)
   ⟪ RELCOV  : W ∩₁ Rel ∩₁ I ⊆₁ C ⟫ /\
-  ⟪ RMWCOV  : forall r w (RMW : rmw r w), covered T r <-> covered T w ⟫ /\
+  ⟪ RMWCOV  : forall r w (RMW : rmw r w), C r <-> C w ⟫ /\
 
   ⟪ THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
     exists langst, IdentMap.find (tid e) threads = Some langst ⟫ /\
@@ -193,10 +200,10 @@ Definition simrel_common
 
   ⟪ FCOH: f_to_coherent G S f_to f_from ⟫ /\
 
-  ⟪ SC_COV : smode = sim_certification -> E∩₁F∩₁Sc ⊆₁ covered T ⟫ /\ 
+  ⟪ SC_COV : smode = sim_certification -> E∩₁F∩₁Sc ⊆₁ C ⟫ /\ 
   ⟪ SC_REQ : smode = sim_normal -> 
          forall l,
-         max_value f_to (S_tm G l (covered T)) (LocFun.find l sc_view) ⟫ /\
+         max_value f_to (S_tm G l C) (LocFun.find l sc_view) ⟫ /\
   
   (* TODO: To support RMWs (even FADDs) w/o ctrl dependency, we need to
            get rid of RMWREX.
@@ -237,10 +244,10 @@ Definition simrel_thread_local (thread : thread_id) (smode : sim_mode) :=
 
     ⟪ SIM_MEM : sim_mem thread local memory ⟫ /\
     ⟪ SIM_RES_MEM : sim_res_mem thread local memory ⟫ /\
-    ⟪ SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) thread ⟫ /\
+    ⟪ SIM_TVIEW : sim_tview G sc C f_to (Local.tview local) thread ⟫ /\
     ⟪ PLN_RLX_EQ : pln_rlx_eq (Local.tview local) ⟫ /\
     ⟪ MEM_CLOSE : memory_close (Local.tview local) memory ⟫ /\
-    ⟪ STATE : @sim_state G smode (covered T) thread state ⟫.
+    ⟪ STATE : @sim_state G smode C thread state ⟫.
 
 Definition simrel_thread (thread : thread_id) (smode : sim_mode) :=
   ⟪ COMMON : simrel_common smode ⟫ /\
