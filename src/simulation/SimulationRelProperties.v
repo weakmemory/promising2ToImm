@@ -96,6 +96,9 @@ Variable IMMCON : imm_consistent G sc.
 
 (* Variable TCCOH : tc_coherent G sc T. *)
 (* Variable ETCCOH : etc_coherent G sc (mkETC T S). *)
+Hypotheses (TLSCOH  : tls_coherent G TLS)
+           (IORDCOH : iord_coherent G sc TLS)
+           (RCOH: reserve_coherent G TLS). 
 
 Variable RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
 
@@ -103,7 +106,7 @@ Lemma sim_msg_f_issued rel b
       (ISS : I b)
       (SIMMEM : sim_msg G sc f_to b rel) :
   sim_msg G sc f_to' b rel.
-Proof using WF IMMCON RELCOV ISSEQ_TO.
+Proof using WF IMMCON RELCOV ISSEQ_TO TLSCOH IORDCOH.
   red; red in SIMMEM.
   intros l; specialize (SIMMEM l).
   eapply max_value_new_f; eauto.
@@ -111,25 +114,25 @@ Proof using WF IMMCON RELCOV ISSEQ_TO.
   2: now desf; eapply (ISSEQ_TO ISS).
   assert (I x) as ISSX.
   2: now apply (ISSEQ_TO ISSX).
-  eapply (msg_rel_issued WF IMMCON); eauto;
-      eexists; apply seq_eqv_r; split; eauto.
+  eapply (msg_rel_issued WF IMMCON); eauto. 
+  eexists; apply seq_eqv_r; split; eauto.
 Qed.
 
 Lemma sim_mem_helper_f_issued rel b from v
       (ISS : I b)
       (HELPER : sim_mem_helper G sc f_to b from v rel) :
   sim_mem_helper G sc f_to' b from v rel.
-Proof using WF IMMCON TCCOH RELCOV ISSEQ_TO.
-  red; red in HELPER; desc.
-  rewrite (ISSEQ_TO b ISS).
+Proof using WF IMMCON RELCOV ISSEQ_TO TLSCOH IORDCOH.
+  red; red in HELPER; desc. 
+  rewrite (@ISSEQ_TO b ISS).
   splits; auto.
   eapply sim_msg_f_issued; eauto.
 Qed.
 
 Lemma sim_mem_covered_mori T' threads thread memory
-      (ISSEQ : I ≡₁ tls_issued T')
+      (ISSEQ : I ≡₁ issued T')
       (COVIN : C ⊆₁ covered T')
-      (SIMMEM : sim_mem G sc T f_to f_from threads thread memory) :
+      (SIMMEM : sim_mem G sc TLS f_to f_from threads thread memory) :
   sim_mem G sc T' f_to f_from threads thread memory.
 Proof using WF.
   red in SIMMEM.
@@ -150,14 +153,14 @@ Proof using WF.
 Qed.
 
 Lemma sim_mem_f_issued threads thread memory
-      (SIMMEM : sim_mem G sc T f_to f_from threads thread memory) :
-  sim_mem G sc T f_to' f_from' threads thread memory.
-Proof using WF IMMCON RELCOV TCCOH ISSEQ_TO ISSEQ_FROM.
+      (SIMMEM : sim_mem G sc TLS f_to f_from threads thread memory) :
+  sim_mem G sc TLS f_to' f_from' threads thread memory.
+Proof using WF IMMCON RELCOV ISSEQ_TO ISSEQ_FROM TLSCOH IORDCOH.
   red in SIMMEM.
   red; splits.
   edestruct SIMMEM as [rel]; eauto; desc.
   exists rel.
-  rewrite (ISSEQ_TO   b ISSB); rewrite (ISSEQ_FROM b ISSB).
+  rewrite (@ISSEQ_TO b ISSB); rewrite (@ISSEQ_FROM b ISSB).
   splits; auto. 
   { eapply sim_mem_helper_f_issued; eauto. }
   ins. destruct H1; auto; split; auto.
@@ -166,13 +169,13 @@ Proof using WF IMMCON RELCOV TCCOH ISSEQ_TO ISSEQ_FROM.
   desf; [by left|right].
   exists p; splits; auto.
   eexists; split; eauto.
-  rewrite (ISSEQ_TO p); eauto.
-  rewrite (ISSEQ_FROM p); eauto.
+  rewrite ISSEQ_TO; eauto.
+  rewrite ISSEQ_FROM; eauto.
 Qed.
 
 Lemma sim_res_mem_f_issued thread threads memory
-      (SIMMEM : sim_res_mem G T S f_to f_from thread threads memory) :
-  sim_res_mem G T S f_to' f_from' thread threads memory.
+      (SIMMEM : sim_res_mem G TLS f_to f_from thread threads memory) :
+  sim_res_mem G TLS f_to' f_from' thread threads memory.
 Proof using WF REQ_TO REQ_FROM.
   red in SIMMEM.
   red. unnw. ins.
@@ -180,9 +183,9 @@ Proof using WF REQ_TO REQ_FROM.
 Qed.
 
 Lemma rintervals_fS smode memory
-      (RINTERVALS : reserved_time G T S f_to f_from smode memory):
-  reserved_time G T S f_to' f_from' smode memory.
-Proof using ETCCOH REQ_TO REQ_FROM.
+      (RINTERVALS : reserved_time G TLS f_to f_from smode memory):
+  reserved_time G TLS f_to' f_from' smode memory.
+Proof using REQ_TO REQ_FROM RCOH. 
   red. red in RINTERVALS.
   desf. desc.
   unnw; splits.
@@ -192,8 +195,8 @@ Proof using ETCCOH REQ_TO REQ_FROM.
     destruct MEM as [MEM|MEM]; [by left; apply MEM|right].
     destruct MEM as [b H]; desc.
     exists b; splits; auto.
-    { rewrite REQ_FROM; auto. by apply (etc_I_in_S ETCCOH). }
-    rewrite REQ_TO; auto. by apply (etc_I_in_S ETCCOH). }
+    { rewrite REQ_FROM; auto. by apply (rcoh_I_in_S RCOH). }
+    rewrite REQ_TO; auto. by apply (rcoh_I_in_S RCOH). }
   { red. ins. specialize (HMEM l to from MSG).
     desc.
     exists b. splits; auto.
@@ -207,31 +210,31 @@ Proof using ETCCOH REQ_TO REQ_FROM.
 Qed.
 
 Lemma sim_prom_f_issued thread promises 
-      (SIMPROM : sim_prom G sc T f_to f_from thread promises) :
-  sim_prom G sc T f_to' f_from' thread promises.
-Proof using WF IMMCON TCCOH RELCOV ISSEQ_TO ISSEQ_FROM.
+      (SIMPROM : sim_prom G sc TLS f_to f_from thread promises) :
+  sim_prom G sc TLS f_to' f_from' thread promises.
+Proof using WF IMMCON RELCOV ISSEQ_TO ISSEQ_FROM TLSCOH IORDCOH.
   red; ins. edestruct SIMPROM as [b]; eauto; desc.
   exists b; splits; auto.
-  { by rewrite (ISSEQ_FROM b ISS). }
-  { by rewrite (ISSEQ_TO b ISS). }
+  { by rewrite ISSEQ_FROM. }
+  { by rewrite ISSEQ_TO. }
   eapply sim_mem_helper_f_issued; eauto.
 Qed.
 
-Lemma f_to_coherent_fS : f_to_coherent G S f_to' f_from'.
-Proof using WF TCCOH ETCCOH FCOH REQ_TO REQ_FROM.
+Lemma f_to_coherent_fS : f_to_coherent G (reserved TLS) f_to' f_from'.
+Proof using WF FCOH REQ_TO REQ_FROM TLSCOH RCOH IORDCOH.
   cdes FCOH. red; splits; ins.
   all: try (rewrite REQ_TO);
     try (rewrite REQ_FROM); try (rewrite REQ_FROM); auto.
-  all: apply (etc_I_in_S ETCCOH); auto.
+  all: apply (rcoh_I_in_S RCOH); auto.
   all: eapply w_covered_issued; eauto; split.
-  2,4: by apply TCCOH.
+  2, 4: by eapply init_covered; eauto. 
   all: apply (init_w WF).
   all: by destruct H.
 Qed.
 
 Lemma sim_res_prom_fS thread promises 
-      (SIMRESPROM : sim_res_prom G T S f_to f_from thread promises) :
-  sim_res_prom G T S f_to' f_from' thread promises.
+      (SIMRESPROM : sim_res_prom G TLS f_to f_from thread promises) :
+  sim_res_prom G TLS f_to' f_from' thread promises.
 Proof using REQ_TO REQ_FROM.
   red. ins. apply SIMRESPROM in RES. desc.
   eexists. splits; eauto.
@@ -244,7 +247,7 @@ Lemma sc_view_f_issued sc_view
           max_value f_to (S_tm G l C) (LocFun.find l sc_view)):
   forall l,
     max_value f_to' (S_tm G l C) (LocFun.find l sc_view).
-Proof using WF RELCOV TCCOH ISSEQ_TO IMMCON.
+Proof using WF RELCOV ISSEQ_TO IMMCON.
   intros l; specialize (SC_REQ l).
   eapply max_value_new_f; eauto.
   intros x H; apply ISSEQ_TO.
@@ -253,8 +256,8 @@ Proof using WF RELCOV TCCOH ISSEQ_TO IMMCON.
 Qed.
 
 Lemma simrel_common_fS PC smode
-      (SIMREL: simrel_common G sc PC T S f_to f_from smode):
-  simrel_common G sc PC T S f_to' f_from' smode.
+      (SIMREL: simrel_common G sc PC TLS f_to f_from smode):
+  simrel_common G sc PC TLS f_to' f_from' smode.
 Proof using WF IMMCON RELCOV ETCCOH FCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL.
   red; splits; auto.
@@ -264,8 +267,8 @@ Proof using WF IMMCON RELCOV ETCCOH FCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FR
 Qed.
 
 Lemma simrel_thread_local_fS thread PC smode
-      (SIMREL: simrel_thread_local G sc PC T S f_to f_from thread smode):
-  simrel_thread_local G sc PC T S f_to' f_from' thread smode.
+      (SIMREL: simrel_thread_local G sc PC TLS f_to f_from thread smode):
+  simrel_thread_local G sc PC TLS f_to' f_from' thread smode.
 Proof using WF IMMCON RELCOV ETCCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL.
   red; splits; auto.
@@ -278,8 +281,8 @@ Proof using WF IMMCON RELCOV ETCCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
 Qed.
 
 Lemma simrel_thread_fS thread PC smode
-      (SIMREL: simrel_thread G sc PC T S f_to f_from thread smode):
-  simrel_thread G sc PC T S f_to' f_from' thread smode.
+      (SIMREL: simrel_thread G sc PC TLS f_to f_from thread smode):
+  simrel_thread G sc PC TLS f_to' f_from' thread smode.
 Proof using WF IMMCON RELCOV ETCCOH FCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL. cdes COMMON. cdes LOCAL.
   red; splits; auto.
@@ -288,8 +291,8 @@ Proof using WF IMMCON RELCOV ETCCOH FCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FR
 Qed.
 
 Lemma simrel_fS PC
-      (SIMREL: simrel G sc PC T S f_to f_from):
-  simrel G sc PC T S f_to' f_from'.
+      (SIMREL: simrel G sc PC TLS f_to f_from):
+  simrel G sc PC TLS f_to' f_from'.
 Proof using WF IMMCON RELCOV FCOH ETCCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL. red; splits.
   { eapply simrel_common_fS; eauto. }
@@ -363,16 +366,16 @@ Notation "'Tid_' t"  := (fun x => tid x =  t) (at level 1).
 
 Lemma sim_res_prom_other_thread thread promises S'
       (SNT : S' ⊆₁ NTid_ thread)
-      (RPROM : sim_res_prom G T S f_to f_from thread promises) :
-  sim_res_prom G T (S ∪₁ S') f_to' f_from' thread promises.
+      (RPROM : sim_res_prom G TLS f_to f_from thread promises) :
+  sim_res_prom G TLS (S ∪₁ S') f_to' f_from' thread promises.
 Proof using REQ_TO REQ_FROM.
   red. ins. apply RPROM in RES. desf.
   exists b. splits; auto. by left.
 Qed.
 
 Lemma reserved_to_message thread local memory
-      (SIMMEM    : sim_mem     G sc T f_to f_from thread local memory)
-      (SIMRESMEM : sim_res_mem G T  S f_to f_from thread local memory) :
+      (SIMMEM    : sim_mem     G sc TLS f_to f_from thread local memory)
+      (SIMRESMEM : sim_res_mem G TLS  f_to f_from thread local memory) :
   forall l b (RESB: S b) (LOC: Loc_ l b),
     exists msg,
       Memory.get l (f_to b) memory = Some (f_from b, msg) /\
@@ -389,8 +392,8 @@ Proof using TCCOH.
 Qed.
 
 Lemma memory_to_event memory
-      (MTE  :      message_to_event G T   f_to f_from memory)
-      (HMTE : half_message_to_event G T S f_to f_from memory) :
+      (MTE  :      message_to_event G TLS   f_to f_from memory)
+      (HMTE : half_message_to_event G TLS S f_to f_from memory) :
   forall l to from msg
          (MSG : Memory.get l to memory = Some (from, msg)),
     (to = Time.bot /\ from = Time.bot) \/
@@ -411,8 +414,8 @@ Qed.
 Lemma S_le_max_ts locw memory local thread x
       (SX   : S x)
       (XLOC : loc lab x = Some locw)
-      (SIMMEM    : sim_mem     G sc T f_to f_from thread local memory)
-      (SIMRESMEM : sim_res_mem G T S f_to f_from thread local memory) :
+      (SIMMEM    : sim_mem     G sc TLS f_to f_from thread local memory)
+      (SIMRESMEM : sim_res_mem G TLS S f_to f_from thread local memory) :
   Time.le (f_to x) (Memory.max_ts locw memory).
 Proof using TCCOH.
   eapply reserved_to_message in SX; eauto.
@@ -425,7 +428,7 @@ Lemma co_S_memory_disjoint memory locw wp wn
       (CONS   : (co ⨾ ⦗ set_compl S ⦘ ⨾ co) wp wn)
       (LOCP   : loc lab wp = Some locw)
       (RESERVED_TIME:
-         reserved_time G T S f_to f_from sim_normal memory) :
+         reserved_time G TLS S f_to f_from sim_normal memory) :
   forall (to from : Time.t) (msg : Message.t)
          (IN : Memory.get locw to memory = Some (from, msg)),
     Interval.disjoint (f_to wp, f_from wn) (from, to).
@@ -516,10 +519,10 @@ Proof using WF IMMCON ETCCOH FCOH TCCOH.
 Qed.
 
 Lemma no_next_S_max_ts locw memory local w x
-      (MTE  : message_to_event G T f_to f_from memory)
-      (HMTE : half_message_to_event G T S f_to f_from memory)
-      (SIM_RES_MEM : sim_res_mem G T S f_to f_from (tid w) local memory)
-      (SIM_MEM : sim_mem G sc T f_to f_from (tid w) local memory)
+      (MTE  : message_to_event G TLS f_to f_from memory)
+      (HMTE : half_message_to_event G TLS S f_to f_from memory)
+      (SIM_RES_MEM : sim_res_mem G TLS S f_to f_from (tid w) local memory)
+      (SIM_MEM : sim_mem G sc TLS f_to f_from (tid w) local memory)
       (WLOC : loc lab w = Some locw)
       (NCO : ~ (exists wnext : actid, (co ⨾ ⦗S⦘) w wnext))
       (NSW : ~ S w)
