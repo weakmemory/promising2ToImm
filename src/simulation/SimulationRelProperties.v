@@ -77,9 +77,9 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 (* Variable S : actid -> Prop. *)
 Variable TLS : trav_label -> Prop.
 
-Notation "'C'" := (tls_covered  TLS).
-Notation "'I'" := (tls_issued   TLS).
-Notation "'S'" := (tls_reserved TLS).
+Notation "'C'" := (covered  TLS).
+Notation "'I'" := (issued   TLS).
+Notation "'S'" := (reserved TLS).
 
 Variables f_to f_from : actid -> Time.t.
 Hypothesis FCOH: f_to_coherent G S f_to f_from.
@@ -111,7 +111,7 @@ Proof using WF IMMCON RELCOV ISSEQ_TO.
   2: now desf; eapply (ISSEQ_TO ISS).
   assert (I x) as ISSX.
   2: now apply (ISSEQ_TO ISSX).
-  eapply (msg_rel_issued WF IMMCON TCCOH); eauto;
+  eapply (msg_rel_issued WF IMMCON); eauto;
       eexists; apply seq_eqv_r; split; eauto.
 Qed.
 

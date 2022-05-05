@@ -71,9 +71,9 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Notation "'C'" := (tls_covered  TLS).
-Notation "'I'" := (tls_issued   TLS).
-Notation "'S'" := (tls_reserved TLS).
+Notation "'C'" := (covered  TLS).
+Notation "'I'" := (issued   TLS).
+Notation "'S'" := (reserved TLS).
   
 Definition sim_prom (thread : thread_id) promises :=
   forall l to from v rel
