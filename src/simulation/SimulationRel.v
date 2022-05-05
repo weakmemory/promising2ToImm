@@ -186,7 +186,7 @@ Definition simrel_common
   ⟪ FRELACQ : E ∩₁ F ⊆₁ Acq/Rel ⟫ /\
   ⟪ TLSCOH  : tls_coherent G TLS ⟫ /\
   ⟪ IORDCOH : iord_coherent G sc TLS ⟫ /\
-  (* ⟪ TCCOH   : etc_coherent G sc (mkETC T S) ⟫ /\ *)
+  ⟪ RCOH   : reserve_coherent G TLS ⟫ /\
   ⟪ RELCOV  : W ∩₁ Rel ∩₁ I ⊆₁ C ⟫ /\
   ⟪ RMWCOV  : forall r w (RMW : rmw r w), C r <-> C w ⟫ /\
 
