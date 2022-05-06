@@ -131,6 +131,7 @@ Context
     destruct TLSCOH. apply tls_coh_init. red. split; vauto.
   Qed.
 
+  (* TODO: move to imm/travorder *)
   Lemma dom_rel_collect_event (b : trav_action) A B r
         (UU : B ⊆₁ action ↓₁ eq b)
         (AA : dom_rel (⦗action ↓₁ eq b⦘ ⨾ event ↓ r ⨾ ⦗A⦘) ⊆₁ B) :
@@ -144,6 +145,7 @@ Context
     splits; eauto.
   Qed.
 
+  (* TODO: move somewhere *)
   Lemma dom_rel_iord_parts (a1 a2: trav_action) (r: relation actid)
         (R_IORD: ⦗action ↓₁ eq a1⦘ ⨾ event ↓ r ⨾ ⦗action ↓₁ eq a2⦘
                  ⊆ iord_simpl G sc):
@@ -623,6 +625,89 @@ Context
     basic_solver.
   Qed.
 
+  Lemma dom_c_acq_covered i l A:
+    dom_rel (c_acq i l A ⨾ ⦗ covered T ⦘) ⊆₁ issued T.
+  Proof using WF IMMCON RELCOV TLSCOH IORDCOH. 
+    unfold CombRelations.c_acq.
+    generalize (@dom_urr_covered l).
+    generalize dom_release_issued.
+    generalize dom_rf_covered.
+    basic_solver 21.
+  Qed.
+
+  Lemma c_acq_covered i l A:
+    c_acq i l A ⨾ ⦗ covered T ⦘ ⊆ ⦗issued T⦘ ⨾ c_acq i l A.
+  Proof using WF IMMCON  RELCOV TLSCOH IORDCOH.
+    rewrite (dom_rel_helper (@dom_c_acq_covered i l A)).
+    basic_solver.
+  Qed.
+
+  Lemma dom_c_cur_covered i l A:
+    dom_rel (c_cur i l A ⨾ ⦗ covered T ⦘) ⊆₁ issued T.
+  Proof using WF IMMCON  RELCOV TLSCOH IORDCOH.
+    unfold CombRelations.c_cur.
+    generalize (@dom_urr_covered l).
+    basic_solver 21.
+  Qed.
+
+  Lemma c_cur_covered i l A:
+    c_cur i l A ⨾ ⦗ covered T ⦘ ⊆ ⦗issued T⦘ ⨾ c_cur i l A.
+  Proof using WF IMMCON RELCOV TLSCOH IORDCOH.
+    seq_rewrite (dom_rel_helper (@dom_c_cur_covered i l A)).
+    basic_solver.
+  Qed.
+
+
+  Lemma dom_c_rel_covered i l l' A:
+    dom_rel (c_rel i l l' A ⨾ ⦗ covered T ⦘) ⊆₁ issued T.
+  Proof using WF IMMCON RELCOV TLSCOH IORDCOH. 
+    unfold CombRelations.c_rel.
+    generalize (@dom_urr_covered l).
+    basic_solver 21.
+  Qed.
+
+  Lemma c_rel_covered i l l' A:
+    c_rel i l l' A ⨾ ⦗ covered T ⦘ ⊆ ⦗issued T⦘ ⨾ c_rel i l l' A.
+  Proof using WF IMMCON RELCOV TLSCOH IORDCOH. 
+    seq_rewrite (dom_rel_helper (@dom_c_rel_covered i l l' A)).
+    basic_solver.
+  Qed.
+
+  Lemma t_acq_covered l thread:
+    t_acq thread l (covered T) ⊆₁ issued T.
+  Proof using WF IMMCON RELCOV TLSCOH IORDCOH.
+    unfold CombRelations.t_acq.
+    rewrite (dom_r (wf_c_acqD G sc thread l (covered T))).
+    arewrite (⦗(Tid_ thread ∪₁ Init) ∩₁ covered T⦘ ⊆ ⦗covered T⦘) by basic_solver.
+    rewrite c_acq_covered.
+    basic_solver.
+  Qed.
+
+  Lemma t_cur_covered l thread:
+    t_cur thread l (covered T) ⊆₁ issued T.
+  Proof using WF IMMCON RELCOV TLSCOH IORDCOH. 
+    etransitivity; [by apply t_cur_in_t_acq|].
+      by apply t_acq_covered.
+  Qed.
+
+  Lemma t_rel_covered l l' thread:
+    t_rel thread l l' (covered T) ⊆₁ issued T.
+  Proof using WF IMMCON RELCOV TLSCOH IORDCOH.
+    etransitivity; [by apply t_rel_in_t_cur|].
+      by apply t_cur_covered.
+  Qed.
+
+  Lemma S_tm_covered l :
+    S_tm l (covered T) ⊆₁ issued T.
+  Proof using WF RELCOV IMMCON TLSCOH IORDCOH. 
+    unfold CombRelations.S_tm, CombRelations.S_tmr.
+    generalize dom_hb_covered.
+    generalize w_covered_issued.
+    generalize dom_release_issued.
+    generalize dom_rf_covered.
+    basic_solver 21.
+  Qed.
+
   Lemma msg_rel_issued l:
     dom_rel (msg_rel l ⨾ ⦗ issued T ⦘) ⊆₁ issued T.
   Proof using WF IMMCON RELCOV TLSCOH IORDCOH.
@@ -631,5 +716,104 @@ Context
     generalize (@dom_urr_covered l).
     basic_solver 21.
   Qed.
+
+Section HbProps.
+
+Notation "'C'" := (covered T).
+Notation "'I'" := (issued  T).
+
+Lemma sw_in_Csw_sb :
+  sw ⨾ ⦗C ∪₁ dom_rel (sb^? ⨾ ⦗ I ⦘)⦘ ⊆ ⦗ C ⦘ ⨾ sw ∪ sb.
+Proof using WF RELCOV IMMCON TLSCOH IORDCOH.
+  rewrite !id_union. rewrite seq_union_r. 
+  unionL.
+  { rewrite sw_covered; eauto. basic_solver. }
+  assert (forall (s : actid -> Prop), s ∪₁ set_compl s ≡₁ fun _ => True) as AA.
+  { split; [basic_solver|].
+    unfolder. ins. apply classic. }
+  arewrite (sw ⊆ ⦗ C ∪₁ set_compl C ⦘ ⨾ sw) at 1.
+  { rewrite AA. by rewrite seq_id_l. }
+  rewrite id_union, !seq_union_l.
+  apply union_mori; [basic_solver|].
+  rewrite (dom_r (wf_swD WF)).
+  rewrite sw_in_ar0; auto.
+  remember (⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^? ⨾ ⦗W⦘ ⨾ (sb ∩ same_loc)^? ⨾ ⦗W⦘ ⨾ (rfe ∪ ar_int G)⁺) as ax.
+  rewrite !seq_union_l, !seq_union_r.
+  unionL; [|basic_solver].
+  subst ax. rewrite !seqA.
+  arewrite ((sb ∩ same_loc)^? ⨾ ⦗W⦘ ⊆ (sb ∩ same_loc)^? ⨾ ⦗W⦘ ⨾ ⦗W⦘) by basic_solver. 
+  arewrite (⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^? ⨾ ⦗W⦘ ⨾ (sb ∩ same_loc)^? ⨾ ⦗W⦘ ⊆ release).
+  { unfold imm_s_hb.release, imm_s_hb.rs. by rewrite <- inclusion_id_rt, seq_id_r. }
+  enough (dom_rel (⦗W⦘ ⨾ (rfe ∪ ar_int G)⁺ ⨾ ⦗FR ∩₁ Acq⦘ ⨾ ⦗dom_rel (sb^? ⨾ ⦗I⦘)⦘) ⊆₁ I) as BB.
+  { rewrite (dom_rel_helper BB).
+    seq_rewrite (dom_rel_helper dom_release_issued).
+    basic_solver. }
+  rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel. rewrite !seqA.
+  arewrite (⦗FR ∩₁ Acq⦘ ⨾ sb^? ⊆ (rfe ∪ ar_int G)^?).
+  { rewrite !crE, !seq_union_r. apply union_mori; [basic_solver|].
+    unionR right. rewrite set_inter_union_l, id_union, seq_union_l.
+    rewrite sb_from_r_acq_in_bob.
+    arewrite (Acq ⊆₁ Acq/Rel) by mode_solver.
+    rewrite sb_from_f_in_bob. rewrite bob_in_ar_int. eauto with hahn. }
+  seq_rewrite ct_cr.
+  arewrite (rfe ∪ ar_int G ⊆ ar). by apply ar_ct_I_in_I.
+Qed.
+
+Lemma hb_in_Chb_sb :
+  hb ⨾ ⦗C ∪₁ dom_rel (sb^? ⨾ ⦗ I ⦘)⦘ ⊆ ⦗ C ⦘ ⨾ hb ∪ sb.
+Proof using WF RELCOV IMMCON TLSCOH IORDCOH. 
+  unfold imm_s_hb.hb.
+  intros x y HH.
+  destruct_seq_r HH as DOM.
+  apply clos_trans_tn1 in HH.
+  induction HH as [y [HH|HH]|y z AA].
+  { by right. }
+  { assert ((⦗C⦘ ⨾ sw ∪ sb) x y) as [ZZ|ZZ].
+    3: by right.
+    2: { destruct_seq_l ZZ as CX.
+         left. apply seq_eqv_l. split; auto.
+         apply ct_step. by right. }
+    apply sw_in_Csw_sb; auto. apply seq_eqv_r. splits; auto. }
+  assert (sb y z -> (C ∪₁ dom_rel (sb^? ⨾ ⦗I⦘)) y) as DOMY.
+  { intros SB.
+    destruct DOM as [DOM|DOM].
+    2: { right. generalize (@sb_trans G) SB DOM. basic_solver 10. }
+    left.
+    eapply dom_sb_covered; eauto. eexists.
+    apply seq_eqv_r. split; eauto. }
+
+  assert ((C ∪₁ dom_rel (sb^? ⨾ ⦗I⦘)) y) as BB.
+  2: { set (CC:=BB). apply IHHH in CC.
+       destruct CC as [CC|CC].
+       { left.
+         destruct_seq_l CC as XX.
+         apply seq_eqv_l. split; auto.
+         (* TODO: is the last tactic needed? *)
+         apply ct_ct. exists y. split; eauto; try by apply ct_step. }
+       destruct AA as [AA|AA].
+       { right. eapply (@sb_trans G); eauto. }
+       assert ((sw ⨾ ⦗C ∪₁ dom_rel (sb^? ⨾ ⦗I⦘)⦘) y z) as DD.
+       { apply seq_eqv_r. by split. }
+       eapply sw_in_Csw_sb in DD; auto.
+       destruct DD as [DD|DD].
+       2: { right. eapply (@sb_trans G); eauto. }
+       left.
+       apply seq_eqv_l. split.
+       2: { apply ct_ct. eexists.
+            split; apply ct_step; [left|right]; eauto. }
+       assert (C y) as CY.
+       { by destruct_seq_l DD as XX. }
+       eapply dom_sb_covered; eauto. eexists.
+       apply seq_eqv_r. split; eauto. }
+  destruct AA as [|AA]; [by intuition|].
+  assert ((sw ⨾ ⦗C ∪₁ dom_rel (sb^? ⨾ ⦗I⦘)⦘) y z) as DD.
+  { apply seq_eqv_r. by split. }
+  eapply sw_in_Csw_sb in DD; auto.
+  destruct DD as [DD|]; [|by intuition].
+  left. by destruct_seq_l DD as CY.
+Qed.
+
+End HbProps.
+
 
 End TlsProperties.
