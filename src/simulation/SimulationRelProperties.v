@@ -247,7 +247,7 @@ Lemma sc_view_f_issued sc_view
           max_value f_to (S_tm G l C) (LocFun.find l sc_view)):
   forall l,
     max_value f_to' (S_tm G l C) (LocFun.find l sc_view).
-Proof using WF RELCOV ISSEQ_TO IMMCON.
+Proof using WF RELCOV ISSEQ_TO IMMCON TLSCOH IORDCOH.
   intros l; specialize (SC_REQ l).
   eapply max_value_new_f; eauto.
   intros x H; apply ISSEQ_TO.
@@ -258,7 +258,7 @@ Qed.
 Lemma simrel_common_fS PC smode
       (SIMREL: simrel_common G sc PC TLS f_to f_from smode):
   simrel_common G sc PC TLS f_to' f_from' smode.
-Proof using WF IMMCON RELCOV ETCCOH FCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
+Proof using WF IMMCON RELCOV FCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM TLSCOH RCOH IORDCOH.
   cdes SIMREL.
   red; splits; auto.
   { eapply f_to_coherent_fS; eauto. }
@@ -269,7 +269,7 @@ Qed.
 Lemma simrel_thread_local_fS thread PC smode
       (SIMREL: simrel_thread_local G sc PC TLS f_to f_from thread smode):
   simrel_thread_local G sc PC TLS f_to' f_from' thread smode.
-Proof using WF IMMCON RELCOV ETCCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
+Proof using WF IMMCON RELCOV REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL.
   red; splits; auto.
   eexists; eexists; eexists; splits; eauto.
@@ -283,7 +283,7 @@ Qed.
 Lemma simrel_thread_fS thread PC smode
       (SIMREL: simrel_thread G sc PC TLS f_to f_from thread smode):
   simrel_thread G sc PC TLS f_to' f_from' thread smode.
-Proof using WF IMMCON RELCOV ETCCOH FCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
+Proof using WF IMMCON RELCOV FCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL. cdes COMMON. cdes LOCAL.
   red; splits; auto.
   { eapply simrel_common_fS; eauto. }
@@ -293,7 +293,7 @@ Qed.
 Lemma simrel_fS PC
       (SIMREL: simrel G sc PC TLS f_to f_from):
   simrel G sc PC TLS f_to' f_from'.
-Proof using WF IMMCON RELCOV FCOH ETCCOH TCCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
+Proof using WF IMMCON RELCOV FCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
   cdes SIMREL. red; splits.
   { eapply simrel_common_fS; eauto. }
   ins. eapply simrel_thread_local_fS; eauto.
@@ -308,7 +308,7 @@ Lemma max_value_leS locw w wprev s ts
       (ISSS : s ⊆₁ S)
       (NOCO : ⦗ eq w ⦘ ⨾ co ⨾ ⦗ s ⦘ ≡ ∅₂) :
   Time.le ts (f_to wprev).
-Proof using WF IMMCON ETCCOH FCOH TCCOH.
+Proof using WF IMMCON FCOH TCCOH.
   red in MAXVAL. desc.
   destruct MAX as [[Y1 Y2]|[a_max Y1]].
   { rewrite Y2. apply Time.bot_spec. }
@@ -432,7 +432,7 @@ Lemma co_S_memory_disjoint memory locw wp wn
   forall (to from : Time.t) (msg : Message.t)
          (IN : Memory.get locw to memory = Some (from, msg)),
     Interval.disjoint (f_to wp, f_from wn) (from, to).
-Proof using WF IMMCON ETCCOH FCOH TCCOH.
+Proof using WF IMMCON FCOH TCCOH.
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
 
@@ -529,7 +529,7 @@ Lemma no_next_S_max_ts locw memory local w x
       (SX : S x)
       (RFRMW : (rf ⨾ rmw) x w) :
   f_to x = Memory.max_ts locw memory.
-Proof using WF IMMCON FCOH ETCCOH TCCOH.
+Proof using WF IMMCON FCOH TCCOH.
   assert (complete G) as COMPL by apply IMMCON.
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
@@ -633,7 +633,7 @@ Lemma le_msg_rel_f_to_wprev w wprev locw PC lang state
       else (TView.rel (Local.tview local) locw)
   in
   Time.le (View.rlx rel locw) (f_to wprev).
-Proof using WF IMMCON RELCOV TCCOH ETCCOH FCOH.
+Proof using WF IMMCON RELCOV FCOH.
   assert (WNINIT : ~ is_init w).
   { intros HH. apply WNCOV. eapply init_covered; eauto. by split. }
   

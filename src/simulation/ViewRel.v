@@ -12,9 +12,12 @@ From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 
 From imm Require Import ViewRelHelpers.
-From imm Require Import TraversalConfig.
+(* From imm Require Import TraversalConfig. *)
 Require Import MaxValue.
 Require Import Event_imm_promise.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+Require Import TlsAux.
 
 Set Implicit Arguments.
 
@@ -322,7 +325,9 @@ Proof using WF.
 Qed.
 
 Lemma sim_tview_f_issued f_to f_to' T tview thread
-      (TCCOH : tc_coherent G sc T)
+      (* (TCCOH : tc_coherent G sc T) *)
+      (TCOH: tls_coherent G T)
+      (ICOH: iord_coherent G sc T)
       (IMMCON : imm_consistent G sc)
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
       (ISSEQ : forall e (ISS: issued T e), f_to' e = f_to e)
@@ -340,17 +345,17 @@ Proof using WF.
   2: { rewrite Loc.eq_dec_neq in H; desf. }
   apply ISSEQ; subst.
   rewrite Loc.eq_dec_eq in H.
-  generalize (w_covered_issued TCCOH).
+  eapply w_covered_issued; eauto. 
   revert H; basic_solver 21.
 Qed.
 
 Lemma sim_sc_fence_step
       T f_to
       f ordf ordr ordw tview thread sc_view
-      (TCCOH : tc_coherent G sc T)
+      (TCOH : tls_coherent G T)
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
       (IMMCON : imm_consistent G sc)
-      (NEXT : next G (covered T) f)
+      (* (NEXT : next G (covered T) f) *)
       (TID : tid f = thread)
       (FPARAMS : lab f = Afence ordf)
       (SAME_MOD : fmod ordf ordr ordw)

@@ -90,11 +90,26 @@ Notation "'Acqrel'" := (fun x => is_true (is_acqrel lab x)).
 Notation "'Sc'" := (fun x => is_true (is_sc lab x)).
 Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 
+
 Context
   (T : trav_label -> Prop)
   (TLSCOH  : tls_coherent G T)
   (IORDCOH : iord_coherent G sc T)
   (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T).
+
+Definition coverable T :=
+  E ∩₁ event ↑₁ (dom_cond (iord G sc) T ∩₁ action ↓₁ eq ta_cover). 
+  (* E ∩₁ dom_cond sb (covered T) ∩₁  *)
+  (*   ((W ∩₁ issued T) ∪₁ *)
+  (*    (R ∩₁ (dom_cond rf (issued T))) ∪₁ *)
+  (*    (F ∩₁ (dom_cond sc (covered T)))). *)
+
+Definition issuable T :=
+  E ∩₁ W ∩₁ event ↑₁ (dom_cond (iord G sc) T ∩₁ action ↓₁ eq ta_issue). 
+(* Definition issuable T e := *)
+(*   E ∩₁ W ∩₁ *)
+(*   (dom_cond fwbob (covered T)) ∩₁ *)
+(*   (dom_cond (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc))⁺) (issued T)). *)
 
   Lemma issuedW :
     issued T ⊆₁ W.
@@ -106,6 +121,12 @@ Context
     issued T ⊆₁ E.
   Proof using WF TLSCOH.
     unfold issued. rewrite (tlsc_E WF TLSCOH). basic_solver.  
+  Qed. 
+
+  Lemma coveredE:
+    covered T ⊆₁ E.
+  Proof using WF TLSCOH.
+    unfold covered. rewrite (tlsc_E WF TLSCOH). basic_solver.
   Qed. 
 
   Lemma w_covered_issued :
@@ -814,6 +835,7 @@ Proof using WF RELCOV IMMCON TLSCOH IORDCOH.
 Qed.
 
 End HbProps.
+  
 
 
 End TlsProperties.
