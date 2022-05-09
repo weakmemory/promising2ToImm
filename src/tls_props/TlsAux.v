@@ -240,6 +240,14 @@ Definition issuable T :=
     apply dom_rel_to_cond. auto. 
   Qed.
 
+  Lemma issued_in_issuable:
+    issued T ⊆₁ issuable T.
+  Proof using WF TLSCOH IORDCOH. 
+    unfold issued, issuable. repeat (apply set_subset_inter_r; split); auto using issuedE, issuedW. 
+    apply set_collect_mori; [done| ]. apply set_subset_inter; [| done].
+    apply dom_rel_to_cond. auto. 
+  Qed.
+
   Lemma dom_sb_covered :
     dom_rel (sb ⨾ ⦗ covered T ⦘) ⊆₁ covered T.
   Proof using WF TLSCOH IORDCOH.
@@ -258,30 +266,65 @@ Definition issuable T :=
     rewrite (dom_rel_helper dom_sb_covered). basic_solver.
   Qed.
 
-  Lemma dom_rf_covered :
-    dom_rel (rf ⨾ ⦗covered T⦘) ⊆₁ issued T.
-  Proof using WF TLSCOH IORDCOH IMMCON. 
-    apply dom_rel_iord_parts. unfold iord_simpl, RF.
-    rewrite crE, <- inclusion_union_r2 with (r := ⦗_⦘).
-    rewrite (dom_l (wf_rfD WF)) at 1. intuition.
+  Lemma dom_rf_coverable :
+    dom_rel (rf ⨾ ⦗coverable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH. 
+    unfold coverable, issued. rewrite id_inter, <- seqA.
+    apply dom_rel_iord_ext_parts.
+    3: by apply init_issued.
+    2: rewrite rf_E_ENI; basic_solver. 
+    transitivity (RF G); [| unfold iord_simpl; basic_solver 10].
+    unfold RF. hahn_frame. apply map_rel_mori; [done| ].
+    rewrite wf_rfD, wf_rfE; eauto. basic_solver 10. 
   Qed. 
 
-  Lemma rf_covered :
-    rf ⨾ ⦗ covered T ⦘ ≡ ⦗ issued T ⦘ ⨾ rf ⨾ ⦗ covered T ⦘.
-  Proof using WF TLSCOH IORDCOH IMMCON.
+  Lemma dom_rf_covered :
+    dom_rel (rf ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH. 
+    rewrite covered_in_coverable. apply dom_rf_coverable. 
+  Qed.
+
+  Lemma rf_coverable :
+    rf ⨾ ⦗coverable T⦘ ⊆ ⦗issued T⦘ ⨾ rf.
+  Proof using WF TLSCOH.
+    rewrite (dom_rel_helper dom_rf_coverable).
+    basic_solver.
+  Qed.
+
+  Lemma rf_covered:
+    rf ⨾ ⦗covered T⦘ ≡ ⦗issued T⦘ ⨾ rf ⨾ ⦗covered T⦘.
+  Proof using WF TLSCOH IORDCOH.
     rewrite (dom_rel_helper dom_rf_covered). basic_solver.
   Qed.
 
+  Lemma dom_sc_coverable :
+    dom_rel (sc ⨾ ⦗ coverable T ⦘) ⊆₁ covered T.
+  Proof using WF TLSCOH IMMCON.
+    unfold coverable, covered. rewrite id_inter, <- seqA.
+    cdes IMMCON. 
+    apply dom_rel_iord_ext_parts.
+    3: by apply init_covered.
+    2: { erewrite (sc_E_ENI _ _ WF Wf_sc). basic_solver. } 
+    transitivity (SB G sc); [| unfold iord_simpl; basic_solver 10].
+    unfold SB. hahn_frame. apply map_rel_mori; [done| ].
+    rewrite <- ct_step. rewrite (wf_scE Wf_sc). basic_solver 10.
+  Qed. 
+    
   Lemma dom_sc_covered :
     dom_rel (sc ⨾ ⦗ covered T ⦘) ⊆₁ covered T.
-  Proof using WF TLSCOH IORDCOH IMMCON.
-    apply dom_rel_iord_parts. unfold iord_simpl, SB.
-    rewrite <- ct_step, <- inclusion_union_r2 with (r := sb). intuition. 
+  Proof using WF TLSCOH IORDCOH IMMCON. 
+    rewrite covered_in_coverable at 1. apply dom_sc_coverable. 
   Qed.
 
-  Lemma sc_covered  :
+  Lemma sc_coverable  :
+    sc ⨾ ⦗ coverable T ⦘ ⊆ ⦗covered T⦘ ⨾ sc.
+  Proof using WF TLSCOH IMMCON.
+    seq_rewrite (dom_rel_helper dom_sc_coverable). basic_solver.
+  Qed.
+
+  Lemma sc_covered :
     sc ⨾ ⦗covered T⦘ ⊆ ⦗covered T⦘ ⨾ sc.
-  Proof using WF TLSCOH IORDCOH IMMCON.
+  Proof using WF TLSCOH IORDCOH IMMCON. 
     seq_rewrite (dom_rel_helper dom_sc_covered). basic_solver.
   Qed.
 
@@ -290,13 +333,10 @@ Definition issuable T :=
   Proof using WF TLSCOH IORDCOH IMMCON.
     unfold imm_s.ar.
     rewrite !seq_union_l.
-    rewrite (ar_int_in_sb WF).
-    arewrite (rfe ⊆ rf).
-    rewrite sb_covered, rf_covered.
-    rewrite sc_covered.
+    rewrite ar_int_in_sb, rfe_in_rf; eauto. 
+    rewrite sb_coverable, rf_coverable, sc_coverable.
     basic_solver.
   Qed.
-
 
   Lemma ar_C_in_CI  :
     dom_rel (ar ⨾ ⦗covered T⦘) ⊆₁ covered T ∪₁ issued T.
@@ -309,20 +349,49 @@ Definition issuable T :=
     rewrite sc_covered.
     basic_solver.
   Qed.
+  
+  (* TODO: move to IordCoherency *)
+  Lemma ar_rf_ppo_loc_ct_E_ENI: 
+    (ar ∪ rf ⨾ ppo ∩ same_loc)⁺ ⊆ E × (E \₁ Init).
+  Proof using WF IMMCON. 
+    rewrite inclusion_inter_l1, ppo_in_sb; auto. 
+    rewrite sb_E_ENI, rf_E_ENI, ar_E_ENI; auto.
+    remember (E × (E \₁ Init)) as E_ENI. 
+    repeat (rewrite ?(@rt_of_trans _ E_ENI), ?(@rewrite_trans _ E_ENI),
+             ?unionK, ?(@rewrite_trans _ E_ENI),
+             ?(@rewrite_trans_seq_cr_cr _ E_ENI), ?(@ct_of_trans _ E_ENI)
+           ); try by (subst; apply E_ENI_trans).
+    basic_solver. 
+  Qed. 
+
+  Lemma ar_rf_ppo_loc_ct_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc))⁺ ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IMMCON.
+    unfold issuable, issued. rewrite id_inter, <- !seqA. 
+    eapply dom_rel_iord_ext_parts.
+    3: by apply init_issued.
+    2: rewrite ar_rf_ppo_loc_ct_E_ENI; basic_solver.  
+    transitivity (AR G sc); [| unfold iord_simpl; basic_solver 10].
+    erewrite eqv_rel_mori with (x := _ ∩₁ _); [| red; intro; apply proj2]. 
+    unfold AR. basic_solver 10.
+  Qed.
+
+  Lemma ar_rfrmw_ct_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IMMCON.
+    rewrite (rmw_in_ppo_loc WF). apply ar_rf_ppo_loc_ct_issuable_in_I.
+  Qed.
 
   Lemma ar_rf_ppo_loc_ct_I_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc))⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof using WF TLSCOH IORDCOH IMMCON.
-    arewrite (⦗issued T⦘ ⊆ ⦗W⦘ ⨾ ⦗issued T⦘) at 1.
-    { rewrite <- id_inter. apply eqv_rel_mori. split; auto using issuedW. }
-    rewrite <- !seqA. apply dom_rel_iord_parts. rewrite !seqA.
-    unfold iord_simpl, AR. intuition. 
-  Qed. 
+    rewrite issued_in_issuable at 1. apply ar_rf_ppo_loc_ct_issuable_in_I.
+  Qed.
 
   Lemma ar_rfrmw_ct_I_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof using WF TLSCOH IORDCOH IMMCON.
-    rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_ct_I_in_I.
+    rewrite issued_in_issuable at 1. apply ar_rfrmw_ct_issuable_in_I. 
   Qed.
 
   Lemma ar_rf_ppo_loc_rt_I_in_I  :
@@ -339,11 +408,24 @@ Definition issuable T :=
     rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_rt_I_in_I.
   Qed.
 
+  Lemma ar_rf_ppo_loc_issuable_in_I:
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc)) ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IMMCON. 
+    rewrite ct_step with (r := ar ∪ rf ⨾ (ppo ∩ same_loc)).
+    by apply ar_rf_ppo_loc_ct_issuable_in_I.
+  Qed.     
+
+  Lemma ar_rfrmw_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw) ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IMMCON.
+    rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_issuable_in_I.
+  Qed.
+
   Lemma ar_rf_ppo_loc_I_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc)) ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof using WF TLSCOH IORDCOH IMMCON.
     rewrite ct_step with (r := ar ∪ rf ⨾ (ppo ∩ same_loc)).
-    by apply ar_rf_ppo_loc_ct_I_in_I.
+    rewrite issued_in_issuable at 1. apply ar_rf_ppo_loc_ct_issuable_in_I.
   Qed.
 
   Lemma ar_rfrmw_I_in_I  :
@@ -352,18 +434,490 @@ Definition issuable T :=
     rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_I_in_I.
   Qed.
 
+  Lemma ar_ct_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ ar⁺ ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IMMCON. 
+    arewrite (ar ⊆ ar ∪ rf ⨾ rmw). by apply ar_rfrmw_ct_issuable_in_I.
+  Qed.
+
   Lemma ar_ct_I_in_I  :
     dom_rel (⦗W⦘ ⨾ ar⁺ ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof using WF TLSCOH IORDCOH IMMCON.
-    arewrite (ar ⊆ ar ∪ rf ⨾ rmw). by apply ar_rfrmw_ct_I_in_I.
+    rewrite issued_in_issuable at 1. apply ar_ct_issuable_in_I. 
+  Qed.
+
+  Lemma ar_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IMMCON.
+    rewrite ct_step with (r:=ar). by apply ar_ct_issuable_in_I.
   Qed.
 
   Lemma ar_I_in_I  :
     dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗issued T⦘) ⊆₁ issued T.
   Proof using WF TLSCOH IORDCOH IMMCON.
-    rewrite ct_step with (r:=ar). apply ar_ct_I_in_I.
+    rewrite issued_in_issuable at 1. apply ar_issuable_in_I. 
   Qed.
 
+  Lemma W_ar_coverable_in_I  :
+    dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗coverable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite dom_eqv1. rewrite ar_coverable_in_CI.
+    rewrite set_inter_union_r; unionL.
+    2: basic_solver.
+    apply w_covered_issued.
+  Qed.
+
+  Lemma W_ar_C_in_I  :
+    dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON. 
+    rewrite covered_in_coverable. apply W_ar_coverable_in_I.
+  Qed.
+
+  Lemma W_ar_coverable_issuable_in_CI  :
+    dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite id_union, !seq_union_r, dom_union; unionL.
+    { by apply W_ar_coverable_in_I. }
+    apply ar_issuable_in_I.
+  Qed.
+
+
+  Lemma ar_rt_I_in_I  :
+    dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON. 
+    rewrite rtE, !seq_union_l, !seq_union_r, seq_id_l, dom_union.
+    unionL; [basic_solver|]. by apply ar_ct_I_in_I.
+  Qed.
+
+  Lemma dom_W_sb_coverable_in_I  :
+    dom_rel (⦗W⦘ ⨾ sb ⨾ ⦗coverable T⦘) ⊆₁ issued T.
+  Proof using TLSCOH IORDCOH. 
+    rewrite sb_coverable; auto.
+    etransitivity.
+    2: by apply w_covered_issued.
+    basic_solver.
+  Qed.
+  
+  Lemma dom_W_sb_C_in_I  :
+    dom_rel (⦗W⦘ ⨾ sb ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH.
+    rewrite covered_in_coverable. apply dom_W_sb_coverable_in_I.
+  Qed.
+
+  (* TODO: move upper*)
+  Lemma w_coverable_issued :
+    W ∩₁ coverable T ⊆₁ issued T.
+  Proof using TLSCOH.
+    rewrite AuxRel2.set_split_complete with (s' := _ ∩₁ _) (s := is_init).
+    apply set_subset_union_l. split.
+    { rewrite <- init_issued. unfold coverable. basic_solver. } 
+    rewrite <- dom_eqv with (d := _ ∩₁ _). rewrite id_inter, seq_eqvC. 
+    unfold coverable, issued. rewrite !id_inter, <- !seqA. 
+    eapply dom_rel_iord_ext_parts.
+    3: by apply init_issued.
+    2: basic_solver. 
+    transitivity (RF G); [| unfold iord_simpl; basic_solver 10].
+    unfold RF. hahn_frame. basic_solver 10. 
+  Qed.
+
+  Lemma rf_ppo_loc_coverable_in_I  :
+    dom_rel (rf ⨾ (ppo ∩ same_loc) ⨾ ⦗coverable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON. 
+    arewrite (ppo ∩ same_loc ⊆ ppo).
+    rewrite (dom_l (wf_rfD WF)), seqA.
+    rewrite rfi_union_rfe, !seq_union_l, !seq_union_r, dom_union.
+    unionL.
+    2: { rewrite (dom_r (@wf_ppoD G)), !seqA.
+         rewrite <- id_inter.
+         rewrite w_coverable_issued.
+         sin_rewrite rfe_ppo_in_ar_ct; auto.
+           by apply ar_ct_I_in_I. }
+    arewrite (rfi ⊆ sb).
+    rewrite (ppo_in_sb WF). sin_rewrite sb_sb.
+    rewrite dom_W_sb_coverable_in_I; auto.
+  Qed.
+
+  Lemma rfrmw_coverable_in_I  :
+    dom_rel (rf ⨾ rmw ⨾ ⦗coverable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON. 
+    rewrite (rmw_in_ppo_loc WF). by apply rf_ppo_loc_coverable_in_I.
+  Qed.
+
+  Lemma rf_ppo_loc_C_in_I  :
+    dom_rel (rf ⨾ (ppo ∩ same_loc) ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite covered_in_coverable. apply rf_ppo_loc_coverable_in_I.
+  Qed.
+
+  Lemma rfrmw_C_in_I  :
+    dom_rel (rf ⨾ rmw ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite covered_in_coverable. apply rfrmw_coverable_in_I.
+  Qed.
+
+  Lemma rf_ppo_loc_coverable_issuable_in_I  :
+    dom_rel (rf ⨾ (ppo ∩ same_loc) ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite id_union, !seq_union_r, dom_union.
+    unionL.
+    { apply rf_ppo_loc_coverable_in_I. }
+    rewrite (dom_l (wf_rfD WF)), !seqA.
+    arewrite (rf ⨾ ppo ∩ same_loc ⊆ ar ∪ rf ⨾ ppo ∩ same_loc).
+      by apply ar_rf_ppo_loc_issuable_in_I.
+  Qed.
+
+  Lemma rfrmw_coverable_issuable_in_I  :
+    dom_rel (rf ⨾ rmw ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite (rmw_in_ppo_loc WF). by apply rf_ppo_loc_coverable_issuable_in_I.
+  Qed.
+
+  Lemma rf_ppo_loc_I_in_I  :
+    dom_rel (rf ⨾ (ppo ∩ same_loc) ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite (dom_l (wf_rfD WF)), seqA.
+    arewrite (rf ⨾ (ppo ∩ same_loc) ⊆ ar ∪ rf ⨾ (ppo ∩ same_loc)).
+    by apply ar_rf_ppo_loc_I_in_I.
+  Qed.
+
+  Lemma rfrmw_I_in_I  :
+    dom_rel (rf ⨾ rmw ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite (rmw_in_ppo_loc WF). by apply rf_ppo_loc_I_in_I.
+  Qed.
+
+  Lemma rf_ppo_loc_rt_I_in_I  :
+    dom_rel ((rf ⨾ ppo ∩ same_loc)＊ ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite rtE. rewrite !seq_union_l, !seq_id_l. rewrite dom_union.
+    unionL; [basic_solver|].
+    rewrite (dom_l (wf_rfD WF)). rewrite !seqA.
+    rewrite inclusion_ct_seq_eqv_l. rewrite !seqA.
+    arewrite (rf ⨾ ppo ∩ same_loc ⊆ ar ∪ rf ⨾ ppo ∩ same_loc).
+    apply ar_rf_ppo_loc_ct_I_in_I.
+  Qed.
+
+  Lemma rfrmw_rt_I_in_I  :
+    dom_rel ((rf ⨾ rmw)＊ ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite (rmw_in_ppo_loc WF). by apply rf_ppo_loc_rt_I_in_I.
+  Qed.
+
+  Lemma rf_ppo_loc_CI_in_I  :
+    dom_rel (rf ⨾ (ppo ∩ same_loc) ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite id_union, !seq_union_r, dom_union.
+    unionL.
+    { by apply rf_ppo_loc_C_in_I. }
+      by apply rf_ppo_loc_I_in_I.
+  Qed.
+
+  Lemma rfrmw_CI_in_I  :
+    dom_rel (rf ⨾ rmw ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite (rmw_in_ppo_loc WF). by apply rf_ppo_loc_CI_in_I.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_coverable_in_CI  :
+    dom_rel ((ar ∪ rf ⨾ ppo ∩ same_loc) ⨾ ⦗coverable T⦘) ⊆₁ covered T ∪₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite seq_union_l, dom_union, !seqA.
+    unionL.
+    { by apply ar_coverable_in_CI. }
+    rewrite rf_ppo_loc_coverable_in_I; eauto with hahn.
+  Qed.
+
+  Lemma ar_rfrmw_coverable_in_CI  :
+    dom_rel ((ar ∪ rf ⨾ rmw) ⨾ ⦗coverable T⦘) ⊆₁ covered T ∪₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_coverable_in_CI.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_C_in_CI  :
+    dom_rel ((ar ∪ rf ⨾ ppo ∩ same_loc) ⨾ ⦗covered T⦘) ⊆₁ covered T ∪₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite covered_in_coverable at 1.
+    apply ar_rf_ppo_loc_coverable_in_CI.
+  Qed.
+
+  Lemma ar_rfrmw_C_in_CI  :
+    dom_rel ((ar ∪ rf ⨾ rmw) ⨾ ⦗covered T⦘) ⊆₁ covered T ∪₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_C_in_CI.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_coverable_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc) ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite seq_union_l, seq_union_r, dom_union; unionL.
+    { apply W_ar_coverable_issuable_in_CI. }
+    arewrite_id ⦗W⦘. rewrite seq_id_l.
+    apply rf_ppo_loc_coverable_issuable_in_I.
+  Qed.
+
+  Lemma ar_rfrmw_coverable_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw) ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_coverable_issuable_in_I.
+  Qed.
+
+  Lemma ar_CI_in_CI  :
+    dom_rel (⦗W⦘ ⨾ ar ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON. 
+    rewrite id_union, !seq_union_r, dom_union; unionL.
+    { by apply W_ar_C_in_I. }
+    apply ar_I_in_I.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_CI_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc) ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite seq_union_l, seq_union_r, dom_union; unionL.
+    { apply ar_CI_in_CI. }
+    arewrite_id ⦗W⦘. rewrite seq_id_l.
+    apply rf_ppo_loc_CI_in_I.
+  Qed.
+
+  Lemma ar_rfrmw_CI_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw) ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_CI_in_I.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_ct_coverable_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc)⁺ ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    intros x [y HH].
+    destruct_seq HH as [AA BB].
+    apply clos_trans_tn1 in HH.
+    induction HH as [y HH|y z QQ].
+    { eapply ar_rf_ppo_loc_coverable_issuable_in_I. basic_solver 10. }
+    apply clos_tn1_trans in HH.
+    destruct QQ as [QQ|QQ].
+    2: { apply IHHH. right.
+         apply issued_in_issuable.
+         apply rf_ppo_loc_coverable_issuable_in_I.
+         exists z. apply seqA. basic_solver. }
+    destruct BB as [BB|BB].
+    2: { apply ar_rf_ppo_loc_ct_issuable_in_I. exists z.
+         apply seq_eqv_lr. splits; auto.
+         apply ct_end. exists y. split; auto.
+         { by apply clos_trans_in_rt. }
+           by left. }
+    apply IHHH.
+    destruct QQ as [[QQ|QQ]|QQ].
+    { left. apply covered_in_coverable.
+      apply dom_sc_coverable. exists z. basic_solver. }
+    { right. apply issued_in_issuable.
+      apply dom_rf_coverable. exists z.
+      do 2 red in QQ. basic_solver. }
+    left. apply covered_in_coverable.
+    apply dom_sb_coverable. exists z.
+    apply seq_eqv_r. split; auto. by apply ar_int_in_sb.
+  Qed.
+
+  Lemma ar_rfrmw_ct_coverable_issuable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite (rmw_in_ppo_loc WF). apply ar_rf_ppo_loc_ct_coverable_issuable_in_I.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_ct_CI_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc)⁺ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite covered_in_coverable.
+    rewrite issued_in_issuable at 1.
+    apply ar_rf_ppo_loc_ct_coverable_issuable_in_I.
+  Qed.
+
+  Lemma ar_rfrmw_ct_CI_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite (rmw_in_ppo_loc WF). apply ar_rf_ppo_loc_ct_CI_in_I.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_rt_coverable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc)＊ ⨾ ⦗coverable T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite rtE. rewrite !seq_union_l, !seq_union_r, dom_union, seq_id_l.
+    unionL.
+    { generalize w_coverable_issued. basic_solver. }
+    arewrite (coverable T ⊆₁ coverable T ∪₁ issuable T).
+    apply ar_rf_ppo_loc_ct_coverable_issuable_in_I.
+  Qed.
+
+  Lemma ar_rfrmw_rt_coverable_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)＊ ⨾ ⦗coverable T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite (rmw_in_ppo_loc WF). apply ar_rf_ppo_loc_rt_coverable_in_I.
+  Qed.
+
+  Lemma ar_rf_ppo_loc_rt_CI_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc)＊ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite rtE. rewrite !seq_union_l, !seq_union_r, dom_union, seq_id_l.
+    unionL.
+    { generalize w_covered_issued. basic_solver. }
+    apply ar_rf_ppo_loc_ct_CI_in_I.
+  Qed.
+
+  Lemma ar_rfrmw_rt_CI_in_I  :
+    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)＊ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite (rmw_in_ppo_loc WF). apply ar_rf_ppo_loc_rt_CI_in_I.
+  Qed.
+  
+  Lemma ar_rt_C_in_I  :
+    dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗covered T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    unfolder.
+    ins. desf.
+    apply clos_rt_rtn1 in H0.
+    induction H0.
+    { apply w_covered_issued; basic_solver. }
+    apply clos_rtn1_rt in H2.
+    destruct H0 as [[AA|AA]|AA].
+    3: { apply ar_int_in_sb in AA; auto.
+         apply IHclos_refl_trans_n1.
+         eapply dom_sb_covered; basic_solver 10. }
+    { apply IHclos_refl_trans_n1.
+      eapply dom_sc_covered; basic_solver 10. }
+    apply ar_rt_I_in_I; auto.
+    exists y. unfolder; splits; auto.
+    apply dom_rf_covered; auto.
+    eexists. apply seq_eqv_r. by split; [apply AA|].
+  Qed.
+
+  Lemma ar_rt_CI_in_I  :
+    dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
+  Proof using WF IMMCON TLSCOH IORDCOH.
+    rewrite id_union, !seq_union_r, dom_union; unionL.
+    { by apply ar_rt_C_in_I. }
+      by apply ar_rt_I_in_I.
+  Qed.
+
+  Lemma sbCsbI_CsbI   :
+    sb ⨾ ⦗covered T ∪₁ dom_rel (sb^? ⨾ ⦗issued T⦘)⦘ ⊆
+    ⦗covered T ∪₁ dom_rel (sb^? ⨾ ⦗issued T⦘)⦘ ⨾ sb.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite id_union, !seq_union_r, !seq_union_l.
+    apply union_mori.
+    { rewrite sb_covered; eauto. basic_solver. }
+    generalize (@sb_trans G). basic_solver 10.
+  Qed.
+
+  Lemma dom_rfe_ppo_issued :
+    dom_rel (rfe ⨾ ppo ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite (dom_l (wf_rfeD WF)).
+    arewrite (rfe ⊆ ar).
+    rewrite ppo_in_ar.
+    sin_rewrite ar_ar_in_ar_ct.
+      by apply ar_ct_I_in_I.
+  Qed.
+
+  Lemma dom_detour_rfe_ppo_issuable :
+    dom_rel ((detour ∪ rfe) ⨾ ppo ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IMMCON.
+    rewrite (dom_l (wf_rfeD WF)).
+    rewrite (dom_l (wf_detourD WF)).
+    arewrite (rfe ⊆ ar).
+    arewrite (detour ⊆ ar).
+    relsf.
+    rewrite ppo_in_ar, !seqA.
+    sin_rewrite ar_ar_in_ar_ct.
+    apply ar_ct_issuable_in_I. 
+  Qed.
+  
+  Lemma dom_detour_rfe_ppo_issued :
+    dom_rel ((detour ∪ rfe) ⨾ ppo ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite issued_in_issuable at 1.
+    apply dom_detour_rfe_ppo_issuable.
+  Qed.
+
+  Lemma dom_detour_rfe_acq_sb_issuable :
+    dom_rel ((detour ∪ rfe) ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IMMCON.
+    rewrite (dom_l (wf_detourD WF)).
+    rewrite (dom_l (wf_rfeD WF)).
+    arewrite (rfe ⊆ ar).
+    arewrite (detour ⊆ ar).
+    relsf.
+    arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ ar).
+    { arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ bob). unfold imm_s.ar, ar_int. eauto with hahn. }
+    sin_rewrite ar_ar_in_ar_ct.
+    apply ar_ct_issuable_in_I. 
+  Qed.
+
+  Lemma dom_detour_rfe_acq_sb_issued :
+    dom_rel ((detour ∪ rfe) ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite issued_in_issuable at 1.
+    apply dom_detour_rfe_acq_sb_issuable.
+  Qed.
+
+  Lemma dom_detour_rmwrfi_rfe_acq_sb_issuable :
+    dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IMMCON.
+    arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗Acq⦘ ⨾ ⦗R ∩₁ Acq⦘) by basic_solver.
+    arewrite (rfi ⊆ rf).
+    sin_rewrite (@rmwrf_rt_Acq_in_ar_rfrmw_rt G WF sc); auto.
+    rewrite (dom_l (wf_detourD WF)).
+    rewrite (dom_l (wf_rfeD WF)).
+    arewrite (rfe ⊆ ar).
+    arewrite (detour ⊆ ar).
+    relsf.
+    arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ ar).
+    { arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ bob). unfold imm_s.ar, ar_int. eauto with hahn. }
+    arewrite (ar ⊆ ar ∪ rf ⨾ rmw) at 3.
+    arewrite (ar ⊆ ar ∪ rf ⨾ rmw) at 1.
+    seq_rewrite <- ct_end.
+    arewrite ((ar ∪ rf ⨾ rmw) ⨾ (ar ∪ rf ⨾ rmw)⁺ ⊆ (ar ∪ rf ⨾ rmw)⁺).
+    { rewrite ct_step with (r:= ar ∪ rf ⨾ rmw) at 1. apply ct_ct. }
+    apply ar_rfrmw_ct_issuable_in_I.
+  Qed.
+
+  Lemma dom_detour_rmwrfi_rfe_acq_sb_issued :
+    dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite issued_in_issuable at 1.
+    apply dom_detour_rmwrfi_rfe_acq_sb_issuable.
+  Qed.
+
+  Lemma dom_rfe_acq_sb_issuable :
+    dom_rel (rfe ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IMMCON.
+    arewrite (rfe ⊆ detour ∪ rfe).
+    apply dom_detour_rfe_acq_sb_issuable.
+  Qed.
+
+  Lemma dom_rfe_acq_sb_issued :
+    dom_rel (rfe ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite issued_in_issuable at 1.
+    apply dom_rfe_acq_sb_issuable.
+  Qed.
+
+  Lemma dom_wex_sb_issuable :
+    dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗issuable T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IMMCON.
+    arewrite (⦗W_ex_acq⦘ ⊆ ⦗W⦘ ⨾ ⦗W_ex_acq⦘).
+    { rewrite <- seq_eqvK at 1.
+      rewrite (W_ex_in_W WF) at 1. basic_solver. }
+    arewrite (⦗issuable T⦘ ⊆ ⦗W⦘ ⨾ ⦗issuable T⦘).
+    { unfold issuable. basic_solver 10. }
+    arewrite (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ar).
+    apply ar_issuable_in_I. 
+  Qed.
+
+  Lemma dom_wex_sb_issued :
+    dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH IMMCON.
+    rewrite issued_in_issuable at 1.
+    apply dom_wex_sb_issuable.
+  Qed.
+  
   Lemma rf_rmw_issued_rfi_rmw_issued : 
     (rf ⨾ rmw)＊ ⨾ ⦗issued T⦘ ⊆ (rfi ⨾ rmw)＊ ⨾ ⦗issued T⦘ ⨾ (rf ⨾ rmw)＊.
   Proof using WF IMMCON TLSCOH IORDCOH.
@@ -398,83 +952,6 @@ Definition issuable T :=
     arewrite_id ⦗issued T⦘ at 2. rewrite seq_id_l.
     rewrite ct_rt. by rewrite inclusion_t_rt.
   Qed.
-
-  Lemma dom_rfe_ppo_issued :
-    dom_rel (rfe ⨾ ppo ⨾ ⦗issued T⦘) ⊆₁ issued T.
-  Proof using WF TLSCOH IORDCOH IMMCON.
-    rewrite (dom_l (wf_rfeD WF)).
-    arewrite (rfe ⊆ ar).
-    rewrite ppo_in_ar.
-    sin_rewrite ar_ar_in_ar_ct.
-    by apply ar_ct_I_in_I.
-  Qed.
-
-  Lemma dom_detour_rfe_ppo_issued :
-    dom_rel ((detour ∪ rfe) ⨾ ppo ⨾ ⦗issued T⦘) ⊆₁ issued T.
-  Proof using WF TLSCOH IORDCOH IMMCON.
-    rewrite (dom_l (wf_rfeD WF)).
-    rewrite (dom_l (wf_detourD WF)).
-    arewrite (rfe ⊆ ar).
-    arewrite (detour ⊆ ar).
-    relsf.
-    rewrite ppo_in_ar, !seqA.
-    sin_rewrite ar_ar_in_ar_ct.
-    apply ar_ct_I_in_I.
-  Qed.
-
-  Lemma dom_detour_rfe_acq_sb_issued :
-    dom_rel ((detour ∪ rfe) ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
-  Proof using WF TLSCOH IORDCOH IMMCON.
-    rewrite (dom_l (wf_detourD WF)).
-    rewrite (dom_l (wf_rfeD WF)).
-    arewrite (rfe ⊆ ar).
-    arewrite (detour ⊆ ar).
-    relsf.
-    arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ ar).
-    { arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ bob). unfold imm_s.ar, ar_int. eauto with hahn. }
-    sin_rewrite ar_ar_in_ar_ct.
-    apply ar_ct_I_in_I.
-  Qed.
-
-  Lemma dom_detour_rmwrfi_rfe_acq_sb_issued :
-    dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
-  Proof using WF TLSCOH IORDCOH IMMCON.
-    arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗Acq⦘ ⨾ ⦗R ∩₁ Acq⦘) by basic_solver.
-    arewrite (rfi ⊆ rf).
-    sin_rewrite (@rmwrf_rt_Acq_in_ar_rfrmw_rt G WF sc); auto.
-    rewrite (dom_l (wf_detourD WF)).
-    rewrite (dom_l (wf_rfeD WF)).
-    arewrite (rfe ⊆ ar).
-    arewrite (detour ⊆ ar).
-    relsf.
-    arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ ar).
-    { arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ⊆ bob). unfold imm_s.ar, ar_int. eauto with hahn. }
-    arewrite (ar ⊆ ar ∪ rf ⨾ rmw) at 3.
-    arewrite (ar ⊆ ar ∪ rf ⨾ rmw) at 1.
-    seq_rewrite <- ct_end.
-    arewrite ((ar ∪ rf ⨾ rmw) ⨾ (ar ∪ rf ⨾ rmw)⁺ ⊆ (ar ∪ rf ⨾ rmw)⁺).
-    { rewrite ct_step with (r:= ar ∪ rf ⨾ rmw) at 1. apply ct_ct. }
-    apply ar_rfrmw_ct_I_in_I.
-  Qed.
-
-  Lemma dom_rfe_acq_sb_issued :
-    dom_rel (rfe ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
-  Proof using WF TLSCOH IORDCOH IMMCON.
-    arewrite (rfe ⊆ detour ∪ rfe).
-    apply dom_detour_rfe_acq_sb_issued.
-  Qed.
-
-  Lemma dom_wex_sb_issued :
-    dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗issued T⦘) ⊆₁ issued T.
-  Proof using WF TLSCOH IORDCOH IMMCON.
-    arewrite (⦗W_ex_acq⦘ ⊆ ⦗W⦘ ⨾ ⦗W_ex_acq⦘).
-    { rewrite <- seq_eqvK at 1.
-      rewrite (W_ex_in_W WF) at 1. basic_solver. }
-    arewrite (⦗issued T⦘ ⊆ ⦗W⦘ ⨾ ⦗issued T⦘).
-    { generalize issuedW. basic_solver. }
-    arewrite (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ar).
-    apply ar_I_in_I.
-  Qed. 
   
   Lemma wex_rfi_rfe_rmw_issued_is_issued :
     dom_rel ((⦗ W_ex_acq ⦘ ⨾ rfi ∪ rfe) ⨾ rmw ⨾ ⦗ issued T ⦘) ⊆₁ issued T.
@@ -817,182 +1294,6 @@ Definition issuable T :=
     basic_solver 21.
   Qed.
 
-Section ArClosureProps.
-  
-  Lemma ar_rf_ppo_loc_coverable_in_CI  :
-    dom_rel ((ar ∪ rf ⨾ ppo ∩ same_loc) ⨾ ⦗coverable T⦘) ⊆₁ covered T ∪₁ issued T.
-  Proof using WF IMMCON .
-    rewrite seq_union_l, dom_union, !seqA.
-    unionL.
-    { by apply ar_coverable_in_CI. }
-    rewrite rf_ppo_loc_coverable_in_I; eauto with hahn.
-  Qed.
-
-  Lemma ar_rfrmw_coverable_in_CI  :
-    dom_rel ((ar ∪ rf ⨾ rmw) ⨾ ⦗coverable T⦘) ⊆₁ covered T ∪₁ issued T.
-  Proof using WF IMMCON .
-    rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_coverable_in_CI.
-  Qed.
-
-  Lemma ar_rf_ppo_loc_C_in_CI  :
-    dom_rel ((ar ∪ rf ⨾ ppo ∩ same_loc) ⨾ ⦗covered T⦘) ⊆₁ covered T ∪₁ issued T.
-  Proof using WF IMMCON .
-    rewrite covered_in_coverable at 1.
-    apply ar_rf_ppo_loc_coverable_in_CI.
-  Qed.
-
-  Lemma ar_rfrmw_C_in_CI  :
-    dom_rel ((ar ∪ rf ⨾ rmw) ⨾ ⦗covered T⦘) ⊆₁ covered T ∪₁ issued T.
-  Proof using WF IMMCON .
-    rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_C_in_CI.
-  Qed.
-
-  Lemma ar_rf_ppo_loc_coverable_issuable_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc) ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite seq_union_l, seq_union_r, dom_union; unionL.
-    { apply W_ar_coverable_issuable_in_CI. }
-    arewrite_id ⦗W⦘. rewrite seq_id_l.
-    apply rf_ppo_loc_coverable_issuable_in_I.
-  Qed.
-
-  Lemma ar_rfrmw_coverable_issuable_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw) ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_coverable_issuable_in_I.
-  Qed.
-
-  Lemma ar_rf_ppo_loc_CI_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc) ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite seq_union_l, seq_union_r, dom_union; unionL.
-    { apply ar_CI_in_CI. }
-    arewrite_id ⦗W⦘. rewrite seq_id_l.
-    apply rf_ppo_loc_CI_in_I.
-  Qed.
-
-  Lemma ar_rfrmw_CI_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw) ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite (rmw_in_ppo_loc WF). by apply ar_rf_ppo_loc_CI_in_I.
-  Qed.
-
-  Lemma ar_rf_ppo_loc_ct_coverable_issuable_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc)⁺ ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    intros x [y HH].
-    destruct_seq HH as [AA BB].
-    apply clos_trans_tn1 in HH.
-    induction HH as [y HH|y z QQ].
-    { eapply ar_rf_ppo_loc_coverable_issuable_in_I. basic_solver 10. }
-    apply clos_tn1_trans in HH.
-    destruct QQ as [QQ|QQ].
-    2: { apply IHHH. right.
-         apply issued_in_issuable.
-         apply rf_ppo_loc_coverable_issuable_in_I.
-         exists z. apply seqA. basic_solver. }
-    destruct BB as [BB|BB].
-    2: { apply ar_rf_ppo_loc_ct_issuable_in_I. exists z.
-         apply seq_eqv_lr. splits; auto.
-         apply ct_end. exists y. split; auto.
-         { by apply clos_trans_in_rt. }
-           by left. }
-    apply IHHH.
-    destruct QQ as [[QQ|QQ]|QQ].
-    { left. apply covered_in_coverable.
-      apply dom_sc_coverable. exists z. basic_solver. }
-    { right. apply issued_in_issuable.
-      apply dom_rf_coverable. exists z.
-      do 2 red in QQ. basic_solver. }
-    left. apply covered_in_coverable.
-    apply dom_sb_coverable. exists z.
-    apply seq_eqv_r. split; auto. by apply ar_int_in_sb.
-  Qed.
-
-  Lemma ar_rfrmw_ct_coverable_issuable_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗coverable T ∪₁ issuable T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite (rmw_in_ppo_loc WF). apply ar_rf_ppo_loc_ct_coverable_issuable_in_I.
-  Qed.
-
-  Lemma ar_rf_ppo_loc_ct_CI_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc)⁺ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite covered_in_coverable.
-    rewrite issued_in_issuable at 1.
-    apply ar_rf_ppo_loc_ct_coverable_issuable_in_I.
-  Qed.
-
-  Lemma ar_rfrmw_ct_CI_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)⁺ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite (rmw_in_ppo_loc WF). apply ar_rf_ppo_loc_ct_CI_in_I.
-  Qed.
-
-  Lemma ar_rf_ppo_loc_rt_coverable_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc)＊ ⨾ ⦗coverable T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite rtE. rewrite !seq_union_l, !seq_union_r, dom_union, seq_id_l.
-    unionL.
-    { generalize w_coverable_issued. basic_solver. }
-    arewrite (coverable T ⊆₁ coverable T ∪₁ issuable T).
-    apply ar_rf_ppo_loc_ct_coverable_issuable_in_I.
-  Qed.
-
-  Lemma ar_rfrmw_rt_coverable_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)＊ ⨾ ⦗coverable T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite (rmw_in_ppo_loc WF). apply ar_rf_ppo_loc_rt_coverable_in_I.
-  Qed.
-
-  Lemma ar_rf_ppo_loc_rt_CI_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc)＊ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite rtE. rewrite !seq_union_l, !seq_union_r, dom_union, seq_id_l.
-    unionL.
-    { generalize w_covered_issued. basic_solver. }
-    apply ar_rf_ppo_loc_ct_CI_in_I.
-  Qed.
-
-  Lemma ar_rfrmw_rt_CI_in_I  :
-    dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ rmw)＊ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite (rmw_in_ppo_loc WF). apply ar_rf_ppo_loc_rt_CI_in_I.
-  Qed.
-  
-  Lemma ar_rt_C_in_I  :
-    dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗covered T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    unfolder.
-    ins. desf.
-    apply clos_rt_rtn1 in H0.
-    induction H0.
-    { apply w_covered_issued; basic_solver. }
-    apply clos_rtn1_rt in H2.
-    destruct H0 as [[AA|AA]|AA].
-    3: { apply ar_int_in_sb in AA; auto.
-         apply IHclos_refl_trans_n1.
-         eapply dom_sb_covered; basic_solver 10. }
-    { apply IHclos_refl_trans_n1.
-      eapply dom_sc_covered; basic_solver 10. }
-    apply ar_rt_I_in_I; auto.
-    exists y. unfolder; splits; auto.
-    apply dom_rf_covered; auto.
-    eexists. apply seq_eqv_r. by split; [apply AA|].
-  Qed.
-
-  Lemma ar_rt_CI_in_I  :
-    dom_rel (⦗W⦘ ⨾ ar＊ ⨾ ⦗covered T ∪₁ issued T⦘) ⊆₁ issued T.
-  Proof using WF IMMCON .
-    rewrite id_union, !seq_union_r, dom_union; unionL.
-    { by apply ar_rt_C_in_I. }
-      by apply ar_rt_I_in_I.
-  Qed.
-
-
-
-End ArClosureProps.
-
 Section HbProps.
 
 Notation "'C'" := (covered T).
@@ -1091,6 +1392,5 @@ Qed.
 
 End HbProps.
   
-
 
 End TlsProperties.
