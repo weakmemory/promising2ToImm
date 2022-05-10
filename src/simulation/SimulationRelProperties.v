@@ -14,7 +14,7 @@ From imm Require Import AuxDef.
 From imm Require Import AuxRel2.
 
 (* From imm Require Import TraversalConfig. *)
-From imm Require Import ViewRelHelpers.
+Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimState.
 Require Import MemoryAux.
@@ -269,7 +269,7 @@ Qed.
 Lemma simrel_thread_local_fS thread PC smode
       (SIMREL: simrel_thread_local G sc PC TLS f_to f_from thread smode):
   simrel_thread_local G sc PC TLS f_to' f_from' thread smode.
-Proof using WF IMMCON RELCOV REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
+Proof using WF TLSCOH REQ_TO REQ_FROM RELCOV ISSEQ_TO ISSEQ_FROM IORDCOH IMMCON.
   cdes SIMREL.
   red; splits; auto.
   eexists; eexists; eexists; splits; eauto.
@@ -283,7 +283,7 @@ Qed.
 Lemma simrel_thread_fS thread PC smode
       (SIMREL: simrel_thread G sc PC TLS f_to f_from thread smode):
   simrel_thread G sc PC TLS f_to' f_from' thread smode.
-Proof using WF IMMCON RELCOV FCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
+Proof using WF TLSCOH REQ_TO REQ_FROM RELCOV RCOH ISSEQ_TO ISSEQ_FROM IORDCOH IMMCON FCOH.
   cdes SIMREL. cdes COMMON. cdes LOCAL.
   red; splits; auto.
   { eapply simrel_common_fS; eauto. }
@@ -293,7 +293,7 @@ Qed.
 Lemma simrel_fS PC
       (SIMREL: simrel G sc PC TLS f_to f_from):
   simrel G sc PC TLS f_to' f_from'.
-Proof using WF IMMCON RELCOV FCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM.
+Proof using WF IMMCON RELCOV FCOH REQ_TO REQ_FROM ISSEQ_TO ISSEQ_FROM TLSCOH RCOH IORDCOH.
   cdes SIMREL. red; splits.
   { eapply simrel_common_fS; eauto. }
   ins. eapply simrel_thread_local_fS; eauto.
@@ -308,7 +308,7 @@ Lemma max_value_leS locw w wprev s ts
       (ISSS : s ⊆₁ S)
       (NOCO : ⦗ eq w ⦘ ⨾ co ⨾ ⦗ s ⦘ ≡ ∅₂) :
   Time.le ts (f_to wprev).
-Proof using WF IMMCON FCOH TCCOH.
+Proof using  WF TLSCOH RCOH IMMCON FCOH. 
   red in MAXVAL. desc.
   destruct MAX as [[Y1 Y2]|[a_max Y1]].
   { rewrite Y2. apply Time.bot_spec. }
@@ -329,17 +329,17 @@ Proof using WF IMMCON FCOH TCCOH.
   { apply (dom_r (wf_coD WF)) in COWP. 
     apply seq_eqv_r in COWP. desf. }
   assert (E wprev) as EWP.
-  { by apply (etc_S_in_E ETCCOH). }
+  { eapply wf_coE, seq_eqv_lr in COWP; eauto. by desc. }
   assert (W wprev) as WWP.
-  { by apply (reservedW WF ETCCOH). }
+  { eapply wf_coD, seq_eqv_lr in COWP; eauto. by desc.  }
   assert (loc lab wprev = Some locw) as LOCWP.
   { rewrite <- LOC. by apply (wf_col WF). }
   assert (S a_max) as ISSA.
   { by apply ISSS. }
   assert (E a_max) as EA.
-  { by apply (etc_S_in_E ETCCOH). }
+  { by apply RCOH. }
   assert (is_w lab a_max) as WA.
-  { by apply (reservedW WF ETCCOH). }
+  { eapply reservedW; eauto. }
   eapply f_to_co_mon; eauto.
   edestruct (wf_co_total WF) as [CO|CO].
   3: by apply NEQ.
@@ -364,14 +364,15 @@ Qed.
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 Notation "'Tid_' t"  := (fun x => tid x =  t) (at level 1).
 
-Lemma sim_res_prom_other_thread thread promises S'
-      (SNT : S' ⊆₁ NTid_ thread)
-      (RPROM : sim_res_prom G TLS f_to f_from thread promises) :
-  sim_res_prom G TLS (S ∪₁ S') f_to' f_from' thread promises.
-Proof using REQ_TO REQ_FROM.
-  red. ins. apply RPROM in RES. desf.
-  exists b. splits; auto. by left.
-Qed.
+(* TODO: remove? *)
+(* Lemma sim_res_prom_other_thread thread promises S' *)
+(*       (SNT : S' ⊆₁ NTid_ thread) *)
+(*       (RPROM : sim_res_prom G TLS f_to f_from thread promises) : *)
+(*   sim_res_prom G TLS (S ∪₁ S') f_to' f_from' thread promises. *)
+(* Proof using REQ_TO REQ_FROM. *)
+(*   red. ins. apply RPROM in RES. desf. *)
+(*   exists b. splits; auto. by left. *)
+(* Qed. *)
 
 Lemma reserved_to_message thread local memory
       (SIMMEM    : sim_mem     G sc TLS f_to f_from thread local memory)
@@ -382,7 +383,7 @@ Lemma reserved_to_message thread local memory
       (tid b = thread ->
        ~ C b ->
        Memory.get l (f_to b) (Local.promises local) = Some (f_from b, msg)).
-Proof using TCCOH.
+Proof using WF TLSCOH.
   ins. destruct (classic (I b)) as [AA|AA].
   2: { eexists. split; ins; apply SIMRESMEM; auto. }
   assert (exists v, val lab b = Some v) as [v BB].
@@ -393,7 +394,7 @@ Qed.
 
 Lemma memory_to_event memory
       (MTE  :      message_to_event G TLS   f_to f_from memory)
-      (HMTE : half_message_to_event G TLS S f_to f_from memory) :
+      (HMTE : half_message_to_event G TLS   f_to f_from memory) :
   forall l to from msg
          (MSG : Memory.get l to memory = Some (from, msg)),
     (to = Time.bot /\ from = Time.bot) \/
@@ -403,10 +404,10 @@ Lemma memory_to_event memory
     ⟪ LOC  : Loc_ l b ⟫ /\
     ⟪ FROM : f_from b = from ⟫ /\
     ⟪ TO   : f_to b = to ⟫.
-Proof using ETCCOH.
+Proof using RCOH. 
   ins. destruct msg.
   { apply MTE in MSG. desf; eauto.
-    right. eexists. splits; eauto. by apply (etc_I_in_S ETCCOH). }
+    right. eexists. splits; eauto. eapply rcoh_I_in_S; eauto. }
   right.
   apply HMTE in MSG. desf. eexists. splits; eauto.
 Qed.
@@ -415,9 +416,9 @@ Lemma S_le_max_ts locw memory local thread x
       (SX   : S x)
       (XLOC : loc lab x = Some locw)
       (SIMMEM    : sim_mem     G sc TLS f_to f_from thread local memory)
-      (SIMRESMEM : sim_res_mem G TLS S f_to f_from thread local memory) :
+      (SIMRESMEM : sim_res_mem G TLS f_to f_from thread local memory) :
   Time.le (f_to x) (Memory.max_ts locw memory).
-Proof using TCCOH.
+Proof using WF TLSCOH.
   eapply reserved_to_message in SX; eauto.
   desf.
   eapply Memory.max_ts_spec; eauto.
@@ -428,20 +429,20 @@ Lemma co_S_memory_disjoint memory locw wp wn
       (CONS   : (co ⨾ ⦗ set_compl S ⦘ ⨾ co) wp wn)
       (LOCP   : loc lab wp = Some locw)
       (RESERVED_TIME:
-         reserved_time G TLS S f_to f_from sim_normal memory) :
+         reserved_time G TLS f_to f_from sim_normal memory) :
   forall (to from : Time.t) (msg : Message.t)
          (IN : Memory.get locw to memory = Some (from, msg)),
     Interval.disjoint (f_to wp, f_from wn) (from, to).
-Proof using WF IMMCON FCOH TCCOH.
+Proof using WF TLSCOH RCOH IMMCON FCOH. 
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
 
   assert (S wp /\ co wp wn /\ S wn) as [SWP [COPN SWN]].
   { destruct COIMM as [AA _]. by destruct_seq AA as [BB CC]. }
   assert (E wp /\ E wn) as [EWP EWN].
-  { by split; apply (etc_S_in_E ETCCOH). }
+  { by split; eapply rcoh_S_in_E; eauto. }
   assert (W wp /\ W wn) as [WWP WWN].
-  { by split; apply (reservedW WF ETCCOH). }
+  { by split; eapply reservedW; eauto. }
   assert (loc lab wn = Some locw) as LOCN.
   { rewrite <- LOCP. symmetry. by apply (wf_col WF). }
 
@@ -457,9 +458,9 @@ Proof using WF IMMCON FCOH TCCOH.
       { by apply time_lt_bot in TT. }
         by apply Time.lt_strorder in FROM. }
     assert (S b) as SB.
-    { by apply (etc_I_in_S ETCCOH). }
+    { eapply rcoh_I_in_S; eauto. }
     assert (W b) as WB.
-    { by apply TCCOH. }
+    { eapply issuedW; eauto. } 
     assert (co^? b wp \/ co^? wn b) as CO.
     { destruct (classic (b = wp)) as [|PNEQ]; subst.
       { by left; left. }
@@ -487,9 +488,9 @@ Proof using WF IMMCON FCOH TCCOH.
 
   apply HMEM in IN. desf.
   assert (E b) as EB.
-  { by apply (etc_S_in_E ETCCOH). }
+  { eapply rcoh_S_in_E; eauto. }
   assert (W b) as WB.
-  { by apply (reservedW WF ETCCOH). }
+  { eapply reservedW; eauto. }
 
   assert (co^? b wp \/ co^? wn b) as CO.
   { destruct (classic (b = wp)) as [|PNEQ]; subst.
@@ -520,8 +521,8 @@ Qed.
 
 Lemma no_next_S_max_ts locw memory local w x
       (MTE  : message_to_event G TLS f_to f_from memory)
-      (HMTE : half_message_to_event G TLS S f_to f_from memory)
-      (SIM_RES_MEM : sim_res_mem G TLS S f_to f_from (tid w) local memory)
+      (HMTE : half_message_to_event G TLS f_to f_from memory)
+      (SIM_RES_MEM : sim_res_mem G TLS f_to f_from (tid w) local memory)
       (SIM_MEM : sim_mem G sc TLS f_to f_from (tid w) local memory)
       (WLOC : loc lab w = Some locw)
       (NCO : ~ (exists wnext : actid, (co ⨾ ⦗S⦘) w wnext))
@@ -529,7 +530,7 @@ Lemma no_next_S_max_ts locw memory local w x
       (SX : S x)
       (RFRMW : (rf ⨾ rmw) x w) :
   f_to x = Memory.max_ts locw memory.
-Proof using WF IMMCON FCOH TCCOH.
+Proof using WF TLSCOH RCOH IMMCON FCOH. 
   assert (complete G) as COMPL by apply IMMCON.
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
@@ -554,7 +555,7 @@ Proof using WF IMMCON FCOH TCCOH.
   assert (W w /\ W x) as [WW WX].
   { apply (wf_coD WF) in COXW. destruct_seq COXW as [AA BB]. desf. }
   assert (W wmax) as WWMAX.
-  { by apply (reservedW WF ETCCOH). }
+  { eapply reservedW; eauto. }
   
   assert (wmax <> w) as WWNEQ.
   { intros PP; desf. }
@@ -574,45 +575,68 @@ Proof using WF IMMCON FCOH TCCOH.
   eapply f_to_co_mon; eauto.
 Qed.
 
+(* TODO: move *)
+Add Parametric Morphism : covered with signature
+    (@set_equiv trav_label) ==> (@set_equiv actid)
+       as covered_more.
+Proof using. ins. unfold covered. by rewrite H. Qed. 
+
+(* TODO: move *)
+Add Parametric Morphism : issued with signature
+    (@set_equiv trav_label) ==> (@set_equiv actid)
+       as issued_more.
+Proof using. ins. unfold issued. by rewrite H. Qed. 
+
+(* TODO: move *)
+Add Parametric Morphism : reserved with signature
+    (@set_equiv trav_label) ==> (@set_equiv actid)
+       as reserved_more.
+Proof using. ins. unfold reserved. by rewrite H. Qed. 
+
 Add Parametric Morphism : message_to_event with signature
-    eq ==> same_trav_config ==> eq ==> eq ==> eq ==> iff
+    eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq ==> iff
        as message_to_event_more.
-Proof.
+Proof using.
   ins. split; intros HH; red.
   all: ins; apply HH in MSG; desf; auto.
-  all: right; eexists; splits; eauto; by apply H.
+  1: symmetry in H. 
+  all: right; eexists; splits; eauto; 
+    eapply set_equiv_exp; [rewrite H|]; eauto. 
 Qed.
 
 Add Parametric Morphism : half_message_to_event with signature
-    eq ==> same_trav_config ==> set_equiv ==> eq ==> eq ==> eq ==> iff
+    eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq ==> iff
        as half_message_to_event_more.
-Proof.
+Proof using.
   ins. split; intros HH; red.
   all: ins; apply HH in MSG; desf; auto.
-  all: eexists; splits; eauto; try by apply H0.
-  all: by intros AA; apply NOISS; apply H.
+  all: eexists; splits; eauto.
+  1, 4: symmetry in H. 
+  all: try by (eapply set_equiv_exp; [rewrite H|]; eauto).
+  all: intros AA; apply NOISS; eapply set_equiv_exp; [rewrite H|]; eauto. 
 Qed.
 
 Add Parametric Morphism : reserved_time with signature
-  eq ==> same_trav_config ==> set_equiv ==> eq ==> eq ==> eq ==> eq ==> iff
+  eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq ==> eq ==> iff
       as reserved_time_more.
-Proof.
+Proof using.
   ins. split; intros HH.
   { match goal with
     | H : sim_mode |- _ => destruct H
-    end; [|by red; splits; rewrite <- H0; apply HH].
-    red; cdes HH; splits; [by rewrite <- H| |by ins; apply HH; auto; apply H0].
+    end; [|by red; splits; rewrite <- H; apply HH].
+    red; cdes HH; splits; [by rewrite <- H| ..].
+    2: { ins; apply HH; auto; eapply reserved_more; eauto. }
     eapply half_message_to_event_more.
-    7: by eauto.
+    6: by eauto.
     all: eauto.
-    2: by symmetry.
-      by apply same_trav_config_sym. }
+    by rewrite H. }
   match goal with
   | H : sim_mode |- _ => destruct H
-  end; [|by red; splits; rewrite H0; apply HH].
-  red; cdes HH; splits; [by rewrite H| |by ins; apply HH; auto; apply H0].
+  end; [|by red; splits; rewrite H; apply HH].
+  red; cdes HH; splits; [by rewrite H| ..].
+  2: { symmetry in H. ins; apply HH; auto; eapply reserved_more; eauto. }
   eapply half_message_to_event_more.
-  7: by eauto.
+  6: by eauto.
   all: eauto.
 Qed.
 
@@ -633,7 +657,7 @@ Lemma le_msg_rel_f_to_wprev w wprev locw PC lang state
       else (TView.rel (Local.tview local) locw)
   in
   Time.le (View.rlx rel locw) (f_to wprev).
-Proof using WF IMMCON RELCOV FCOH.
+Proof using WF TLSCOH RELCOV RCOH IORDCOH IMMCON FCOH.
   assert (WNINIT : ~ is_init w).
   { intros HH. apply WNCOV. eapply init_covered; eauto. by split. }
   
@@ -655,7 +679,7 @@ Proof using WF IMMCON RELCOV FCOH.
   { unfold t_cur, c_cur, CombRelations.urr.
     rewrite !seqA. rewrite dom_eqv1.
       by intros x [[_ YY]]. }
-  { rewrite <- (etc_I_in_S ETCCOH). apply t_cur_covered; eauto. }
+  { rewrite <- rcoh_I_in_S; eauto. apply t_cur_covered; eauto. }
   split; [|basic_solver].
   intros x y QQ. apply seq_eqv_l in QQ. destruct QQ as [QQ' QQ]; subst.
   apply seq_eqv_r in QQ. destruct QQ as [COXY TCUR].
@@ -670,13 +694,13 @@ Proof using WF IMMCON RELCOV FCOH.
   apply urr_hb. exists z. split; eauto.
   right. apply sb_in_hb.
   assert (E z) as EZ.
-  { apply TCCOH in COVZ. apply COVZ. }
+  { eapply coveredE; eauto. }
   destruct II as [TIDZ|INITZ].
   2: by apply init_ninit_sb; auto.
   destruct (@same_thread G x z) as [[|SB]|SB]; auto.
   { desf. }
-  exfalso. apply WNCOV. apply TCCOH in COVZ.
-  apply COVZ. eexists. apply seq_eqv_r; eauto.
+  exfalso. apply WNCOV.
+  eapply dom_sb_covered; vauto. 
 Qed.
 
 End SimRelProps.
