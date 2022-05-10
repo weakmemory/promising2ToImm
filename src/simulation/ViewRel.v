@@ -11,13 +11,15 @@ From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 
-From imm Require Import ViewRelHelpers.
+Require Import ViewRelHelpers.
 (* From imm Require Import TraversalConfig. *)
 Require Import MaxValue.
 Require Import Event_imm_promise.
+From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 Require Import TlsAux.
+Require Import Next.
 
 Set Implicit Arguments.
 
@@ -353,9 +355,10 @@ Lemma sim_sc_fence_step
       T f_to
       f ordf ordr ordw tview thread sc_view
       (TCOH : tls_coherent G T)
+      (ICOH : iord_coherent G sc T)
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
       (IMMCON : imm_consistent G sc)
-      (* (NEXT : next G (covered T) f) *)
+      (NEXT : next G (covered T) f)
       (TID : tid f = thread)
       (FPARAMS : lab f = Afence ordf)
       (SAME_MOD : fmod ordf ordr ordw)
@@ -384,18 +387,18 @@ Proof using WF.
     rewrite LLW, LLR; simpls.
     unfold LocFun.find, TimeMap.join.
     eapply max_value_same_set.
-    2: by eapply s_tm_cov_sc_fence; eauto.
+    2: { eapply s_tm_cov_sc_fence; eauto. }  
     eapply max_value_join.
     3: by eauto.
     { done. }
     apply SIMTVIEW. }
   assert (covered T ⊆₁ covered T ∪₁ eq f) as CCC.
   { basic_solver. }
-  eapply max_value_same_set.
+  eapply max_value_same_set. 
   2: apply s_tm_n_f_steps.
   3: by apply CCC.
-  2: by apply TCCOH.
-  2: by intros r COVEQ COVT [FF FF']; destruct COVEQ; subst.
+  2: { by apply init_covered. }
+  2: { unfolder. ins. intros [? ?]. des; vauto. }  
   assert (~ Ordering.le Ordering.seqcst ordw) as LL; [|by desf].
   intros H. subst.
   assert (ordw = Ordering.seqcst) as SS.
@@ -409,7 +412,9 @@ Qed.
 Lemma sim_tview_fence_step T
       f_to
       f ordf ordr ordw tview thread sc_view
-      (TCCOH : tc_coherent G sc T)
+      (* (TCCOH : tc_coherent G sc T) *)
+      (TCOH: tls_coherent G T)
+      (ICOH: iord_coherent G sc T)
       (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
       (IMMCON : imm_consistent G sc)
       (COV : coverable G sc T f)
