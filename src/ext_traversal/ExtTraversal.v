@@ -1,14 +1,17 @@
+
 Require Import Setoid.
 From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution Execution_eco
      imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxRel2.
-From imm Require Import TraversalConfig Traversal.
 Require Import AuxRel.
 Require Export ExtTravRelations.
-From imm Require Import TraversalProperties.
 Require Import ExtTraversalConfig.
 Require Import Lia.
 From imm Require Import FinExecution ImmFair. 
+From imm Require Import travorder.SimClosure.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import TraversalOrder. 
 
 Set Implicit Arguments.
 
@@ -92,44 +95,38 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 (******************************************************************************)
 (** **   *)
 (******************************************************************************)
+(* iiord_step *)
+Require Import TlsAux.
 
-Definition ext_itrav_step (e : actid) T T' :=
+Definition ext_itrav_step (e : actid) (T T': trav_label -> Prop) :=
   (⟪ COVER :
-       ⟪ NCOV : ~ ecovered T e ⟫ /\
-       ⟪ COVEQ: ecovered T' ≡₁ ecovered T ∪₁ eq e ⟫ /\
-       ⟪ ISSEQ: eissued  T' ≡₁ eissued  T ⟫ /\
+       ⟪ NCOV : ~ covered T e ⟫ /\
+       ⟪ COVEQ: covered T' ≡₁ covered T ∪₁ eq e ⟫ /\
+       ⟪ ISSEQ: issued  T' ≡₁ issued  T ⟫ /\
        ⟪ RESEQ: reserved T' ≡₁ reserved T ⟫
    ⟫ \/
    ⟪ ISSUE :
-       ⟪ NISS : ~ eissued T e ⟫ /\
+       ⟪ NISS : ~ issued T e ⟫ /\
        ⟪ RES  : W_ex e -> reserved T e ⟫ /\
-       ⟪ COVEQ: ecovered T' ≡₁ ecovered T ⟫ /\
-       ⟪ ISSEQ: eissued  T' ≡₁ eissued  T ∪₁ eq e ⟫ /\
+       ⟪ COVEQ: covered T' ≡₁ covered T ⟫ /\
+       ⟪ ISSEQ: issued  T' ≡₁ issued  T ∪₁ eq e ⟫ /\
        ⟪ RESEQ: reserved T' ≡₁
                 reserved T ∪₁ eq e ∪₁
                 dom_sb_S_rfrmw G T rfi (eq e) ⟫
    ⟫ \/
    ⟪ RESERVE :
        ⟪ NISS : ~ reserved T e ⟫ /\
-       ⟪ COVEQ: ecovered T' ≡₁ ecovered T ⟫ /\
-       ⟪ ISSEQ: eissued  T' ≡₁ eissued  T ⟫ /\
+       ⟪ COVEQ: covered T' ≡₁ covered T ⟫ /\
+       ⟪ ISSEQ: issued  T' ≡₁ issued  T ⟫ /\
        ⟪ RESEQ: reserved T' ≡₁ reserved T ∪₁ eq e ⟫
   ⟫) /\
-  ⟪ ETCCOH' : etc_coherent G sc T' ⟫.
+  (* ⟪ ETCCOH' : etc_coherent G sc T' ⟫ *)
+    ⟪TCOH: tls_coherent G T'⟫ /\
+    ⟪ICOH: iord_coherent G sc T'⟫ /\
+    ⟪RCOH: reserve_coherent G T' ⟫
+.
 
 Definition ext_trav_step T T' := exists e, ext_itrav_step e T T'.
-
-(* TODO: *)
-(* MOVE_TO_IMM *)
-Lemma wf_sb : well_founded sb.
-Proof.
-  unfold Execution.sb.
-  rewrite <- restr_relE. eapply wf_mon; [by apply inclusion_restr| ].
-  apply Wf_nat.well_founded_lt_compat
-    with (f := fun (e: actid) => if e then 0 else index e + 1).
-  intros x y SB. destruct x, y; simpl in *; lia. 
-Qed.
-
 
 Lemma exists_next_to_reserve w T
       (NRES : ~ reserved T w) :
@@ -142,7 +139,7 @@ Proof using.
               exists w',
                 ⟪ SBB : (⦗W_ex \₁ reserved T⦘ ⨾ sb)^? w' w ⟫ /\
                 ⟪ NB  : ~ codom_rel (⦗W_ex \₁ reserved T⦘ ⨾ sb) w' ⟫).
-  apply (@well_founded_ind _ sb (wf_sb) Q).
+  apply (@well_founded_ind _ sb (@wf_sb G) Q).
   intros x IND; subst Q; simpls.
   intros NRESX.
   destruct (classic (exists w', (⦗W_ex \₁ reserved T⦘ ⨾ sb) w' x)) as [[w' HH]|NEX].
@@ -163,14 +160,17 @@ Qed.
 
 Section Props.
   
-Variable T : ext_trav_config.
-Hypothesis ETCCOH : etc_coherent G sc T.
+Variable T : trav_label -> Prop. 
+(* Hypothesis ETCCOH : etc_coherent G sc T. *)
+Hypotheses (TCOH: tls_coherent G T)
+           (ICOH: iord_coherent G sc T)
+           (RCOH: reserve_coherent G T).
 
 Lemma dom_r_sb_new_reserved e r :
   dom_rel (r ⨾ sb ⨾ ⦗reserved T ∪₁ eq e ∪₁
            dom_rel (sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw)⦘) ≡₁
   dom_rel (r ⨾ sb ⨾ ⦗reserved T ∪₁ eq e⦘).
-Proof using ETCCOH.
+Proof using.
   split; [|basic_solver 20].
   rewrite id_union. rewrite !seq_union_r, dom_union.
   unionL; [done|].
@@ -184,14 +184,14 @@ Lemma dom_r_rppo_new_reserved e r :
   dom_rel (r ⨾ rppo ⨾ ⦗reserved T ∪₁ eq e ∪₁
            dom_rel (sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw)⦘) ≡₁
   dom_rel (r ⨾ rppo ⨾ ⦗reserved T ∪₁ eq e⦘).
-Proof using WF ETCCOH.
+Proof using WF TCOH RCOH. 
   split; [|basic_solver 20].
   rewrite id_union. rewrite !seq_union_r, dom_union.
   unionL; [done|].
   arewrite (dom_rel (sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw) ⊆₁
             dom_rel (sb ⨾ ⦗reserved T⦘)) by basic_solver. 
   arewrite (reserved T ⊆₁ W ∩₁ reserved T) at 1.
-  { generalize (reservedW WF ETCCOH). basic_solver. }
+  { generalize (reservedW WF). basic_solver. }
   generalize (rppo_sb_in_rppo WF).
   basic_solver 20.
 Qed.
@@ -200,16 +200,16 @@ Lemma dom_sb_new_reserved e :
   dom_rel (sb ⨾ ⦗reserved T ∪₁ eq e ∪₁
            dom_rel (sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw)⦘) ≡₁
   dom_rel (sb ⨾ ⦗reserved T ∪₁ eq e⦘).
-Proof using WF ETCCOH.
+Proof using. 
   assert (sb ≡ ⦗ fun _ => True ⦘ ⨾ sb) as AA by basic_solver.
   rewrite AA at 1 3.
   rewrite !seqA. by apply dom_r_sb_new_reserved.
 Qed.
 
 Lemma dom_rfe_rppo_S_in_I :
-  dom_rel (rfe ⨾ rppo ⨾ ⦗reserved T⦘) ⊆₁ eissued T.
-Proof using WF ETCCOH.
-  rewrite <- etc_rppo_S; eauto.
+  dom_rel (rfe ⨾ rppo ⨾ ⦗reserved T⦘) ⊆₁ issued T.
+Proof using RCOH. 
+  rewrite <- rcoh_rppo_S; eauto.
   rewrite <- inclusion_id_rt. rewrite seq_id_l.
   basic_solver 10.
 Qed.
@@ -223,9 +223,18 @@ Proof using WF.
   eapply (wf_rff WF); eauto.
 Qed.
 
-Lemma trav_step_to_ext_trav_step TC' (TS : trav_step G sc (etc_TC T) TC') :
-  exists T', ext_trav_step T T'.
-Proof using WF IMMCON ETCCOH.
+(* iord_step *)
+Lemma iord_step_to_ext_trav_step T' (TS : iord_step G sc T T') :
+  exists T'', ext_trav_step T T''.
+Proof using.
+  inversion TS as [[a e] STEP].
+  exists (T ∪₁ eq (mkTL a e)). red. exists e. red.
+  
+
+
+Lemma trav_step_to_ext_trav_step T' (TS : trav_step G sc T T') :
+  exists T', ext_trav_step T T''.
+Proof using. 
   unionL.
   assert (tc_coherent G sc (etc_TC T)) as TCCOH.
   { apply ETCCOH. }
@@ -234,11 +243,11 @@ Proof using WF IMMCON ETCCOH.
 
   red in TS. desf. cdes TS.
   desf.
-  { exists (mkETC (mkTC (ecovered T ∪₁ eq e) (eissued T)) (reserved T)).
+  { exists (mkETC (mkTC (covered T ∪₁ eq e) (issued T)) (reserved T)).
     eexists e.
     red. splits.
     { left. splits; auto. }
-    constructor; unfold eissued, ecovered; simpls.
+    constructor; unfold issued, covered; simpls.
     all: try by apply ETCCOH.
     (* TODO: generalize to a lemma *)
     eapply trav_step_coherence.
@@ -273,11 +282,11 @@ Proof using WF IMMCON ETCCOH.
   destruct
   (classic (exists w',
                (dom_rel (sb ⨾ ⦗eq e⦘) ∩₁
-                codom_rel (⦗eissued T⦘ ⨾ rf ⨾ ⦗R_ex⦘ ⨾ rmw) \₁ reserved T) w'))
+                codom_rel (⦗issued T⦘ ⨾ rf ⨾ ⦗R_ex⦘ ⨾ rmw) \₁ reserved T) w'))
     as [[w' WWB]|NWHH].
   { edestruct wf_impl_min_elt
               with (B := dom_rel (sb ⨾ ⦗eq e⦘) ∩₁
-                         codom_rel (⦗eissued T⦘ ⨾ rf ⨾ ⦗R_ex⦘ ⨾ rmw) \₁ reserved T)
+                         codom_rel (⦗issued T⦘ ⨾ rf ⨾ ⦗R_ex⦘ ⨾ rmw) \₁ reserved T)
                    (r := ⦗W_ex⦘ ⨾ sb) as [w [[[WHH WAA] NRES] MIN]].
     { arewrite (⦗W_ex⦘ ⨾ sb ⊆ sb).
       apply wf_sb. }
@@ -307,12 +316,12 @@ Proof using WF IMMCON ETCCOH.
       arewrite_id ⦗W_ex⦘. rewrite seq_id_l.
         by sin_rewrite (rppo_sb_in_rppo WF). }
 
-    exists (mkETC (mkTC (ecovered T) (eissued T))
+    exists (mkETC (mkTC (covered T) (issued T))
                   (reserved T ∪₁ eq w)).
     exists w.
-    constructor; unfold eissued, ecovered; simpls.
+    constructor; unfold issued, covered; simpls.
     { do 2 right. splits; eauto. }
-    unnw. constructor; unfold eissued, ecovered; simpls.
+    unnw. constructor; unfold issued, covered; simpls.
     { by unionL; [by apply ETCCOH|]. }
     { unionR left. apply ETCCOH. }
     { rewrite set_minus_union_l.
@@ -345,16 +354,16 @@ Proof using WF IMMCON ETCCOH.
       clear. rewrite rtE. basic_solver 15. }
     rewrite set_inter_union_l.
     unionL; [by apply ETCCOH|].
-    generalize WAA. unfold eissued. basic_solver 10. }
+    generalize WAA. unfold issued. basic_solver 10. }
   destruct (classic (reserved T e \/ ~ W_ex e)) as [RES|NRES].
-  { exists (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e))
+  { exists (mkETC (mkTC (covered T) (issued T ∪₁ eq e))
                   (reserved T ∪₁ eq e ∪₁
                    dom_rel (sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw))).
 
     exists e.
-    constructor; unfold eissued, ecovered; simpls.
+    constructor; unfold issued, covered; simpls.
     { right. left. splits; eauto. intuition. }
-    unnw. constructor; unfold eissued, ecovered; simpls.
+    unnw. constructor; unfold issued, covered; simpls.
     { eapply trav_step_coherence.
       2: by apply ETCCOH.
       eapply trav_step_more_Proper.
@@ -407,7 +416,7 @@ Proof using WF IMMCON ETCCOH.
         { rewrite (rmw_in_sb WF). generalize (@sb_trans G).
           clear. basic_solver. }
         sin_rewrite R_ex_sb_W_in_rppo.
-        generalize dom_rfe_rppo_S_in_I. unfold eissued.
+        generalize dom_rfe_rppo_S_in_I. unfold issued.
         generalize NISS. basic_solver 10. }
       arewrite_id ⦗R_ex⦘. rewrite seq_id_l.
       intros w [[y AA] [z BB]].
@@ -449,12 +458,12 @@ Proof using WF IMMCON ETCCOH.
   { apply NNPP. intuition. }
   assert (~ reserved T e) as NRESE by intuition.
 
-  exists (mkETC (mkTC (ecovered T) (eissued T))
+  exists (mkETC (mkTC (covered T) (issued T))
                 (reserved T ∪₁ eq e)).
   exists e.
-  constructor; unfold eissued, ecovered; simpls.
+  constructor; unfold issued, covered; simpls.
   { do 2 right. splits; eauto. }
-  unnw. constructor; unfold eissued, ecovered; simpls.
+  unnw. constructor; unfold issued, covered; simpls.
   { by unionL; [by apply ETCCOH|]. }
   { unionR left. apply ETCCOH. }
   { rewrite !set_minus_union_l. unionL; [by apply ETCCOH|].
@@ -466,7 +475,7 @@ Proof using WF IMMCON ETCCOH.
        unionL; [by apply ETCCOH|].
        intros w' BB. apply NNPP. intros AA.
        apply NWHH. exists w'. split; auto.
-       unfold eissued. generalize BB. clear. basic_solver 20. }
+       unfold issued. generalize BB. clear. basic_solver 20. }
   6: { rewrite !set_inter_union_l.
        unionL; [by apply ETCCOH|].
        rewrite EQEISS. by apply issuable_W_ex_in_codom_I_rfrmw. }
@@ -480,7 +489,7 @@ Qed.
 End Props.
 
 Lemma exists_ext_trav_step e (T: ext_trav_config)
-      (N_FIN : next G (ecovered T) e)
+      (N_FIN : next G (covered T) e)
       (ETCCOH : etc_coherent G sc T)
       (FINDOM : fin_exec G):
   exists T', ext_trav_step T T'.
@@ -492,7 +501,7 @@ Proof using WF WFSC IMMCON COM.
 Qed.
 
 Definition same_ext_trav_config (T T' : ext_trav_config) :=
-  ecovered T ≡₁ ecovered T' /\ eissued T ≡₁ eissued T' /\
+  covered T ≡₁ covered T' /\ issued T ≡₁ issued T' /\
   reserved T ≡₁ reserved T'.
 
 Lemma same_ext_trav_config_refl : reflexive same_ext_trav_config.
@@ -529,7 +538,7 @@ Proof using.
   all: try rewrite EQT2.
   all: try apply HH.
   all: eapply tc_coherent_more; eauto; [|by apply HH].
-  all: red; unfold ecovered, eissued in *; eauto.
+  all: red; unfold covered, issued in *; eauto.
 Qed.
 
 Global Add Parametric Morphism : ext_itrav_step with signature
@@ -561,7 +570,7 @@ Proof using WF IMMCON.
   intros T T'. ins. desf.
   3: { left. red. by split; symmetry. }
   all: right; exists e; red; unnw.
-  all: unfold ecovered, eissued in *.
+  all: unfold covered, issued in *.
   2: right.
   left.
   all: splits; auto.
@@ -582,7 +591,7 @@ Definition ext_init_trav := mkETC (mkTC (is_init ∩₁ E) (is_init ∩₁ E)) (
 Lemma ext_init_trav_coherent : etc_coherent G sc ext_init_trav.
 Proof using WF IMMCON.
   unfold ext_init_trav.
-  constructor; unfold dom_sb_S_rfrmw, eissued, ecovered; simpls.
+  constructor; unfold dom_sb_S_rfrmw, issued, covered; simpls.
   { by apply init_trav_coherent. }
   { basic_solver. }
   6: rewrite (rppo_in_sb WF).
@@ -630,7 +639,7 @@ Qed.
 
 Lemma ext_itrav_step_nC e T T'
       (ETCCOH : etc_coherent G sc T)
-      (STEP : ext_itrav_step e T T') : ~ ecovered T e.
+      (STEP : ext_itrav_step e T T') : ~ covered T e.
 Proof using WF.
   assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
   intros AA.
@@ -662,7 +671,7 @@ Qed.
 Lemma ext_itrav_step_cov_coverable T e
       (ETCCOH : etc_coherent G sc T)
       (TSTEP : ext_itrav_step
-                 e T (mkETC (mkTC (ecovered T ∪₁ eq e) (eissued T)) (reserved T))) :
+                 e T (mkETC (mkTC (covered T ∪₁ eq e) (issued T)) (reserved T))) :
   coverable G sc (etc_TC T) e.
 Proof using IMMCON.
   apply coverable_add_eq_iff; auto.
@@ -673,8 +682,8 @@ Qed.
 Lemma ext_itrav_step_cov_next T e
       (ETCCOH : etc_coherent G sc T)
       (TSTEP : ext_itrav_step
-                 e T (mkETC (mkTC (ecovered T ∪₁ eq e) (eissued T)) (reserved T))) :
-  next G (ecovered T) e.
+                 e T (mkETC (mkTC (covered T ∪₁ eq e) (issued T)) (reserved T))) :
+  next G (covered T) e.
 Proof using WF IMMCON.
   split; [split|].
   { eapply ext_itrav_stepE; eauto. }
@@ -685,7 +694,7 @@ Qed.
 Lemma ext_itrav_step_iss_issuable T S' e
       (ETCCOH : etc_coherent G sc T)
       (TSTEP : ext_itrav_step
-                 e T (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e)) S')) :
+                 e T (mkETC (mkTC (covered T) (issued T ∪₁ eq e)) S')) :
   issuable G sc (etc_TC T) e.
 Proof using WF IMMCON.
   apply issuable_add_eq_iff; auto.
@@ -696,8 +705,8 @@ Qed.
 Lemma ext_itrav_step_iss_nI T e S'
       (ETCCOH : etc_coherent G sc T)
       (TSTEP : ext_itrav_step
-                 e T (mkETC (mkTC (ecovered T) (eissued T ∪₁ eq e)) S')) :
-  ~ eissued T e.
+                 e T (mkETC (mkTC (covered T) (issued T ∪₁ eq e)) S')) :
+  ~ issued T e.
 Proof using.
   assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
   intros AA.
@@ -719,5 +728,5 @@ Proof using WF.
   rewrite ninit_sb_same_tid.
   basic_solver.
 Qed.
-
+u
 End ExtTraversalConfig.
