@@ -16,6 +16,21 @@ Definition covered  TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_cover))
 Definition issued   TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_issue)).
 Definition reserved TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_reserve)).
 
+Add Parametric Morphism : covered with signature
+    (@set_equiv trav_label) ==> (@set_equiv actid)
+       as covered_more.
+Proof using. ins. unfold covered. by rewrite H. Qed. 
+
+Add Parametric Morphism : issued with signature
+    (@set_equiv trav_label) ==> (@set_equiv actid)
+       as issued_more.
+Proof using. ins. unfold issued. by rewrite H. Qed. 
+
+Add Parametric Morphism : reserved with signature
+    (@set_equiv trav_label) ==> (@set_equiv actid)
+       as reserved_more.
+Proof using. ins. unfold reserved. by rewrite H. Qed. 
+
 Section TlsProperties.
   Variable G : execution.
   Variable WF : Wf G.

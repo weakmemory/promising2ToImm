@@ -98,33 +98,43 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 (* iiord_step *)
 Require Import TlsAux.
 
-Definition ext_itrav_step (e : actid) (T T': trav_label -> Prop) :=
-  (⟪ COVER :
-       ⟪ NCOV : ~ covered T e ⟫ /\
-       ⟪ COVEQ: covered T' ≡₁ covered T ∪₁ eq e ⟫ /\
-       ⟪ ISSEQ: issued  T' ≡₁ issued  T ⟫ /\
-       ⟪ RESEQ: reserved T' ≡₁ reserved T ⟫
-   ⟫ \/
-   ⟪ ISSUE :
-       ⟪ NISS : ~ issued T e ⟫ /\
-       ⟪ RES  : W_ex e -> reserved T e ⟫ /\
-       ⟪ COVEQ: covered T' ≡₁ covered T ⟫ /\
-       ⟪ ISSEQ: issued  T' ≡₁ issued  T ∪₁ eq e ⟫ /\
-       ⟪ RESEQ: reserved T' ≡₁
-                reserved T ∪₁ eq e ∪₁
-                dom_sb_S_rfrmw G T rfi (eq e) ⟫
-   ⟫ \/
-   ⟪ RESERVE :
-       ⟪ NISS : ~ reserved T e ⟫ /\
-       ⟪ COVEQ: covered T' ≡₁ covered T ⟫ /\
-       ⟪ ISSEQ: issued  T' ≡₁ issued  T ⟫ /\
-       ⟪ RESEQ: reserved T' ≡₁ reserved T ∪₁ eq e ⟫
-  ⟫) /\
-  (* ⟪ ETCCOH' : etc_coherent G sc T' ⟫ *)
-    ⟪TCOH: tls_coherent G T'⟫ /\
-    ⟪ICOH: iord_coherent G sc T'⟫ /\
-    ⟪RCOH: reserve_coherent G T' ⟫
-.
+  (* (⟪ COVER : *)
+  (*      ⟪ NCOV : ~ covered T e ⟫ /\ *)
+  (*      ⟪ COVEQ: covered T' ≡₁ covered T ∪₁ eq e ⟫ /\ *)
+  (*      ⟪ ISSEQ: issued  T' ≡₁ issued  T ⟫ /\ *)
+  (*      ⟪ RESEQ: reserved T' ≡₁ reserved T ⟫ *)
+  (*  ⟫ \/ *)
+  (*  ⟪ ISSUE : *)
+  (*      ⟪ NISS : ~ issued T e ⟫ /\ *)
+  (*      ⟪ RES  : W_ex e -> reserved T e ⟫ /\ *)
+  (*      ⟪ COVEQ: covered T' ≡₁ covered T ⟫ /\ *)
+  (*      ⟪ ISSEQ: issued  T' ≡₁ issued  T ∪₁ eq e ⟫ /\ *)
+  (*      ⟪ RESEQ: reserved T' ≡₁ *)
+  (*               reserved T ∪₁ eq e ∪₁ *)
+  (*               dom_sb_S_rfrmw G T rfi (eq e) ⟫ *)
+  (*  ⟫ \/ *)
+  (*  ⟪ RESERVE : *)
+  (*      ⟪ NISS : ~ reserved T e ⟫ /\ *)
+  (*      ⟪ COVEQ: covered T' ≡₁ covered T ⟫ /\ *)
+  (*      ⟪ ISSEQ: issued  T' ≡₁ issued  T ⟫ /\ *)
+  (*      ⟪ RESEQ: reserved T' ≡₁ reserved T ∪₁ eq e ⟫ *)
+  (* ⟫) /\ *)
+
+Definition ets_upd_reserve (ae : trav_label) (T : trav_label -> Prop) : actid -> Prop :=
+  match ae with
+  | (ta_issue, e) => eq e ∪₁ dom_sb_S_rfrmw G T rfi (eq e)
+  | _ => ∅
+  end.
+
+Record ext_itrav_step (ae : trav_label) (T T': trav_label -> Prop) :=
+  mkETS {
+      ets_tls_coh     : tls_coherent     G    T';
+      ets_iord_coh    : iord_coherent    G sc T';
+      ets_reserve_coh : reserve_coherent G    T';
+      ets_new_ta      : ~ T ae;
+      ets_issue_W_ex  : W_ex (event ae) -> action ae = ta_issue -> T (ta_reserve, event ae);
+      ets_upd         : T' ≡₁ T ∪₁ eq ae ∪₁ (eq ta_reserve) <*> ets_upd_reserve ae T;
+    }.
 
 Definition ext_trav_step T T' := exists e, ext_itrav_step e T T'.
 
@@ -224,367 +234,386 @@ Proof using WF.
 Qed.
 
 (* iord_step *)
-Lemma iord_step_to_ext_trav_step T' (TS : iord_step G sc T T') :
-  exists T'', ext_trav_step T T''.
-Proof using.
-  inversion TS as [[a e] STEP].
-  exists (T ∪₁ eq (mkTL a e)). red. exists e. red.
-  
+(* Lemma iord_step_to_ext_trav_step T' (TS : iord_step G sc T T') : *)
+(*   exists T'', ext_trav_step T T''. *)
+(* Proof using. *)
+(*   inversion TS as [[a e] STEP]. *)
+(*   exists (T ∪₁ eq (mkTL a e)). red. exists e. red. *)
 
+(* Lemma trav_step_to_ext_trav_step T' (TS : trav_step G sc T T') : *)
+(*   exists T', ext_trav_step T T''. *)
+(* Proof using.  *)
+(*   unionL. *)
+(*   assert (tc_coherent G sc (etc_TC T)) as TCCOH. *)
+(*   { apply ETCCOH. } *)
+(*   assert (tc_coherent G sc TC') as TCCOH'. *)
+(*   { eapply trav_step_coherence; eauto. } *)
 
-Lemma trav_step_to_ext_trav_step T' (TS : trav_step G sc T T') :
-  exists T', ext_trav_step T T''.
-Proof using. 
-  unionL.
-  assert (tc_coherent G sc (etc_TC T)) as TCCOH.
-  { apply ETCCOH. }
-  assert (tc_coherent G sc TC') as TCCOH'.
-  { eapply trav_step_coherence; eauto. }
+(*   red in TS. desf. cdes TS. *)
+(*   desf. *)
+(*   { exists (mkETC (mkTC (covered T ∪₁ eq e) (issued T)) (reserved T)). *)
+(*     eexists e. *)
+(*     red. splits. *)
+(*     { left. splits; auto. } *)
+(*     constructor; unfold issued, covered; simpls. *)
+(*     all: try by apply ETCCOH. *)
+(*     (* TODO: generalize to a lemma *) *)
+(*     eapply trav_step_coherence. *)
+(*     2: by apply ETCCOH.  *)
+(*     eapply trav_step_more_Proper. *)
+(*     3: by eexists; eauto. *)
+(*     { apply same_tc_Reflexive. } *)
+(*     { red. simpls. split; by symmetry. } *)
+(*     unionR left. apply ETCCOH. } *)
 
-  red in TS. desf. cdes TS.
-  desf.
-  { exists (mkETC (mkTC (covered T ∪₁ eq e) (issued T)) (reserved T)).
-    eexists e.
-    red. splits.
-    { left. splits; auto. }
-    constructor; unfold issued, covered; simpls.
-    all: try by apply ETCCOH.
-    (* TODO: generalize to a lemma *)
-    eapply trav_step_coherence.
-    2: by apply ETCCOH. 
-    eapply trav_step_more_Proper.
-    3: by eexists; eauto.
-    { apply same_tc_Reflexive. }
-    { red. simpls. split; by symmetry. }
-    unionR left. apply ETCCOH. }
+(*   assert (E e) as EE. *)
+(*   { eapply itrav_stepE with (T:= etc_TC T); eauto. } *)
+(*   assert (eq e ⊆₁ E) as EQEE. *)
+(*   { basic_solver. } *)
+(*   assert (W e) as WE by apply ISS. *)
 
-  assert (E e) as EE.
-  { eapply itrav_stepE with (T:= etc_TC T); eauto. }
-  assert (eq e ⊆₁ E) as EQEE.
-  { basic_solver. }
-  assert (W e) as WE by apply ISS.
+(*   assert (eq e ⊆₁ issuable G sc (etc_TC T)) as EQEISS by basic_solver. *)
+(*   assert (dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁ covered (etc_TC T)) as COVSBE. *)
+(*   { rewrite EQEISS. arewrite (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⊆ fwbob). *)
+(*     unfold issuable. basic_solver 10. } *)
+(*   assert (dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁ issued (etc_TC T)) as ISSSBE. *)
+(*   { rewrite EQEISS. by apply dom_detour_rmwrfi_rfe_acq_sb_issuable. } *)
+(*   assert (dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁ issued (etc_TC T)) as WEXACQE. *)
+(*   { rewrite EQEISS. by apply dom_wex_sb_issuable. } *)
 
-  assert (eq e ⊆₁ issuable G sc (etc_TC T)) as EQEISS by basic_solver.
-  assert (dom_rel (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁ covered (etc_TC T)) as COVSBE.
-  { rewrite EQEISS. arewrite (⦗F ∩₁ Acq/Rel⦘ ⨾ sb ⊆ fwbob).
-    unfold issuable. basic_solver 10. }
-  assert (dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁ issued (etc_TC T)) as ISSSBE.
-  { rewrite EQEISS. by apply dom_detour_rmwrfi_rfe_acq_sb_issuable. }
-  assert (dom_rel (⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗eq e⦘) ⊆₁ issued (etc_TC T)) as WEXACQE.
-  { rewrite EQEISS. by apply dom_wex_sb_issuable. }
+(*   assert (dom_rel ((detour ∪ rfe) ⨾ (data ∪ rfi ∪ rmw)＊ ⨾ rppo ⨾ ⦗eq e⦘) ⊆₁ *)
+(*                   issued (etc_TC T)) as RPPOSBE. *)
+(*   { rewrite EQEISS.  *)
+(*     sin_rewrite (detour_rfe_data_rfi_rmw_rppo_in_detour_rfe_ppo WF). *)
+(*     rewrite !seqA. by apply dom_detour_rfe_ppo_issuable. } *)
 
-  assert (dom_rel ((detour ∪ rfe) ⨾ (data ∪ rfi ∪ rmw)＊ ⨾ rppo ⨾ ⦗eq e⦘) ⊆₁
-                  issued (etc_TC T)) as RPPOSBE.
-  { rewrite EQEISS. 
-    sin_rewrite (detour_rfe_data_rfi_rmw_rppo_in_detour_rfe_ppo WF).
-    rewrite !seqA. by apply dom_detour_rfe_ppo_issuable. }
+(*   destruct *)
+(*   (classic (exists w', *)
+(*                (dom_rel (sb ⨾ ⦗eq e⦘) ∩₁ *)
+(*                 codom_rel (⦗issued T⦘ ⨾ rf ⨾ ⦗R_ex⦘ ⨾ rmw) \₁ reserved T) w')) *)
+(*     as [[w' WWB]|NWHH]. *)
+(*   { edestruct wf_impl_min_elt *)
+(*               with (B := dom_rel (sb ⨾ ⦗eq e⦘) ∩₁ *)
+(*                          codom_rel (⦗issued T⦘ ⨾ rf ⨾ ⦗R_ex⦘ ⨾ rmw) \₁ reserved T) *)
+(*                    (r := ⦗W_ex⦘ ⨾ sb) as [w [[[WHH WAA] NRES] MIN]]. *)
+(*     { arewrite (⦗W_ex⦘ ⨾ sb ⊆ sb). *)
+(*       apply wf_sb. } *)
+(*     { intros [AA BB]. eapply AA; eauto. } *)
 
-  destruct
-  (classic (exists w',
-               (dom_rel (sb ⨾ ⦗eq e⦘) ∩₁
-                codom_rel (⦗issued T⦘ ⨾ rf ⨾ ⦗R_ex⦘ ⨾ rmw) \₁ reserved T) w'))
-    as [[w' WWB]|NWHH].
-  { edestruct wf_impl_min_elt
-              with (B := dom_rel (sb ⨾ ⦗eq e⦘) ∩₁
-                         codom_rel (⦗issued T⦘ ⨾ rf ⨾ ⦗R_ex⦘ ⨾ rmw) \₁ reserved T)
-                   (r := ⦗W_ex⦘ ⨾ sb) as [w [[[WHH WAA] NRES] MIN]].
-    { arewrite (⦗W_ex⦘ ⨾ sb ⊆ sb).
-      apply wf_sb. }
-    { intros [AA BB]. eapply AA; eauto. }
+(*     assert (W_ex w) as WEXW. *)
+(*     { generalize WAA.  unfold Execution.W_ex. basic_solver. } *)
+(*     assert (E w) as EW by (by apply (W_ex_in_E WF)). *)
+(*     assert (eq w ⊆₁ E) as EQWE. *)
+(*     { basic_solver. } *)
+(*     assert (eq w ⊆₁ dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗eq e⦘)) as EQWSB. *)
+(*     { generalize WHH. basic_solver 10. }  *)
+(*     assert (rmw ⨾ ⦗eq w⦘ ⊆ rppo ⨾ ⦗eq w⦘) as RPPO_RMW_W. *)
+(*     { destruct WAA as [y AA]. destruct_seq_l AA as BB. *)
+(*       destruct AA as [z [_ AA]]. destruct_seq_l AA as DD. *)
+(*       intros v u HH. destruct_seq_r HH as CC; subst. *)
+(*       assert (v = z); subst. *)
+(*       { eapply (wf_rmw_invf WF); eauto. } *)
+(*       apply seq_eqv_r. split; auto. *)
+(*       apply R_ex_sb_W_in_rppo. *)
+(*       apply seq_eqv_lr. splits; auto. *)
+(*       { apply rmw_in_sb; auto. } *)
+(*         by apply (W_ex_in_W WF). } *)
+(*     assert (rppo ⨾ ⦗W_ex⦘ ⨾ sb ⨾ ⦗eq e⦘ ⊆ rppo ⨾ ⦗eq e⦘) as RPPO_WEX_SB. *)
+(*     { arewrite (⦗eq e⦘ ⊆ ⦗W⦘ ⨾ ⦗eq e⦘) at 1. *)
+(*       { generalize WE. basic_solver. } *)
+(*       arewrite_id ⦗W_ex⦘. rewrite seq_id_l. *)
+(*         by sin_rewrite (rppo_sb_in_rppo WF). } *)
 
-    assert (W_ex w) as WEXW.
-    { generalize WAA.  unfold Execution.W_ex. basic_solver. }
-    assert (E w) as EW by (by apply (W_ex_in_E WF)).
-    assert (eq w ⊆₁ E) as EQWE.
-    { basic_solver. }
-    assert (eq w ⊆₁ dom_rel (⦗W_ex⦘ ⨾ sb ⨾ ⦗eq e⦘)) as EQWSB.
-    { generalize WHH. basic_solver 10. } 
-    assert (rmw ⨾ ⦗eq w⦘ ⊆ rppo ⨾ ⦗eq w⦘) as RPPO_RMW_W.
-    { destruct WAA as [y AA]. destruct_seq_l AA as BB.
-      destruct AA as [z [_ AA]]. destruct_seq_l AA as DD.
-      intros v u HH. destruct_seq_r HH as CC; subst.
-      assert (v = z); subst.
-      { eapply (wf_rmw_invf WF); eauto. }
-      apply seq_eqv_r. split; auto.
-      apply R_ex_sb_W_in_rppo.
-      apply seq_eqv_lr. splits; auto.
-      { apply rmw_in_sb; auto. }
-        by apply (W_ex_in_W WF). }
-    assert (rppo ⨾ ⦗W_ex⦘ ⨾ sb ⨾ ⦗eq e⦘ ⊆ rppo ⨾ ⦗eq e⦘) as RPPO_WEX_SB.
-    { arewrite (⦗eq e⦘ ⊆ ⦗W⦘ ⨾ ⦗eq e⦘) at 1.
-      { generalize WE. basic_solver. }
-      arewrite_id ⦗W_ex⦘. rewrite seq_id_l.
-        by sin_rewrite (rppo_sb_in_rppo WF). }
+(*     exists (mkETC (mkTC (covered T) (issued T)) *)
+(*                   (reserved T ∪₁ eq w)). *)
+(*     exists w. *)
+(*     constructor; unfold issued, covered; simpls. *)
+(*     { do 2 right. splits; eauto. } *)
+(*     unnw. constructor; unfold issued, covered; simpls. *)
+(*     { by unionL; [by apply ETCCOH|]. } *)
+(*     { unionR left. apply ETCCOH. } *)
+(*     { rewrite set_minus_union_l. *)
+(*       unionL; [by apply ETCCOH|]. *)
+(*       basic_solver. } *)
+(*     4: { unionR left. *)
+(*          unfold dom_sb_S_rfrmw. simpls. *)
+(*          rewrite id_union, !seq_union_r, dom_union, set_inter_union_l. *)
+(*          unionL; [by apply ETCCOH|]. *)
+(*          rewrite <- set_interK with (s:=dom_rel (sb ⨾ ⦗eq w⦘)). *)
+(*          rewrite set_interA. *)
+(*          rewrite EQWSB at 2. *)
+(*          rewrite <- !seqA, dom_rel_eqv_dom_rel, !seqA. *)
+(*          arewrite (sb ⨾ ⦗W_ex⦘ ⨾ sb ⊆ sb) by (generalize (@sb_trans G); basic_solver). *)
+(*          intros b [AA BB]. *)
+(*          apply NNPP. intros CC. *)
+(*          eapply MIN. *)
+(*          { split; [apply BB|apply CC]. } *)
+(*          destruct AA as [y AA]. *)
+(*          apply seq_eqv_r in AA. desf. *)
+(*          apply seq_eqv_l. split; auto. generalize BB. unfold Execution.W_ex. basic_solver. } *)
+(*     1-5: rewrite id_union, !seq_union_r, dom_union. *)
+(*     1-5: unionL; [by apply ETCCOH|]. *)
+(*     5: rewrite RPPO_RMW_W. *)
+(*     1-5: rewrite EQWSB. *)
+(*     1-5: rewrite <- !seqA, dom_rel_eqv_dom_rel, !seqA. *)
+(*     1-3: by arewrite (sb ⨾ ⦗W_ex⦘ ⨾ sb ⊆ sb) by (generalize (@sb_trans G); basic_solver). *)
+(*     1,2: rewrite RPPO_WEX_SB; auto. *)
+(*     { etransitivity; [|by apply RPPOSBE]. *)
+(*       clear. rewrite rtE. basic_solver 15. } *)
+(*     rewrite set_inter_union_l. *)
+(*     unionL; [by apply ETCCOH|]. *)
+(*     generalize WAA. unfold issued. basic_solver 10. } *)
+(*   destruct (classic (reserved T e \/ ~ W_ex e)) as [RES|NRES]. *)
+(*   { exists (mkETC (mkTC (covered T) (issued T ∪₁ eq e)) *)
+(*                   (reserved T ∪₁ eq e ∪₁ *)
+(*                    dom_rel (sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw))). *)
 
-    exists (mkETC (mkTC (covered T) (issued T))
-                  (reserved T ∪₁ eq w)).
-    exists w.
-    constructor; unfold issued, covered; simpls.
-    { do 2 right. splits; eauto. }
-    unnw. constructor; unfold issued, covered; simpls.
-    { by unionL; [by apply ETCCOH|]. }
-    { unionR left. apply ETCCOH. }
-    { rewrite set_minus_union_l.
-      unionL; [by apply ETCCOH|].
-      basic_solver. }
-    4: { unionR left.
-         unfold dom_sb_S_rfrmw. simpls.
-         rewrite id_union, !seq_union_r, dom_union, set_inter_union_l.
-         unionL; [by apply ETCCOH|].
-         rewrite <- set_interK with (s:=dom_rel (sb ⨾ ⦗eq w⦘)).
-         rewrite set_interA.
-         rewrite EQWSB at 2.
-         rewrite <- !seqA, dom_rel_eqv_dom_rel, !seqA.
-         arewrite (sb ⨾ ⦗W_ex⦘ ⨾ sb ⊆ sb) by (generalize (@sb_trans G); basic_solver).
-         intros b [AA BB].
-         apply NNPP. intros CC.
-         eapply MIN.
-         { split; [apply BB|apply CC]. }
-         destruct AA as [y AA].
-         apply seq_eqv_r in AA. desf.
-         apply seq_eqv_l. split; auto. generalize BB. unfold Execution.W_ex. basic_solver. }
-    1-5: rewrite id_union, !seq_union_r, dom_union.
-    1-5: unionL; [by apply ETCCOH|].
-    5: rewrite RPPO_RMW_W.
-    1-5: rewrite EQWSB.
-    1-5: rewrite <- !seqA, dom_rel_eqv_dom_rel, !seqA.
-    1-3: by arewrite (sb ⨾ ⦗W_ex⦘ ⨾ sb ⊆ sb) by (generalize (@sb_trans G); basic_solver).
-    1,2: rewrite RPPO_WEX_SB; auto.
-    { etransitivity; [|by apply RPPOSBE].
-      clear. rewrite rtE. basic_solver 15. }
-    rewrite set_inter_union_l.
-    unionL; [by apply ETCCOH|].
-    generalize WAA. unfold issued. basic_solver 10. }
-  destruct (classic (reserved T e \/ ~ W_ex e)) as [RES|NRES].
-  { exists (mkETC (mkTC (covered T) (issued T ∪₁ eq e))
-                  (reserved T ∪₁ eq e ∪₁
-                   dom_rel (sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfi ⨾ rmw))).
+(*     exists e. *)
+(*     constructor; unfold issued, covered; simpls. *)
+(*     { right. left. splits; eauto. intuition. } *)
+(*     unnw. constructor; unfold issued, covered; simpls. *)
+(*     { eapply trav_step_coherence. *)
+(*       2: by apply ETCCOH. *)
+(*       eapply trav_step_more_Proper. *)
+(*       3: by eexists; eauto. *)
+(*       { apply same_tc_Reflexive. } *)
+(*       red. simpls. split; by symmetry. } *)
+(*     { unionL; auto. *)
+(*       { apply ETCCOH. } *)
+(*       rewrite (wf_rmwE WF). *)
+(*       basic_solver. } *)
+(*     { unionL; [|basic_solver]. *)
+(*       unionR left -> left. apply ETCCOH. } *)
+(*     { rewrite !set_minus_union_l. unionL. *)
+(*       3: { rewrite rmw_W_ex. basic_solver. } *)
+(*       { rewrite <- (etc_S_I_in_W_ex ETCCOH). basic_solver. } *)
+(*       rewrite set_minus_union_r. *)
+(*       basic_solver. } *)
+(*     2: do 2 rewrite <- seqA. *)
+(*     1-3: rewrite dom_r_sb_new_reserved; auto. *)
+(*     1-3: rewrite id_union, !seq_union_r, dom_union. *)
+(*     1-3: try unionR left. *)
+(*     1-3: try rewrite !seqA. *)
+(*     1-3: by unionL; [by apply ETCCOH|]. *)
+(*     { unfold dom_sb_S_rfrmw. simpls. *)
+(*       rewrite dom_sb_new_reserved; auto. *)
+(*       rewrite !id_union, !seq_union_l, !seq_union_r. *)
+(*       rewrite dom_union, codom_union, set_inter_union_r. *)
+(*       rewrite !set_inter_union_l. *)
+(*       unionL. *)
+(*       1,2: unionR left -> left. *)
+(*       { apply ETCCOH. } *)
+(*       { intros w' BB. apply NNPP. intros AA. *)
+(*         apply NWHH. exists w'. split; auto. *)
+(*         generalize BB. clear. basic_solver 10. } *)
+(*       { unionR right. *)
+(*         rewrite !seqA. *)
+(*         rewrite rfi_union_rfe. *)
+(*         rewrite !seq_union_l, !seq_union_r, codom_union, set_inter_union_r. *)
+(*         arewrite (rfi ⨾ ⦗R_ex⦘ ⊆ rfi). *)
+(*         arewrite (dom_rel (sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfe ⨾ ⦗R_ex⦘ ⨾ rmw) ⊆₁ ∅). *)
+(*         2: { unionL; [done|]. basic_solver. } *)
+(*         rewrite set_interC. *)
+(*         apply seq_codom_dom_inter_iff. *)
+(*         split; [|basic_solver]. *)
+(*         rewrite !seqA. *)
+(*         arewrite (reserved T ⊆₁ W ∩₁ reserved T). *)
+(*         { generalize (reservedW WF ETCCOH). basic_solver. } *)
+(*         rewrite id_inter. *)
+(*         arewrite (rmw ⨾ sb ⊆ sb). *)
+(*         { rewrite (rmw_in_sb WF). generalize (@sb_trans G). *)
+(*           clear. basic_solver. } *)
+(*         sin_rewrite R_ex_sb_W_in_rppo. *)
+(*         generalize dom_rfe_rppo_S_in_I. unfold issued. *)
+(*         generalize NISS. basic_solver 10. } *)
+(*       arewrite_id ⦗R_ex⦘. rewrite seq_id_l. *)
+(*       intros w [[y AA] [z BB]]. *)
+(*       exfalso. *)
+(*       destruct_seq_l BB as CC; subst. *)
+(*       destruct_seq_r AA as DD; subst. *)
+(*       eapply rfrmw_sb_irr; eauto. *)
+(*       apply seqA. eexists. eauto. } *)
+(*     { unionR left. *)
+(*       rewrite <- seqA at 1. *)
+(*       rewrite dom_r_rppo_new_reserved; auto. *)
+(*       rewrite !seqA. *)
+(*       rewrite id_union, !seq_union_r, dom_union. *)
+(*       unionL; [by apply ETCCOH|]. *)
+(*       sin_rewrite (detour_rfe_data_rfi_rmw_rppo_in_detour_rfe_ppo WF). *)
+(*       arewrite (eq e ⊆₁ issuable G sc (etc_TC T)) by basic_solver. *)
+(*       eapply dom_detour_rfe_ppo_issuable; eauto. } *)
+(*     { rewrite !id_union, !seq_union_r, !dom_union. unionL. *)
+(*       { unionR left. apply ETCCOH. } *)
+(*       { unionR left. *)
+(*         destruct RES as [RES|RES]. *)
+(*         { arewrite (eq e ⊆₁ reserved T) by (generalize RES; basic_solver). *)
+(*           apply ETCCOH. } *)
+(*         transitivity (fun _ : actid => False); [|basic_solver]. *)
+(*         generalize RES. unfold Execution.W_ex. clear. basic_solver. } *)
+(*       transitivity (fun _ : actid => False); [|basic_solver]. *)
+(*       unfold Execution.detour. *)
+(*       clear RES. unfolder. ins. desf. *)
+(*       all: assert (z2 = z) by (eapply (wf_rmw_invf WF); eauto); subst. *)
+(*       all: eapply codom_rfi_rfe_empty; basic_solver. } *)
+(*     rewrite id_union, !seq_union_l, codom_union. *)
+(*     rewrite set_inter_union_l. *)
+(*     apply set_union_mori. *)
+(*     2: arewrite (rfi ⊆ rf); basic_solver 10. *)
+(*     rewrite set_inter_union_l. unionL; [by apply ETCCOH|]. *)
+(*     rewrite <- issuable_W_ex_in_codom_I_rfrmw; eauto. *)
+(*     basic_solver. } *)
+(*   assert (W_ex e) as WEXE. *)
+(*   { apply NNPP. intuition. } *)
+(*   assert (~ reserved T e) as NRESE by intuition. *)
 
-    exists e.
-    constructor; unfold issued, covered; simpls.
-    { right. left. splits; eauto. intuition. }
-    unnw. constructor; unfold issued, covered; simpls.
-    { eapply trav_step_coherence.
-      2: by apply ETCCOH.
-      eapply trav_step_more_Proper.
-      3: by eexists; eauto.
-      { apply same_tc_Reflexive. }
-      red. simpls. split; by symmetry. }
-    { unionL; auto.
-      { apply ETCCOH. }
-      rewrite (wf_rmwE WF).
-      basic_solver. }
-    { unionL; [|basic_solver].
-      unionR left -> left. apply ETCCOH. }
-    { rewrite !set_minus_union_l. unionL.
-      3: { rewrite rmw_W_ex. basic_solver. }
-      { rewrite <- (etc_S_I_in_W_ex ETCCOH). basic_solver. }
-      rewrite set_minus_union_r.
-      basic_solver. }
-    2: do 2 rewrite <- seqA.
-    1-3: rewrite dom_r_sb_new_reserved; auto.
-    1-3: rewrite id_union, !seq_union_r, dom_union.
-    1-3: try unionR left.
-    1-3: try rewrite !seqA.
-    1-3: by unionL; [by apply ETCCOH|].
-    { unfold dom_sb_S_rfrmw. simpls.
-      rewrite dom_sb_new_reserved; auto.
-      rewrite !id_union, !seq_union_l, !seq_union_r.
-      rewrite dom_union, codom_union, set_inter_union_r.
-      rewrite !set_inter_union_l.
-      unionL.
-      1,2: unionR left -> left.
-      { apply ETCCOH. }
-      { intros w' BB. apply NNPP. intros AA.
-        apply NWHH. exists w'. split; auto.
-        generalize BB. clear. basic_solver 10. }
-      { unionR right.
-        rewrite !seqA.
-        rewrite rfi_union_rfe.
-        rewrite !seq_union_l, !seq_union_r, codom_union, set_inter_union_r.
-        arewrite (rfi ⨾ ⦗R_ex⦘ ⊆ rfi).
-        arewrite (dom_rel (sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗eq e⦘ ⨾ rfe ⨾ ⦗R_ex⦘ ⨾ rmw) ⊆₁ ∅).
-        2: { unionL; [done|]. basic_solver. }
-        rewrite set_interC.
-        apply seq_codom_dom_inter_iff.
-        split; [|basic_solver].
-        rewrite !seqA.
-        arewrite (reserved T ⊆₁ W ∩₁ reserved T).
-        { generalize (reservedW WF ETCCOH). basic_solver. }
-        rewrite id_inter.
-        arewrite (rmw ⨾ sb ⊆ sb).
-        { rewrite (rmw_in_sb WF). generalize (@sb_trans G).
-          clear. basic_solver. }
-        sin_rewrite R_ex_sb_W_in_rppo.
-        generalize dom_rfe_rppo_S_in_I. unfold issued.
-        generalize NISS. basic_solver 10. }
-      arewrite_id ⦗R_ex⦘. rewrite seq_id_l.
-      intros w [[y AA] [z BB]].
-      exfalso.
-      destruct_seq_l BB as CC; subst.
-      destruct_seq_r AA as DD; subst.
-      eapply rfrmw_sb_irr; eauto.
-      apply seqA. eexists. eauto. }
-    { unionR left.
-      rewrite <- seqA at 1.
-      rewrite dom_r_rppo_new_reserved; auto.
-      rewrite !seqA.
-      rewrite id_union, !seq_union_r, dom_union.
-      unionL; [by apply ETCCOH|].
-      sin_rewrite (detour_rfe_data_rfi_rmw_rppo_in_detour_rfe_ppo WF).
-      arewrite (eq e ⊆₁ issuable G sc (etc_TC T)) by basic_solver.
-      eapply dom_detour_rfe_ppo_issuable; eauto. }
-    { rewrite !id_union, !seq_union_r, !dom_union. unionL.
-      { unionR left. apply ETCCOH. }
-      { unionR left.
-        destruct RES as [RES|RES].
-        { arewrite (eq e ⊆₁ reserved T) by (generalize RES; basic_solver).
-          apply ETCCOH. }
-        transitivity (fun _ : actid => False); [|basic_solver].
-        generalize RES. unfold Execution.W_ex. clear. basic_solver. }
-      transitivity (fun _ : actid => False); [|basic_solver].
-      unfold Execution.detour.
-      clear RES. unfolder. ins. desf.
-      all: assert (z2 = z) by (eapply (wf_rmw_invf WF); eauto); subst.
-      all: eapply codom_rfi_rfe_empty; basic_solver. }
-    rewrite id_union, !seq_union_l, codom_union.
-    rewrite set_inter_union_l.
-    apply set_union_mori.
-    2: arewrite (rfi ⊆ rf); basic_solver 10.
-    rewrite set_inter_union_l. unionL; [by apply ETCCOH|].
-    rewrite <- issuable_W_ex_in_codom_I_rfrmw; eauto.
-    basic_solver. }
-  assert (W_ex e) as WEXE.
-  { apply NNPP. intuition. }
-  assert (~ reserved T e) as NRESE by intuition.
-
-  exists (mkETC (mkTC (covered T) (issued T))
-                (reserved T ∪₁ eq e)).
-  exists e.
-  constructor; unfold issued, covered; simpls.
-  { do 2 right. splits; eauto. }
-  unnw. constructor; unfold issued, covered; simpls.
-  { by unionL; [by apply ETCCOH|]. }
-  { unionR left. apply ETCCOH. }
-  { rewrite !set_minus_union_l. unionL; [by apply ETCCOH|].
-    generalize WEXE. basic_solver. }
-  4: { unfold dom_sb_S_rfrmw. simpls.
-       unionR left.
-       rewrite id_union, !seq_union_r, dom_union.
-       rewrite set_inter_union_l.
-       unionL; [by apply ETCCOH|].
-       intros w' BB. apply NNPP. intros AA.
-       apply NWHH. exists w'. split; auto.
-       unfold issued. generalize BB. clear. basic_solver 20. }
-  6: { rewrite !set_inter_union_l.
-       unionL; [by apply ETCCOH|].
-       rewrite EQEISS. by apply issuable_W_ex_in_codom_I_rfrmw. }
-  1-5: rewrite id_union, !seq_union_r, dom_union.
-  1-4: by unionL; [by apply ETCCOH|].
-  unionL; [by apply ETCCOH|].
-  rewrite (rmw_in_ppo WF).
-  rewrite EQEISS. arewrite (detour ⊆ detour ∪ rfe). by apply dom_detour_rfe_ppo_issuable.
-Qed.
+(*   exists (mkETC (mkTC (covered T) (issued T)) *)
+(*                 (reserved T ∪₁ eq e)). *)
+(*   exists e. *)
+(*   constructor; unfold issued, covered; simpls. *)
+(*   { do 2 right. splits; eauto. } *)
+(*   unnw. constructor; unfold issued, covered; simpls. *)
+(*   { by unionL; [by apply ETCCOH|]. } *)
+(*   { unionR left. apply ETCCOH. } *)
+(*   { rewrite !set_minus_union_l. unionL; [by apply ETCCOH|]. *)
+(*     generalize WEXE. basic_solver. } *)
+(*   4: { unfold dom_sb_S_rfrmw. simpls. *)
+(*        unionR left. *)
+(*        rewrite id_union, !seq_union_r, dom_union. *)
+(*        rewrite set_inter_union_l. *)
+(*        unionL; [by apply ETCCOH|]. *)
+(*        intros w' BB. apply NNPP. intros AA. *)
+(*        apply NWHH. exists w'. split; auto. *)
+(*        unfold issued. generalize BB. clear. basic_solver 20. } *)
+(*   6: { rewrite !set_inter_union_l. *)
+(*        unionL; [by apply ETCCOH|]. *)
+(*        rewrite EQEISS. by apply issuable_W_ex_in_codom_I_rfrmw. } *)
+(*   1-5: rewrite id_union, !seq_union_r, dom_union. *)
+(*   1-4: by unionL; [by apply ETCCOH|]. *)
+(*   unionL; [by apply ETCCOH|]. *)
+(*   rewrite (rmw_in_ppo WF). *)
+(*   rewrite EQEISS. arewrite (detour ⊆ detour ∪ rfe). by apply dom_detour_rfe_ppo_issuable. *)
+(* Qed. *)
 
 End Props.
 
-Lemma exists_ext_trav_step e (T: ext_trav_config)
-      (N_FIN : next G (covered T) e)
-      (ETCCOH : etc_coherent G sc T)
-      (FINDOM : fin_exec G):
-  exists T', ext_trav_step T T'.
-Proof using WF WFSC IMMCON COM.
-  edestruct exists_trav_step; eauto.
-  { apply ETCCOH. }
-  2: { eapply trav_step_to_ext_trav_step; eauto. }
-  apply imm_s_rfppo.fsupp_ar_rf_ppo_loc_fin; auto. 
+(* Lemma exists_ext_trav_step e (T: ext_trav_config) *)
+(*       (N_FIN : next G (covered T) e) *)
+(*       (ETCCOH : etc_coherent G sc T) *)
+(*       (FINDOM : fin_exec G): *)
+(*   exists T', ext_trav_step T T'. *)
+(* Proof using WF WFSC IMMCON COM. *)
+(*   edestruct exists_trav_step; eauto. *)
+(*   { apply ETCCOH. } *)
+(*   2: { eapply trav_step_to_ext_trav_step; eauto. } *)
+(*   apply imm_s_rfppo.fsupp_ar_rf_ppo_loc_fin; auto.  *)
+(* Qed. *)
+
+(* Definition same_ext_trav_config (T T' : ext_trav_config) := *)
+(*   covered T ≡₁ covered T' /\ issued T ≡₁ issued T' /\ *)
+(*   reserved T ≡₁ reserved T'. *)
+
+(* Lemma same_ext_trav_config_refl : reflexive same_ext_trav_config. *)
+(* Proof using. split; basic_solver. Qed. *)
+
+(* Lemma same_ext_trav_config_sym : symmetric same_ext_trav_config. *)
+(* Proof using. *)
+(*   unfold same_ext_trav_config; split; splits; ins; desf; symmetry; auto. *)
+(* Qed. *)
+
+(* Lemma same_ext_trav_config_trans : transitive same_ext_trav_config. *)
+(* Proof using. *)
+(*   unfold same_ext_trav_config; split; splits; ins; desf; etransitivity; eauto. *)
+(* Qed. *)
+
+(* Global Add Parametric Relation : ext_trav_config same_ext_trav_config *)
+(*     reflexivity proved by same_ext_trav_config_refl *)
+(*     symmetry proved by same_ext_trav_config_sym *)
+(*     transitivity proved by same_ext_trav_config_trans *)
+(*       as same_etc. *)
+
+(* Global Add Parametric Morphism : etc_coherent with signature *)
+(*     eq ==> eq ==> same_ext_trav_config ==> iff as etc_coherent_more. *)
+(* Proof using. *)
+(*   intros G' sc' T T' EQT. cdes EQT. *)
+(*   split. *)
+(*   symmetry in EQT0. *)
+(*   symmetry in EQT1. *)
+(*   symmetry in EQT2. *)
+(*   (* TODO: introduce a morphism for dom_sb_S_rfrmw instead. *) *)
+(*   all: intros HH; constructor; try unfold dom_sb_S_rfrmw. *)
+(*   all: try rewrite EQT0. *)
+(*   all: try rewrite EQT1. *)
+(*   all: try rewrite EQT2. *)
+(*   all: try apply HH. *)
+(*   all: eapply tc_coherent_more; eauto; [|by apply HH]. *)
+(*   all: red; unfold covered, issued in *; eauto. *)
+(* Qed. *)
+
+(* TODO: move to ExtTraversalConfig.v *)
+Global Add Parametric Morphism : dom_sb_S_rfrmw with signature
+    eq ==> set_equiv ==> same_relation ==> set_equiv ==> set_equiv as
+         dom_sb_S_rfrmw_more.
+Proof using.
+  intros x T T' EQ s s' EQS e e' EQE.
+  unfold dom_sb_S_rfrmw. now rewrite EQ, EQS, EQE.
 Qed.
 
-Definition same_ext_trav_config (T T' : ext_trav_config) :=
-  covered T ≡₁ covered T' /\ issued T ≡₁ issued T' /\
-  reserved T ≡₁ reserved T'.
-
-Lemma same_ext_trav_config_refl : reflexive same_ext_trav_config.
-Proof using. split; basic_solver. Qed.
-
-Lemma same_ext_trav_config_sym : symmetric same_ext_trav_config.
+(* TODO: move to ExtTraversalConfig.v *)
+Global Add Parametric Morphism : reserve_coherent with signature
+    eq ==> set_equiv ==> iff as
+         reserve_coherent_more.
 Proof using.
-  unfold same_ext_trav_config; split; splits; ins; desf; symmetry; auto.
+  intros x T T' EQ.
+  split; intros HH; split.
+  all: try now rewrite <- EQ; apply HH.
+  all: now rewrite EQ; apply HH.
 Qed.
 
-Lemma same_ext_trav_config_trans : transitive same_ext_trav_config.
+Global Add Parametric Morphism : ets_upd_reserve with signature
+    eq ==> set_equiv ==> set_equiv as
+         ets_upd_reserve_more.
 Proof using.
-  unfold same_ext_trav_config; split; splits; ins; desf; etransitivity; eauto.
-Qed.
-
-Global Add Parametric Relation : ext_trav_config same_ext_trav_config
-    reflexivity proved by same_ext_trav_config_refl
-    symmetry proved by same_ext_trav_config_sym
-    transitivity proved by same_ext_trav_config_trans
-      as same_etc.
-
-Global Add Parametric Morphism : etc_coherent with signature
-    eq ==> eq ==> same_ext_trav_config ==> iff as etc_coherent_more.
-Proof using.
-  intros G' sc' T T' EQT. cdes EQT.
-  split.
-  symmetry in EQT0.
-  symmetry in EQT1.
-  symmetry in EQT2.
-  (* TODO: introduce a morphism for dom_sb_S_rfrmw instead. *)
-  all: intros HH; constructor; try unfold dom_sb_S_rfrmw.
-  all: try rewrite EQT0.
-  all: try rewrite EQT1.
-  all: try rewrite EQT2.
-  all: try apply HH.
-  all: eapply tc_coherent_more; eauto; [|by apply HH].
-  all: red; unfold covered, issued in *; eauto.
+  intros x T T' EQ. unfold ets_upd_reserve. destruct x; desf.
+  now rewrite EQ.
 Qed.
 
 Global Add Parametric Morphism : ext_itrav_step with signature
-    eq ==> same_ext_trav_config ==> same_ext_trav_config ==> iff as
+    eq ==> set_equiv ==> set_equiv ==> iff as
         ext_itrav_step_more.
 Proof using.
   intros x TA TB EQ TA' TB' EQ'.
   split.
   symmetry in EQ.
   symmetry in EQ'.
-  all: intros HH; split; unnw;
-    [|by eapply etc_coherent_more; eauto; apply HH].
-  all: cdes EQ; cdes EQ'.
-  all: try unfold dom_sb_S_rfrmw.
-  all: try rewrite EQ0.
-  all: try rewrite EQ1.
-  all: try rewrite EQ2.
-  all: try rewrite EQ'0.
-  all: try rewrite EQ'1.
-  all: try rewrite EQ'2.
-  all: inv HH; desf; [left| right; left| right; right]; splits; auto.
-  all: generalize EQ0 EQ1 EQ2; basic_solver 10.
+  all: intros HH; split.
+  all: try now rewrite EQ'; apply HH.
+  all: try now intros AA; eapply ets_new_ta; eauto; apply EQ.
+  all: try now ins; destruct x; ins; subst; apply EQ; apply HH.
+  all: rewrite EQ', EQ; apply HH.
 Qed.
 
-Lemma ext_trav_step_in_trav_step :
-  ext_trav_step ⊆ etc_TC ⋄ (same_trav_config ∪ trav_step G sc).
-Proof using WF IMMCON.
-  unfold ext_trav_step, ext_itrav_step, map_rel.
-  intros T T'. ins. desf.
-  3: { left. red. by split; symmetry. }
-  all: right; exists e; red; unnw.
-  all: unfold covered, issued in *.
-  2: right.
-  left.
-  all: splits; auto.
-  { apply coverable_add_eq_iff; auto.
-    apply covered_in_coverable; [|basic_solver].
-    eapply tc_coherent_more.
-    2: apply ETCCOH'.
-    red; splits; simpls; by symmetry. }
-  apply issuable_add_eq_iff; auto. 
-  eapply issued_in_issuable; [|basic_solver].
-  eapply tc_coherent_more.
-  2: apply ETCCOH'.
-  red; splits; simpls; by symmetry.
-Qed.
+(* Lemma ext_trav_step_in_trav_step : *)
+(*   ext_trav_step ⊆ etc_TC ⋄ (same_trav_config ∪ trav_step G sc). *)
+(* Proof using WF IMMCON. *)
+(*   unfold ext_trav_step, ext_itrav_step, map_rel. *)
+(*   intros T T'. ins. desf. *)
+(*   3: { left. red. by split; symmetry. } *)
+(*   all: right; exists e; red; unnw. *)
+(*   all: unfold covered, issued in *. *)
+(*   2: right. *)
+(*   left. *)
+(*   all: splits; auto. *)
+(*   { apply coverable_add_eq_iff; auto. *)
+(*     apply covered_in_coverable; [|basic_solver]. *)
+(*     eapply tc_coherent_more. *)
+(*     2: apply ETCCOH'. *)
+(*     red; splits; simpls; by symmetry. } *)
+(*   apply issuable_add_eq_iff; auto.  *)
+(*   eapply issued_in_issuable; [|basic_solver]. *)
+(*   eapply tc_coherent_more. *)
+(*   2: apply ETCCOH'. *)
+(*   red; splits; simpls; by symmetry. *)
+(* Qed. *)
 
 Definition ext_init_trav := mkETC (mkTC (is_init ∩₁ E) (is_init ∩₁ E)) (is_init ∩₁ E).
 
@@ -730,3 +759,4 @@ Proof using WF.
 Qed.
 u
 End ExtTraversalConfig.
+_
