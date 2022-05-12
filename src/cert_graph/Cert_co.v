@@ -18,11 +18,17 @@ From imm Require Import FinExecution.
 (*      imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxDef. *)
 
 From imm Require Import AuxRel2.
-From imm Require Import TraversalConfig.
-From imm Require Import TraversalConfigAlt.
-From imm Require Import TraversalConfigAltOld.
+(* From imm Require Import TraversalConfig. *)
+(* From imm Require Import TraversalConfigAlt. *)
+(* From imm Require Import TraversalConfigAltOld. *)
 Require Import ExtTraversalConfig.
 Require Import AuxRel.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import SimClosure. 
+Require Import TlsAux.
+Require Import Next. 
 
 Import ListNotations. 
 
@@ -98,18 +104,22 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra Glab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc Glab a)).
 Notation "'xacq'" := (fun a => is_true (is_xacq Glab a)).
 
-Variable T : trav_config.
-Variable S : actid -> Prop.
+Variable T : trav_label -> Prop. 
 
 Notation "'I'" := (issued T).
 Notation "'C'" := (covered T).
+Notation "'S'" := (reserved T).
 
 Variable thread : BinNums.positive.
 
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCCOH : tc_coherent G sc T.
+(* Hypothesis TCCOH : tc_coherent G sc T. *)
+Hypotheses (TCOH: tls_coherent G T)
+           (ICOH: iord_coherent G sc T)
+           (* (RCOH: reserve_coherent G T).  *)
+           . 
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -172,7 +182,8 @@ Proof using WF S_in_W ST_in_E IT_new_co.
   2: basic_solver.
   unionL.
   2: { generalize S_in_W ST_in_E. basic_solver. }
-  rewrite <- IT_new_co. clear. basic_solver 10.
+  rewrite <- IT_new_co. unionR left.
+  unfolder. ins. exists x. vauto. 
 Qed.
 
 Lemma IST_new_co : cert_co_base ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
@@ -330,7 +341,7 @@ Lemma cert_co_alt :
   cert_co  ⊆ Gco ∩ cert_co ⨾ ⦗ cert_co_base ⦘ ∪ ⦗ Tid_ thread ⦘ ⨾ Gco ∩ cert_co ∪ 
            ⦗ I ∩₁ NTid_ thread ⦘ ⨾ cert_co ⨾ ⦗ (E ∩₁ W ∩₁ Tid_ thread) \₁
                                               cert_co_base ⦘.
-Proof using WF TCCOH S_in_W ST_in_E S IT_new_co.
+Proof using WF S_in_W ST_in_E IT_new_co. 
   rewrite <- cert_co_base_nTid.
   arewrite (cert_co ⊆ cert_co ∩ cert_co) at 1.
   unfold cert_co at 1.
@@ -342,7 +353,7 @@ Qed.
 
 Lemma cert_co_alt' : cert_co  ⊆ Gco ∩ cert_co ∪ 
   ⦗ I ∩₁ NTid_ thread ⦘ ⨾ cert_co ⨾ ⦗ (E ∩₁ W ∩₁ Tid_ thread) \₁ I ⦘.
-Proof using WF TCCOH S_in_W ST_in_E S IT_new_co.
+Proof using WF S_in_W ST_in_E IT_new_co.
   rewrite cert_co_alt at 1.
   clear.
   unionL.
@@ -351,7 +362,7 @@ Proof using WF TCCOH S_in_W ST_in_E S IT_new_co.
 Qed.
 
 Lemma imm_cert_cof : functional (immediate cert_co).
-Proof using WF S_in_W ST_in_E S IT_new_co.
+Proof using WF S_in_W ST_in_E IT_new_co. 
   intros x y z ICOXY ICOXZ.
   assert (cert_co x y) as COXY by apply ICOXY.
   assert (cert_co x z) as COXZ by apply ICOXZ.
@@ -371,7 +382,7 @@ Proof using WF S_in_W ST_in_E S IT_new_co.
 Qed.
 
 Lemma imm_cert_co_tf : functional (immediate cert_co)⁻¹.
-Proof using WF S_in_W ST_in_E S IT_new_co.
+Proof using WF S_in_W ST_in_E IT_new_co.
   intros x y z ICOXY ICOXZ. red in ICOXY. red in ICOXZ.
   assert (cert_co y x) as COXY by apply ICOXY.
   assert (cert_co z x) as COXZ by apply ICOXZ.
@@ -390,7 +401,7 @@ Proof using WF S_in_W ST_in_E S IT_new_co.
 Qed.
 
 Lemma cert_co_sb_irr : irreflexive (cert_co ⨾ Gsb).
-Proof using WF COH TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co I_in_S.
+Proof using TCOH S_I_in_W_ex I_in_S COH WF S_in_W ST_in_E IT_new_co. 
   rewrite cert_co_alt at 1.
   relsf; unionL.
   1-2: rewrite co_in_eco, sb_in_hb; 
@@ -398,7 +409,7 @@ Proof using WF COH TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co I_in_S.
   rewrite !seqA.
   arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘ ⊆ ⦗Tid_ thread⦘ ⨾ ⦗set_compl Init⦘).
   { unfold cert_co_base. 
-    generalize (init_issued WF TCCOH).
+    generalize (init_issued TCOH). 
     basic_solver 21. }
   rewrite ninit_sb_same_tid.
   red. intros ? REL. destruct REL as (? & ? & ? & ? & ? & ?). 
@@ -442,7 +453,7 @@ Qed.
   
 Lemma imm_cert_co_inv_exists (FAIR: mem_fair G):
   E ∩₁ W ∩₁ set_compl Init ⊆₁ codom_rel (immediate cert_co).
-Proof using WF TCCOH S_in_W S_I_in_W_ex ST_in_E S IT_new_co COH I_in_S RELCOV FIN.
+Proof using WF S_in_W S_I_in_W_ex ST_in_E IT_new_co COH I_in_S RELCOV FIN TCOH.
 unfolder; ins.
 ins; eapply fsupp_immediate_pred.
 { by apply fsupp_cert_co. }
@@ -468,7 +479,7 @@ unfold is_init in *; desf.
 Qed.
 
 Lemma transp_cert_co_imm_cert_co : (immediate cert_co)⁻¹ ⨾ cert_co  ⊆ cert_co^?.
-Proof using WF S_in_W ST_in_E S IT_new_co.
+Proof using WF S_in_W ST_in_E IT_new_co.
 rewrite wf_cert_coE at 2.
 rewrite wf_cert_coD at 2.
 unfolder; ins; desf.
@@ -489,7 +500,7 @@ congruence.
 Qed.
 
 Lemma transp_cert_co_imm_cert_co' : cert_co⁻¹ ⨾ immediate cert_co  ⊆ cert_co⁻¹^?.
-Proof using WF S_in_W ST_in_E S IT_new_co.
+Proof using WF S_in_W ST_in_E IT_new_co.
 apply inclusion_transpE.
 rewrite transp_seq, transp_cr.
 rels.
