@@ -757,6 +757,5 @@ Proof using WF.
   rewrite ninit_sb_same_tid.
   basic_solver.
 Qed.
-u
+
 End ExtTraversalConfig.
-_
