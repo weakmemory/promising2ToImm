@@ -3,9 +3,16 @@ From hahn Require Import Hahn.
 From imm Require Import Events Execution Execution_eco
      imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxDef AuxRel2.
 Require Import AuxRel.
-From imm Require Import TraversalConfig Traversal.
+(* From imm Require Import TraversalConfig Traversal. *)
 From imm Require Import FairExecution.
 Require Import ExtTraversalConfig.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import SimClosure. 
+Require Import TlsAux.
+Require Import Next. 
+
 
 Set Implicit Arguments.
 
@@ -84,18 +91,21 @@ Notation "'Acqrel'" := (fun x => is_true (is_acqrel lab x)).
 Notation "'Sc'" := (fun x => is_true (is_sc lab x)).
 Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 
-Variable T : ext_trav_config.
-Variable ETCCOH : etc_coherent G sc T.
+Variable T : trav_label -> Prop. 
+(* Variable ETCCOH : etc_coherent G sc T. *)
+Hypotheses (TCOH: tls_coherent G T)
+           (ICOH: iord_coherent G sc T)
+           (RCOH: reserve_coherent G T). 
 
 Notation "'S'" := (reserved T).
-Notation "'C'" := (ecovered T).
-Notation "'I'" := (eissued  T).
+Notation "'C'" := (covered T).
+Notation "'I'" := (issued  T).
 
 Lemma dom_rf_rmw_S_in_I : dom_rel (rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ I.
-Proof using WF ETCCOH.
+Proof using WF RCOH.
   rewrite rmw_W_ex, !seqA.
   arewrite (⦗W_ex⦘ ⨾ ⦗S⦘ ⊆ ⦗S ∩₁ W_ex⦘) by basic_solver.
-  rewrite (etc_S_W_ex_rfrmw_I ETCCOH).
+  erewrite rcoh_S_W_ex_rfrmw_I; eauto. 
   rewrite <- seqA with (r2:=rmw).
   intros x [y HH].
   destruct_seq_r HH as BB.
@@ -106,20 +116,19 @@ Proof using WF ETCCOH.
 Qed.
 
 Lemma dom_rf_rmw_S : dom_rel (rf ⨾ rmw ⨾ ⦗S⦘) ⊆₁ S.
-Proof using WF ETCCOH.
-  rewrite <- (etc_I_in_S ETCCOH) at 2.
+Proof using WF RCOH.
+  erewrite <- rcoh_I_in_S at 2; eauto. 
   apply dom_rf_rmw_S_in_I.
 Qed.
 
 Lemma rf_rmw_S : rf ⨾ rmw ⨾ ⦗S⦘ ≡
                  ⦗S⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘.
-Proof using WF ETCCOH.
-  apply dom_rel_helper.
-  apply dom_rf_rmw_S.
+Proof using WF RCOH.
+  apply dom_rel_helper. apply dom_rf_rmw_S.
 Qed.
 
 Lemma dom_rf_rmw_rt_S : dom_rel ((rf ⨾ rmw)＊ ⨾ ⦗S⦘) ⊆₁ S.
-Proof using WF ETCCOH.
+Proof using WF RCOH. 
   cut ((rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ ⦗S⦘ ⨾ (fun _ _ => True)).
   { unfolder; ins; desf; eauto 21; eapply H; splits; eauto 10. }
   apply rt_ind_left with (P:= fun r => r ⨾ ⦗S⦘).
@@ -134,20 +143,18 @@ Proof using WF ETCCOH.
 Qed.
 
 Lemma dom_rf_rmw_ct_S : dom_rel ((rf ⨾ rmw)⁺ ⨾ ⦗S⦘) ⊆₁ S.
-Proof using WF ETCCOH.
-  rewrite inclusion_t_rt.
-  apply dom_rf_rmw_rt_S.
+Proof using WF RCOH. 
+  rewrite inclusion_t_rt. apply dom_rf_rmw_rt_S.
 Qed.
 
 Lemma rfe_rmw_S : dom_rel (rfe ⨾ rmw ⨾ ⦗S⦘) ⊆₁ I.
-Proof using WF ETCCOH.
-  arewrite (rfe ⊆ rf).
-  apply dom_rf_rmw_S_in_I.
+Proof using WF RCOH. 
+  arewrite (rfe ⊆ rf). apply dom_rf_rmw_S_in_I.
 Qed.
 
 Lemma nI_rfrmw_in_rfirmw :
   ⦗set_compl I⦘ ⨾ rf ⨾ rmw ⨾ ⦗S⦘ ≡ ⦗set_compl I⦘ ⨾ rfi ⨾ rmw ⨾ ⦗S⦘.
-Proof using WF ETCCOH.
+Proof using WF RCOH. 
   split.
   2: by arewrite (rfi ⊆ rf).
   rewrite rfi_union_rfe. rewrite !seq_union_l, !seq_union_r.
@@ -158,7 +165,7 @@ Qed.
 
 Lemma rt_rf_rmw_S' :
   (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ (rfi ⨾  rmw)＊ ⨾ (⦗I⦘ ⨾ (rf ⨾ rmw)⁺)^? ⨾ ⦗S⦘.
-Proof using WF ETCCOH.
+Proof using WF RCOH.
   apply rt_ind_left with (P:= fun r => r ⨾ ⦗S⦘).
   { by eauto with hahn. }
   { basic_solver 12. }
@@ -215,7 +222,7 @@ Qed.
 
 Lemma nI_rfrmw_rt_in_rfirmw_rt :
   ⦗set_compl I⦘ ⨾ (rf ⨾ rmw)＊ ⨾ ⦗S⦘ ⊆ ⦗set_compl I⦘ ⨾ (rfi ⨾ rmw)＊ ⨾ ⦗S⦘.
-Proof using WF ETCCOH.
+Proof using WF TCOH RCOH IMMCON ICOH.
   rewrite rt_rf_rmw_S'.
   rewrite crE. rewrite !seq_union_l, !seq_union_r, !seq_id_l.
   unionL; [done|].
@@ -225,13 +232,12 @@ Proof using WF ETCCOH.
   arewrite (rfi ⊆ rf).
   intros x y HH. apply seq_eqv_l in HH. destruct HH as [AA HH].
   apply AA. eapply rfrmw_rt_I_in_I; eauto.
-  { apply ETCCOH. }
   eexists. apply HH.
 Qed.
 
 Lemma dom_rfe_rmw_ct_rfi_Acq_sb_S_in_I :
   dom_rel (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊ ⨾ rfi ⨾ ⦗Acq⦘ ⨾ sb^? ⨾ ⦗S⦘) ⊆₁ I.
-Proof using WF ETCCOH.
+Proof using WF TCOH RCOH.
 seq_rewrite rt_seq_swap.
 rewrite !seqA.
 arewrite (rmw ⨾ rfi ⨾ (rmw ⨾ rfi)＊ ⊆ (rmw ⨾ rfi)＊).
@@ -247,7 +253,7 @@ arewrite (⦗S⦘ ⊆ ⦗S⦘ ⨾ ⦗W⦘).
   basic_solver. }
 arewrite (⦗R⦘ ⨾ ⦗Acq⦘ ⨾ sb^? ⨾ ⦗S⦘ ⨾ ⦗W⦘ ⊆ ⦗R⦘ ⨾ ⦗Acq⦘ ⨾ sb ⨾ ⦗S⦘).
 { type_solver 21. }
-generalize ((etc_dr_R_acq_I ETCCOH)).
+generalize ((rcoh_dr_R_acq_I RCOH)).
 basic_solver 21.
 Qed.
 
@@ -276,7 +282,7 @@ Lemma co_next_to_imm_co_next w locw
     ⟪ LOCNEXT : Loc_ locw wnext ⟫  /\
     ⟪ VNEXT   : val wnext = Some vnext ⟫ /\
     ⟪ NEQNEXT : wnext <> w ⟫.
-Proof using WF ETCCOH.
+Proof using WF TCOH RCOH.
   assert (exists wnext, immediate (co ⨾ ⦗ S ⦘) w wnext) as [wnext NIMMCO].
   {
     (* desc. apply seq_id_l, exists_co_imm_helper in WNEXT. desc. *)
@@ -291,9 +297,9 @@ Proof using WF ETCCOH.
   assert (S wnext /\ co w wnext) as [ISSNEXT CONEXT].
   { destruct NIMMCO as [AA _]. by destruct_seq_r AA as BB. }
   assert (E wnext) as ENEXT.
-  { by apply (etc_S_in_E ETCCOH). }
+  { eapply rcoh_S_in_E; eauto. }
   assert (W wnext) as WNEXT.
-  { by apply (reservedW WF ETCCOH). }
+  { eapply reservedW; eauto. }
   assert (Loc_ locw wnext) as LOCNEXT.
   { apply (wf_col WF) in CONEXT. by rewrite <- CONEXT. }
   assert (exists vnext, val wnext = Some vnext) as [vnext VNEXT].
@@ -306,7 +312,7 @@ Qed.
 Lemma co_prev_to_imm_co_prev w locw
       (EW    : E w)
       (WW    : W w)
-      (WNCOV : ~ ecovered T w)
+      (WNCOV : ~ covered T w)
       (LOC   : loc w = Some locw)
       (FAIR: mem_fair G):
   exists wprev vprev,
@@ -318,8 +324,8 @@ Lemma co_prev_to_imm_co_prev w locw
     ⟪ LOCPREV : Loc_ locw wprev ⟫  /\
     ⟪ VPREV   : val wprev = Some vprev ⟫ /\
     ⟪ NEQPREV : wprev <> w ⟫.
-Proof using WF IMMCON ETCCOH.
-  assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
+Proof using WF TCOH RCOH IMMCON. 
+  (* assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH. *)
   assert (~ is_init w) as WNINIT.
   { intros HH. apply WNCOV. eapply init_covered; eauto. by split. }
   assert (exists wprev, immediate (⦗ S ⦘ ⨾ co) wprev w) as [wprev PIMMCO].
@@ -328,10 +334,10 @@ Proof using WF IMMCON ETCCOH.
       { by apply init_w. }
       assert (E (InitEvent locw)) as EI.
       { apply wf_init; auto. by exists w; split. }
-      assert (eissued T (InitEvent locw)) as II.
-      { apply (init_issued WF TCCOH). by split. }
+      assert (issued T (InitEvent locw)) as II.
+      { eapply init_issued; vauto. } 
       assert (S (InitEvent locw)) as IS.
-      { by apply (etc_I_in_S ETCCOH). }
+      { eapply rcoh_I_in_S; eauto. }
       assert (InitEvent locw <> w) as NEQ.
       { intros H; subst. desf. }
       assert (loc (InitEvent locw) = Some locw) as LI.
@@ -355,9 +361,9 @@ Proof using WF IMMCON ETCCOH.
   assert (S wprev /\ co wprev w) as [ISSPREV COPREV].
   { destruct PIMMCO as [AA _]. by destruct_seq_l AA as BB. }
   assert (E wprev) as EPREV.
-  { by apply (etc_S_in_E ETCCOH). }
+  { eapply rcoh_S_in_E; eauto. }
   assert (W wprev) as WPREV.
-  { by apply (reservedW WF ETCCOH). }
+  { eapply reservedW; eauto. }
   assert (Loc_ locw wprev) as LOCPREV.
   { apply (wf_col WF) in COPREV. by rewrite COPREV. }
   assert (exists vprev, val wprev = Some vprev) as [vprev VPREV].
@@ -403,7 +409,7 @@ Qed.
 
 Lemma codom_nS_imm_co_S_in_I :
   codom_rel (⦗set_compl S⦘ ⨾ immediate (co ⨾ ⦗S⦘)) ⊆₁ I \₁ W_ex.
-Proof using WF ETCCOH IMMCON.
+Proof using WF RCOH IMMCON.
   cdes IMMCON.
   assert (sc_per_loc G) as SPL.
   { by apply coherence_sc_per_loc. }
@@ -413,7 +419,7 @@ Proof using WF ETCCOH IMMCON.
   assert (S x /\ co y x) as [SX COYX].
   { generalize HH. clear. basic_solver. }
   destruct (classic (W_ex x)) as [WEX|NWEX].
-  2: { split; auto. apply NNPP. intros II. apply NWEX. apply ETCCOH. by split. }
+  2: { split; auto. apply NNPP. intros II. apply NWEX. apply RCOH. by split. }
   exfalso.
   edestruct W_ex_in_codom_rfrmw as [z RFRMW]; eauto.
   assert (W x) as WX by (by apply W_ex_in_W).
@@ -449,25 +455,25 @@ Variables w wnext : actid.
 Hypothesis WNEXT : dom_sb_S_rfrmw G T rfi (eq w) wnext.
 
 Lemma dom_sb_S_rfrmw_single_props locw
-      (WNISS : ~ eissued T w)
-      (WNCOV : ~ ecovered T w)
+      (WNISS : ~ issued T w)
+      (WNCOV : ~ covered T w)
       (WLOC : loc w = Some locw) :
   ⟪ SBWWNEXT : sb w wnext ⟫ /\
   ⟪ EWNEXT : E wnext ⟫ /\
   ⟪ WWNEXT : W wnext ⟫ /\
-  ⟪ WNEXTCOV : ~ ecovered T wnext ⟫ /\
+  ⟪ WNEXTCOV : ~ covered T wnext ⟫ /\
   ⟪ RFIRMWNEXT : (rfi ⨾ rmw) w wnext ⟫ /\
   ⟪ RFRMWNEXT : (rf ⨾ rmw) w wnext ⟫ /\
   ⟪ COWWNEXT : co w wnext ⟫ /\
   ⟪ NSWNEXT : ~ reserved T wnext ⟫ /\
-  ⟪ NIWNEXT : ~ eissued T wnext ⟫ /\
+  ⟪ NIWNEXT : ~ issued T wnext ⟫ /\
   ⟪ WNEXTINIT : ~ is_init wnext ⟫ /\
   ⟪ WNEXTLOC : loc wnext = Some locw ⟫ /\
   ⟪ WNEXTTID : tid wnext = tid w ⟫.
-Proof using WF IMMCON ETCCOH WNEXT.
+Proof using WNEXT WF TCOH RCOH IMMCON ICOH. 
   assert (sc_per_loc G) as SPL. 
   { apply coherence_sc_per_loc. apply IMMCON. }
-  assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
+  (* assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH. *)
   assert (sb w wnext) as SBWWNEXT.
   { destruct WNEXT as [_ AA].
     clear -AA WF.
@@ -477,7 +483,7 @@ Proof using WF IMMCON ETCCOH WNEXT.
   { eapply dom_sb_S_rfrmwD; eauto. }
   assert (E wnext) as EWNEXT.
   { eapply dom_sb_S_rfrmwE; eauto. }
-  assert (~ ecovered T wnext) as WNEXTCOV.
+  assert (~ covered T wnext) as WNEXTCOV.
   { intros HH. apply WNCOV. eapply dom_sb_covered; eauto.
     basic_solver 10. }
   assert ((rfi ⨾ rmw) w wnext) as RFIRMWNEXT.
@@ -491,8 +497,8 @@ Proof using WF IMMCON ETCCOH WNEXT.
   { intros HH. apply WNISS.
     eapply dom_rf_rmw_S_in_I; eauto.
     exists wnext. apply seqA. apply seq_eqv_r. split; auto. }
-  assert (~ eissued T wnext) as NIWNEXT.
-  { intros HH. apply NSWNEXT. by apply (etc_I_in_S ETCCOH). }
+  assert (~ issued T wnext) as NIWNEXT.
+  { intros HH. apply NSWNEXT. eapply rcoh_I_in_S; eauto. }
   assert (~ is_init wnext) as WNEXTINIT.
   { intros HH. apply WNEXTCOV. eapply init_covered; eauto. by split. }
 
