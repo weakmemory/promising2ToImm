@@ -83,6 +83,10 @@ Lemma issued_cover_empty e:
   issued (eq (mkTL ta_cover e)) ≡₁ ∅.
 Proof using. unfold issued. split; basic_solver. Qed. 
 
+Lemma reserved_cover_empty e:
+  reserved (eq (mkTL ta_cover e)) ≡₁ ∅.
+Proof using. unfold reserved. split; basic_solver. Qed. 
+
 (* TODO: move somewhere *)
 Lemma reserve_coherent_add_cover G T e
       (RCOH: reserve_coherent G T):
@@ -429,24 +433,13 @@ Proof using WF CON.
     apply covered_singleton in C. subst.
     eapply issuedW in ISS; eauto.
     clear -RR ISS. type_solver 10. }
-    (* assert (~ (covered T ∪₁ eq r) w' <-> ~ covered T w') as HH. *)
-    (* 2: by apply HH. *)
-    (* split; intros HA HB; apply HA; [by left|]. *)
-    (* destruct HB as [HB|HB]; [done| subst; type_solver]. } *)
-  { red. 
-    admit. 
-  }
-  { 
-    red; splits; simpls.
-    edestruct SIM_MEM as [rel']; eauto.
-    simpls; desc.  
-    admit.
-    exists rel'; splits; auto.
-    intros TIDBF COVBF.
-    assert (~ covered T b) as COVB.
-    { intro. apply COVBF. apply covered_union. by left. }
-    destruct H1 as [PROM REL]; auto; unnw; splits; auto.
-  }
+  { eapply reserved_time_same_issued_reserved; eauto.
+    all: rewrite ?issued_union, ?reserved_union,
+        ?issued_cover_empty, ?reserved_cover_empty.
+    all: clear; basic_solver 10. }
+  { eapply sim_mem_covered_mori with (TLS:=T); eauto.
+    all: rewrite ?issued_union, ?covered_union, ?issued_cover_empty.
+    all: clear; basic_solver. }
   { rewrite covered_union, covered_singleton. 
     eapply sim_tview_read_step; eauto.
     1,2: by apply CON.
@@ -470,6 +463,6 @@ Proof using WF CON.
   all: auto.
   all: try by apply Memory.closed_timemap_bot.
   all: try by eapply Memory.singleton_closed_timemap; eauto.
-Admitted.
+Qed.
 
 End ReadPlainStepHelper.

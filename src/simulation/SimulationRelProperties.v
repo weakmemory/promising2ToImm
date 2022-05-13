@@ -575,53 +575,70 @@ Proof using WF TLSCOH RCOH IMMCON FCOH.
   eapply f_to_co_mon; eauto.
 Qed.
 
+Lemma message_to_event_same_issued G1 T T' f_to1 f_from1 memory
+      (MTE : message_to_event G1 T f_to1 f_from1 memory)
+      (EQI : issued   T' ≡₁ issued   T) :
+  message_to_event G1 T' f_to1 f_from1 memory.
+Proof using.
+  unfold message_to_event in *. ins.
+  apply MTE in MSG. desf; eauto.
+  right. eexists; splits; eauto.
+  now apply EQI.
+Qed.
+
 Add Parametric Morphism : message_to_event with signature
     eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq ==> iff
        as message_to_event_more.
 Proof using.
-  ins. split; intros HH; red.
-  all: ins; apply HH in MSG; desf; auto.
-  1: symmetry in H. 
-  all: right; eexists; splits; eauto; 
-    eapply set_equiv_exp; [rewrite H|]; eauto. 
+  intros G1 T T' EQ. split; intros HH.
+  all: eapply message_to_event_same_issued; eauto.
+  all: now rewrite EQ.
+Qed.
+
+Lemma half_message_to_event_same_issued_reserved G1 T T' f_to1 f_from1 memory
+      (MTE : half_message_to_event G1 T f_to1 f_from1 memory)
+      (EQI : issued   T' ≡₁ issued   T)
+      (EQR : reserved T' ≡₁ reserved T) :
+  half_message_to_event G1 T' f_to1 f_from1 memory.
+Proof using.
+  unfold half_message_to_event in *. ins.
+  apply MTE in MSG. desf; eauto.
+  eexists; splits; eauto.
+  { now apply EQR. }
+  generalize NOISS EQI. clear. basic_solver 10.
 Qed.
 
 Add Parametric Morphism : half_message_to_event with signature
     eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq ==> iff
        as half_message_to_event_more.
 Proof using.
-  ins. split; intros HH; red.
-  all: ins; apply HH in MSG; desf; auto.
-  all: eexists; splits; eauto.
-  1, 4: symmetry in H. 
-  all: try by (eapply set_equiv_exp; [rewrite H|]; eauto).
-  all: intros AA; apply NOISS; eapply set_equiv_exp; [rewrite H|]; eauto. 
+  intros G1 T T' EQ. split; intros HH.
+  all: eapply half_message_to_event_same_issued_reserved; eauto.
+  all: now rewrite EQ.
+Qed.
+
+Lemma reserved_time_same_issued_reserved G1 T T' f_to1 f_from1 smode memory
+      (RT  : reserved_time G1 T f_to1 f_from1 smode memory)
+      (EQI : issued   T' ≡₁ issued   T)
+      (EQR : reserved T' ≡₁ reserved T) :
+  reserved_time G1 T' f_to1 f_from1 smode memory.
+Proof using.
+  unfold reserved_time in *. desf; desf; splits; auto.
+  all: try now rewrite EQR; auto.
+  { eapply message_to_event_same_issued; eauto. }
+  { eapply half_message_to_event_same_issued_reserved; eauto. }
+  ins. apply TFRMW; auto.
+  all: now apply EQR.
 Qed.
 
 Add Parametric Morphism : reserved_time with signature
   eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq ==> eq ==> iff
       as reserved_time_more.
 Proof using.
-  ins. split; intros HH.
-  { match goal with
-    | H : sim_mode |- _ => destruct H
-    end; [|by red; splits; rewrite <- H; apply HH].
-    red; cdes HH; splits; [by rewrite <- H| ..].
-    2: { ins; apply HH; auto; eapply reserved_more; eauto. }
-    eapply half_message_to_event_more.
-    6: by eauto.
-    all: eauto.
-    by rewrite H. }
-  match goal with
-  | H : sim_mode |- _ => destruct H
-  end; [|by red; splits; rewrite H; apply HH].
-  red; cdes HH; splits; [by rewrite H| ..].
-  2: { symmetry in H. ins; apply HH; auto; eapply reserved_more; eauto. }
-  eapply half_message_to_event_more.
-  6: by eauto.
-  all: eauto.
+  intros G1 T T' EQ. split; intros HH.
+  all: eapply reserved_time_same_issued_reserved; eauto.
+  all: now rewrite EQ.
 Qed.
-
 
 Lemma le_msg_rel_f_to_wprev w wprev locw PC lang state
   (EW : E w)
