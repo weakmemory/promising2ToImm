@@ -223,6 +223,66 @@ Proof using.
   all: symmetry; auto. 
 Qed. 
 
+(* TODO: move *)
+Add Parametric Morphism : covered with signature
+    (@set_subset trav_label) ==> (@set_subset actid)
+       as covered_mori.
+Proof using. ins. unfold covered. by rewrite H. Qed. 
+
+(* TODO: move *)
+Add Parametric Morphism : issued with signature
+    (@set_subset trav_label) ==> (@set_subset actid)
+       as issued_mori.
+Proof using. ins. unfold issued. by rewrite H. Qed. 
+
+(* TODO: move *)
+Add Parametric Morphism : reserved with signature
+    (@set_subset trav_label) ==> (@set_subset actid)
+       as reserved_mori.
+Proof using. ins. unfold reserved. by rewrite H. Qed. 
+
+(* TODO: move *)
+Add Parametric Morphism : message_to_event with signature
+    eq ==> (@set_subset trav_label) ==> eq ==> eq ==> eq ==> Basics.impl
+       as message_to_event_mori.
+Proof using.
+  ins. red. intros HH; red.
+  ins; apply HH in MSG; desf; auto.
+  (* 1: symmetry in H. *)
+  right; eexists; splits; eauto.
+  eapply issued_mori; eauto. 
+Qed.
+
+(* (* TODO: move *) *)
+(* Add Parametric Morphism : reserved_time with signature *)
+(*   eq ==> (@set_subset trav_label) ==> eq ==> eq ==> eq ==> eq ==> Basics.impl *)
+(*       as reserved_time_mori.  *)
+(* Proof using. *)
+(*   ins. red. intros HH. *)
+(*   { match goal with *)
+(*     | H : sim_mode |- _ => destruct H *)
+(*     end *)
+(*     ; [|by red; splits; rewrite <- H; apply HH]. *)
+(*     red; cdes HH; splits; [by rewrite <- H| ..]. *)
+(*     2: { ins; apply HH; auto. *)
+(*          { eapply reserved_mori. ; [apply H| ].  *)
+(*          ; eapply reserved_mori; eauto. *)
+
+(*     } *)
+(*     eapply half_message_to_event_more. *)
+(*     6: by eauto. *)
+(*     all: eauto. *)
+(*     by rewrite H. } *)
+(*   match goal with *)
+(*   | H : sim_mode |- _ => destruct H *)
+(*   end; [|by red; splits; rewrite H; apply HH]. *)
+(*   red; cdes HH; splits; [by rewrite H| ..]. *)
+(*   2: { symmetry in H. ins; apply HH; auto; eapply reserved_more; eauto. } *)
+(*   eapply half_message_to_event_more. *)
+(*   6: by eauto. *)
+(*   all: eauto. *)
+(* Qed. *)
+
 Lemma read_step_helper PC T f_to f_from r w locr valr rel smode
       state local state' 
       (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from (tid r) smode)
@@ -373,19 +433,19 @@ Proof using WF CON.
     (* 2: by apply HH. *)
     (* split; intros HA HB; apply HA; [by left|]. *)
     (* destruct HB as [HB|HB]; [done| subst; type_solver]. } *)
-  {
+  { red. 
     admit. 
   }
   { 
     red; splits; simpls.
     edestruct SIM_MEM as [rel']; eauto.
     simpls; desc.  
-    admit. 
-    (* exists rel'; splits; auto. *)
-    (* intros TIDBF COVBF. *)
-    (* assert (~ covered T b) as COVB. *)
-    (* { intro. apply COVBF. apply covered_union. by left. } *)
-    (* destruct H1 as [PROM REL]; auto; unnw; splits; auto. *)
+    admit.
+    exists rel'; splits; auto.
+    intros TIDBF COVBF.
+    assert (~ covered T b) as COVB.
+    { intro. apply COVBF. apply covered_union. by left. }
+    destruct H1 as [PROM REL]; auto; unnw; splits; auto.
   }
   { rewrite covered_union, covered_singleton. 
     eapply sim_tview_read_step; eauto.
