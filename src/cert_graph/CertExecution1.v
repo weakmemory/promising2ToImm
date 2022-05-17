@@ -1511,15 +1511,19 @@ Proof using.
   rewrite ppo_rstG_in_ppo.
 Admitted.
 
+Lemma rfe_rstG_in_rfe : rfe rstG ⊆ rfe Gf.
+Proof using.
+Admitted.
+
 Lemma ar_rstG_in_ar : ar rstG rst_sc ⊆ ar Gf sc.
 Proof using.
   unfold ar.
   rewrite ar_int_rstG_in_ar_int.
-  unfold rstG, rst_sc, restrict; ins.
+  rewrite rfe_rstG_in_rfe.
   repeat apply union_mori; try easy.
-  { clear; basic_solver 10. }
-  admit.
-Admitted.
+  unfold rst_sc.
+  clear; basic_solver 10.
+Qed.
 
 Lemma FWBOB_rstG_in_FWBOB : FWBOB rstG ⊆ FWBOB Gf.
 Proof using.
@@ -1574,13 +1578,17 @@ Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
   rewrite PROP_rstG_in_PROP.
   easy.
 Qed.
+
+Lemma ICOH_rst : iord_coherent rstG rst_sc T.
+Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
+  red. etransitivity; [|now apply ICOH].
+  apply dom_rel_mori. hahn_frame_r.
+  apply iord_rstG_in_iord.
+Qed.
                 
 Lemma TCOH_ICOH_rst : tls_coherent rstG T /\ iord_coherent rstG rst_sc T.
-Proof using WF RELCOV RMWCOV.
-  split.
-  2: { red. etransitivity; [|now apply ICOH].
-       apply dom_rel_mori. hahn_frame_r.
-       apply iord_rstG_in_iord. }
+Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
+  split; auto using ICOH_rst.
   split.
   { transitivity (init_tls Gf).
     2: now apply TCOH.
@@ -1600,7 +1608,6 @@ Proof using WF RELCOV RMWCOV.
   unfold exec_tls.
   admit.
 Admitted.
-
 
 (* Lemma TCOH_rst : tc_coherent rstG rst_sc T. *)
 (* Proof using WF  RELCOV RMWCOV. *)
