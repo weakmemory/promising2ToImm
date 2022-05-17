@@ -1470,17 +1470,136 @@ Definition propagated (TLS: trav_label -> Prop) G: actid -> Prop :=
 (*   exec_tls G ≡₁ covered (event ↓₁ (acts_set G \₁ Init)) ∪₁ *)
 (*                 issued  (event ↓₁ (W ∩₁ acts_set G \₁ Init)) ∪₁ *)
 (*                 propagated (event ↓₁ (W ∩₁ acts_set G \₁ Init)) G.  *)
+
+Local Ltac iord_rstG_helper :=
+  unfold rstG, rst_sc, restrict;
+  unfold SB, RF, sb; ins;
+  hahn_frame; apply map_rel_mori; auto;
+  try apply clos_trans_mori;
+  clear; basic_solver.
+
+Lemma SB_rstG_in_SB : SB rstG rst_sc ⊆ SB Gf sc.
+Proof using. iord_rstG_helper. Qed.
+
+Lemma RF_rstG_in_RF : RF rstG ⊆ RF Gf.
+Proof using. iord_rstG_helper. Qed.
+
+Lemma fwbob_rstG_in_fwbob : fwbob rstG ⊆ fwbob Gf.
+Proof using.
+  unfold fwbob.
+  unfold rstG, rst_sc, restrict, sb; ins.
+  repeat apply union_mori.
+  4: { clear; basic_solver 10. }
+  3: { clear; basic_solver 10. }
+  { clear; basic_solver 10. }
+  clear; basic_solver 20.
+Qed.
+
+Lemma ppo_rstG_in_ppo : ppo rstG ⊆ ppo Gf.
+Proof using.
+  unfold ppo.
+  unfold rstG, rst_sc, restrict, rfi, sb; ins.
+  hahn_frame_l.
+  apply seq_mori; try easy.
+  apply clos_trans_mori.
+  clear; basic_solver 20.
+Qed.
+
+Lemma ar_int_rstG_in_ar_int : ar_int rstG ⊆ ar_int Gf.
+Proof using.
+  unfold ar_int.
+  rewrite ppo_rstG_in_ppo.
+Admitted.
+
+Lemma ar_rstG_in_ar : ar rstG rst_sc ⊆ ar Gf sc.
+Proof using.
+  unfold ar.
+  rewrite ar_int_rstG_in_ar_int.
+  unfold rstG, rst_sc, restrict; ins.
+  repeat apply union_mori; try easy.
+  { clear; basic_solver 10. }
+  admit.
+Admitted.
+
+Lemma FWBOB_rstG_in_FWBOB : FWBOB rstG ⊆ FWBOB Gf.
+Proof using.
+  unfold rstG, rst_sc, restrict.
+  unfold FWBOB; ins. 
+  now rewrite fwbob_rstG_in_fwbob.
+Qed.
+
+Lemma AR_rstG_in_AR : AR rstG rst_sc ⊆ AR Gf sc.
+Proof using.
+  unfold AR; ins.
+  rewrite ar_rstG_in_ar.
+  rewrite ppo_rstG_in_ppo.
+  repeat (apply seq_mori; try easy).
+  apply map_rel_mori; auto.
+  repeat (apply seq_mori; try easy).
+  apply clos_trans_mori.
+  clear; basic_solver 10.
+Qed.
+
+Lemma IPROP_rstG_in_IPROP : IPROP rstG ⊆ IPROP Gf.
+Proof using WF TCOH RCOH.
+  unfold IPROP.
+  now rewrite is_ta_propagate_to_rstG_Gf.
+Qed.
+ 
+Lemma PROP_rstG_in_PROP : PROP rstG rst_sc ⊆ PROP Gf sc.
+Proof using WF TCOH RCOH.
+  unfold PROP.
+  rewrite is_ta_propagate_to_rstG_Gf.
+  repeat (apply seq_mori; try easy).
+  apply inter_rel_mori; try easy.
+  apply map_rel_mori; auto.
+  rewrite ppo_rstG_in_ppo.
+  rewrite ar_rstG_in_ar.
+  unfold rstG, restrict, sb; ins.
+  repeat (apply seq_mori; try easy).
+  all: try apply clos_refl_trans_mori.
+  all: clear; basic_solver 10.
+Qed.
+
+Lemma iord_rstG_in_iord : iord rstG rst_sc ⊆ iord Gf sc.
+Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
+  unfold iord.
+  apply restr_rel_mori.
+  { now rewrite E_E0, E0_in_Gf. }
+  rewrite SB_rstG_in_SB.
+  rewrite RF_rstG_in_RF.
+  rewrite FWBOB_rstG_in_FWBOB.
+  rewrite AR_rstG_in_AR.
+  rewrite IPROP_rstG_in_IPROP.
+  rewrite PROP_rstG_in_PROP.
+  easy.
+Qed.
                 
 Lemma TCOH_ICOH_rst : tls_coherent rstG T /\ iord_coherent rstG rst_sc T.
 Proof using WF RELCOV RMWCOV.
-  split. 
-  { destruct TCOH. 
-    split.
-    { rewrite <- tls_coh_init. unfold init_tls.
-      rewrite E_E0, E0_in_Gf. rewrite is_ta_propagate_to_rstG_Gf. basic_solver. }
-    red. ins. destruct x as (a, e).
-    destruct (classic (is_init e)).
-    2: { right. red. 
+  split.
+  2: { red. etransitivity; [|now apply ICOH].
+       apply dom_rel_mori. hahn_frame_r.
+       apply iord_rstG_in_iord. }
+  split.
+  { transitivity (init_tls Gf).
+    2: now apply TCOH.
+    unfold init_tls.
+    rewrite is_ta_propagate_to_rstG_Gf. 
+    now rewrite E_E0, E0_in_Gf. }
+  rewrite (tls_coh_exec TCOH).
+  apply set_union_mori.
+  { unfold init_tls.
+    apply AuxDef.set_pair_mori.
+    (* arewrite (FE ∩₁ Init ⊆₁ E ∩₁ Init). *)
+    2: { generalize INIT. clear; basic_solver. }
+    arewrite (is_ta_propagate_to_G Gf ⊆₁ is_ta_propagate_to_G rstG).
+    2: easy.
+    (* TODO: looks like it is not true now... *)
+    admit. }
+  unfold exec_tls.
+  admit.
+Admitted.
 
 
 (* Lemma TCOH_rst : tc_coherent rstG rst_sc T. *)
