@@ -1546,29 +1546,56 @@ Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
   apply dom_rel_mori. hahn_frame_r.
   apply iord_rstG_in_iord.
 Qed.
-                
-Lemma TCOH_ICOH_rst : tls_coherent rstG T /\ iord_coherent rstG rst_sc T.
-Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
-  split; auto using ICOH_rst.
+
+Lemma TCOH_rst : tls_coherent rstG T.
+Proof using.
   split.
   { transitivity (init_tls Gf).
     2: now apply TCOH.
     unfold init_tls.
     rewrite is_ta_propagate_to_rstG_Gf. 
     now rewrite E_E0, E0_in_Gf. }
-  rewrite (tls_coh_exec TCOH).
-  apply set_union_mori.
-  { unfold init_tls.
-    apply AuxDef.set_pair_mori.
-    (* arewrite (FE ∩₁ Init ⊆₁ E ∩₁ Init). *)
-    2: { generalize INIT. clear; basic_solver. }
-    arewrite (is_ta_propagate_to_G Gf ⊆₁ is_ta_propagate_to_G rstG).
-    2: easy.
-    (* TODO: looks like it is not true now... *)
-    admit. }
-  unfold exec_tls.
-  admit.
+  (* TODO: make a lemma *)
+  arewrite (T ⊆₁ (event ↓₁ (is_init ∪₁ set_compl is_init)) ∩₁ T).
+  { clear. unfolder; ins; desf; tauto. }
+  rewrite set_map_union.
+  (* rewrite set_inter_union_l. *)
+  (* unionL. *)
+
+  (* TODO: make a lemma *)
+  arewrite
+    (T ⊆₁ T ∩₁ action ↓₁ (eq ta_cover
+                             ∪₁ eq ta_issue
+                             ∪₁ eq ta_reserve
+                             ∪₁ is_ta_propagate_to_G Gf)).
+  { unfolder. intros l HH. split; auto.
+    destruct l as [t]; destruct t; eauto.
+    right. red. apply TCOH in HH. destruct HH as [HH|HH].
+    { destruct HH as [HH]. unfolder in HH. desf. }
+    red in HH. unfold AuxDef.set_pair in HH.
+    unfolder in HH. desf. }
+
+  rewrite !set_map_union.
+  rewrite !set_inter_union_r.
+
+  (* unfold exec_tls. *)
+  (* rewrite (tls_coh_exec TCOH). *)
+  (* apply set_union_mori. *)
+  (* { unfold init_tls. *)
+  (*   apply AuxDef.set_pair_mori. *)
+  (*   (* arewrite (FE ∩₁ Init ⊆₁ E ∩₁ Init). *) *)
+  (*   2: { generalize INIT. clear; basic_solver. } *)
+  (*   arewrite (is_ta_propagate_to_G Gf ⊆₁ is_ta_propagate_to_G rstG). *)
+  (*   2: easy. *)
+  (*   (* TODO: looks like it is not true now... *) *)
+  (*   admit. } *)
+  (* unfold exec_tls. *)
 Admitted.
+
+Lemma TCOH_ICOH_rst : tls_coherent rstG T /\ iord_coherent rstG rst_sc T.
+Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
+  split; auto using ICOH_rst, TCOH_rst.
+Qed.
 
 (* Lemma TCOH_rst : tc_coherent rstG rst_sc T. *)
 (* Proof using WF  RELCOV RMWCOV. *)
