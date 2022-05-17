@@ -161,5 +161,29 @@ Proof using WF TCOH RCOH.
   destruct (classic (issued T x)); eauto.
 Qed.
 
+
+(* TODO: move somewhere *)
+Lemma reserve_coherent_add_cover e:
+  reserve_coherent (T ∪₁ eq (mkTL ta_cover e)).
+Proof using RCOH. 
+  remember (T ∪₁ eq (mkTL ta_cover e)) as T'.
+  assert (covered T' ≡₁ covered T ∪₁ eq e) as COV'.
+  { subst T'. rewrite covered_union.
+    apply set_equiv_union; unfold covered; basic_solver. } 
+  assert (issued T' ≡₁ issued T) as ISS'.
+  { subst T'. rewrite issued_union.
+    erewrite set_equiv_union with (t' := set_empty);
+      cycle 1; [reflexivity| .. | basic_solver].
+    unfold issued. basic_solver. } 
+  assert (reserved T' ≡₁ reserved T) as RES'.
+  { subst T'. rewrite reserved_union.
+    erewrite set_equiv_union with (t' := set_empty);
+      cycle 1; [reflexivity| .. | basic_solver].
+    unfold reserved. basic_solver. }
+  destruct RCOH. 
+  split; unfold dom_sb_S_rfrmw; rewrite ?COV', ?ISS', ?RES'; auto.
+  rewrite rcoh_F_sb_S; auto. basic_solver. 
+Qed. 
+
 End Props.
 End ExtTraversalConfig.

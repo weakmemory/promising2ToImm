@@ -37,79 +37,6 @@ Require Import Next.
 Require Import SimulationRelProperties.
 
 Set Implicit Arguments.
-
-(* TODO: move somewhere *)
-Lemma iord_coherent_add_coverable G sc T e
-      (ICOH: iord_coherent G sc T)
-      (COV: coverable G sc T e):
-  iord_coherent G sc (T ∪₁ eq (mkTL ta_cover e)). 
-Proof using. 
-  red. rewrite id_union, seq_union_r, dom_union.
-  red in ICOH. rewrite ICOH.
-  move COV at bottom. red in COV. apply proj2 in COV. red in COV. desc.
-  assert (mkTL ta_cover e = y) as ->.
-  { unfolder in COV. destruct y; ins; desc; vauto. }
-  apply proj1 in COV. red in COV. rewrite COV. basic_solver.
-Qed.
-
-(* TODO: move somewhere *)
-Lemma covered_union T1 T2:
-  covered (T1 ∪₁ T2) ≡₁ covered T1 ∪₁ covered T2. 
-Proof using. unfold covered. basic_solver 10. Qed. 
-
-(* TODO: move somewhere *)
-Lemma issued_union T1 T2:
-  issued (T1 ∪₁ T2) ≡₁ issued T1 ∪₁ issued T2. 
-Proof using. unfold issued. basic_solver 10. Qed. 
-
-(* TODO: move somewhere *)
-Lemma reserved_union T1 T2:
-  reserved (T1 ∪₁ T2) ≡₁ reserved T1 ∪₁ reserved T2. 
-Proof using. unfold reserved. basic_solver 10. Qed. 
-
-Lemma covered_singleton e:
-  covered (eq (mkTL ta_cover e)) ≡₁ eq e.
-Proof using. unfold covered. split; basic_solver. Qed. 
-
-Lemma issued_singleton e:
-  issued (eq (mkTL ta_issue e)) ≡₁ eq e.
-Proof using. unfold issued. split; basic_solver. Qed. 
-
-Lemma covered_issue_empty e:
-  covered (eq (mkTL ta_issue e)) ≡₁ ∅.
-Proof using. unfold covered. split; basic_solver. Qed. 
-
-Lemma issued_cover_empty e:
-  issued (eq (mkTL ta_cover e)) ≡₁ ∅.
-Proof using. unfold issued. split; basic_solver. Qed. 
-
-Lemma reserved_cover_empty e:
-  reserved (eq (mkTL ta_cover e)) ≡₁ ∅.
-Proof using. unfold reserved. split; basic_solver. Qed. 
-
-(* TODO: move somewhere *)
-Lemma reserve_coherent_add_cover G T e
-      (RCOH: reserve_coherent G T):
-  reserve_coherent G (T ∪₁ eq (mkTL ta_cover e)).
-Proof using. 
-  remember (T ∪₁ eq (mkTL ta_cover e)) as T'.
-  assert (covered T' ≡₁ covered T ∪₁ eq e) as COV'.
-  { subst T'. rewrite covered_union.
-    apply set_equiv_union; unfold covered; basic_solver. } 
-  assert (issued T' ≡₁ issued T) as ISS'.
-  { subst T'. rewrite issued_union.
-    erewrite set_equiv_union with (t' := set_empty);
-      cycle 1; [reflexivity| .. | basic_solver].
-    unfold issued. basic_solver. } 
-  assert (reserved T' ≡₁ reserved T) as RES'.
-  { subst T'. rewrite reserved_union.
-    erewrite set_equiv_union with (t' := set_empty);
-      cycle 1; [reflexivity| .. | basic_solver].
-    unfold reserved. basic_solver. }
-  destruct RCOH. 
-  split; unfold dom_sb_S_rfrmw; rewrite ?COV', ?ISS', ?RES'; auto.
-  rewrite rcoh_F_sb_S. basic_solver. 
-Qed. 
   
 
 Section ReadPlainStepHelper.
@@ -226,24 +153,6 @@ Proof using.
   split; apply sim_tview_more_impl; eauto.
   all: symmetry; auto. 
 Qed. 
-
-(* TODO: move *)
-Add Parametric Morphism : covered with signature
-    (@set_subset trav_label) ==> (@set_subset actid)
-       as covered_mori.
-Proof using. ins. unfold covered. by rewrite H. Qed. 
-
-(* TODO: move *)
-Add Parametric Morphism : issued with signature
-    (@set_subset trav_label) ==> (@set_subset actid)
-       as issued_mori.
-Proof using. ins. unfold issued. by rewrite H. Qed. 
-
-(* TODO: move *)
-Add Parametric Morphism : reserved with signature
-    (@set_subset trav_label) ==> (@set_subset actid)
-       as reserved_mori.
-Proof using. ins. unfold reserved. by rewrite H. Qed. 
 
 (* TODO: move *)
 Add Parametric Morphism : message_to_event with signature

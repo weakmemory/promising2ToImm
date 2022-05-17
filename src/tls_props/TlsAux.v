@@ -1409,3 +1409,64 @@ End HbProps.
   
 
 End TlsProperties.
+
+Lemma iord_coherent_add_coverable G sc T e
+      (ICOH: iord_coherent G sc T)
+      (COV: coverable G sc T e):
+  iord_coherent G sc (T ∪₁ eq (mkTL ta_cover e)). 
+Proof using. 
+  red. rewrite id_union, seq_union_r, dom_union.
+  red in ICOH. rewrite ICOH.
+  move COV at bottom. red in COV. apply proj2 in COV. red in COV. desc.
+  assert (mkTL ta_cover e = y) as ->.
+  { unfolder in COV. destruct y; ins; desc; vauto. }
+  apply proj1 in COV. red in COV. rewrite COV. basic_solver.
+Qed.
+
+Lemma covered_union T1 T2:
+  covered (T1 ∪₁ T2) ≡₁ covered T1 ∪₁ covered T2. 
+Proof using. unfold covered. basic_solver 10. Qed. 
+
+Lemma issued_union T1 T2:
+  issued (T1 ∪₁ T2) ≡₁ issued T1 ∪₁ issued T2. 
+Proof using. unfold issued. basic_solver 10. Qed. 
+
+Lemma reserved_union T1 T2:
+  reserved (T1 ∪₁ T2) ≡₁ reserved T1 ∪₁ reserved T2. 
+Proof using. unfold reserved. basic_solver 10. Qed. 
+
+Lemma covered_singleton e:
+  covered (eq (mkTL ta_cover e)) ≡₁ eq e.
+Proof using. unfold covered. split; basic_solver. Qed. 
+
+Lemma issued_singleton e:
+  issued (eq (mkTL ta_issue e)) ≡₁ eq e.
+Proof using. unfold issued. split; basic_solver. Qed. 
+
+Lemma covered_issue_empty e:
+  covered (eq (mkTL ta_issue e)) ≡₁ ∅.
+Proof using. unfold covered. split; basic_solver. Qed. 
+
+Lemma issued_cover_empty e:
+  issued (eq (mkTL ta_cover e)) ≡₁ ∅.
+Proof using. unfold issued. split; basic_solver. Qed. 
+
+Lemma reserved_cover_empty e:
+  reserved (eq (mkTL ta_cover e)) ≡₁ ∅.
+Proof using. unfold reserved. split; basic_solver. Qed. 
+
+Add Parametric Morphism : covered with signature
+    (@set_subset trav_label) ==> (@set_subset actid)
+       as covered_mori.
+Proof using. ins. unfold covered. by rewrite H. Qed. 
+
+Add Parametric Morphism : issued with signature
+    (@set_subset trav_label) ==> (@set_subset actid)
+       as issued_mori.
+Proof using. ins. unfold issued. by rewrite H. Qed. 
+
+Add Parametric Morphism : reserved with signature
+    (@set_subset trav_label) ==> (@set_subset actid)
+       as reserved_mori.
+Proof using. ins. unfold reserved. by rewrite H. Qed. 
+
