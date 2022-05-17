@@ -1462,14 +1462,9 @@ Proof using WF TCOH RCOH.
   unfold is_ta_propagate_to_G. rewrite graph_threads_rstG_Gf. basic_solver. 
 Qed. 
 
+(* TODO: move to ?TlsAux.v? *)
 Definition propagated (TLS: trav_label -> Prop) G: actid -> Prop :=
   event ↑₁ (TLS ∩₁ (action ↓₁ is_ta_propagate_to_G G)). 
-
-
-(* Lemma exec_tls_alt G:  *)
-(*   exec_tls G ≡₁ covered (event ↓₁ (acts_set G \₁ Init)) ∪₁ *)
-(*                 issued  (event ↓₁ (W ∩₁ acts_set G \₁ Init)) ∪₁ *)
-(*                 propagated (event ↓₁ (W ∩₁ acts_set G \₁ Init)) G.  *)
 
 Local Ltac iord_rstG_helper :=
   unfold rstG, rst_sc, restrict;
@@ -1478,65 +1473,29 @@ Local Ltac iord_rstG_helper :=
   try apply clos_trans_mori;
   clear; basic_solver.
 
+(* TODO: move to ?SubExecution.v? *)
 Lemma SB_rstG_in_SB : SB rstG rst_sc ⊆ SB Gf sc.
 Proof using. iord_rstG_helper. Qed.
 
+(* TODO: move to ?SubExecution.v? *)
 Lemma RF_rstG_in_RF : RF rstG ⊆ RF Gf.
 Proof using. iord_rstG_helper. Qed.
 
-Lemma fwbob_rstG_in_fwbob : fwbob rstG ⊆ fwbob Gf.
-Proof using.
-  unfold fwbob.
-  unfold rstG, rst_sc, restrict, sb; ins.
-  repeat apply union_mori.
-  4: { clear; basic_solver 10. }
-  3: { clear; basic_solver 10. }
-  { clear; basic_solver 10. }
-  clear; basic_solver 20.
-Qed.
-
-Lemma ppo_rstG_in_ppo : ppo rstG ⊆ ppo Gf.
-Proof using.
-  unfold ppo.
-  unfold rstG, rst_sc, restrict, rfi, sb; ins.
-  hahn_frame_l.
-  apply seq_mori; try easy.
-  apply clos_trans_mori.
-  clear; basic_solver 20.
-Qed.
-
-Lemma ar_int_rstG_in_ar_int : ar_int rstG ⊆ ar_int Gf.
-Proof using.
-  unfold ar_int.
-  rewrite ppo_rstG_in_ppo.
-Admitted.
-
-Lemma rfe_rstG_in_rfe : rfe rstG ⊆ rfe Gf.
-Proof using.
-Admitted.
-
-Lemma ar_rstG_in_ar : ar rstG rst_sc ⊆ ar Gf sc.
-Proof using.
-  unfold ar.
-  rewrite ar_int_rstG_in_ar_int.
-  rewrite rfe_rstG_in_rfe.
-  repeat apply union_mori; try easy.
-  unfold rst_sc.
-  clear; basic_solver 10.
-Qed.
-
+(* TODO: move to ?SubExecution.v? *)
 Lemma FWBOB_rstG_in_FWBOB : FWBOB rstG ⊆ FWBOB Gf.
-Proof using.
+Proof using sc WF TCOH RCOH.
   unfold rstG, rst_sc, restrict.
   unfold FWBOB; ins. 
-  now rewrite fwbob_rstG_in_fwbob.
+  rewrite sub_fwbob; eauto using SUB; ins.
+  clear; basic_solver 20.
 Qed.
 
+(* TODO: move to ?SubExecution.v? *)
 Lemma AR_rstG_in_AR : AR rstG rst_sc ⊆ AR Gf sc.
-Proof using.
+Proof using WF TCOH RCOH.
   unfold AR; ins.
-  rewrite ar_rstG_in_ar.
-  rewrite ppo_rstG_in_ppo.
+  rewrite sub_ar_in; eauto using SUB; ins.
+  rewrite sub_ppo_in; eauto using SUB; ins.
   repeat (apply seq_mori; try easy).
   apply map_rel_mori; auto.
   repeat (apply seq_mori; try easy).
@@ -1544,12 +1503,14 @@ Proof using.
   clear; basic_solver 10.
 Qed.
 
+(* TODO: move to ?SubExecution.v? *)
 Lemma IPROP_rstG_in_IPROP : IPROP rstG ⊆ IPROP Gf.
 Proof using WF TCOH RCOH.
   unfold IPROP.
   now rewrite is_ta_propagate_to_rstG_Gf.
 Qed.
  
+(* TODO: move to ?SubExecution.v? *)
 Lemma PROP_rstG_in_PROP : PROP rstG rst_sc ⊆ PROP Gf sc.
 Proof using WF TCOH RCOH.
   unfold PROP.
@@ -1557,9 +1518,9 @@ Proof using WF TCOH RCOH.
   repeat (apply seq_mori; try easy).
   apply inter_rel_mori; try easy.
   apply map_rel_mori; auto.
-  rewrite ppo_rstG_in_ppo.
-  rewrite ar_rstG_in_ar.
-  unfold rstG, restrict, sb; ins.
+  rewrite sub_ppo_in; eauto using SUB; ins.
+  rewrite sub_ar_in; eauto using SUB; ins.
+  rewrite sub_sb_in; eauto using SUB; ins.
   repeat (apply seq_mori; try easy).
   all: try apply clos_refl_trans_mori.
   all: clear; basic_solver 10.
