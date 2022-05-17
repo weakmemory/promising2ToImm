@@ -157,14 +157,14 @@ Definition issuable T :=
   Proof using TLSCOH.
     unfolder; ins; desf. red.
     exists (mkTL ta_issue x). repeat split; auto. 
-    destruct TLSCOH. apply tls_coh_init. red. split; vauto.
+    destruct TLSCOH. apply tls_coh_init. red. split; basic_solver. 
   Qed. 
 
   Lemma init_covered : is_init ∩₁ E ⊆₁ covered T.
   Proof using TLSCOH. 
     unfolder; ins; desf. red.
     exists (mkTL ta_cover x). repeat split; auto. 
-    destruct TLSCOH. apply tls_coh_init. red. split; vauto.
+    destruct TLSCOH. apply tls_coh_init. red. split; basic_solver. 
   Qed.
 
   (* TODO: move to imm/travorder *)
