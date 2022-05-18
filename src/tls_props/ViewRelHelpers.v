@@ -121,17 +121,6 @@ Proof using WF TLSCOH IORDCOH IMMCON.
   unfold S_tmr; basic_solver 21.
 Qed.
 
-(* TODO: move to TlsAux *)
-Lemma fwbob_issuable_in_C:
-  dom_rel (fwbob G ⨾ ⦗issuable G sc T⦘) ⊆₁ covered T. 
-Proof using WF TLSCOH IMMCON.
-  unfold issuable, covered. rewrite id_inter, <- seqA. 
-  apply dom_rel_iord_ext_parts.
-  3: by apply init_covered.
-  2: { erewrite fwbob_in_bob, (bob_in_ar sc). rewrite ar_E_ENI; basic_solver. }
-  transitivity (FWBOB G); [| unfold iord_simpl; basic_solver 10].
-  unfold FWBOB. hahn_frame. basic_solver. 
-Qed.
 
 Lemma msg_rel_alt
       (Wf_sc : wf_sc G sc)
@@ -303,7 +292,7 @@ Proof using WF TLSCOH IORDCOH IMMCON.
   { arewrite (Rel ∩₁ Loc_ l ∩₁ eq w ≡₁ Loc_ l ∩₁ eq w).
     2: by unfold t_cur, c_cur; basic_solver 10.
     basic_solver 10. }
-  etransitivity; [| apply fwbob_issuable_in_C].
+  etransitivity; [| apply fwbob_issuable_in_C]; eauto. 
   generalize (@sb_to_w_rel_in_fwbob G) Heq. basic_solver 10. 
 Qed.
 
@@ -359,7 +348,7 @@ basic_solver.
 
 arewrite (⦗eq w⦘ ⊆ ⦗dom_cond (fwbob G) (covered T)⦘).
 { apply eqv_rel_mori. apply set_subset_eq.
-  eapply AuxDef.dom_rel_to_cond; eauto. apply fwbob_issuable_in_C. }
+  eapply AuxDef.dom_rel_to_cond; eauto. apply fwbob_issuable_in_C; auto. }
 rewrite dom_cond_elim.
 basic_solver 12.
 Qed.
