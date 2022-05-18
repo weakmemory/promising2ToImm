@@ -225,13 +225,14 @@ Qed.
     apply dom_rel_helper_in in COND. rewrite COND.
     arewrite ((ar ∪ sb)^? ⨾ ⦗covered T⦘ ⊆ ⦗covered T ∪₁ issued T⦘ ⨾ (ar ∪ sb)^? ⨾ ⦗covered T⦘).
     2: { etransitivity.
-         2: apply ar_rf_ppo_loc_rt_CI_in_I; eauto. 
-         basic_solver 20. }
+         2: apply ar_rf_ppo_loc_rt_CI_in_I; eauto.
+         { basic_solver 20. }
+         apply IMMCON. }
     apply dom_rel_helper_in.
     rewrite crE, !seq_union_l, !dom_union, seq_id_l.
     unionL; [basic_solver| |].
     2: { rewrite dom_sb_covered; basic_solver. }
-    apply ar_C_in_CI; eauto. 
+    apply ar_C_in_CI; eauto. apply IMMCON.
   Qed. 
 
 End Next. 
