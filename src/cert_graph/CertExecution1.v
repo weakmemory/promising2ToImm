@@ -262,7 +262,7 @@ Qed.
 (* Qed. *)
 
 Lemma rfe_rmw_I :dom_rel (Frfe ⨾ Frmw ⨾ ⦗I⦘) ⊆₁ I.
-Proof using WF TCOH IMMCON ICOH.
+Proof using WF TCOH ICOH.
   arewrite (Frfe ⊆ Frf).
   eapply rfrmw_I_in_I; eauto. 
 Qed.
@@ -357,7 +357,7 @@ Qed.
 
 Lemma rt_rf_rmw_I :
   (Frf ⨾ Frmw)＊ ⨾ ⦗I⦘ ⊆ (Frfi ⨾  Frmw)^? ⨾ ⦗I⦘ ⨾ (⦗E⦘ ⨾ Frf ⨾ ⦗E⦘ ⨾ Frmw ⨾ ⦗E⦘)＊ ⨾ ⦗E⦘ ⨾ ⦗I⦘.
-Proof using WF TCOH RCOH IMMCON ICOH.
+Proof using WF TCOH RCOH ICOH.
   rewrite rt_begin, !seqA.
   rewrite !seq_union_l, seq_id_l.
   unionL.
@@ -417,7 +417,7 @@ Proof using WF TCOH RCOH IMMCON ICOH.
 Qed.
 
 Lemma release_I : Frelease ⨾ ⦗I⦘ ⊆ ⦗C⦘ ⨾ Grelease.
-Proof using WF RELCOV TCOH RCOH IMMCON ICOH.
+Proof using WF RELCOV TCOH RCOH ICOH.
   unfold imm_s_hb.release.
   rewrite (sub_F SUB), (sub_Rel SUB).
   rewrite !seqA; unfold imm_s_hb.rs.
@@ -438,7 +438,7 @@ Proof using WF RELCOV TCOH RCOH IMMCON ICOH.
   case_refl (⦗F⦘ ⨾ Fsb).
   {
     arewrite (⦗Rel⦘ ⨾ ⦗W⦘ ⨾ (Fsb ∩ Fsame_loc)^? ⨾ ⦗W⦘ ⨾ ⦗I⦘ ⊆ ⦗I⦘ ⨾ ⦗Rel⦘ ⨾ ⦗W⦘ ⨾ ((⦗E⦘ ⨾ Fsb ⨾ ⦗E⦘) ∩ Fsame_loc)^? ⨾ ⦗W⦘ ⨾ ⦗I⦘).
-    { generalize (W_Rel_sb_loc_I WF IMMCON TCOH ICOH) I_in_E. basic_solver 21. }
+    { generalize (W_Rel_sb_loc_I WF TCOH ICOH) I_in_E. basic_solver 21. }
     seq_rewrite <- ?(sub_sb SUB); revert RELCOV; basic_solver 40. }
   arewrite ((Fsb ∩ Fsame_loc)^? ⊆ Fsb^?) at 1.
   arewrite_id ⦗FW⦘ at 1.
@@ -451,7 +451,7 @@ Qed.
 
 
 Lemma release_S : Frelease ⨾ ⦗S⦘ ⊆ ⦗C⦘ ⨾ (fun _ _ => True) +++ Fsb^?.
-Proof using thread WF RELCOV  TCOH RCOH IMMCON ICOH.
+Proof using thread WF RELCOV TCOH RCOH ICOH.
   unfold imm_s_hb.release at 1, imm_s_hb.rs at 1.
   rewrite !seqA.
   rewrite (rt_rf_rmw_S' WF ); eauto. 
@@ -483,7 +483,7 @@ Proof using thread WF RELCOV  TCOH RCOH ICOH.
 Qed.
 
 Lemma rfe_E :  dom_rel (Frfe ⨾ ⦗E ∩₁ NTid_ thread⦘) ⊆₁ I.
-Proof using WF TCOH RCOH IMMCON ICOH.
+Proof using WF TCOH RCOH ICOH.
   clear RELCOV.
   rewrite E_E0; unfold E0.
   rewrite !set_inter_union_l.
@@ -503,8 +503,8 @@ Proof using WF TCOH RCOH IMMCON ICOH.
   basic_solver 10.
 Qed.
 
-Lemma Grfe_E :  dom_rel (Grfe) ⊆₁ I.
-Proof using WF  IMMCON TCOH RCOH ICOH.
+Lemma Grfe_E:  dom_rel (Grfe) ⊆₁ I.
+Proof using WF IMMCON TCOH RCOH ICOH.
   rewrite (dom_l (wf_rfeE rstWF)).
   rewrite E_E0; unfold E0.
   rewrite !id_union; relsf; unionL; splits.
@@ -531,7 +531,7 @@ Proof using WF  IMMCON TCOH RCOH ICOH.
 Qed.
 
 Lemma rfi_E : dom_rel (Frfi ⨾ ⦗E⦘) ⊆₁ E.
-Proof using WF  TCOH RCOH IMMCON ICOH.
+Proof using WF TCOH RCOH ICOH.
   clear RELCOV.
   rewrite E_E0; unfold E0.
   rewrite !id_union; relsf; unionL; splits.
@@ -551,8 +551,8 @@ Qed.
 
 Lemma rfe_rmwrfi_rt_Acq_E :
   dom_rel (Frfe ⨾ (Frmw ⨾ Frfi)＊ ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
-Proof using WF TCOH RCOH IMMCON ICOH.
-  clear RELCOV.
+Proof using WF WF_SC TCOH RCOH ICOH.
+  clear RELCOV. 
   arewrite (Frfe ⨾ (Frmw ⨾ Frfi)＊ ⊆ (Frfe ⨾ (Frmw ⨾ Frfi)＊) ⨾ ⦗R⦘).
   { apply codom_rel_helper.
     rewrite (dom_r (wf_rfiD WF)), (dom_r (wf_rfeD WF)).
@@ -596,14 +596,14 @@ Qed.
 
 Lemma rfe_Grmwrfi_rt_Acq_E :
   dom_rel (Frfe ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
-Proof using WF TCOH RCOH IMMCON ICOH .
+Proof using WF WF_SC TCOH RCOH ICOH .
   rewrite (sub_rfi_in SUB).
   rewrite (sub_rmw_in SUB).
   apply rfe_rmwrfi_rt_Acq_E.
 Qed.
 
 Lemma rfe_Acq_E : dom_rel (Frfe ⨾ ⦗E ∩₁ FAcq⦘) ⊆₁ I.
-Proof using WF TCOH RCOH IMMCON ICOH .
+Proof using WF WF_SC TCOH RCOH ICOH.
   rewrite <- rfe_rmwrfi_rt_Acq_E.
   rewrite rtE. basic_solver 10.
 Qed.
@@ -654,7 +654,7 @@ generalize (dom_rf_covered WF TCOH ICOH); basic_solver 21.
 Qed.
 
 Lemma sw_C : Fsw ⨾ ⦗C⦘ ⊆ ⦗C⦘ ⨾ Gsw.
-Proof using WF  RELCOV TCOH RCOH IMMCON ICOH.
+Proof using WF  RELCOV TCOH RCOH ICOH.
 unfold sw; rewrite !seqA.
 arewrite ((Fsb ⨾ ⦗FF⦘)^? ⨾ ⦗FAcq⦘ ⨾ ⦗C⦘ ⊆ ⦗C⦘ ⨾ (⦗E⦘ ⨾ Fsb ⨾ ⦗E⦘ ⨾ ⦗FF⦘)^? ⨾ ⦗FAcq⦘).
 by generalize (dom_sb_covered WF TCOH ICOH) C_in_E; basic_solver 21.
@@ -674,7 +674,7 @@ generalize (dom_sb_covered WF TCOH ICOH); basic_solver 21.
 Qed.
 
 Lemma hb_C : Fhb ⨾ ⦗C⦘ ⊆ ⦗C⦘ ⨾ Ghb.
-Proof using WF  RELCOV TCOH RCOH IMMCON ICOH.
+Proof using WF  RELCOV TCOH RCOH ICOH.
 unfold hb.
 apply ct_ind_left with (P:= fun r => r ⨾ ⦗C⦘).
 - eauto with hahn.
@@ -689,7 +689,7 @@ relsf.
 Qed.
 
 Lemma sc_C : sc ⨾ ⦗C⦘ ⊆ ⦗C⦘ ⨾ rst_sc.
-Proof using WF TCOH RCOH IMMCON ICOH.
+Proof using WF WF_SC TCOH RCOH ICOH.
   clear RELCOV.
   unfold rst_sc.
   rewrite <- E_E0.
@@ -700,7 +700,7 @@ Proof using WF TCOH RCOH IMMCON ICOH.
 Qed.
 
 Lemma urr_C l : Furr l  ⨾ ⦗C⦘ ⊆ ⦗I⦘ ⨾ Gurr l.
-Proof using WF WF_SC  RELCOV TCOH RCOH IMMCON ICOH.
+Proof using WF WF_SC RELCOV TCOH RCOH IMMCON ICOH.
   unfold CombRelations.urr.
   rewrite !seqA, (sub_W_ SUB), (sub_F SUB), (sub_Sc SUB).
   rewrite (cr_helper hb_C).
@@ -784,7 +784,7 @@ Proof using WF WF_SC TCOH RCOH.
 Qed.
 
 Lemma coh_sc_rst : coh_sc rstG rst_sc.
-Proof using WF  IMMCON TCOH RCOH.
+Proof using WF IMMCON TCOH RCOH.
   eapply sub_coh_sc; eauto; [eapply SUB| eapply IMMCON].
 Qed.
 
@@ -794,7 +794,7 @@ Proof using WF TCOH RCOH IMMCON.
 Qed.
 
 Lemma Frmw_E_prefix_clos : codom_rel (⦗E⦘ ⨾ Frmw) ⊆₁ E.
-Proof using WF  RELCOV RMWCOV TCOH RCOH.
+Proof using WF RELCOV RMWCOV TCOH RCOH.
   rewrite E_E0 at 1.
   unfold E0. rewrite !id_union, !seq_union_l. rewrite !codom_union.
   unionL.
@@ -959,7 +959,7 @@ Qed.
 
 Lemma COMP_RMWRFI_ACQ :
   dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
-Proof using WF IMMCON TCOH RCOH ICOH.
+Proof using WF WF_SC IMMCON TCOH RCOH ICOH.
   assert (dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ E ∩₁ R) as AA.
   { rewrite rtE. rewrite (dom_l (wf_rmwE rstWF)), (dom_l (wf_rmwD rstWF)).
     rewrite !seqA. clear. rewrite !inclusion_ct_seq_eqv_l. basic_solver 10. }
@@ -982,7 +982,7 @@ Proof using WF IMMCON TCOH RCOH ICOH.
 Qed.
 
 Lemma COMP_ACQ: forall r (IN: (E ∩₁ R ∩₁ Acq) r), exists w, Grf w r.
-Proof using WF IMMCON TCOH RCOH ICOH.
+Proof using WF WF_SC IMMCON TCOH RCOH ICOH.
   assert (dom_rel (⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf) as AA.
   { rewrite <- COMP_RMWRFI_ACQ. rewrite rtE. clear. basic_solver 10. }
   ins. eapply AA. generalize IN. clear. basic_solver 10.
@@ -1040,7 +1040,7 @@ Proof using WF  IMMCON RELCOV RMWCOV TCOH RCOH ICOH.
   hahn_rewrite rfi_union_rfe in x1; unfolder in x1; desf.
   { eapply rfi_E. basic_solver 21. }
   eapply I_in_E.
-  generalize (dom_rfe_ppo_issued WF IMMCON TCOH).
+  generalize (dom_rfe_ppo_issued WF TCOH ICOH).
   apply (sub_ppo_in SUB) in H1.
   basic_solver 21.
 Qed.
