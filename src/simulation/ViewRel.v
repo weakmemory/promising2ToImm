@@ -336,6 +336,7 @@ Lemma sim_tview_f_issued f_to f_to' T tview thread
       (SIMTVIEW : sim_tview (covered T) f_to tview thread):
   sim_tview (covered T) f_to' tview thread.
 Proof using WF.
+  assert (wf_sc G sc) as WFSC by (apply IMMCON). 
   cdes SIMTVIEW.
   red; splits; red; ins; eapply max_value_new_f.
   1, 3, 5: by eauto.

@@ -114,7 +114,8 @@ Proof using WF IMMCON RELCOV ISSEQ_TO TLSCOH IORDCOH.
   2: now desf; eapply (ISSEQ_TO ISS).
   assert (I x) as ISSX.
   2: now apply (ISSEQ_TO ISSX).
-  eapply (msg_rel_issued WF IMMCON); eauto. 
+  eapply (msg_rel_issued WF); eauto.
+  { apply IMMCON. }
   eexists; apply seq_eqv_r; split; eauto.
 Qed.
 
@@ -657,6 +658,7 @@ Lemma le_msg_rel_f_to_wprev w wprev locw PC lang state
   in
   Time.le (View.rlx rel locw) (f_to wprev).
 Proof using WF TLSCOH RELCOV RCOH IORDCOH IMMCON FCOH.
+  assert (wf_sc G sc) as WFSC by (apply IMMCON).
   assert (WNINIT : ~ is_init w).
   { intros HH. apply WNCOV. eapply init_covered; eauto. by split. }
   
@@ -687,7 +689,7 @@ Proof using WF TLSCOH RELCOV RCOH IORDCOH IMMCON FCOH.
   apply seq_eqv_r in CCUR. destruct CCUR as [URR COVZ].
   apply seq_eqv_r in URR. destruct URR as [URR II].
   eapply eco_urr_irr with (sc:=sc); eauto.
-  1-3: by apply IMMCON.
+  1-2: by apply IMMCON.
   exists y. split.
   { apply co_in_eco. apply COXY. }
   apply urr_hb. exists z. split; eauto.
