@@ -1450,16 +1450,11 @@ Proof using WF TCOH RCOH IMMCON ICOH.
   basic_solver 10.
 Qed.
 
-Lemma graph_threads_rstG_Gf:
-  graph_threads rstG ⊆₁ graph_threads Gf. 
-Proof using WF TCOH RCOH.
-  unfold graph_threads. rewrite E_E0, E0_in_Gf. basic_solver.  
-Qed. 
-
 Lemma is_ta_propagate_to_rstG_Gf:
-  is_ta_propagate_to_G rstG ⊆₁ is_ta_propagate_to_G Gf.
-Proof using WF TCOH RCOH. 
-  unfold is_ta_propagate_to_G. rewrite graph_threads_rstG_Gf. basic_solver. 
+  is_ta_propagate_to_G rstG ≡₁ is_ta_propagate_to_G Gf.
+Proof using sc WF TCOH RCOH. 
+  unfold is_ta_propagate_to_G.
+  now erewrite (sub_threads SUB).
 Qed. 
 
 (* TODO: move to ?TlsAux.v? *)
@@ -1505,14 +1500,14 @@ Qed.
 
 (* TODO: move to ?SubExecution.v? *)
 Lemma IPROP_rstG_in_IPROP : IPROP rstG ⊆ IPROP Gf.
-Proof using WF TCOH RCOH.
+Proof using sc WF TCOH RCOH.
   unfold IPROP.
   now rewrite is_ta_propagate_to_rstG_Gf.
 Qed.
  
 (* TODO: move to ?SubExecution.v? *)
 Lemma PROP_rstG_in_PROP : PROP rstG rst_sc ⊆ PROP Gf sc.
-Proof using WF TCOH RCOH.
+Proof using sc WF TCOH RCOH.
   unfold PROP.
   rewrite is_ta_propagate_to_rstG_Gf.
   repeat (apply seq_mori; try easy).
@@ -1547,6 +1542,15 @@ Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
   apply iord_rstG_in_iord.
 Qed.
 
+Lemma init_tls_in_rstG : init_tls Gf ⊆₁ init_tls rstG.
+Proof using sc WF TCOH RCOH.
+  unfold init_tls. rewrite is_ta_propagate_to_rstG_Gf.
+  apply AuxDef.set_pair_mori; eauto with hahn.
+  arewrite (FE ∩₁ Init ⊆₁ (Init ∩₁ FE) ∩₁ Init).
+  { clear; basic_solver. }
+  now rewrite INIT.
+Qed.
+
 Lemma TCOH_rst : tls_coherent rstG T.
 Proof using.
   split.
@@ -1555,13 +1559,17 @@ Proof using.
     unfold init_tls.
     rewrite is_ta_propagate_to_rstG_Gf. 
     now rewrite E_E0, E0_in_Gf. }
-  (* TODO: make a lemma *)
   arewrite (T ⊆₁ (event ↓₁ (is_init ∪₁ set_compl is_init)) ∩₁ T).
   { clear. unfolder; ins; desf; tauto. }
   rewrite set_map_union.
-  (* rewrite set_inter_union_l. *)
-  (* unionL. *)
-
+  rewrite set_inter_union_l.
+  apply set_union_mori.
+  { rewrite (tls_coh_exec TCOH).
+    rewrite set_inter_union_r.
+    rewrite init_tls_in_rstG.
+    arewrite (event ⋄₁ Init ∩₁ exec_tls Gf ⊆₁ ∅).
+    { rewrite exec_tls_ENI. clear. basic_solver 10. }
+    clear; basic_solver. }
   (* TODO: make a lemma *)
   arewrite
     (T ⊆₁ T ∩₁ action ↓₁ (eq ta_cover
@@ -1574,10 +1582,10 @@ Proof using.
     { destruct HH as [HH]. unfolder in HH. desf. }
     red in HH. unfold AuxDef.set_pair in HH.
     unfolder in HH. desf. }
-
-  rewrite !set_map_union.
+  unfold exec_tls.
+  rewrite !set_unionA.
+  rewrite set_map_union.
   rewrite !set_inter_union_r.
-
   (* unfold exec_tls. *)
   (* rewrite (tls_coh_exec TCOH). *)
   (* apply set_union_mori. *)

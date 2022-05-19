@@ -14,6 +14,7 @@ Definition trim_events (G: execution) :=
 Definition trim_exec (G: execution) :=
   let E' := trim_events G in 
   {| acts_set := E';
+     threads_set := threads_set G;
      lab := lab G;
      rmw := rmw G;
      data := data G;
