@@ -11,12 +11,19 @@ From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 
 From imm Require Import AuxRel2.
-From imm Require Import TraversalConfig.
-From imm Require Import TraversalConfigAlt.
-From imm Require Import TraversalConfigAltOld.
+(* From imm Require Import TraversalConfig. *)
+(* From imm Require Import TraversalConfigAlt. *)
+(* From imm Require Import TraversalConfigAltOld. *)
 From imm Require Import FinExecution. 
-Require Import ExtTraversalConfig.
-
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import SimClosure. 
+Require Import TlsAux.
+Require Import Next. 
+Require Import ExtTraversalConfig ExtTraversalProperties.
+Require Import AuxRel.
+From imm Require Import AuxDef.
 Require Import Cert_co.
 Require Import Cert_D.
 
@@ -95,23 +102,28 @@ Notation "'Sc'" := (fun a => is_true (is_sc Glab a)).
 Notation "'xacq'" := (fun a => is_true (is_xacq Glab a)).
 
 
-Variable T : trav_config.
-Variable S : actid -> Prop.
+Variable T : trav_label -> Prop.
 
-Notation "'I'" := (issued T).
 Notation "'C'" := (covered T).
+Notation "'I'" := (issued T).
+Notation "'S'" := (reserved T). 
 
 Variable thread : BinNums.positive.
 
-Notation "'cert_co'" := (cert_co G T S thread).
+Notation "'cert_co'" := (cert_co G T thread).
 
-Notation "'D'" := (D G T S thread).
+Notation "'D'" := (D G T thread).
 
 
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCCOH : tc_coherent G sc T.
+(* Hypothesis TCCOH : tc_coherent G sc T. *)
+Hypotheses (TCOH: tls_coherent G T)
+           (ICOH: iord_coherent G sc T)
+           (* (RCOH: reserve_coherent Gf T). *)
+           .
+
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -134,7 +146,11 @@ Hypothesis COMP_C : C ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_NTID : E ∩₁ NTid_ thread ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
-Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
+
+(* Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I). *)
+(* TODO: are both of them needed? *)
+Hypothesis TCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
+Hypothesis ICOH_rst_new_T : iord_coherent G sc (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
@@ -323,7 +339,7 @@ Proof using WF WF_SC CSC COH ACYC_EXT IT_new_co I_in_S.
 Qed.
 
 Lemma new_rfe_Acq : (new_rf \ Gsb) ⨾ ⦗R∩₁Acq⦘ ⊆ ∅₂.
-Proof using WF WF_SC ACYC_EXT COH COMP_ACQ CSC IT_new_co S ST_in_E S_in_W.
+Proof using WF WF_SC ACYC_EXT COH COMP_ACQ CSC IT_new_co ST_in_E S_in_W.
 rewrite wf_new_rfE.
 arewrite (⦗E⦘ ⊆ ⦗E \₁ I⦘ ∪ ⦗E ∩₁ I⦘).
 unfolder; ins; desf; tauto.
@@ -396,7 +412,7 @@ Proof using All.
     clear.
     basic_solver 21. }
   arewrite (Grfi ⨾ ⦗set_compl D⦘ ⊆ ⦗Tid_ thread⦘ ⨾ Grfi ⨾ ⦗set_compl D⦘).
-  { forward (eapply dom_Grfi_nD_in_thread with (T:=T) (S:=S) (thread:=thread)); try edone.
+  { forward (eapply dom_Grfi_nD_in_thread with (T:=T) (thread:=thread)); try edone.
     basic_solver. }
   arewrite (Grfi ⊆ Grf).
   rewrite cert_co_alt'; try edone.
@@ -475,13 +491,71 @@ Qed.
 
 (* TODO: move to AuxRel *)
 Lemma minus_eqv_r {A: Type} (r r': relation A) (s : A -> Prop) : r ⨾ ⦗ s ⦘ \ r' ≡ (r \ r') ⨾ ⦗ s ⦘.
-Proof. basic_solver 21. Qed.
+Proof using. basic_solver 21. Qed.
+
+Lemma tls_events_empty_helper T' TLS
+      (DISJ: TLS ∩₁ T' ⊆₁ ∅):
+  event □₁ (TLS ∩₁ T') ≡₁ ∅. 
+Proof using. split; [| basic_solver]. rewrite DISJ. basic_solver. Qed. 
+
+(* TODO: move*)
+Add Parametric Morphism : col0 with signature
+    eq ==> (@set_subset actid) ==> (@set_subset actid) ==> eq ==>
+       (@inclusion actid) as col0_mori.
+Proof using.
+  ins. unfold col0. rewrite H, H0. basic_solver. 
+Qed. 
+
+(* TODO: move*)
+Add Parametric Morphism : col0 with signature
+    eq ==> (@set_equiv actid) ==> (@set_equiv actid) ==> eq ==>
+       (@same_relation actid) as col0_more.
+Proof using.
+  ins. destruct H, H0. 
+  split; apply col0_mori; basic_solver. 
+Qed.
+  
+(* TODO: move*)
+Add Parametric Morphism : new_co with signature
+    eq ==> (@set_equiv actid) ==> (@set_equiv actid) ==>
+       (@inclusion actid) as new_co_more_impl.
+Proof using.
+  ins. unfold new_co, new_col.
+  unfolder. ins. desc. red in H1.
+  destruct H, H0.
+  exists l. des.
+  { left. eapply col0_mori; eauto. }
+  apply pref_union_alt.
+  right. split.
+  { splits; vauto.
+    { by apply H. }
+    intro. apply H6. basic_solver. }
+  intro. apply H4. eapply col0_mori; eauto. 
+Qed.  
+
+(* TODO: move*)
+Add Parametric Morphism : new_co with signature
+    eq ==> (@set_equiv actid) ==> (@set_equiv actid) ==>
+       (@same_relation actid) as new_co_more.
+Proof using.
+  ins. split; [| symmetry in H, H0]; eapply new_co_more_impl; eauto.
+Qed. 
+
+(* TODO: move, generalize? *)
+(* see "rte'" local tactic for an example of 'unf' parameter *)
+Ltac remove_tls_extension unf :=
+  rewrite set_pair_alt, ?covered_union, ?issued_union, ?reserved_union;
+  unf;
+  repeat (rewrite tls_events_empty_helper; [| iord_dom_solver]);
+  rewrite ?set_union_empty_r, ?set_union_empty_l. 
 
 Lemma cert_rfe_alt : cert_rfe ≡ ⦗I⦘ ⨾ Grfe ⨾ ⦗D⦘ 
    ∪ ⦗I⦘ ⨾ (new_rf \ Gsb) ⨾ ⦗set_compl (dom_rel Grmw)⦘
    ∪ ⦗I⦘ ⨾ (immediate cert_co ⨾  Grmw⁻¹ \ Gsb) ⨾ ⦗set_compl D⦘.
-Proof using WF_SC WF TCCOH_rst_new_T S_in_W S_I_in_W_ex 
+Proof using WF_SC WF TCOH_rst_new_T S_in_W S_I_in_W_ex 
   ST_in_E IT_new_co Grfe_E CSC COH ACYC_EXT I_in_S.
+  (* for some reason these hypotheses are required by Qed otherwise *)
+  clear detour_E W_hb_sc_hb_to_I_NTid ICOH_rst_new_T COMP_NTID. 
   unfold Execution.rfe, cert_rfe, cert_rf.
   split; [|clear; basic_solver 21].
   rewrite !minus_union_l; unionL.
@@ -503,11 +577,14 @@ Proof using WF_SC WF TCCOH_rst_new_T S_in_W S_I_in_W_ex
   rewrite transp_seq, transp_eqv_rel.
   rewrite <- seqA, minus_eqv_r, !seqA.
   arewrite (⦗E⦘ ⨾ ⦗set_compl D⦘ ⊆ ⦗Tid_ thread⦘ ⨾ ⦗E⦘ ⨾ ⦗set_compl D⦘).
-  { generalize (@E_minus_D_in_tid G T S thread). clear; basic_solver 21. }
+  { generalize (@E_minus_D_in_tid G T thread). clear; basic_solver 21. }
   arewrite (cert_co ⊆ ⦗ E ∩₁ W ⦘ ⨾ cert_co).
   { rewrite wf_cert_coD at 1; try edone.
     rewrite wf_cert_coE at 1; try edone.
     clear; basic_solver. }
+
+  Ltac rte' := remove_tls_extension ltac:((try unfold issued at 2); (try unfold reserved at 2)). 
+
   arewrite (⦗E ∩₁ W⦘ ⊆ ⦗E ∩₁ W⦘ ⨾ ⦗set_compl Init⦘ ∪ ⦗Init ∩₁ E⦘).
   { unfolder; ins; desf.
     destruct (classic (is_init y)); eauto. }
@@ -515,13 +592,18 @@ Proof using WF_SC WF TCCOH_rst_new_T S_in_W S_I_in_W_ex
   rewrite <- IT_new_co at 1.
   rewrite !id_union, !seq_union_l, !seq_eqv, !minus_union_l, !seq_union_l, !dom_union; unionL.
   { clear. basic_solver. }
-  2: clear; basic_solver.
+  2: { rte'. basic_solver. }
   rewrite wf_cert_coD at 1; try edone.
   rewrite (wf_rmwD WF) at 1.
-forward (eapply transp_rmw_sb); try edone; intro AA.
-forward (eapply cert_co_irr); try edone; intro BB.
-forward (eapply cert_co_sb_irr); try edone; intro CC.
-clear - AA BB CC WF.
+  forward (eapply transp_rmw_sb); try edone; intro AA.
+  forward (eapply cert_co_irr); try edone; intro BB.
+
+  forward eapply cert_co_sb_irr; try edone.
+  1-5: rte'.
+  1: rewrite <- IT_new_co at 2. 3: generalize ST_in_E. 5: generalize S_I_in_W_ex.
+  1-5: basic_solver 10. 
+
+  intro CC.  clear - AA BB CC WF.
   unfolder; ins; desf; exfalso.
   assert (A: (y = z \/ Gsb y z) \/ Gsb z y).
   { eapply (@tid_n_init_sb G). basic_solver. }
@@ -530,7 +612,14 @@ clear - AA BB CC WF.
   assert (B: z1 = z \/ Gsb z1 z).
   { eapply AA; basic_solver. }
   desf; eauto.
-  eapply CC. basic_solver.
+  eapply CC.
+
+  red. exists z1. split; eauto. 
+  eapply hahn_inclusion_exp; [| apply H4].  
+  unfold cert_co, cert_co_base.
+  erewrite new_co_more; [reflexivity| ..]; auto.  
+  remove_tls_extension ltac:(unfold issued at 3; unfold reserved at 3).
+  basic_solver 10. 
 Qed.
 
 Lemma cert_rfe_D : cert_rfe ⨾ ⦗D⦘ ⊆ ⦗I⦘ ⨾ Grfe.
@@ -548,13 +637,13 @@ Proof using WF WF_SC.
 Qed.
 
 Lemma dom_rf_D_helper: Grf ⨾ ⦗D⦘ ≡ ⦗D⦘ ⨾ Grf ⨾ ⦗D⦘.
-Proof using Grfe_E TCCOH WF.
-  forward (eapply dom_rf_D with (T:=T) (S:=S) (thread:=thread)); try edone.
+Proof using Grfe_E WF TCOH ICOH.
+  forward (eapply dom_rf_D with (T:=T) (thread:=thread)); try edone.
   basic_solver 12.
 Qed.
 
 Lemma cert_rfi_D : cert_rfi ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ Grfi ⨾ ⦗D⦘.
-Proof using WF WF_SC TCCOH Grfe_E.
+Proof using WF WF_SC Grfe_E TCOH ICOH.
   unfold cert_rfi, cert_rf.
   rewrite <- seq_eqv_inter_lr.
   seq_rewrite cert_rf_D. 
@@ -732,10 +821,10 @@ Proof using All.
   rewrite <- !seqA.
   rewrite transp_cert_co_imm_cert_co'; eauto.
   rewrite !seqA.
-  rewrite I_in_cert_co_base with (T:=T) (S:=S) (thread:=thread); eauto.
+  rewrite I_in_cert_co_base with (T:=T) (thread:=thread); eauto.
   seq_rewrite <- seq_eqv_inter_ll.
 
-  arewrite (⦗cert_co_base G T S thread⦘ ⨾ (cert_co⁻¹)^? ⊆ Gco⁻¹^?).
+  arewrite (⦗cert_co_base G T thread⦘ ⨾ (cert_co⁻¹)^? ⊆ Gco⁻¹^?).
   { forward (eapply cert_co_I); eauto.
     clear. unfolder; ins; desf; eauto.
     right; eapply H; eauto. }
@@ -816,7 +905,17 @@ Proof using All.
   eexists; do 2 split; eauto.
   intros HH.
   eapply cert_co_sb_irr; eauto.
-  basic_solver.
+
+  (* TODO: unify with cert_rfe_alt fragments *)
+  1-5: rte'.
+  1: rewrite <- IT_new_co at 2. 3: generalize ST_in_E. 5: generalize S_I_in_W_ex.
+  1-5: basic_solver 10. 
+  red. eexists. split; eauto. 
+  eapply hahn_inclusion_exp; [| apply H0].
+  unfold cert_co, cert_co_base.
+  erewrite new_co_more; [reflexivity| ..]; auto.  
+  remove_tls_extension ltac:(unfold issued at 3; unfold reserved at 3).
+  basic_solver 10.
 Qed.
 
 Lemma cert_rf_to_Acq_S_in_Grf : cert_rf ⨾ ⦗ dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⦘ ⊆ Grf.
@@ -871,8 +970,9 @@ rewrite (rmw_in_sb WF).
 generalize (@sb_trans G).
 ins; relsf.
 rewrite crE; relsf.
-rewrite tc_sb_C.
-2: { apply tc_coherent_implies_tc_coherent_alt; eauto. }
+(* rewrite tc_sb_C. *)
+rewrite dom_sb_covered, set_unionK; eauto. 
+(* 2: { apply tc_coherent_implies_tc_coherent_alt; eauto. } *)
 relsf.
 rewrite C_in_D.
 rewrite cert_rf_D.
@@ -968,7 +1068,7 @@ Proof using All.
   assert (E w) as EW.
   { hahn_rewrite (wf_rfE WF) in A; unfolder in A; desf. }
   exists z; split; eauto.
-  cut ((co G ⨾ ⦗cert_co_base G T S thread⦘) w z).
+  cut ((co G ⨾ ⦗cert_co_base G T thread⦘) w z).
   { basic_solver. }
   eapply new_co_I; try eapply IST_new_co; try apply WF; eauto.
   unfolder; splits; eauto.
