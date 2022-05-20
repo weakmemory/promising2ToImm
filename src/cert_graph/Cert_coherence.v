@@ -10,11 +10,14 @@ From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 
-From imm Require Import AuxRel2.
-From imm Require Import TraversalConfig.
-From imm Require Import TraversalConfigAlt.
-From imm Require Import TraversalConfigAltOld.
+From imm Require Import AuxDef.
 Require Import ExtTraversalConfig.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import SimClosure. 
+Require Import TlsAux.
+Require Import Next. 
 (* From imm Require Import FairExecution. *)
 (* Require Import ImmFair. *)
 From imm Require Import FinExecution.
@@ -98,27 +101,28 @@ Notation "'Sc'" := (fun a => is_true (is_sc Glab a)).
 Notation "'xacq'" := (fun a => is_true (is_xacq Glab a)).
 
 
-Variable T : trav_config.
-Variable S : actid -> Prop.
+Variable T : trav_label -> Prop.
 
 Notation "'I'" := (issued T).
 Notation "'C'" := (covered T).
+Notation "'S'" := (reserved T).
 
 Variable thread : BinNums.positive.
 
-Notation "'cert_co'" := (cert_co G T S thread).
+Notation "'cert_co'" := (cert_co G T thread).
 
-Notation "'D'" := (D G T S thread).
+Notation "'D'" := (D G T thread).
 
-Notation "'new_rf'" := (new_rf G sc T S thread).
-Notation "'cert_rf'" := (cert_rf G sc T S thread).
-Notation "'cert_rfi'" := (cert_rfi G sc T S thread).
-Notation "'cert_rfe'" := (cert_rfe G sc T S thread).
+Notation "'new_rf'" := (new_rf G sc T thread).
+Notation "'cert_rf'" := (cert_rf G sc T thread).
+Notation "'cert_rfi'" := (cert_rfi G sc T thread).
+Notation "'cert_rfe'" := (cert_rfe G sc T thread).
 
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCCOH : tc_coherent G sc T.
+Hypothesis TCOH : tls_coherent G T.
+Hypothesis ICOH : iord_coherent G sc T.
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -140,7 +144,10 @@ Hypothesis COMP_C : C ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_NTID : E ∩₁ NTid_ thread ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
-Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
+
+(* Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I). *)
+Hypothesis TCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
+Hypothesis ICOH_rst_new_T : iord_coherent G sc (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
@@ -161,7 +168,7 @@ Hypothesis FACQREL       : E ∩₁ F ⊆₁ Acq/Rel.
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
 
-Notation "'certG'" := (certG G sc T S thread lab').
+Notation "'certG'" := (certG G sc T thread lab').
 
 Hypothesis WF_cert : Wf certG.
 
@@ -274,7 +281,7 @@ assert (CO: Gco x z1).
   desf; try subst z0; basic_solver 21.
   intro; subst x; auto. }
 assert (SB: Gsb x z0).
-  by apply hb_sc_hb_de; generalize (w_covered_issued TCCOH); basic_solver 21.
+  by apply hb_sc_hb_de; generalize (w_covered_issued TCOH ICOH); basic_solver 21.
 assert (RFE: Grfe z1 z0).
 { ie_unfolder; unfolder; ins; desc; splits; eauto.
   intro K.
@@ -284,15 +291,15 @@ assert (RFE: Grfe z1 z0).
   congruence.
   hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in CO.
   unfolder in CO; desc; done.
-  generalize (init_issued WF TCCOH); basic_solver.
-  generalize (init_issued WF TCCOH); basic_solver. }
+  generalize (init_issued TCOH); basic_solver.
+  generalize (init_issued TCOH); basic_solver. }
 assert (COE: Gcoe x z1).
 { ie_unfolder; unfolder; ins; desc; splits; eauto.
   intro K.
   apply sb_tid_init in K.
   destruct K.
   congruence.
-  generalize (init_issued WF TCCOH); basic_solver. }
+  generalize (init_issued TCOH); basic_solver. }
 assert (DETOURE: Gdetour x z0).
   by unfold detour; basic_solver.
 apply H6, A; unfolder; ins; desf; splits; eauto.
@@ -314,17 +321,17 @@ Proof using WF hb_sc_hb_de.
 rewrite <- hb_sc_hb_de.
 rewrite (dom_l (wf_hbE WF)) at 1.
 rewrite !seqA.
-forward (eapply C_in_D with (G:=G) (T:=T) (S:=S) (thread:=thread)); eauto.
-forward (eapply I_in_D with (G:=G) (T:=T) (S:=S) (thread:=thread)); eauto.
+forward (eapply C_in_D with (G:=G) (T:=T) (thread:=thread)); eauto.
+forward (eapply I_in_D with (G:=G) (T:=T) (thread:=thread)); eauto.
 basic_solver 21.
 Qed.
 
 
 Lemma hb_rfe_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Crfe).
 Proof using ACYC_EXT COH COMP_ACQ COMP_C COMP_NTID COMP_RPPO CSC ETC_DR_R_ACQ_I E_to_S
-F_in_C G Grfe_E IT_new_co I_in_S RELCOV RMWREX S ST_in_E S_I_in_W_ex S_in_W T
-TCCOH_rst_new_T WF WF_SC W_hb_sc_hb_to_I_NTid detour_Acq_E lab' sc thread urr_helper
-urr_helper_C.
+F_in_C G Grfe_E IT_new_co I_in_S RELCOV RMWREX ST_in_E S_I_in_W_ex S_in_W T
+WF WF_SC W_hb_sc_hb_to_I_NTid detour_Acq_E lab' sc thread urr_helper
+urr_helper_C TCOH_rst_new_T.
 rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
 relsf; unionL.
 { revert COH CSC; unfold coherence, coh_sc, eco.
@@ -341,9 +348,8 @@ Qed.
 
 Lemma hb_rf_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Crf).
 Proof using ACYC_EXT COH COMP_ACQ COMP_C COMP_NTID COMP_RPPO CSC ETC_DR_R_ACQ_I E_to_S
-F_in_C G Grfe_E IT_new_co I_in_S RELCOV RMWREX S ST_in_E S_I_in_W_ex S_in_W T
-TCCOH_rst_new_T WF WF_SC W_hb_sc_hb_to_I_NTid detour_Acq_E lab' sc thread urr_helper
-urr_helper_C.
+F_in_C G Grfe_E IT_new_co I_in_S RELCOV RMWREX ST_in_E S_I_in_W_ex S_in_W T WF WF_SC W_hb_sc_hb_to_I_NTid detour_Acq_E lab' sc thread urr_helper
+urr_helper_C TCOH_rst_new_T.
 rewrite cert_rf_eq.
 rewrite cert_rfi_union_cert_rfe.
 relsf; unionL.
@@ -388,8 +394,8 @@ Proof using All.
   relsf; unionL.
   { rewrite (dom_rel_helper Grfe_E).
     unfold CertExecution2.certG; ins; rewrite !seqA.
-    rewrite (I_in_cert_co_base G T S thread) at 1.
-    arewrite (cert_co ⨾ ⦗cert_co_base G T S thread⦘ ⊆ co G ⨾ ⦗cert_co_base G T S thread⦘).
+    rewrite (I_in_cert_co_base G thread) at 1.
+    arewrite (cert_co ⨾ ⦗cert_co_base G T thread⦘ ⊆ co G ⨾ ⦗cert_co_base G T thread⦘).
     eby eapply cert_co_I.
     revert COH CSC. unfold coherence, coh_sc, eco.
     ie_unfolder. basic_solver 21. }
@@ -485,8 +491,8 @@ rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto. relsf; unionL.
   { unfold fr. unfold CertExecution2.certG. ins. unfold Cert_rf.cert_rf.
     rewrite !transp_union, transp_seq; relsf; unionL.
     { rewrite (dom_rel_helper Grfe_E), !seqA.
-      rewrite (I_in_cert_co_base G T S thread) at 1.
-      arewrite (cert_co ⨾ ⦗cert_co_base G T S thread⦘ ⊆ co G ⨾ ⦗cert_co_base G T S thread⦘).
+      rewrite (I_in_cert_co_base G thread) at 1.
+      arewrite (cert_co ⨾ ⦗cert_co_base G T thread⦘ ⊆ co G ⨾ ⦗cert_co_base G T thread⦘).
       eby eapply cert_co_I.
       revert COH CSC. unfold coherence, coh_sc, eco, fr. ie_unfolder.
       basic_solver 21. }
@@ -502,7 +508,7 @@ rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto. relsf; unionL.
     arewrite (cert_co^? ⨾ ⦗I⦘ ⊆ Gco^? ⨾ ⦗I⦘).
     { cut (cert_co ⨾ ⦗I⦘ ⊆ Gco).
 basic_solver.
-      rewrite (I_in_cert_co_base G T S thread) at 1.
+      rewrite (I_in_cert_co_base G thread) at 1.
 
       forward (eapply cert_co_I with (G:=G)); eauto; intro AA.
 rewrite AA; basic_solver. }
