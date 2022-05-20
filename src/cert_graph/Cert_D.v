@@ -639,7 +639,7 @@ Qed.
 
 Hypothesis FACQREL : E ∩₁ F ⊆₁ Acq/Rel.
 
-Lemma dom_ar_int_D (COM: complete G):
+Lemma dom_ar_int_D:
   dom_rel (Gar_int⁺ ⨾ ⦗I⦘) ⊆₁ D ∪₁ R ∩₁ Acq.
 Proof using All.
   rewrite (dom_l (wf_ar_intE WF)).
@@ -687,11 +687,11 @@ Proof using All.
   unfold bob, fwbob. clear. type_solver 10.
 Qed.
 
-Lemma dom_ar_int_rt_CI_D (COM: complete G):
+Lemma dom_ar_int_rt_CI_D:
   dom_rel (Gar_int＊ ⨾ ⦗C ∪₁ I⦘) ⊆₁ D ∪₁ R ∩₁ Acq.
 Proof using All.
   rewrite id_union, seq_union_r, dom_union. unionL.
-  2: { rewrite rtE. generalize I_in_D, (dom_ar_int_D COM). clear. 
+  2: { rewrite rtE. generalize I_in_D, dom_ar_int_D. clear. 
        basic_solver. }
   rewrite ar_int_in_sb; auto.
   rewrite rt_of_trans; [|by apply sb_trans].
