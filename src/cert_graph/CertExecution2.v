@@ -12,11 +12,17 @@ From imm Require Import CombRelations.
 From imm Require Import FairExecution.
 
 From imm Require Import AuxRel2.
-From imm Require Import TraversalConfig.
-From imm Require Import TraversalConfigAlt.
-From imm Require Import TraversalConfigAltOld.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import SimClosure. 
+Require Import TlsAux.
+Require Import Next. 
+Require Import ExtTraversalConfig ExtTraversalProperties.
+Require Import AuxRel.
 From imm Require Import FinExecution.
 Require Import ExtTraversalConfig.
+From imm Require Import AuxDef.
 
 Require Import Cert_co.
 Require Import Cert_D.
@@ -95,27 +101,29 @@ Notation "'Sc'" := (fun a => is_true (is_sc Glab a)).
 Notation "'xacq'" := (fun a => is_true (is_xacq Glab a)).
 
 
-Variable T : trav_config.
-Variable S : actid -> Prop.
+Variable T : trav_label -> Prop. 
 
 Notation "'I'" := (issued T).
 Notation "'C'" := (covered T).
+Notation "'S'" := (reserved T).
 
 Variable thread : BinNums.positive.
 
-Notation "'cert_co'" := (cert_co G T S thread).
+Notation "'cert_co'" := (cert_co G T thread).
 
-Notation "'D'" := (D G T S thread).
+Notation "'D'" := (D G T thread).
 
-Notation "'new_rf'" := (new_rf G sc T S thread).
-Notation "'cert_rf'" := (cert_rf G sc T S thread).
-Notation "'cert_rfi'" := (cert_rfi G sc T S thread).
-Notation "'cert_rfe'" := (cert_rfe G sc T S thread).
+Notation "'new_rf'" := (new_rf G sc T thread).
+Notation "'cert_rf'" := (cert_rf G sc T thread).
+Notation "'cert_rfi'" := (cert_rfi G sc T thread).
+Notation "'cert_rfe'" := (cert_rfe G sc T thread).
 
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCCOH : tc_coherent G sc T.
+(* Hypothesis TCCOH : tc_coherent G sc T. *)
+Hypothesis TCOH : tls_coherent G T.
+Hypothesis ICOH : iord_coherent G sc T.
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -136,7 +144,10 @@ Hypothesis COMP_C : C ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_NTID : E ∩₁ NTid_ thread ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
-Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
+
+(* Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I). *)
+Hypothesis TCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
+Hypothesis ICOH_rst_new_T : iord_coherent G sc (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
@@ -193,6 +204,7 @@ Proof using SAME. ins; erewrite same_lab_u2v_same_loc; eauto. Qed.
 
 Definition certG :=
     {| acts_set := (acts_set G);
+       threads_set := threads_set G;
        lab := lab' ;
        rmw := Grmw ;
        data := Gdata ;
@@ -296,7 +308,7 @@ Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 (******************************************************************************)
 
 Lemma cert_lab_init : forall a (IN: is_init a), lab' a = Glab a.
-Proof using TCCOH SAME OLD_VAL.
+Proof using SAME OLD_VAL TCOH.
 ins; cut (val lab' a = Gval a).
 - assert (same_label_u2v (lab' a) (Glab a)) as SS by (by apply SAME).
   unfold same_label_u2v in *. unfold val; desf; desf.
