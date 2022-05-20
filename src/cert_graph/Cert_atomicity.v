@@ -11,10 +11,17 @@ From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 
 From imm Require Import AuxRel2.
-From imm Require Import TraversalConfig.
-From imm Require Import TraversalConfigAlt.
-From imm Require Import TraversalConfigAltOld.
+(* From imm Require Import TraversalConfig. *)
+(* From imm Require Import TraversalConfigAlt. *)
+(* From imm Require Import TraversalConfigAltOld. *)
+From imm Require Import AuxDef.
 Require Import ExtTraversalConfig.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import SimClosure. 
+Require Import TlsAux.
+Require Import Next. 
 
 Require Import Cert_co.
 Require Import Cert_D.
@@ -94,27 +101,28 @@ Notation "'Sc'" := (fun a => is_true (is_sc Glab a)).
 Notation "'xacq'" := (fun a => is_true (is_xacq Glab a)).
 
 
-Variable T : trav_config.
-Variable S : actid -> Prop.
+Variable T : trav_label -> Prop. 
 
-Notation "'I'" := (issued T).
 Notation "'C'" := (covered T).
+Notation "'I'" := (issued T).
+Notation "'S'" := (reserved T).
 
 Variable thread : BinNums.positive.
 
-Notation "'cert_co'" := (cert_co G T S thread).
+Notation "'cert_co'" := (cert_co G T thread).
 
-Notation "'D'" := (D G T S thread).
+Notation "'D'" := (D G T thread).
 
-Notation "'new_rf'" := (new_rf G sc T S thread).
-Notation "'cert_rf'" := (cert_rf G sc T S thread).
-Notation "'cert_rfi'" := (cert_rfi G sc T S thread).
-Notation "'cert_rfe'" := (cert_rfe G sc T S thread).
+Notation "'new_rf'" := (new_rf G sc T thread).
+Notation "'cert_rf'" := (cert_rf G sc T thread).
+Notation "'cert_rfi'" := (cert_rfi G sc T thread).
+Notation "'cert_rfe'" := (cert_rfe G sc T thread).
 
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCCOH : tc_coherent G sc T.
+Hypothesis TCOH : tls_coherent G T.
+Hypothesis ICOH : iord_coherent G sc T.
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -135,7 +143,10 @@ Hypothesis COMP_C : C ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_NTID : E ∩₁ NTid_ thread ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
-Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
+
+(* Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I). *)
+Hypothesis TCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
+Hypothesis ICOH_rst_new_T : iord_coherent G sc (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
@@ -150,7 +161,7 @@ Hypothesis S_I_in_W_ex : (S ∩₁ Tid_ thread) \₁ I ⊆₁ W_ex G.
 Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ ⨾ ⦗R∩₁Acq⦘ ⨾ Gsb ⨾ ⦗S⦘) ⊆₁ I.
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
-Hypothesis SB_S          : dom_sb_S_rfrmw G (mkETC T S) (Grf ⨾ ⦗GR_ex⦘) I ⊆₁ S.
+Hypothesis SB_S          : dom_sb_S_rfrmw G T (Grf ⨾ ⦗GR_ex⦘) I ⊆₁ S.
 Hypothesis RMWREX        : dom_rel Grmw ⊆₁ GR_ex.
 Hypothesis FACQREL       : E ∩₁ F ⊆₁ Acq/Rel.
 
@@ -158,7 +169,7 @@ Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
 
 
-Notation "'certG'" := (certG G sc T S thread lab').
+Notation "'certG'" := (certG G sc T thread lab').
 
 
 (* Notation "'CE'" := (acts_set certG). *)
@@ -249,11 +260,20 @@ Notation "'CAcqrel'" := (fun a => is_true (is_acqrel Clab a)).
 Notation "'CAcq/Rel'" := (fun a => is_true (is_ra Clab a)).
 Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 
-Notation "'cert_co_base'" := (cert_co_base G T S thread).
+Notation "'cert_co_base'" := (cert_co_base G T thread).
+
+(* (* TODO: replace cert_co_sb calls with this *) *)
+(* Lemma cert_co_sb_irr' : irreflexive (cert_co ⨾ Gsb). *)
+(* Proof using TCOH S_I_in_W_ex I_in_S COH WF S_in_W ST_in_E IT_new_co. *)
+(*   apply cert_co_sb_irr; auto.  *)
 
 Lemma cert_rmw_atomicity : rmw_atomicity certG.
 Proof using All.
   generalize (atomicity_alt WF (coherence_sc_per_loc COH) AT).
+  (* forward eapply cert_co_sb_irr as CCSI; eauto.  *)
+  (* TODO: check whether proofs with "rte'" tactic can be simplified like this *)
+  assert (irreflexive (cert_co ⨾ Gsb)) as CCSI.
+  { apply cert_co_sb_irr; eauto. }
   intro AT'; clear AT.
 
   red; ins; cut (irreflexive (Cfr ⨾ (cert_co \ Gsb) ⨾ Grmw^{-1})).
@@ -370,7 +390,7 @@ Proof using All.
     { apply seq_eqv_lr. splits; auto. }
     apply tid_sb in AA. unfolder in AA. desf.
     { eapply cert_co_irr; eauto. }
-    eapply cert_co_sb_irr; eauto. basic_solver. }
+    eapply CCSI; eauto. basic_solver. }
   
   assert (I z1) as IZ1.
   { apply IT_new_co in EWZ1. unfolder in EWZ1. desf. }
