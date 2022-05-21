@@ -1584,8 +1584,28 @@ Proof using.
     unfolder in HH. desf. }
   unfold exec_tls.
   rewrite !set_unionA.
-  rewrite set_map_union.
+  rewrite !set_map_union.
   rewrite !set_inter_union_r.
+  apply set_union_mori.
+  { rewrite <- C_in_E. unfold covered.
+    clear. 
+    unfolder. ins. desf. destruct x; ins; desf.
+    splits; eauto. }
+  unionL.
+  { transitivity (AuxDef.set_pair (eq ta_issue) ((E \₁ Init) ∩₁ W)).
+    2: { apply AuxDef.set_pair_mori; eauto with hahn. }
+    rewrite <- I_in_E. unfold issued.
+    unfolder. ins. desf. destruct x; ins; desf.
+    splits; eauto.
+    eapply issuedW; eauto. red. basic_solver. }
+  { transitivity (AuxDef.set_pair (eq ta_reserve) ((E \₁ Init) ∩₁ W)).
+    2: { apply AuxDef.set_pair_mori; eauto with hahn. }
+    admit. }
+    (* rewrite <- S_in_E. unfold issued. *)
+    (* unfolder. ins. desf. destruct x; ins; desf. *)
+    (* splits; eauto. *)
+    (* eapply issuedW; eauto. red. basic_solver. } *)
+
   (* unfold exec_tls. *)
   (* rewrite (tls_coh_exec TCOH). *)
   (* apply set_union_mori. *)
