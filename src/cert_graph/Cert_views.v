@@ -10,10 +10,14 @@ From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 
-From imm Require Import AuxRel2.
-From imm Require Import TraversalConfig.
-From imm Require Import TraversalConfigAlt.
-From imm Require Import TraversalConfigAltOld.
+From imm Require Import AuxDef.
+Require Import ExtTraversalConfig.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import SimClosure. 
+Require Import TlsAux.
+Require Import Next. 
 From imm Require Import FinExecution. 
 Require Import ExtTraversalConfig.
 
@@ -96,27 +100,28 @@ Notation "'Sc'" := (fun a => is_true (is_sc Glab a)).
 Notation "'xacq'" := (fun a => is_true (is_xacq Glab a)).
 
 
-Variable T : trav_config.
-Variable S : actid -> Prop.
+Variable T : trav_label -> Prop. 
 
 Notation "'I'" := (issued T).
 Notation "'C'" := (covered T).
+Notation "'S'" := (reserved T).
 
 Variable thread : BinNums.positive.
 
 Notation "'cert_co'" := (cert_co G T thread).
 
-Notation "'D'" := (D G T S thread).
+Notation "'D'" := (D G T thread).
 
-Notation "'new_rf'" := (new_rf G sc T S thread).
-Notation "'cert_rf'" := (cert_rf G sc T S thread).
-Notation "'cert_rfi'" := (cert_rfi G sc T S thread).
-Notation "'cert_rfe'" := (cert_rfe G sc T S thread).
+Notation "'new_rf'" := (new_rf G sc T thread).
+Notation "'cert_rf'" := (cert_rf G sc T thread).
+Notation "'cert_rfi'" := (cert_rfi G sc T thread).
+Notation "'cert_rfe'" := (cert_rfe G sc T thread).
 
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCCOH : tc_coherent G sc T.
+Hypothesis TCOH : tls_coherent G T.
+Hypothesis ICOH : iord_coherent G sc T.
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -138,7 +143,10 @@ Hypothesis COMP_C : C ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_NTID : E ∩₁ NTid_ thread ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
-Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
+
+(* Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I). *)
+Hypothesis TCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
+Hypothesis ICOH_rst_new_T : iord_coherent G sc (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
@@ -158,7 +166,7 @@ Hypothesis RMWREX : dom_rel Grmw ⊆₁ GR_ex.
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
 
-Notation "'certG'" := (certG G sc T S thread lab').
+Notation "'certG'" := (certG G sc T thread lab').
 
 
 (* Notation "'CE'" := (acts_set certG). *)
@@ -274,12 +282,12 @@ Proof using All.
   arewrite (⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗C⦘) at 2 by basic_solver.
   arewrite (⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗C⦘) at 5 by basic_solver.
   split; unionL; try basic_solver.
-  { rewrite C_in_D with (G:=G) (T:=T) (S:=S) (thread:= thread) at 1.
+  { rewrite C_in_D with (G:=G) (T:=T) (thread:= thread) at 1.
     arewrite (Crf ⨾ ⦗D⦘ ⊆ Grf ⨾ ⦗ D ⦘).
     { apply cert_rf_D; auto. } 
     clear. basic_solver. }
   2: done.
-  rewrite C_in_D with (G:=G) (T:=T) (S:=S) (thread:= thread) at 1.
+  rewrite C_in_D with (G:=G) (T:=T) (thread:= thread) at 1.
   arewrite (Grf ⨾ ⦗D⦘ ⊆ Crf ⨾ ⦗ D ⦘).
   { by apply cert_rf_D. }
   clear. basic_solver.
@@ -297,7 +305,7 @@ Proof using All.
 
   arewrite  (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ≡  ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘).
   { unfolder; splits; ins; desf; splits; eauto.
-    all: by apply (init_covered TCCOH); split; eauto; apply (sub_E_in SUB). }
+    all: by apply (init_covered TCOH); split; eauto; apply (sub_E_in SUB). }
   arewrite (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘) at 2 by basic_solver 12.
 
   arewrite ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ (Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ ⦗C⦘).
@@ -337,7 +345,7 @@ Proof using All.
 
   arewrite  (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ≡  ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘).
   { unfolder; splits; ins; desf; splits; eauto.
-    all: by apply (init_covered TCCOH); split; eauto; apply (sub_E_in SUB). }
+    all: by apply (init_covered TCOH); split; eauto; apply (sub_E_in SUB). }
 
   arewrite (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘) at 2 by basic_solver 12.
   arewrite (⦗Rel⦘ ⨾ ⦗W_ l' ∪₁ F⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Rel⦘ ⨾ ⦗W_ l' ∪₁ F⦘) by basic_solver 12.
@@ -374,7 +382,7 @@ Proof using All.
   rewrite !seqA.
   arewrite  (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ≡  ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘).
   { unfolder; splits; ins; desf; splits; eauto.
-    all: by apply (init_covered TCCOH); split; eauto; apply (sub_E_in SUB). }
+    all: by apply (init_covered TCOH); split; eauto; apply (sub_E_in SUB). }
 
   arewrite (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘) at 2 by basic_solver 12.
   arewrite ((Crelease ⨾ Crf)^? ⨾ ⦗C⦘ ≡ (Grelease ⨾ Grf)^? ⨾ ⦗C⦘).
