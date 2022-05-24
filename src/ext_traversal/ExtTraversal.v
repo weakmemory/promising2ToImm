@@ -12,8 +12,58 @@ From imm Require Import travorder.SimClosure.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import TraversalOrder. 
+Require Import TlsAux.
+Require Import Next.
 
 Set Implicit Arguments.
+
+(* TODO: move to imm*)
+Lemma init_tls_tls_coherent G:
+  tls_coherent G (init_tls G). 
+Proof using. apply tls_coherent_defs_equiv. exists ∅. basic_solver. Qed. 
+
+(* TODO: move to imm*)
+Lemma init_tls_iord_coherent G sc:
+  iord_coherent G sc (init_tls G). 
+Proof using.
+  red. rewrite TlsAux.iord_alt, restr_relE.
+  rewrite init_tls_EI at 1. basic_solver 10. 
+Qed.
+
+(* TODO: move somewhere *)
+Lemma covered_events (A: actid -> Prop):
+  covered (event ↓₁ A) ⊆₁ A. 
+Proof using. unfold covered. basic_solver. Qed. 
+
+(* TODO: move somewhere *)
+Lemma issued_events (A: actid -> Prop):
+  issued (event ↓₁ A) ⊆₁ A. 
+Proof using. unfold issued. basic_solver. Qed. 
+
+(* TODO: move somewhere *)
+Lemma reserved_events (A: actid -> Prop):
+  reserved (event ↓₁ A) ⊆₁ A. 
+Proof using. unfold reserved. basic_solver. Qed. 
+
+(* TODO: move to ExtTraversalConfig *)
+Lemma init_tls_reserve_coherent G (WF: Wf G):
+  reserve_coherent G (init_tls G). 
+Proof using.
+  assert (forall a (NP: forall t, a <> ta_propagate t),
+             event □₁ (init_tls G ∩₁ action ↓₁ eq a) ≡₁ acts_set G ∩₁ is_init) as INIT. 
+  { ins. unfold init_tls. rewrite set_pair_alt.
+    split; try basic_solver 10.
+    red. intros e [Ee Ie]. exists (mkTL a e). unfolder. splits; vauto.
+    destruct a; ins; try tauto. edestruct NP; vauto. }
+  split; unfold dom_sb_S_rfrmw, reserved, covered, issued.
+  all: repeat (rewrite INIT; [| done]).
+  3: rewrite set_minusK.
+  8: rewrite rppo_in_sb; auto.
+  9: rewrite rmw_in_sb; auto.
+  10: rewrite W_ex_not_init; auto.
+  all: try rewrite no_sb_to_init; basic_solver. 
+Qed. 
+
 
 Section ExtTraversalConfig.
 Variable G : execution.
@@ -167,6 +217,7 @@ Proof using.
   split; auto.
   eapply sb_trans; eauto.
 Qed.
+
 
 Section Props.
   
@@ -615,133 +666,150 @@ Qed.
 (*   red; splits; simpls; by symmetry. *)
 (* Qed. *)
 
-Definition ext_init_trav := mkETC (mkTC (is_init ∩₁ E) (is_init ∩₁ E)) (is_init ∩₁ E).
-
-Lemma ext_init_trav_coherent : etc_coherent G sc ext_init_trav.
-Proof using WF IMMCON.
-  unfold ext_init_trav.
-  constructor; unfold dom_sb_S_rfrmw, issued, covered; simpls.
-  { by apply init_trav_coherent. }
-  { basic_solver. }
-  6: rewrite (rppo_in_sb WF).
-  2-6: rewrite no_sb_to_init; basic_solver.
-  { intros x [AA BB]. intuition. }
-  rewrite rmw_W_ex.
-  all: rewrite (W_ex_not_init WF); basic_solver.
-Qed.
-
-Lemma ext_itrav_stepE e T T' (STEP : ext_itrav_step e T T') : E e.
-Proof using.
-  red in STEP. desf.
-  { eapply coveredE.
-    2: apply COVEQ; basic_solver.
-    apply ETCCOH'. }
-  { eapply issuedE.
-    { apply ETCCOH'. }
-    apply ISSEQ. basic_solver. }
-  eapply ETCCOH'.(etc_S_in_E).
-  apply RESEQ. basic_solver.
-Qed.
-
-Lemma ext_itrav_step_reserveW e T
-      (STEP : ext_itrav_step e T (mkETC (etc_TC T) (reserved T ∪₁ eq e))) :
-  W e.
+Lemma ext_itrav_stepE lbl T T' (STEP : ext_itrav_step lbl T T'):
+  E (event lbl).
 Proof using WF.
-  red in STEP. desf.
-  { exfalso. apply NCOV.
-    apply COVEQ. basic_solver. }
-  { exfalso. apply NISS.
-    apply ISSEQ. basic_solver. }
-  apply (reservedW WF ETCCOH'). basic_solver.
+  inversion STEP.
+  apply tlsc_E with (tc := T'); auto.
+  apply ets_upd0. basic_solver. 
+Qed.
+
+Lemma ext_itrav_step_reserveW w T
+      (STEP : ext_itrav_step (mkTL ta_reserve w) T (T ∪₁ eq (mkTL ta_reserve w))):
+  W w.
+Proof using WF.
+  inversion STEP.
+  eapply reservedW; [| by apply ets_tls_coh0 | ..]; auto.
+  apply reserved_union. right. red. vauto. 
 Qed.
 
 Lemma ext_itrav_step_reserve_nS e T
-      (STEP : ext_itrav_step e T (mkETC (etc_TC T) (reserved T ∪₁ eq e))) :
+      (STEP : ext_itrav_step (mkTL ta_reserve e) T (T ∪₁ eq (mkTL ta_reserve e))):
   ~ reserved T e.
 Proof using.
-  red in STEP. desf.
-  { exfalso. apply NCOV.
-    apply COVEQ. basic_solver. }
-  exfalso. apply NISS.
-  apply ISSEQ. basic_solver.
+  inversion STEP. intros RES. apply ets_new_ta0.
+  red in RES. unfolder in RES. desc. destruct y; ins; vauto. 
 Qed.
 
-Lemma ext_itrav_step_nC e T T'
-      (ETCCOH : etc_coherent G sc T)
-      (STEP : ext_itrav_step e T T') : ~ covered T e.
+(* TODO: move to TlsAux.v *)
+Definition propagated G (TLS: trav_label -> Prop): actid -> Prop :=
+  event ↑₁ (TLS ∩₁ (action ↓₁ is_ta_propagate_to_G G)). 
+
+(* TODO: move to IMM *)
+Lemma tlsc_P_in_W T (TCOH: tls_coherent G T):
+  T ∩₁ (action ↓₁ is_ta_propagate_to_G G) ⊆₁ event ↓₁ W. 
 Proof using WF.
-  assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
-  intros AA.
-  red in STEP. desf.
-  { assert (issued (etc_TC T') e) as BB.
-    { apply ISSEQ. basic_solver. }
-    apply NISS. eapply w_covered_issued; eauto.
-    split; auto.
-    eapply issuedW; [|by eauto].
-    apply ETCCOH'. }
-  apply NISS. apply (etc_I_in_S ETCCOH).
-  eapply w_covered_issued; eauto.
-  split; auto.
-  eapply (reservedW WF ETCCOH').
-  apply RESEQ. basic_solver.
+  apply tls_coherent_defs_equiv in TCOH as [tc' [INE TC']].
+  rewrite TC', set_inter_union_l. apply set_subset_union_l. split.
+  { etransitivity; [red; intro; apply proj1| ].
+    unfold init_tls. erewrite set_pair_alt, init_w; eauto. basic_solver. }
+  rewrite INE. unfold exec_tls. rewrite !set_pair_alt.
+  unfold action, event. unfolder. iord_dom_solver. 
 Qed.
 
-Lemma ext_itrav_step_ninit e T T'
-      (ETCCOH : etc_coherent G sc T)
-      (STEP : ext_itrav_step e T T') : ~ is_init e.
+(* TODO: move to TlsAux*)
+Lemma propagatedW T (TCOH: tls_coherent G T):
+  propagated G T ⊆₁ W.
 Proof using WF.
-  assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
-  intros II. eapply ext_itrav_step_nC; eauto.
-  eapply init_covered; eauto.
-  split; auto.
-  eapply ext_itrav_stepE; eauto.
-Qed.
+  unfold propagated. rewrite tlsc_P_in_W; eauto. basic_solver. 
+Qed. 
 
-Lemma ext_itrav_step_cov_coverable T e
-      (ETCCOH : etc_coherent G sc T)
-      (TSTEP : ext_itrav_step
-                 e T (mkETC (mkTC (covered T ∪₁ eq e) (issued T)) (reserved T))) :
-  coverable G sc (etc_TC T) e.
-Proof using IMMCON.
-  apply coverable_add_eq_iff; auto.
-  apply covered_in_coverable; [|basic_solver].
-  apply TSTEP.
-Qed.
+(* Not true anymore due to propagations *)
+(* Lemma ext_itrav_step_nC lbl T T' *)
+(*       (TCOH: tls_coherent G T) (ICOH: iord_coherent G sc T) *)
+(*       (STEP : ext_itrav_step lbl T T'): *)
+(*   ~ covered T (event lbl). *)
 
-Lemma ext_itrav_step_cov_next T e
-      (ETCCOH : etc_coherent G sc T)
-      (TSTEP : ext_itrav_step
-                 e T (mkETC (mkTC (covered T ∪₁ eq e) (issued T)) (reserved T))) :
+Lemma ext_itrav_step_ninit lbl T T'
+      (TCOH : tls_coherent G T)      
+      (STEP : ext_itrav_step lbl T T') : ~ is_init (event lbl).
+Proof using WF.
+  (* assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH. *)
+  intros II. inv STEP.
+  apply ets_new_ta0. pose proof TCOH as [INIT _]. apply INIT.
+  assert (T' lbl) as T'lbl by (apply ets_upd0; basic_solver). 
+  eapply tls_coh_exec in T'lbl; eauto. red in T'lbl. des; auto.
+  apply exec_tls_ENI in T'lbl. do 2 red in T'lbl. by desc. 
+Qed. 
+
+
+(* TODO: move to imm *)
+Lemma dom_rel_union_r1 {A: Type} (S1 S2: A -> Prop) (r: relation A)
+      (NOR2: ⦗S2⦘ ⨾ r ⊆ ∅₂)
+      (DOM: dom_rel r ⊆₁ S1 ∪₁ S2):
+  dom_rel r ⊆₁ S1. 
+Proof using. 
+  red. intros x D.
+  specialize (@DOM x D). destruct DOM; auto.
+  red in D. desc. 
+  edestruct NOR2; basic_solver 10.
+Qed.   
+
+
+(* TODO: move to Next *)
+Lemma iord_coherent_extend_singleton T lbl
+      (ICOH: iord_coherent G sc (T ∪₁ eq lbl)):
+  dom_rel (iord G sc ⨾ ⦗eq lbl⦘) ⊆₁ T.
+Proof using WF IMMCON.
+  red in ICOH. rewrite id_union, seq_union_r, dom_union in ICOH.
+  apply set_subset_union_l in ICOH as [_ ICOH].
+  eapply dom_rel_union_r1; eauto. 
+  red. intros x y REL%seq_eqv_lr. desc. subst. 
+  clear COM WFSC. edestruct iord_irreflexive; eauto; apply IMMCON.
+Qed. 
+
+Lemma ext_itrav_step_cov_coverable T T' e
+      (TSTEP : ext_itrav_step (mkTL ta_cover e) T T') :
+  coverable G sc T e.
+Proof using WF IMMCON.
+  inversion TSTEP. red.
+  assert (T' (mkTL ta_cover e)) as T'lbl by (apply ets_upd0; basic_solver). 
+  split.
+  { eapply tlsc_E in T'lbl; eauto. }
+  exists (mkTL ta_cover e). do 2 split; vauto. red.
+  ins. rewrite set_pair_alt, set_inter_empty_r, set_union_empty_r in ets_upd0.
+  rewrite ets_upd0 in ets_iord_coh0. 
+  apply iord_coherent_extend_singleton; eauto. 
+Qed. 
+
+Lemma ext_itrav_step_cov_next T T' e
+      (TCOH: tls_coherent G T)
+      (TSTEP : ext_itrav_step (mkTL ta_cover e) T T'):
   next G (covered T) e.
 Proof using WF IMMCON.
-  split; [split|].
-  { eapply ext_itrav_stepE; eauto. }
-  { eapply ext_itrav_step_cov_coverable; eauto. }
-  red. eapply (ext_itrav_step_nC ETCCOH). eauto.
+  split; [split|].  
+  { apply ext_itrav_stepE in TSTEP; eauto. }
+  { apply ext_itrav_step_cov_coverable in TSTEP; eauto.
+    red. rewrite <- (@dom_sb_coverable G sc); eauto. basic_solver. }
+  inversion TSTEP. intros COV. apply ets_new_ta0.
+  red in COV. unfolder in COV. desc. destruct y; ins; vauto. 
 Qed.
 
-Lemma ext_itrav_step_iss_issuable T S' e
-      (ETCCOH : etc_coherent G sc T)
-      (TSTEP : ext_itrav_step
-                 e T (mkETC (mkTC (covered T) (issued T ∪₁ eq e)) S')) :
-  issuable G sc (etc_TC T) e.
+Lemma ext_itrav_step_iss_issuable T T' e
+      (* (TSTEP : ext_itrav_step (mkTL ta_issue e) T (T ∪₁ eq (mkTL ta_issue e))) : *)
+      (TSTEP : ext_itrav_step (mkTL ta_issue e) T T') :
+  issuable G sc T e.
 Proof using WF IMMCON.
-  apply issuable_add_eq_iff; auto.
-  apply issued_in_issuable; [|basic_solver].
-  apply TSTEP.
-Qed.
+  inversion TSTEP. red.
+  assert (T' (mkTL ta_issue e)) as T'lbl by (apply ets_upd0; basic_solver). 
+  split.
+  { split. 
+    { eapply tlsc_E in T'lbl; eauto. }
+    eapply issuedW; vauto. } 
+  exists (mkTL ta_issue e). do 2 split; vauto. red.
+  rewrite ets_upd0 in ets_iord_coh0. red in ets_iord_coh0.
+  apply dom_rel_union_r1 in ets_iord_coh0; [| iord_dom_solver].
+  rewrite id_union, seq_union_r, dom_union in ets_iord_coh0.
+  apply set_subset_union_l in ets_iord_coh0 as [ICOH _].
+  eapply iord_coherent_extend_singleton; eauto. 
+Qed. 
 
-Lemma ext_itrav_step_iss_nI T e S'
-      (ETCCOH : etc_coherent G sc T)
-      (TSTEP : ext_itrav_step
-                 e T (mkETC (mkTC (covered T) (issued T ∪₁ eq e)) S')) :
+Lemma ext_itrav_step_iss_nI T T' e
+      (TSTEP : ext_itrav_step (mkTL ta_issue e) T T') :
   ~ issued T e.
 Proof using.
-  assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
-  intros AA.
-  red in TSTEP. desf.
-  { apply NCOV. apply COVEQ. basic_solver. }
-  apply NISS. by apply (etc_I_in_S ETCCOH).
+  inversion TSTEP. intros ISS. apply ets_new_ta0. 
+  red in ISS. unfolder in ISS. desc. destruct y; ins; vauto. 
 Qed.
 
 Lemma dom_sb_S_rfrmw_same_tid T w (NINIT : ~ is_init w) :
