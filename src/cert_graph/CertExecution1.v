@@ -1450,101 +1450,17 @@ Proof using WF TCOH RCOH IMMCON ICOH.
   basic_solver 10.
 Qed.
 
-Lemma is_ta_propagate_to_rstG_Gf:
-  is_ta_propagate_to_G rstG ≡₁ is_ta_propagate_to_G Gf.
-Proof using sc WF TCOH RCOH. 
-  unfold is_ta_propagate_to_G.
-  now erewrite (sub_threads SUB).
-Qed. 
-
-(* TODO: move to ?TlsAux.v? *)
-Definition propagated (TLS: trav_label -> Prop) G: actid -> Prop :=
-  event ↑₁ (TLS ∩₁ (action ↓₁ is_ta_propagate_to_G G)). 
-
-Local Ltac iord_rstG_helper :=
-  unfold rstG, rst_sc, restrict;
-  unfold SB, RF, sb; ins;
-  hahn_frame; apply map_rel_mori; auto;
-  try apply clos_trans_mori;
-  clear; basic_solver.
-
-(* TODO: move to ?SubExecution.v? *)
-Lemma SB_rstG_in_SB : SB rstG rst_sc ⊆ SB Gf sc.
-Proof using. iord_rstG_helper. Qed.
-
-(* TODO: move to ?SubExecution.v? *)
-Lemma RF_rstG_in_RF : RF rstG ⊆ RF Gf.
-Proof using. iord_rstG_helper. Qed.
-
-(* TODO: move to ?SubExecution.v? *)
-Lemma FWBOB_rstG_in_FWBOB : FWBOB rstG ⊆ FWBOB Gf.
-Proof using sc WF TCOH RCOH.
-  unfold rstG, rst_sc, restrict.
-  unfold FWBOB; ins. 
-  rewrite sub_fwbob; eauto using SUB; ins.
-  clear; basic_solver 20.
-Qed.
-
-(* TODO: move to ?SubExecution.v? *)
-Lemma AR_rstG_in_AR : AR rstG rst_sc ⊆ AR Gf sc.
-Proof using WF TCOH RCOH.
-  unfold AR; ins.
-  rewrite sub_ar_in; eauto using SUB; ins.
-  rewrite sub_ppo_in; eauto using SUB; ins.
-  repeat (apply seq_mori; try easy).
-  apply map_rel_mori; auto.
-  repeat (apply seq_mori; try easy).
-  apply clos_trans_mori.
-  clear; basic_solver 10.
-Qed.
-
-(* TODO: move to ?SubExecution.v? *)
-Lemma IPROP_rstG_in_IPROP : IPROP rstG ⊆ IPROP Gf.
-Proof using sc WF TCOH RCOH.
-  unfold IPROP.
-  now rewrite is_ta_propagate_to_rstG_Gf.
-Qed.
- 
-(* TODO: move to ?SubExecution.v? *)
-Lemma PROP_rstG_in_PROP : PROP rstG rst_sc ⊆ PROP Gf sc.
-Proof using sc WF TCOH RCOH.
-  unfold PROP.
-  rewrite is_ta_propagate_to_rstG_Gf.
-  repeat (apply seq_mori; try easy).
-  apply inter_rel_mori; try easy.
-  apply map_rel_mori; auto.
-  rewrite sub_ppo_in; eauto using SUB; ins.
-  rewrite sub_ar_in; eauto using SUB; ins.
-  rewrite sub_sb_in; eauto using SUB; ins.
-  repeat (apply seq_mori; try easy).
-  all: try apply clos_refl_trans_mori.
-  all: clear; basic_solver 10.
-Qed.
-
-Lemma iord_rstG_in_iord : iord rstG rst_sc ⊆ iord Gf sc.
-Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
-  unfold iord.
-  apply restr_rel_mori.
-  { now rewrite E_E0, E0_in_Gf. }
-  rewrite SB_rstG_in_SB.
-  rewrite RF_rstG_in_RF.
-  rewrite FWBOB_rstG_in_FWBOB.
-  rewrite AR_rstG_in_AR.
-  rewrite IPROP_rstG_in_IPROP.
-  rewrite PROP_rstG_in_PROP.
-  easy.
-Qed.
-
 Lemma ICOH_rst : iord_coherent rstG rst_sc T.
 Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
   red. etransitivity; [|now apply ICOH].
   apply dom_rel_mori. hahn_frame_r.
-  apply iord_rstG_in_iord.
+  apply sub_iord; eauto using SUB.
 Qed.
 
 Lemma init_tls_in_rstG : init_tls Gf ⊆₁ init_tls rstG.
 Proof using sc WF TCOH RCOH.
-  unfold init_tls. rewrite is_ta_propagate_to_rstG_Gf.
+  unfold init_tls.
+  rewrite sub_is_ta_propagate_to_G with (G':=rstG); eauto using SUB.
   apply AuxDef.set_pair_mori; eauto with hahn.
   arewrite (FE ∩₁ Init ⊆₁ (Init ∩₁ FE) ∩₁ Init).
   { clear; basic_solver. }
@@ -1557,7 +1473,7 @@ Proof using.
   { transitivity (init_tls Gf).
     2: now apply TCOH.
     unfold init_tls.
-    rewrite is_ta_propagate_to_rstG_Gf. 
+    rewrite sub_is_ta_propagate_to_G; eauto using SUB. 
     now rewrite E_E0, E0_in_Gf. }
   arewrite (T ⊆₁ (event ↓₁ (is_init ∪₁ set_compl is_init)) ∩₁ T).
   { clear. unfolder; ins; desf; tauto. }
@@ -1600,11 +1516,24 @@ Proof using.
     eapply issuedW; eauto. red. basic_solver. }
   { transitivity (AuxDef.set_pair (eq ta_reserve) ((E \₁ Init) ∩₁ W)).
     2: { apply AuxDef.set_pair_mori; eauto with hahn. }
+    unfolder. ins. desf. red. destruct x; ins.
+    assert (S a) as SA.
+    { red. unfolder. eauto. }
+    unfolder. splits; eauto.
+    3: { eapply reservedW; eauto. }
+    2: { eapply rcoh_S_in_E; eauto. }
     admit. }
     (* rewrite <- S_in_E. unfold issued. *)
     (* unfolder. ins. desf. destruct x; ins; desf. *)
     (* splits; eauto. *)
     (* eapply issuedW; eauto. red. basic_solver. } *)
+  transitivity (AuxDef.set_pair (is_ta_propagate_to_G rstG) ((E \₁ Init) ∩₁ W)).
+  2: { apply AuxDef.set_pair_mori; eauto with hahn. }
+  unfolder. ins. desf. red. destruct x; ins.
+  unfolder. splits; auto.
+  3: { admit. }
+  2: { admit. }
+  admit.
 
   (* unfold exec_tls. *)
   (* rewrite (tls_coh_exec TCOH). *)

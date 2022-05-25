@@ -15,21 +15,52 @@ Set Implicit Arguments.
 Definition covered  TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_cover)).
 Definition issued   TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_issue)).
 Definition reserved TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_reserve)).
+Definition propagated G TLS :=
+  event ↑₁ (TLS ∩₁ (action ↓₁ is_ta_propagate_to_G G)). 
+
+Local Ltac cirp_morph :=
+  intros x y HH; unfold covered, issued, reserved, propagated;
+  solve [now rewrite HH|now rewrite <- HH].
+
+Add Parametric Morphism : covered with signature
+    (@set_subset trav_label) ==> (@set_subset actid)
+       as covered_mori.
+Proof using. cirp_morph. Qed.
+
+Add Parametric Morphism : issued with signature
+    (@set_subset trav_label) ==> (@set_subset actid)
+       as issued_mori.
+Proof using. cirp_morph. Qed.
+
+Add Parametric Morphism : reserved with signature
+    (@set_subset trav_label) ==> (@set_subset actid)
+       as reserved_mori.
+Proof using. cirp_morph. Qed.
+
+Add Parametric Morphism : propagated with signature
+    eq ==> (@set_subset trav_label) ==> (@set_subset actid)
+       as propagated_mori.
+Proof using. intros G. cirp_morph. Qed. 
 
 Add Parametric Morphism : covered with signature
     (@set_equiv trav_label) ==> (@set_equiv actid)
        as covered_more.
-Proof using. ins. unfold covered. by rewrite H. Qed. 
+Proof using. cirp_morph. Qed.
 
 Add Parametric Morphism : issued with signature
     (@set_equiv trav_label) ==> (@set_equiv actid)
        as issued_more.
-Proof using. ins. unfold issued. by rewrite H. Qed. 
+Proof using. cirp_morph. Qed. 
 
 Add Parametric Morphism : reserved with signature
     (@set_equiv trav_label) ==> (@set_equiv actid)
        as reserved_more.
-Proof using. ins. unfold reserved. by rewrite H. Qed. 
+Proof using. cirp_morph. Qed. 
+
+Add Parametric Morphism : propagated with signature
+    eq ==> (@set_equiv trav_label) ==> (@set_equiv actid)
+       as propagated_more.
+Proof using. intros G. cirp_morph. Qed. 
 
 Section TlsProperties.
   Variable G : execution.
@@ -1619,19 +1650,3 @@ Proof using. unfold issued. split; basic_solver. Qed.
 Lemma reserved_cover_empty e:
   reserved (eq (mkTL ta_cover e)) ≡₁ ∅.
 Proof using. unfold reserved. split; basic_solver. Qed. 
-
-Add Parametric Morphism : covered with signature
-    (@set_subset trav_label) ==> (@set_subset actid)
-       as covered_mori.
-Proof using. ins. unfold covered. by rewrite H. Qed. 
-
-Add Parametric Morphism : issued with signature
-    (@set_subset trav_label) ==> (@set_subset actid)
-       as issued_mori.
-Proof using. ins. unfold issued. by rewrite H. Qed. 
-
-Add Parametric Morphism : reserved with signature
-    (@set_subset trav_label) ==> (@set_subset actid)
-       as reserved_mori.
-Proof using. ins. unfold reserved. by rewrite H. Qed. 
-
