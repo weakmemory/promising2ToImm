@@ -114,17 +114,18 @@ Variable thread : BinNums.positive.
 
 Notation "'cert_co'" := (cert_co G T thread).
 
-Notation "'D'" := (D G T S thread).
+Notation "'D'" := (D G T thread).
 
-Notation "'new_rf'" := (new_rf G sc T S thread).
-Notation "'cert_rf'" := (cert_rf G sc T S thread).
-Notation "'cert_rfi'" := (cert_rfi G sc T S thread).
-Notation "'cert_rfe'" := (cert_rfe G sc T S thread).
+Notation "'new_rf'" := (new_rf G sc T thread).
+Notation "'cert_rf'" := (cert_rf G sc T thread).
+Notation "'cert_rfi'" := (cert_rfi G sc T thread).
+Notation "'cert_rfe'" := (cert_rfe G sc T thread).
 
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCCOH : tc_coherent G sc T.
+Hypothesis TCOH : tls_coherent G T.
+Hypothesis ICOH : iord_coherent G sc T.
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -171,11 +172,11 @@ Hypothesis OLD_VAL : forall a (NIN: ~ (E \₁ D) a), val lab' a = Gval a.
 
 Hypothesis ETC_DETOUR_RMW_S : dom_rel (Gdetour ⨾ Grmw ⨾ ⦗ S ⦘) ⊆₁ I.
 
-Hypothesis SB_S          : dom_sb_S_rfrmw G (mkETC T S) (Grf ⨾ ⦗GR_ex⦘) I ⊆₁ S.
+Hypothesis SB_S          : dom_sb_S_rfrmw G T (Grf ⨾ ⦗GR_ex⦘) I ⊆₁ S.
 Hypothesis RMWREX        : dom_rel Grmw ⊆₁ GR_ex.
 Hypothesis FACQREL       : E ∩₁ F ⊆₁ Acq/Rel.
 
-Notation "'certG'" := (certG G sc T S thread lab').
+Notation "'certG'" := (certG G sc T thread lab').
 
 Hypothesis WF_cert    : Wf certG.
 Hypothesis WF_SC_cert : wf_sc certG sc.
@@ -271,7 +272,11 @@ Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 Lemma cert_imm_consistent (FAIR: mem_fair G)
   : imm_consistent certG sc.
 Proof using All.
-  red; splits; eauto 20 using WF_SC_cert, cert_acyc_ext, cert_coh_sc, cert_complete, cert_coherence, cert_rmw_atomicity.
+  red; splits.
+  all: eauto using WF_SC_cert.
+  { apply cert_coh_sc; auto. }
+
+  all: eauto 20 using WF_SC_cert, cert_acyc_ext, cert_coh_sc, cert_complete, cert_coherence, cert_rmw_atomicity.
 Qed.
 
 Lemma dom_fwbob_I : dom_rel (Gfwbob ⨾ ⦗C ∪₁ I⦘) ⊆₁ C ∪₁ I.

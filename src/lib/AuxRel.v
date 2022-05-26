@@ -1,6 +1,7 @@
 Require Import Program.Basics.
 From hahn Require Import Hahn.
 Require Import PropExtensionality.
+From imm Require Import AuxDef.
 
 Set Implicit Arguments.
 Local Open Scope program_scope.
@@ -1087,3 +1088,24 @@ Proof. red; unfolder; splits; ins; desf; split; eauto. Qed.
 Add Parametric Morphism A : (@set_minus A) with signature 
   set_subset ==> set_subset --> set_subset as set_minus_mori.
 Proof. red; unfolder; splits; ins; desf; eauto. Qed.
+
+Lemma set_pair_union_l {A B} (s s' : A -> Prop) (p : B -> Prop) :
+  (s ∪₁ s') <*> p ≡₁ s <*> p ∪₁ s' <*> p.
+Proof using.
+  clear.
+  unfold set_pair.
+  split. 
+  all: unfolder; ins.
+  all: do 2 desf; eauto.
+Qed.
+
+Lemma set_pair_union_r {A B} (s : A -> Prop) (p p' : B -> Prop) :
+  s <*> (p ∪₁ p') ≡₁ s <*> p ∪₁ s <*> p'.
+Proof using.
+  clear.
+  unfold set_pair.
+  split. 
+  all: unfolder; ins.
+  all: do 2 desf; eauto.
+Qed.
+

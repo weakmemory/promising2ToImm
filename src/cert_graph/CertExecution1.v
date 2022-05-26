@@ -14,10 +14,12 @@ From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure. 
+From imm Require Import AuxDef. 
 Require Import TlsAux.
 Require Import Next. 
 Require Import ExtTraversalConfig ExtTraversalProperties.
 Require Import AuxRel.
+Require Import Cert_new_tc.
 
 Set Implicit Arguments.
 
@@ -1457,102 +1459,97 @@ Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
   apply sub_iord; eauto using SUB.
 Qed.
 
-Lemma init_tls_in_rstG : init_tls Gf ⊆₁ init_tls rstG.
+Lemma init_tls_eq_rstG : init_tls Gf ≡₁ init_tls rstG.
 Proof using sc WF TCOH RCOH.
+  split.
+  2: { unfold init_tls.
+       rewrite sub_is_ta_propagate_to_G; eauto using SUB.
+       now rewrite E_E0, E0_in_Gf. }
   unfold init_tls.
   rewrite sub_is_ta_propagate_to_G with (G':=rstG); eauto using SUB.
-  apply AuxDef.set_pair_mori; eauto with hahn.
+  apply set_pair_mori; eauto with hahn.
   arewrite (FE ∩₁ Init ⊆₁ (Init ∩₁ FE) ∩₁ Init).
   { clear; basic_solver. }
   now rewrite INIT.
 Qed.
 
-Lemma TCOH_rst : tls_coherent rstG T.
+Lemma TCOH_rst : tls_coherent rstG (certT T thread E).
 Proof using.
+  (* assert (FE ∩₁ Init ⊆₁ E ∩₁ Init) as AA. *)
+  (* { arewrite (FE ∩₁ Init ⊆₁ (Init ∩₁ FE) ∩₁ Init). *)
+  (*   { clear. basic_solver. } *)
+  (*   now rewrite INIT.  } *)
+  assert (I ⊆₁ E ∩₁ W) as IEW.
+  { generalize I_in_E (issuedW WF TCOH).
+    clear. basic_solver 10. }
+  assert (I ∪₁ S ∩₁ Tid_ thread ⊆₁ E ∩₁ W) as ISTEW.
+  { apply set_subset_union_l. splits; auto.
+    apply set_subset_inter_r. splits; auto.
+    { rewrite <- tid_S_in_E. clear. basic_solver. }
+    rewrite reservedW; eauto. clear. basic_solver. }
   split.
-  { transitivity (init_tls Gf).
-    2: now apply TCOH.
-    unfold init_tls.
-    rewrite sub_is_ta_propagate_to_G; eauto using SUB. 
-    now rewrite E_E0, E0_in_Gf. }
-  arewrite (T ⊆₁ (event ↓₁ (is_init ∪₁ set_compl is_init)) ∩₁ T).
+  { rewrite <- init_tls_eq_rstG.
+    now apply init_tls_in_certT. }
+  arewrite (certT T thread E ⊆₁ (event ↓₁ (is_init ∪₁ set_compl is_init)) ∩₁ certT T thread E).
   { clear. unfolder; ins; desf; tauto. }
   rewrite set_map_union.
   rewrite set_inter_union_l.
   apply set_union_mori.
-  { rewrite (tls_coh_exec TCOH).
+  { unfold certT.
+    rewrite !set_inter_union_r.
+    unionL.
+    3: { unfold init_tls.
+         clear. unfold set_pair. unfolder. ins. do 2 desf.
+         splits; auto. }
+    2: { unfold init_tls. rewrite ISTEW.
+         clear. unfold set_pair. unfolder. ins. do 2 desf.
+         splits; auto. }
+    rewrite (tls_coh_exec TCOH).
+    rewrite set_inter_union_l.
     rewrite set_inter_union_r.
-    rewrite init_tls_in_rstG.
+    unionL.
+    { rewrite init_tls_eq_rstG. clear. basic_solver 10. }
+    transitivity (event ⋄₁ Init ∩₁ exec_tls Gf).
+    { clear. basic_solver 10. }
     arewrite (event ⋄₁ Init ∩₁ exec_tls Gf ⊆₁ ∅).
     { rewrite exec_tls_ENI. clear. basic_solver 10. }
     clear; basic_solver. }
-  (* TODO: make a lemma *)
-  arewrite
-    (T ⊆₁ T ∩₁ action ↓₁ (eq ta_cover
-                             ∪₁ eq ta_issue
-                             ∪₁ eq ta_reserve
-                             ∪₁ is_ta_propagate_to_G Gf)).
-  { unfolder. intros l HH. split; auto.
-    destruct l as [t]; destruct t; eauto.
-    right. red. apply TCOH in HH. destruct HH as [HH|HH].
-    { destruct HH as [HH]. unfolder in HH. desf. }
-    red in HH. unfold AuxDef.set_pair in HH.
-    unfolder in HH. desf. }
-  unfold exec_tls.
+  unfold certT, exec_tls.
   rewrite !set_unionA.
   rewrite !set_map_union.
   rewrite !set_inter_union_r.
-  apply set_union_mori.
-  { rewrite <- C_in_E. unfold covered.
-    clear. 
-    unfolder. ins. desf. destruct x; ins; desf.
-    splits; eauto. }
+  rewrite !set_unionA.
+  rewrite !set_pair_union_l.
   unionL.
-  { transitivity (AuxDef.set_pair (eq ta_issue) ((E \₁ Init) ∩₁ W)).
-    2: { apply AuxDef.set_pair_mori; eauto with hahn. }
-    rewrite <- I_in_E. unfold issued.
-    unfolder. ins. desf. destruct x; ins; desf.
-    splits; eauto.
-    eapply issuedW; eauto. red. basic_solver. }
-  { transitivity (AuxDef.set_pair (eq ta_reserve) ((E \₁ Init) ∩₁ W)).
-    2: { apply AuxDef.set_pair_mori; eauto with hahn. }
-    unfolder. ins. desf. red. destruct x; ins.
-    assert (S a) as SA.
-    { red. unfolder. eauto. }
-    unfolder. splits; eauto.
-    3: { eapply reservedW; eauto. }
-    2: { eapply rcoh_S_in_E; eauto. }
+  { arewrite (T ∩₁ action ⋄₁ eq ta_cover ⊆₁ eq ta_cover <*> (event □₁ (T ∩₁ action ⋄₁ eq ta_cover))).
+    { clear. unfold set_pair. basic_solver 10. }
+    rewrite C_in_E.
+    clear. unfold set_pair. unfolder. ins. do 2 desf. eauto. }
+  { unionR right -> left.
+    arewrite (T ∩₁ action ⋄₁ eq ta_issue ⊆₁ eq ta_issue <*> (event □₁ (T ∩₁ action ⋄₁ eq ta_issue))).
+    { clear. unfold set_pair. basic_solver 10. }
+    rewrite IEW.
+    clear. unfold set_pair. unfolder. ins. do 2 desf. }
+  { unionR right -> right -> right.
+    arewrite (T ∩₁ action ⋄₁ is_ta_propagate
+                ⊆₁ is_ta_propagate <*> (event □₁ (T ∩₁ action ⋄₁ is_ta_propagate))).
+    { clear. unfold set_pair. basic_solver 10. }
+    rewrite (tls_coh_exec TCOH).
+    rewrite set_inter_union_l.
+    rewrite set_collect_union.
+    rewrite set_pair_union_r.
+    rewrite set_inter_union_r.
+    unionL.
+    { rewrite init_tls_EI. unfold set_pair. unfolder. ins. do 2 desf. }
+    (* unfold set_pair. unfolder. ins. do 2 desf. unfolder. splits; auto. *)
+    (* rewrite exec_tls_ENI. *)
     admit. }
-    (* rewrite <- S_in_E. unfold issued. *)
-    (* unfolder. ins. desf. destruct x; ins; desf. *)
-    (* splits; eauto. *)
-    (* eapply issuedW; eauto. red. basic_solver. } *)
-  transitivity (AuxDef.set_pair (is_ta_propagate_to_G rstG) ((E \₁ Init) ∩₁ W)).
-  2: { apply AuxDef.set_pair_mori; eauto with hahn. }
-  unfolder. ins. desf. red. destruct x; ins.
-  unfolder. splits; auto.
-  3: { admit. }
-  2: { admit. }
-  admit.
-
-  (* unfold exec_tls. *)
-  (* rewrite (tls_coh_exec TCOH). *)
-  (* apply set_union_mori. *)
-  (* { unfold init_tls. *)
-  (*   apply AuxDef.set_pair_mori. *)
-  (*   (* arewrite (FE ∩₁ Init ⊆₁ E ∩₁ Init). *) *)
-  (*   2: { generalize INIT. clear; basic_solver. } *)
-  (*   arewrite (is_ta_propagate_to_G Gf ⊆₁ is_ta_propagate_to_G rstG). *)
-  (*   2: easy. *)
-  (*   (* TODO: looks like it is not true now... *) *)
-  (*   admit. } *)
-  (* unfold exec_tls. *)
+  { unionR right -> right -> left.
+    rewrite ISTEW.
+    unfold set_pair. unfolder. ins. do 2 desf. }
+  unionR left.
+  clear. unfold set_pair. unfolder. ins. do 2 desf.
 Admitted.
-
-Lemma TCOH_ICOH_rst : tls_coherent rstG T /\ iord_coherent rstG rst_sc T.
-Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
-  split; auto using ICOH_rst, TCOH_rst.
-Qed.
 
 (* Lemma TCOH_rst : tc_coherent rstG rst_sc T. *)
 (* Proof using WF  RELCOV RMWCOV. *)
@@ -1577,93 +1574,94 @@ Qed.
 (* Qed. *)
 
 Lemma C_E_NTid : C ∪₁ (E ∩₁ NTid_ thread) ≡₁
-C ∪₁ (I ∩₁ NTid_ thread) ∪₁ 
-dom_rel (Frmw ⨾ ⦗ NTid_ thread ∩₁ I ⦘)
+                 C ∪₁ (I ∩₁ NTid_ thread) ∪₁ 
+                   dom_rel (Frmw ⨾ ⦗ NTid_ thread ∩₁ I ⦘)
 .
-Proof using WF WF_SC .
-  assert (TCOH1:= TCOH).
-  apply (tc_coherent_implies_tc_coherent_alt WF WF_SC) in TCOH1.
-  destruct TCOH1.
+Proof using WF TCOH RCOH.
   rewrite E_E0; unfold E0; split; relsf; unionL; splits.
   1-3,5-7: basic_solver 12.
   { rewrite sb_tid_init'.
+    rewrite unionC. rewrite cr_union_r.
     relsf; splits.
+    2: { clear. basic_solver. }
     rewrite (dom_l (@wf_sbE Gf)).
-    revert tc_init; basic_solver 12. }
+    transitivity C; eauto with hahn.
+    rewrite <- init_covered; eauto.
+    basic_solver 12. }
   unionR right -> right.
   apply set_subset_inter_r; splits.
-  basic_solver.
+  { clear. basic_solver. }
   rewrite (rmw_from_non_init WF).
   rewrite (rmw_in_sb WF).
   rewrite sb_tid_init'.
-  unfolder. ins. desf. congruence.
+  clear. unfolder. ins. desf. congruence.
 Qed.
 
-Lemma TCOH_rst_new_T : tc_coherent rstG rst_sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I).
-Proof using All.
-  assert (TCOH1:= TCOH).
-  apply (tc_coherent_implies_tc_coherent_alt WF WF_SC) in TCOH1.
-  destruct TCOH1.
-  apply tc_coherent_alt_implies_tc_coherent; constructor; ins.
-  { rewrite (sub_E_in SUB) at 1. rewrite tc_init. basic_solver. }
-  { unionL; [by rewrite C_in_E|basic_solver]. }
-  { rewrite C_E_NTid at 1.
-    rewrite !id_union; relsf; unionL; splits.
-    { rewrite (sub_sb_in SUB). rewrite tc_sb_C. basic_solver. }
-    { rewrite sb_tid_init'.
-      relsf; splits.
-      { rewrite (dom_l (@wf_sbE rstG)).
-        unfolder. ins. desf. red in H4, H2.
-        right. splits; try basic_solver. congruence. }
-      rewrite (dom_l (@wf_sbE rstG)); rewrite (sub_E_in SUB) at 1. 
-      revert tc_init. basic_solver. }
-    rewrite dom_rel_eqv_dom_rel.
+(* Lemma TCOH_rst_new_T : tc_coherent rstG rst_sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I). *)
+(* Proof using All. *)
+(*   assert (TCOH1:= TCOH). *)
+(*   apply (tc_coherent_implies_tc_coherent_alt WF WF_SC) in TCOH1. *)
+(*   destruct TCOH1. *)
+(*   apply tc_coherent_alt_implies_tc_coherent; constructor; ins. *)
+(*   { rewrite (sub_E_in SUB) at 1. rewrite tc_init. basic_solver. } *)
+(*   { unionL; [by rewrite C_in_E|basic_solver]. } *)
+(*   { rewrite C_E_NTid at 1. *)
+(*     rewrite !id_union; relsf; unionL; splits. *)
+(*     { rewrite (sub_sb_in SUB). rewrite tc_sb_C. basic_solver. } *)
+(*     { rewrite sb_tid_init'. *)
+(*       relsf; splits. *)
+(*       { rewrite (dom_l (@wf_sbE rstG)). *)
+(*         unfolder. ins. desf. red in H4, H2. *)
+(*         right. splits; try basic_solver. congruence. } *)
+(*       rewrite (dom_l (@wf_sbE rstG)); rewrite (sub_E_in SUB) at 1.  *)
+(*       revert tc_init. basic_solver. } *)
+(*     rewrite dom_rel_eqv_dom_rel. *)
 
-    rewrite (rmw_in_sb WF).
-    rewrite (dom_l (@wf_sbE rstG)), !seqA.
-    rewrite (sub_sb_in SUB) at 1.
-    generalize (@sb_trans Gf); ins; relsf.
+(*     rewrite (rmw_in_sb WF). *)
+(*     rewrite (dom_l (@wf_sbE rstG)), !seqA. *)
+(*     rewrite (sub_sb_in SUB) at 1. *)
+(*     generalize (@sb_trans Gf); ins; relsf. *)
 
 
-    rewrite sb_tid_init'.
-    relsf; splits.
-    { unfolder. ins. desf. red in H4. intuition. }
-    rewrite (sub_E_in SUB) at 1. 
-    revert tc_init. basic_solver. }
-  { rewrite C_E_NTid.
-    rewrite !set_inter_union_l.
-    unionL; [done| basic_solver| rewrite (dom_l (wf_rmwD WF)); type_solver]. }
-  { arewrite (⦗E0⦘ ⨾ Frf ⨾ ⦗E0⦘ ⊆ Grf).
-    rewrite rfi_union_rfe; relsf; splits.
-    { rewrite C_E_NTid.
-      rewrite !id_union; relsf; unionL; splits.
-      { rewrite (dom_l (wf_rfiD WF_rst)).
-        arewrite (Grfi ⊆ Gsb).
-        rewrite (sub_W SUB), (sub_sb_in SUB).
-        generalize tc_W_C_in_I tc_sb_C. basic_solver 21. }
-      { rewrite (dom_r (wf_rfiD WF_rst)); rewrite tc_I_in_W at 1.
-        type_solver. }
-      rewrite (sub_rfi_in SUB).
-      unfolder; ins; desc; subst.
-      eapply rfrmw_I_in_I; eauto.
-      { apply TCOH. }
-      unfolder. do 2 eexists. split.
-      { match goal with
-        | H : Frfi _ _ |- _ => apply H
-        end. }
-      eauto. }
-    rewrite (dom_r (wf_rfeE WF_rst)), !seqA.
-    sin_rewrite (dom_rel_helper_in Grfe_E).
-    basic_solver. }
-  { rewrite (dom_r (wf_scE WF_SC_rst)), (dom_r (wf_scD WF_SC_rst)), !seqA.
-    arewrite (⦗F ∩₁ Sc⦘ ⨾ ⦗E⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ⊆ ⦗C⦘).
-    { generalize E_F_Sc_in_C. basic_solver. }
-    rewrite (sub_sc_in SUB).
-    rewrite tc_sc_C. basic_solver. }
-  { apply I_in_E. }
-  { rewrite (sub_fwbob_in SUB), tc_fwbob_I. basic_solver. }
-  rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_ppo_in SUB); auto.
-Qed.
+(*     rewrite sb_tid_init'. *)
+(*     relsf; splits. *)
+(*     { unfolder. ins. desf. red in H4. intuition. } *)
+(*     rewrite (sub_E_in SUB) at 1.  *)
+(*     revert tc_init. basic_solver. } *)
+(*   { rewrite C_E_NTid. *)
+(*     rewrite !set_inter_union_l. *)
+(*     unionL; [done| basic_solver| rewrite (dom_l (wf_rmwD WF)); type_solver]. } *)
+(*   { arewrite (⦗E0⦘ ⨾ Frf ⨾ ⦗E0⦘ ⊆ Grf). *)
+(*     rewrite rfi_union_rfe; relsf; splits. *)
+(*     { rewrite C_E_NTid. *)
+(*       rewrite !id_union; relsf; unionL; splits. *)
+(*       { rewrite (dom_l (wf_rfiD WF_rst)). *)
+(*         arewrite (Grfi ⊆ Gsb). *)
+(*         rewrite (sub_W SUB), (sub_sb_in SUB). *)
+(*         generalize tc_W_C_in_I tc_sb_C. basic_solver 21. } *)
+(*       { rewrite (dom_r (wf_rfiD WF_rst)); rewrite tc_I_in_W at 1. *)
+(*         type_solver. } *)
+(*       rewrite (sub_rfi_in SUB). *)
+(*       unfolder; ins; desc; subst. *)
+(*       eapply rfrmw_I_in_I; eauto. *)
+(*       { apply TCOH. } *)
+(*       unfolder. do 2 eexists. split. *)
+(*       { match goal with *)
+(*         | H : Frfi _ _ |- _ => apply H *)
+(*         end. } *)
+(*       eauto. } *)
+(*     rewrite (dom_r (wf_rfeE WF_rst)), !seqA. *)
+(*     sin_rewrite (dom_rel_helper_in Grfe_E). *)
+(*     basic_solver. } *)
+(*   { rewrite (dom_r (wf_scE WF_SC_rst)), (dom_r (wf_scD WF_SC_rst)), !seqA. *)
+(*     arewrite (⦗F ∩₁ Sc⦘ ⨾ ⦗E⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ⊆ ⦗C⦘). *)
+(*     { generalize E_F_Sc_in_C. basic_solver. } *)
+(*     rewrite (sub_sc_in SUB). *)
+(*     rewrite tc_sc_C. basic_solver. } *)
+(*   { apply I_in_E. } *)
+(*   { rewrite (sub_fwbob_in SUB), tc_fwbob_I. basic_solver. } *)
+(*   rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_ppo_in SUB); auto. *)
+(* Qed. *)
 
 (* There was a commented out lemma for finite case. See commit history for it *)
 (* Lemma GW_ex_in_IST *)
