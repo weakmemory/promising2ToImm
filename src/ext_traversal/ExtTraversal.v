@@ -17,54 +17,6 @@ Require Import Next.
 
 Set Implicit Arguments.
 
-(* TODO: move to imm*)
-Lemma init_tls_tls_coherent G:
-  tls_coherent G (init_tls G). 
-Proof using. apply tls_coherent_defs_equiv. exists ∅. basic_solver. Qed. 
-
-(* TODO: move to imm*)
-Lemma init_tls_iord_coherent G sc:
-  iord_coherent G sc (init_tls G). 
-Proof using.
-  red. rewrite TlsAux.iord_alt, restr_relE.
-  rewrite init_tls_EI at 1. basic_solver 10. 
-Qed.
-
-(* TODO: move somewhere *)
-Lemma covered_events (A: actid -> Prop):
-  covered (event ↓₁ A) ⊆₁ A. 
-Proof using. unfold covered. basic_solver. Qed. 
-
-(* TODO: move somewhere *)
-Lemma issued_events (A: actid -> Prop):
-  issued (event ↓₁ A) ⊆₁ A. 
-Proof using. unfold issued. basic_solver. Qed. 
-
-(* TODO: move somewhere *)
-Lemma reserved_events (A: actid -> Prop):
-  reserved (event ↓₁ A) ⊆₁ A. 
-Proof using. unfold reserved. basic_solver. Qed. 
-
-(* TODO: move to ExtTraversalConfig *)
-Lemma init_tls_reserve_coherent G (WF: Wf G):
-  reserve_coherent G (init_tls G). 
-Proof using.
-  assert (forall a (NP: forall t, a <> ta_propagate t),
-             event □₁ (init_tls G ∩₁ action ↓₁ eq a) ≡₁ acts_set G ∩₁ is_init) as INIT. 
-  { ins. unfold init_tls. rewrite set_pair_alt.
-    split; try basic_solver 10.
-    red. intros e [Ee Ie]. exists (mkTL a e). unfolder. splits; vauto.
-    destruct a; ins; try tauto. edestruct NP; vauto. }
-  split; unfold dom_sb_S_rfrmw, reserved, covered, issued.
-  all: repeat (rewrite INIT; [| done]).
-  3: rewrite set_minusK.
-  8: rewrite rppo_in_sb; auto.
-  9: rewrite rmw_in_sb; auto.
-  10: rewrite W_ex_not_init; auto.
-  all: try rewrite no_sb_to_init; basic_solver. 
-Qed. 
-
-
 Section ExtTraversalConfig.
 Variable G : execution.
 
@@ -598,26 +550,6 @@ End Props.
 (*   all: red; unfold covered, issued in *; eauto. *)
 (* Qed. *)
 
-(* TODO: move to ExtTraversalConfig.v *)
-Global Add Parametric Morphism : dom_sb_S_rfrmw with signature
-    eq ==> set_equiv ==> same_relation ==> set_equiv ==> set_equiv as
-         dom_sb_S_rfrmw_more.
-Proof using.
-  intros x T T' EQ s s' EQS e e' EQE.
-  unfold dom_sb_S_rfrmw. now rewrite EQ, EQS, EQE.
-Qed.
-
-(* TODO: move to ExtTraversalConfig.v *)
-Global Add Parametric Morphism : reserve_coherent with signature
-    eq ==> set_equiv ==> iff as
-         reserve_coherent_more.
-Proof using.
-  intros x T T' EQ.
-  split; intros HH; split.
-  all: try now rewrite <- EQ; apply HH.
-  all: now rewrite EQ; apply HH.
-Qed.
-
 Global Add Parametric Morphism : ets_upd_reserve with signature
     eq ==> set_equiv ==> set_equiv as
          ets_upd_reserve_more.
@@ -689,29 +621,6 @@ Proof using.
   red in RES. unfolder in RES. desc. destruct y; ins; vauto. 
 Qed.
 
-(* TODO: move to TlsAux.v *)
-Definition propagated G (TLS: trav_label -> Prop): actid -> Prop :=
-  event ↑₁ (TLS ∩₁ (action ↓₁ is_ta_propagate_to_G G)). 
-
-(* TODO: move to IMM *)
-Lemma tlsc_P_in_W T (TCOH: tls_coherent G T):
-  T ∩₁ (action ↓₁ is_ta_propagate_to_G G) ⊆₁ event ↓₁ W. 
-Proof using WF.
-  apply tls_coherent_defs_equiv in TCOH as [tc' [INE TC']].
-  rewrite TC', set_inter_union_l. apply set_subset_union_l. split.
-  { etransitivity; [red; intro; apply proj1| ].
-    unfold init_tls. erewrite set_pair_alt, init_w; eauto. basic_solver. }
-  rewrite INE. unfold exec_tls. rewrite !set_pair_alt.
-  unfold action, event. unfolder. iord_dom_solver. 
-Qed.
-
-(* TODO: move to TlsAux*)
-Lemma propagatedW T (TCOH: tls_coherent G T):
-  propagated G T ⊆₁ W.
-Proof using WF.
-  unfold propagated. rewrite tlsc_P_in_W; eauto. basic_solver. 
-Qed. 
-
 (* Not true anymore due to propagations *)
 (* Lemma ext_itrav_step_nC lbl T T' *)
 (*       (TCOH: tls_coherent G T) (ICOH: iord_coherent G sc T) *)
@@ -729,20 +638,6 @@ Proof using WF.
   eapply tls_coh_exec in T'lbl; eauto. red in T'lbl. des; auto.
   apply exec_tls_ENI in T'lbl. do 2 red in T'lbl. by desc. 
 Qed. 
-
-
-(* TODO: move to imm *)
-Lemma dom_rel_union_r1 {A: Type} (S1 S2: A -> Prop) (r: relation A)
-      (NOR2: ⦗S2⦘ ⨾ r ⊆ ∅₂)
-      (DOM: dom_rel r ⊆₁ S1 ∪₁ S2):
-  dom_rel r ⊆₁ S1. 
-Proof using. 
-  red. intros x D.
-  specialize (@DOM x D). destruct DOM; auto.
-  red in D. desc. 
-  edestruct NOR2; basic_solver 10.
-Qed.   
-
 
 (* TODO: move to Next *)
 Lemma iord_coherent_extend_singleton T lbl

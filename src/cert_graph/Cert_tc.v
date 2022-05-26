@@ -16,6 +16,12 @@ From imm Require Import TraversalConfig.
 From imm Require Import TraversalConfigAlt.
 From imm Require Import TraversalConfigAltOld.
 From imm Require Import FinExecution. 
+
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+Require Import TlsAux.
+
 Require Import ExtTraversalConfig.
 
 Require Import Cert_co.
@@ -98,12 +104,11 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra Glab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc Glab a)).
 Notation "'xacq'" := (fun a => is_true (is_xacq Glab a)).
 
-
-Variable T : trav_config.
-Variable S : actid -> Prop.
+Variable T : trav_label -> Prop.
 
 Notation "'I'" := (issued T).
 Notation "'C'" := (covered T).
+Notation "'S'" := (reserved T).
 
 Variable thread : BinNums.positive.
 

@@ -62,6 +62,18 @@ Add Parametric Morphism : propagated with signature
        as propagated_more.
 Proof using. intros G. cirp_morph. Qed. 
 
+Lemma covered_events (A: actid -> Prop):
+  covered (event ↓₁ A) ⊆₁ A. 
+Proof using. unfold covered. basic_solver. Qed. 
+
+Lemma issued_events (A: actid -> Prop):
+  issued (event ↓₁ A) ⊆₁ A. 
+Proof using. unfold issued. basic_solver. Qed. 
+
+Lemma reserved_events (A: actid -> Prop):
+  reserved (event ↓₁ A) ⊆₁ A. 
+Proof using. unfold reserved. basic_solver. Qed. 
+
 Section TlsProperties.
   Variable G : execution.
   Variable WF : Wf G.
@@ -200,19 +212,16 @@ Definition issuable T :=
     destruct TLSCOH. apply tls_coh_init. red. split; basic_solver. 
   Qed.
 
-  (* TODO: move to imm/travorder *)
-  Lemma dom_rel_collect_event (b : trav_action) A B r
-        (UU : B ⊆₁ action ↓₁ eq b)
-        (AA : dom_rel (⦗action ↓₁ eq b⦘ ⨾ event ↓ r ⨾ ⦗A⦘) ⊆₁ B) :
-    dom_rel (r ⨾ ⦗event ↑₁ A⦘) ⊆₁ event ↑₁ B.
-  Proof using.
-    clear -AA UU. unfolder. ins. desf.
-    exists (mkTL b x); ins.
-    split; auto.
-    apply AA.
-    unfolder. do 2 eexists; ins; eauto.
-    splits; eauto.
-  Qed.
+  Lemma propagatedW : propagated G T ⊆₁ W.
+  Proof using WF TLSCOH.
+    clear -WF TLSCOH.
+    unfold propagated.
+    unfolder. ins. desf.
+    unfold is_ta_propagate_to_G in *.
+    unfolder in *. desf.
+    eapply tlsc_P_in_W; eauto.
+    basic_solver.
+  Qed. 
 
   (* Lemma dom_rel_iord_parts (a1 a2: trav_action) (r: relation actid) *)
   (*       (R_IORD: ⦗action ↓₁ eq a1⦘ ⨾ event ↓ r ⨾ ⦗action ↓₁ eq a2⦘ *)
@@ -232,48 +241,6 @@ Definition issuable T :=
   (*   rewrite set_interC, id_inter. sin_rewrite R_IORD. *)
   (*   eapply iord_coh_implies_iord_simpl_coh'; eauto. *)
   (* Qed. *)
-
-  Lemma iord_alt:
-    iord G sc ≡ restr_rel (event ↓₁ (E \₁ is_init)) (iord_simpl G sc).
-  Proof using. unfold iord, iord_simpl. basic_solver 10. Qed.
-
-  Lemma dom_cond_alt {A : Type} (r : relation A) (d : A -> Prop):
-    dom_cond r d ≡₁ (⋃₁ e ∈ (fun e_ => dom_rel (r ⨾ ⦗eq e_⦘) ⊆₁ d), eq e).
-  Proof using. unfold dom_cond. basic_solver 10. Qed. 
-  
-  Lemma iord_simpl_irreflexive (IMMCON: imm_consistent G sc):
-    irreflexive (iord_simpl G sc). 
-  Proof using WF COM.
-    clear WFSC. 
-    unfold iord_simpl.
-    repeat (apply irreflexive_union; split).
-    all: auto using SB_irr, RF_irr, FWBOB_irr, AR_irr, IPROP_irr, PROP_irr.
-    apply SB_irr; auto. by apply IMMCON. 
-  Qed.
-
-  (* TODO: move somewhere *)
-  Lemma dom_rel_iord_ext_parts (a1 a2: trav_action) (r: relation actid)
-        (R_IORD: ⦗action ↓₁ eq a1⦘ ⨾ event ↓ r ⨾ ⦗action ↓₁ eq a2⦘ ⊆ iord_simpl G sc)
-        (R_E_ENI: r ⊆ E × (E \₁ is_init))
-        (INITa1: is_init ∩₁ E ⊆₁ event ↑₁ (T ∩₁ action ↓₁ eq a1))
-    :
-    dom_rel (r ⨾ ⦗event ↑₁ (dom_cond (iord G sc) T ∩₁ action ↓₁ eq a2)⦘)
-    ⊆₁ event ↑₁ (T ∩₁ action ↓₁ eq a1).
-  Proof using.
-    rewrite AuxRel2.set_split_complete with (s' := dom_rel _) (s := is_init).
-    apply dom_helper_3 in R_E_ENI. 
-    apply set_subset_union_l. split.
-    { rewrite <- INITa1. rewrite !dom_seq. rewrite R_E_ENI. basic_solver. }
-    rewrite set_interC, <- dom_eqv1, <- seqA. 
-    eapply dom_rel_collect_event with (b := a1); [basic_solver| ].
-    apply set_subset_inter_r. split; [| basic_solver].
-    rewrite set_interC, id_inter.  
-    arewrite (⦗action ↓₁ eq a1⦘ ⨾ event ↓ (⦗set_compl Init⦘ ⨾ r) ⨾ ⦗action ↓₁ eq a2⦘ ⊆ iord G sc). 
-    { rewrite iord_alt. rewrite R_E_ENI. unfolder. ins. desc.
-      splits; eauto; try congruence.
-      apply R_IORD. basic_solver. }
-    rewrite dom_cond_elim. basic_solver. 
-  Qed. 
 
   Lemma dom_sb_coverable :
     dom_rel (sb ⨾ ⦗ coverable T ⦘) ⊆₁ covered T.

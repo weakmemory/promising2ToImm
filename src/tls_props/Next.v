@@ -134,10 +134,6 @@ Qed.
   Definition issuable_simpl T :=
     E ∩₁ W ∩₁ event ↑₁ (dom_cond (iord_simpl G sc) T ∩₁ action ↓₁ eq ta_issue).
 
-  (* Lemma iord_alt: *)
-  (*   iord G sc ≡ restr_rel (event ↓₁ (E \₁ is_init)) (iord_simpl G sc). *)
-  (* Proof using. unfold iord_simpl, iord. basic_solver 10. Qed.  *)
-
   (* Lemma issuable_defs_equiv T: *)
   (*   issuable G sc T ≡₁ issuable_simpl T. *)
   (* Proof using.  *)
@@ -148,10 +144,6 @@ Qed.
   (*   unfolder. ins. desc. splits; eauto. exists y. splits; auto. *)
   (*   ins. desc. subst. apply H0. do 2 eexists. splits; eauto.   *)    
   (*   unfold iord_simpl, iord.  *)
-
-  Lemma dom_cond_alt {A : Type} (r : relation A) (d : A -> Prop):
-    dom_cond r d ≡₁ (⋃₁ e ∈ (fun e_ => dom_rel (r ⨾ ⦗eq e_⦘) ⊆₁ d), eq e).
-  Proof using. unfold dom_cond. basic_solver 10. Qed. 
 
   (* TODO: move somewhere *)
   Ltac clear_iord_union :=
@@ -166,24 +158,6 @@ Qed.
       unfold iord; rewrite <- ?restr_seq_eqv_r, <- ?restr_seq_eqv_l;
       erewrite restr_rel_mori; [| reflexivity| clear_iord_union];
       rewrite !union_false_l, !union_false_r. 
-
-  (* TODO: replace dom_rel_collect_event2 with this *)
-  Lemma dom_rel_collect_event2 (b : trav_action) A B r
-        (UU : B ⊆₁ action ↓₁ eq b):
-    dom_rel (⦗action ↓₁ eq b⦘ ⨾ event ↓ r ⨾ ⦗A⦘) ⊆₁ B <->
-    dom_rel (r ⨾ ⦗event ↑₁ A⦘) ⊆₁ event ↑₁ B.
-  Proof using.
-    split; [by apply dom_rel_collect_event| ]. ins.  
-    unfolder. ins. desf. destruct x as [a1 e1], y as [a2 e2]. ins. 
-    specialize (H e1). specialize_full H.
-    { eexists. apply seq_eqv_r. split; vauto. }
-    red in H. desc.
-    specialize (UU _ H).  destruct y as [a3 e3]. red in UU. ins. subst. auto. 
-  Qed.
-
-  Lemma event_collect_eq a e:
-    event ↑₁ eq (mkTL a e) ≡₁ eq e.
-  Proof. basic_solver. Qed.  
 
   Lemma issuable_next_w T 
     (TCOH: tls_coherent G T)

@@ -128,7 +128,6 @@ Record reserve_coherent (T: trav_label -> Prop) :=
   rcoh_d_rmw_S        : dom_rel (detour ⨾ rmw ⨾ ⦗ reserved T ⦘) ⊆₁ issued T;
   rcoh_S_W_ex_rfrmw_I : reserved T ∩₁ W_ex ⊆₁ codom_rel (⦗issued T⦘ ⨾ rf ⨾ rmw);
  }.
-  
 
 Section Props.
 
@@ -136,6 +135,24 @@ Variable WF : Wf G.
 Variable T : trav_label -> Prop. 
 Variable TCOH : tls_coherent G T.
 Variable RCOH : reserve_coherent T.
+
+Lemma init_tls_reserve_coherent :
+  reserve_coherent (init_tls G). 
+Proof using WF.
+  assert (forall a (NP: forall t, a <> ta_propagate t),
+             event □₁ (init_tls G ∩₁ action ↓₁ eq a) ≡₁ acts_set G ∩₁ is_init) as INIT. 
+  { ins. unfold init_tls. rewrite set_pair_alt.
+    split; try basic_solver 10.
+    red. intros e [Ee Ie]. exists (mkTL a e). unfolder. splits; vauto.
+    destruct a; ins; try tauto. edestruct NP; vauto. }
+  split; unfold dom_sb_S_rfrmw, reserved, covered, issued.
+  all: repeat (rewrite INIT; [| done]).
+  3: rewrite set_minusK.
+  8: rewrite rppo_in_sb; auto.
+  9: rewrite rmw_in_sb; auto.
+  10: rewrite W_ex_not_init; auto.
+  all: try rewrite no_sb_to_init; basic_solver. 
+Qed.
 
 Lemma rcoh_rmw_S : dom_rel ((detour ∪ rfe) ⨾ rmw ⨾ ⦗ reserved T ⦘) ⊆₁ issued T.
 Proof using WF RCOH.
@@ -187,3 +204,21 @@ Qed.
 
 End Props.
 End ExtTraversalConfig.
+
+Global Add Parametric Morphism : dom_sb_S_rfrmw with signature
+    eq ==> set_equiv ==> same_relation ==> set_equiv ==> set_equiv as
+         dom_sb_S_rfrmw_more.
+Proof using.
+  intros x T T' EQ s s' EQS e e' EQE.
+  unfold dom_sb_S_rfrmw. now rewrite EQ, EQS, EQE.
+Qed.
+
+Global Add Parametric Morphism : reserve_coherent with signature
+    eq ==> set_equiv ==> iff as
+         reserve_coherent_more.
+Proof using.
+  intros x T T' EQ.
+  split; intros HH; split.
+  all: try now rewrite <- EQ; apply HH.
+  all: now rewrite EQ; apply HH.
+Qed.
