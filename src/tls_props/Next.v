@@ -9,7 +9,8 @@ From imm Require Import FinExecution.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsAux.
+Require Import TlsEventSets.
+Require Import EventsTraversalOrder.
 
 Section Next.
   Variable G : execution.
@@ -131,21 +132,7 @@ Qed.
     apply NEXT.
   Qed.
 
-  Definition issuable_simpl T :=
-    E ∩₁ W ∩₁ event ↑₁ (dom_cond (iord_simpl G sc) T ∩₁ action ↓₁ eq ta_issue).
-
-  (* Lemma issuable_defs_equiv T: *)
-  (*   issuable G sc T ≡₁ issuable_simpl T. *)
-  (* Proof using.  *)
-  (*   unfold issuable_simpl, issuable. rewrite iord_alt.  *)
-  (*   split.  *)
-  (*   2: { erewrite dom_cond_mori; [reflexivity| | basic_solver]. *)
-  (*        red. basic_solver. } *)
-  (*   unfolder. ins. desc. splits; eauto. exists y. splits; auto. *)
-  (*   ins. desc. subst. apply H0. do 2 eexists. splits; eauto.   *)    
-  (*   unfold iord_simpl, iord.  *)
-
-  (* TODO: move somewhere *)
+  (* TODO: move to TraversalOrder in IMM *)
   Ltac clear_iord_union :=
     unfold SB, RF, FWBOB, AR, IPROP, PROP, is_ta_propagate_to_G;
     repeat case_union _ _; rewrite !seqA;
@@ -153,7 +140,7 @@ Qed.
     try (transitivity (fun (_ _: trav_label) => False); [basic_solver| apply inclusion_refl2]);
     reflexivity.
 
-  (* TODO: move somewhere *)
+  (* TODO: move to TraversalOrder in IMM *)
   Ltac filter_iord_seq := 
       unfold iord; rewrite <- ?restr_seq_eqv_r, <- ?restr_seq_eqv_l;
       erewrite restr_rel_mori; [| reflexivity| clear_iord_union];

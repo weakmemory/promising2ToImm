@@ -16,8 +16,8 @@ From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure. 
-Require Import TlsAux.
-Require Import Next. 
+Require Import TlsEventSets.
+Require Import EventsTraversalOrder.
 From imm Require Import FinExecution. 
 Require Import ExtTraversalConfig.
 
@@ -305,7 +305,7 @@ Proof using All.
 
   arewrite  (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ≡  ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘).
   { unfolder; splits; ins; desf; splits; eauto.
-    all: by apply (init_covered TCOH); split; eauto; apply (sub_E_in SUB). }
+    all: by eapply init_covered; eauto; split; eauto; apply (sub_E_in SUB). }
   arewrite (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘) at 2 by basic_solver 12.
 
   arewrite ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ (Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ ⦗C⦘).
@@ -345,7 +345,7 @@ Proof using All.
 
   arewrite  (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ≡  ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘).
   { unfolder; splits; ins; desf; splits; eauto.
-    all: by apply (init_covered TCOH); split; eauto; apply (sub_E_in SUB). }
+    all: by eapply init_covered; eauto; split; eauto; apply (sub_E_in SUB). }
 
   arewrite (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘) at 2 by basic_solver 12.
   arewrite (⦗Rel⦘ ⨾ ⦗W_ l' ∪₁ F⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Rel⦘ ⨾ ⦗W_ l' ∪₁ F⦘) by basic_solver 12.
@@ -382,7 +382,7 @@ Proof using All.
   rewrite !seqA.
   arewrite  (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ≡  ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘).
   { unfolder; splits; ins; desf; splits; eauto.
-    all: by apply (init_covered TCOH); split; eauto; apply (sub_E_in SUB). }
+    all: by eapply init_covered; eauto; split; eauto; apply (sub_E_in SUB). }
 
   arewrite (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘) at 2 by basic_solver 12.
   arewrite ((Crelease ⨾ Crf)^? ⨾ ⦗C⦘ ≡ (Grelease ⨾ Grf)^? ⨾ ⦗C⦘).

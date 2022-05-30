@@ -19,13 +19,14 @@ From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure. 
-Require Import TlsAux.
-Require Import Next. 
+Require Import TlsEventSets.
+Require Import EventsTraversalOrder.
 Require Import ExtTraversalConfig ExtTraversalProperties.
 Require Import AuxRel.
 From imm Require Import AuxDef.
 Require Import Cert_co.
 Require Import Cert_D.
+Require Import SimRelationsHelpers.
 
 Import ListNotations.
 
@@ -489,59 +490,13 @@ Proof using IT_new_co ST_in_E S_in_W WF WF_SC.
   assert (z0 = z1) by eauto; subst; eauto.
 Qed.
 
-(* TODO: move to AuxRel *)
-Lemma minus_eqv_r {A: Type} (r r': relation A) (s : A -> Prop) : r ⨾ ⦗ s ⦘ \ r' ≡ (r \ r') ⨾ ⦗ s ⦘.
-Proof using. basic_solver 21. Qed.
 
 Lemma tls_events_empty_helper T' TLS
       (DISJ: TLS ∩₁ T' ⊆₁ ∅):
   event □₁ (TLS ∩₁ T') ≡₁ ∅. 
 Proof using. split; [| basic_solver]. rewrite DISJ. basic_solver. Qed. 
 
-(* TODO: move*)
-Add Parametric Morphism : col0 with signature
-    eq ==> (@set_subset actid) ==> (@set_subset actid) ==> eq ==>
-       (@inclusion actid) as col0_mori.
-Proof using.
-  ins. unfold col0. rewrite H, H0. basic_solver. 
-Qed. 
-
-(* TODO: move*)
-Add Parametric Morphism : col0 with signature
-    eq ==> (@set_equiv actid) ==> (@set_equiv actid) ==> eq ==>
-       (@same_relation actid) as col0_more.
-Proof using.
-  ins. destruct H, H0. 
-  split; apply col0_mori; basic_solver. 
-Qed.
-  
-(* TODO: move*)
-Add Parametric Morphism : new_co with signature
-    eq ==> (@set_equiv actid) ==> (@set_equiv actid) ==>
-       (@inclusion actid) as new_co_more_impl.
-Proof using.
-  ins. unfold new_co, new_col.
-  unfolder. ins. desc. red in H1.
-  destruct H, H0.
-  exists l. des.
-  { left. eapply col0_mori; eauto. }
-  apply pref_union_alt.
-  right. split.
-  { splits; vauto.
-    { by apply H. }
-    intro. apply H6. basic_solver. }
-  intro. apply H4. eapply col0_mori; eauto. 
-Qed.  
-
-(* TODO: move*)
-Add Parametric Morphism : new_co with signature
-    eq ==> (@set_equiv actid) ==> (@set_equiv actid) ==>
-       (@same_relation actid) as new_co_more.
-Proof using.
-  ins. split; [| symmetry in H, H0]; eapply new_co_more_impl; eauto.
-Qed. 
-
-(* TODO: move, generalize? *)
+(* TODO: generalize? *)
 (* see "rte'" local tactic for an example of 'unf' parameter *)
 Ltac remove_tls_extension unf :=
   rewrite set_pair_alt, ?covered_union, ?issued_union, ?reserved_union;

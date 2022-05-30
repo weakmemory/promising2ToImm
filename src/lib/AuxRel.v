@@ -2,6 +2,7 @@ Require Import Program.Basics.
 From hahn Require Import Hahn.
 Require Import PropExtensionality.
 From imm Require Import AuxDef.
+Require Import IndefiniteDescription. 
 
 Set Implicit Arguments.
 Local Open Scope program_scope.
@@ -37,8 +38,9 @@ Section AuxRel.
   Definition downward_total {A : Type} (r : relation A) := 
     forall x y z (Rxz : r x z) (Ryz : r y z), clos_refl_sym r x y.
 
-  Definition set_map {A B : Type} (f : A -> B) (s : B -> Prop) := 
-    fun x => s (f x).
+  Lemma bunion_alt {A B: Type} (R': B -> relation A):
+    (fun (x y: A) => exists b, R' b x y) ≡ ⋃ b, R' b.
+  Proof using. basic_solver. Qed.
 
 End AuxRel.
 
@@ -949,6 +951,9 @@ Proof using.
   apply propositional_extensionality; split; apply H.
 Qed.
 
+
+
+(* TODO: move to IMM lib *)
 Lemma pref_union_alt (r1 r2: relation A):
   pref_union r1 r2 ≡ r1 ∪ r2 \ (r1)⁻¹.
 Proof. basic_solver. Qed.
@@ -959,7 +964,86 @@ Proof.
 basic_solver 21.
 Qed.
 
+Lemma fin_dom_rel_fsupp (S: A -> Prop)
+      (FINS: set_finite S) (FSUPPr: fsupp r):
+  set_finite (dom_rel (r ⨾ ⦗S⦘)).
+Proof using.
+  clear -FINS FSUPPr.
+  red in FSUPPr. apply functional_choice in FSUPPr as [supp_map FSUPPr].
+  destruct FINS as [Sl DOMS]. 
+  exists (concat (map supp_map Sl)).
+  intros a [s DOM%seq_eqv_r]. desc.
+  apply in_concat_iff. eexists. split.
+  - eapply FSUPPr; eauto.
+  - apply in_map. intuition.
+Qed. 
+
+Lemma fsupp_fin_dom (M: A -> Prop)
+      (FINM: set_finite M):
+  fsupp (⦗M⦘ ⨾ r).
+Proof using.
+  destruct FINM as [findom FINDOM]. 
+  red. ins. exists findom. ins. apply FINDOM.
+  apply seq_eqv_l in REL. by desc.
+Qed.
+
 End Props.
+
+Lemma dom_rel_clos_refl_trans_eqv {A: Type} (r: relation A) (d: A -> Prop)
+      (DOM: dom_rel (r ⨾ ⦗d⦘) ⊆₁ d):
+  dom_rel (r^* ⨾ ⦗d⦘) ⊆₁ d. 
+Proof using.
+  rewrite rtEE. rewrite seq_bunion_l, dom_rel_bunion.
+  apply set_subset_bunion_l. intros n _. induction n.
+  { rewrite pow_0. basic_solver. }
+  rewrite pow_S_begin, seqA.
+  apply dom_rel_helper in IHn. rewrite IHn.
+  rewrite <- !seqA. do 2 rewrite dom_seq. auto. 
+Qed.
+
+
+Require Import SetSize.
+(* TODO: move to SetSize *)
+Lemma set_size_empty {A: Type} (s: A -> Prop):
+  set_size s = NOnum 0 <-> s ≡₁ ∅.
+Proof.
+  split; intros. 
+  { unfold set_size in H. destruct excluded_middle_informative; try by vauto.
+    destruct constructive_indefinite_description. simpl in *.
+    inversion H. apply length_zero_iff_nil in H1.
+    destruct (classic (s ≡₁ ∅)) as [? | NEMPTY]; auto. 
+    apply set_nonemptyE in NEMPTY. desc.
+    specialize (i _ NEMPTY).
+    assert (In x0 nil); [| by vauto].
+    rewrite <- H1. apply in_undup_iff. apply in_filterP_iff. auto. }
+  erewrite set_size_equiv; eauto.
+  unfold set_size. destruct excluded_middle_informative.
+  2: { destruct n. by exists nil. }
+  f_equal. destruct constructive_indefinite_description. simpl in *.
+  rewrite (proj2 (filterP_eq_nil ∅ x)); vauto.
+Qed. 
+
+Lemma InAE A x (l : list A) : SetoidList.InA eq x l <-> In x l.
+Proof using.
+  split; [by induction 1; desf; ins; eauto|].
+  induction l; ins; desf; eauto using SetoidList.InA.
+Qed.
+
+Lemma NoDupAE A (l : list A) : SetoidList.NoDupA eq l <-> NoDup l.
+Proof using.
+  split; induction 1; constructor; eauto; rewrite InAE in *; eauto.
+Qed.
+
+Lemma NoDup_map_NoDupA A B (f : A -> B) l :
+  SetoidList.NoDupA (fun p p' => f p = f p') l ->
+  NoDup (map f l).
+Proof using.
+  induction 1; ins; constructor; eauto.
+  clear -H; intro M; destruct H; induction l; ins; desf;
+    eauto using SetoidList.InA.
+Qed.
+
+
 
 Require Import Setoid.
 

@@ -64,40 +64,6 @@ Proof using.
   unfolder. ins. exists nil. eauto.
 Qed.
 
-(* TODO: move *)
-Lemma InAE A x (l : list A) : SetoidList.InA eq x l <-> In x l.
-Proof using.
-  split; [by induction 1; desf; ins; eauto|].
-  induction l; ins; desf; eauto using SetoidList.InA.
-Qed.
-
-(* TODO: move *)
-Lemma NoDupAE A (l : list A) : SetoidList.NoDupA eq l <-> NoDup l.
-Proof using.
-  split; induction 1; constructor; eauto; rewrite InAE in *; eauto.
-Qed.
-
-(* TODO: move *)
-Lemma NoDup_map_NoDupA A B (f : A -> B) l :
-  SetoidList.NoDupA (fun p p' => f p = f p') l ->
-  NoDup (map f l).
-Proof using.
-  induction 1; ins; constructor; eauto.
-  clear -H; intro M; destruct H; induction l; ins; desf;
-    eauto using SetoidList.InA.
-Qed.
-
-(* TODO: move *)
-Lemma etc_dom G sc T (ETCCOH : etc_coherent G sc T):
-  ecovered T ∪₁ eissued T ∪₁ reserved T ⊆₁ acts_set G.
-Proof.
-  destruct T.
-  unfold ecovered, eissued; ins.
-  assert (tc_coherent G sc etc_TC) by apply ETCCOH.
-  unionL; eauto using coveredE, issuedE.
-  apply ETCCOH.
-Qed. 
-
 Definition execution_final_memory (G : execution) final_memory :=
   forall l,
     (⟪ NO : forall e (EE : acts_set G e), loc (lab G) e <> Some l ⟫ /\
@@ -1280,29 +1246,30 @@ Proof.
   rewrite <- issued_in_issuable; auto.
 Qed.
 
-(* TODO: move to ExtTraversal *)
-Global Add Parametric Morphism : mkETC with signature
-       same_trav_config ==> (@set_equiv actid) ==> same_ext_trav_config as mkETC_more.
-Proof using. by unfold same_trav_config; ins; split; ins; desf; apply H. Qed.
+(* TODO: remove, not needed anymore *)
+(* Global Add Parametric Morphism : mkETC with signature *)
+(*        same_trav_config ==> (@set_equiv actid) ==> same_ext_trav_config as mkETC_more. *)
+(* Proof using. by unfold same_trav_config; ins; split; ins; desf; apply H. Qed. *)
 
 
-(* TODO: move to ExtTraversalConfig? *)
-Lemma same_etc_extensionality (tc1 tc2: ext_trav_config)
-      (EQUIV: same_ext_trav_config tc1 tc2):
-  tc1 = tc2.
-Proof.
-  destruct tc1, tc2, etc_TC, etc_TC0. red in EQUIV. desc. simpl in *.
-  f_equal; [f_equal| ]; apply IordTraversal.set_extensionality; vauto.
-Qed. 
+(* TODO: remove, not needed anymore *)
+(* Lemma same_etc_extensionality (tc1 tc2: ext_trav_config) *)
+(*       (EQUIV: same_ext_trav_config tc1 tc2): *)
+(*   tc1 = tc2. *)
+(* Proof. *)
+(*   destruct tc1, tc2, etc_TC, etc_TC0. red in EQUIV. desc. simpl in *. *)
+(*   f_equal; [f_equal| ]; apply IordTraversal.set_extensionality; vauto. *)
+(* Qed.  *)
 
-Global Add Parametric Morphism : (ext_itrav_step G sc) with signature
-    eq ==> same_ext_trav_config ==> same_ext_trav_config ==> iff as
-        ext_itrav_step_more.
-Proof using. 
-  (* This particular morphism can be proved without extensionality, 
-      but since we use it anyway, let's use it here as well *)
-  ins. apply same_etc_extensionality in H, H0. split; congruence. 
-Qed. 
+(* * TODO: remove, not needed anymore *)
+(* Global Add Parametric Morphism : (ext_itrav_step G sc) with signature *)
+(*     eq ==> same_ext_trav_config ==> same_ext_trav_config ==> iff as *)
+(*         ext_itrav_step_more. *)
+(* Proof using.  *)
+(*   (* This particular morphism can be proved without extensionality,  *)
+(*       but since we use it anyway, let's use it here as well *) *)
+(*   ins. apply same_etc_extensionality in H, H0. split; congruence.  *)
+(* Qed.  *)
 
 
 Lemma ext_isim_trav_step_more_helper:
@@ -1520,26 +1487,6 @@ Proof using WF IMMCON FRELACQ.
   { apply rt_step. red. eauto. }
   { apply rt_refl. }
   eapply rt_trans; eauto. 
-Qed. 
-
-(* TODO: move to SetSize *)
-Lemma set_size_empty {A: Type} (s: A -> Prop):
-  set_size s = NOnum 0 <-> s ≡₁ ∅.
-Proof.
-  split; intros. 
-  { unfold set_size in H. destruct excluded_middle_informative; try by vauto.
-    destruct constructive_indefinite_description. simpl in *.
-    inversion H. apply length_zero_iff_nil in H1.
-    destruct (classic (s ≡₁ ∅)) as [? | NEMPTY]; auto. 
-    apply set_nonemptyE in NEMPTY. desc.
-    specialize (i _ NEMPTY).
-    assert (In x0 []); [| by vauto].
-    rewrite <- H1. apply in_undup_iff. apply in_filterP_iff. auto. }
-  erewrite set_size_equiv; eauto.
-  unfold set_size. destruct excluded_middle_informative.
-  2: { destruct n. by exists []. }
-  f_equal. destruct constructive_indefinite_description. simpl in *.
-  rewrite (proj2 (filterP_eq_nil ∅ x)); vauto.
 Qed. 
 
 Ltac liaW no := destruct no; [by vauto| simpl in *; lia].

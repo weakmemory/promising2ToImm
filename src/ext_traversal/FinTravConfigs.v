@@ -20,21 +20,6 @@ Require Import IndefiniteDescription.
 (* TODO: move this file to another place *)
 
 
-(* TODO: move to lib *)
-Lemma fin_dom_rel_fsupp {A: Type} (r: relation A) (S: A -> Prop)
-      (FINS: set_finite S) (FSUPPr: fsupp r):
-  set_finite (dom_rel (r ⨾ ⦗S⦘)).
-Proof.
-  red in FSUPPr. apply functional_choice in FSUPPr as [supp_map FSUPPr].
-  destruct FINS as [Sl DOMS]. 
-  exists (concat (map supp_map Sl)).
-  intros a [s DOM%seq_eqv_r]. desc.
-  apply in_concat_iff. eexists. split.
-  - eapply FSUPPr; eauto.
-  - apply in_map. intuition.
-Qed. 
-
-
 Definition tc_fin (tc: trav_config) :=
   ⟪ COV_FIN: set_finite (covered tc \₁ is_init) ⟫ /\
   ⟪ ISS_FIN: set_finite (issued tc \₁ is_init) ⟫.

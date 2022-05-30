@@ -15,8 +15,8 @@ From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure. 
 From imm Require Import AuxDef. 
-Require Import TlsAux.
-Require Import Next. 
+Require Import TlsEventSets.
+Require Import EventsTraversalOrder.
 Require Import ExtTraversalConfig ExtTraversalProperties.
 Require Import AuxRel.
 Require Import Cert_new_tc.
@@ -474,8 +474,8 @@ Proof using thread WF RELCOV  TCOH RCOH ICOH.
   rewrite !set_inter_union_r.
   rewrite !id_union; relsf; unionL; splits.
   { generalize (dom_sb_covered WF TCOH ICOH ); ie_unfolder; basic_solver 21. }
-  { erewrite (issuedW WF TCOH) at 1; type_solver. }
-  2: { rewrite (dom_l (wf_rmwD WF)) at 1. type_solver. }
+  { erewrite issuedW at 1; eauto; type_solver. }
+  2: { rewrite (dom_l (wf_rmwD WF)) at 1; eauto. type_solver. }
   rewrite crE. rewrite !seq_union_l, !seq_id_l, dom_union, set_inter_union_r.
   rewrite id_union, seq_union_r, dom_union.
   unionL.
@@ -491,11 +491,10 @@ Proof using WF TCOH RCOH ICOH.
   rewrite !set_inter_union_l.
   rewrite !id_union; relsf; unionL; splits.
   { generalize (dom_rf_covered WF TCOH ICOH). ie_unfolder. basic_solver 21. }
-  { rewrite (dom_r (wf_rfeD WF)) at 1; rewrite (issuedW WF TCOH) at 1.
-    type_solver. }
+  { rewrite (dom_r (wf_rfeD WF)) at 1; rewrite issuedW at 1; eauto. type_solver. }
   { arewrite (Frfe ⊆ Frfe  ⨾  ⦗set_compl Init⦘).
     { rewrite (dom_r (wf_rfeD WF)).
-      rewrite (init_w WF).
+      erewrite init_w; eauto.
       unfolder; ins; desf; splits; eauto.
       intro; type_solver. }
     unfolder; ins; desf.
@@ -511,8 +510,7 @@ Proof using WF IMMCON TCOH RCOH ICOH.
   rewrite E_E0; unfold E0.
   rewrite !id_union; relsf; unionL; splits.
   { rewrite (dom_l (wf_rfeD rstWF)).
-    generalize (w_covered_issued TCOH ICOH).
-    basic_solver. }
+    generalize w_covered_issued. basic_solver. }
   { basic_solver. }
   { rewrite (dom_r (wf_rfeE rstWF)).
     arewrite (⦗E⦘ ⊆ ⦗E ∩₁ NTid_ thread⦘ ∪ ⦗E ∩₁ Tid_ thread⦘).
@@ -537,7 +535,7 @@ Proof using WF TCOH RCOH ICOH.
   clear RELCOV.
   rewrite E_E0; unfold E0.
   rewrite !id_union; relsf; unionL; splits.
-  { generalize (dom_sb_covered WF TCOH ICOH); ie_unfolder. basic_solver 21. }
+  { generalize dom_sb_covered; ie_unfolder. basic_solver 21. }
   { rewrite (dom_r (wf_rfiD WF)) at 1; erewrite issuedW at 1; eauto. type_solver. }
   { generalize (@sb_trans Gf); ie_unfolder. basic_solver 21. }
   rewrite (dom_l (wf_rfiD WF)) at 1.
@@ -569,8 +567,8 @@ Proof using WF WF_SC TCOH RCOH ICOH.
       generalize (@sb_trans Gf). intros HH.
         by rewrite rewrite_trans, rt_of_trans. }
     arewrite (Fsb^? ⨾ ⦗R⦘ ⨾ ⦗C ∩₁ FAcq⦘ ⊆ ⦗C⦘ ⨾ Fsb^?).
-    { generalize (dom_sb_covered WF TCOH ICOH). basic_solver 20. }
-    generalize (dom_rf_covered WF TCOH ICOH). ie_unfolder. basic_solver 21. }
+    { generalize dom_sb_covered. basic_solver 20. }
+    generalize dom_rf_covered. ie_unfolder. basic_solver 21. }
   { erewrite issuedW at 1; eauto. type_solver. }
   2: { arewrite_id ⦗R⦘. rewrite seq_id_l.
        arewrite (dom_rel (Frmw ⨾ ⦗NTid_ thread ∩₁ I⦘) ∩₁ FAcq ⊆₁
@@ -717,7 +715,7 @@ Proof using WF WF_SC RELCOV TCOH RCOH IMMCON ICOH.
   arewrite (⦗FW_ l⦘ ⨾ Frf^? ⨾ ⦗C⦘ ⊆ ⦗I⦘ ⨾ ⦗FW_ l⦘ ⨾ Grf^?).
   2: done.
   rewrite crE; relsf; unionL.
-  { generalize (w_covered_issued TCOH ICOH). basic_solver 21. }
+  { generalize w_covered_issued. basic_solver 21. }
   sin_rewrite rf_C; basic_solver 21.
 Qed.
 
@@ -877,15 +875,14 @@ Lemma IT_new_co: I ∪₁ E ∩₁ W ∩₁ Tid_ thread ≡₁ E ∩₁ W.
 Proof using WF TCOH RCOH ICOH.
   clear RELCOV.
 split.
-- arewrite (I  ⊆₁ W ∩₁ E).
-  generalize I_in_E (issuedW WF TCOH); basic_solver.
-  basic_solver.
+- arewrite (I  ⊆₁ W ∩₁ E); [| basic_solver]. 
+  generalize I_in_E issuedW; basic_solver.
 - unfolder; ins; desf.
   destruct (classic (tid x = thread)); eauto.
   apply E_E0 in H.
   unfold E0 in *.
   unfolder in *; desf; eauto.
-  * generalize (w_covered_issued TCOH ICOH); basic_solver.
+  * generalize w_covered_issued; basic_solver.
   * apply (dom_l (@wf_sbE Gf)) in H; unfolder in H; desf.
     apply sb_tid_init in H2; desf.
     left.
@@ -1160,7 +1157,7 @@ Proof using All.
   { rewrite (dom_r (wf_releaseD rstWF)), !seqA.
     arewrite (⦗W⦘ ⨾ ⦗C⦘ ⊆ ⦗W ∩₁ C⦘).
     { basic_solver 12. }
-    erewrite (w_covered_issued TCOH ICOH).
+    erewrite (@w_covered_issued Gf); eauto. 
     rewrite (sub_release_in SUB).
     rels; sin_rewrite (release_I); basic_solver. }
   rewrite (sub_release_in SUB).
@@ -1183,7 +1180,7 @@ Proof using All.
     rewrite <- !seqA.
     sin_rewrite (dom_rel_helper (dom_rf_covered WF TCOH ICOH)).
     basic_solver. }
-  { rewrite (issuedW WF TCOH) at 1. 
+  { erewrite issuedW at 1; eauto.
     rewrite (wf_rfiD rstWF) at 2. rewrite (sub_R SUB).
     type_solver. }
   { rewrite <- !seqA. rewrite dom_rel_eqv_dom_rel. rewrite !seqA.
@@ -1340,7 +1337,7 @@ Proof using All.
   rewrite (dom_l (wf_hbE rstWF)) at 1; rewrite !seqA.
   arewrite (⦗E⦘ ⊆ ⦗(E \₁ C) ∩₁ (E \₁ I)⦘ ∪ ⦗E ∩₁ C ∪₁ E ∩₁ I⦘).
   { unfolder. ins. desf. tauto. }
-  relsf; unionL; splits; [|generalize (w_covered_issued TCOH ICOH); basic_solver| basic_solver].
+  relsf; unionL; splits; [|generalize w_covered_issued; basic_solver| basic_solver].
   rewrite <- !dom_eqv1.
   sin_rewrite hb_de.
   rewrite (dom_l (@wf_sbE rstG)), !seqA.
@@ -1480,8 +1477,7 @@ Proof using.
   (*   { clear. basic_solver. } *)
   (*   now rewrite INIT.  } *)
   assert (I ⊆₁ E ∩₁ W) as IEW.
-  { generalize I_in_E (issuedW WF TCOH).
-    clear. basic_solver 10. }
+  { generalize I_in_E issuedW. basic_solver 10. }
   assert (I ∪₁ S ∩₁ Tid_ thread ⊆₁ E ∩₁ W) as ISTEW.
   { apply set_subset_union_l. splits; auto.
     apply set_subset_inter_r. splits; auto.

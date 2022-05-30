@@ -16,8 +16,7 @@ From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure. 
-Require Import TlsAux.
-Require Import Next. 
+Require Import TlsEventSets.
 (* From imm Require Import FairExecution. *)
 (* Require Import ImmFair. *)
 From imm Require Import FinExecution.
@@ -281,7 +280,7 @@ assert (CO: Gco x z1).
   desf; try subst z0; basic_solver 21.
   intro; subst x; auto. }
 assert (SB: Gsb x z0).
-  by apply hb_sc_hb_de; generalize (w_covered_issued TCOH ICOH); basic_solver 21.
+{ apply hb_sc_hb_de; generalize w_covered_issued; basic_solver 21. }
 assert (RFE: Grfe z1 z0).
 { ie_unfolder; unfolder; ins; desc; splits; eauto.
   intro K.
@@ -291,15 +290,14 @@ assert (RFE: Grfe z1 z0).
   congruence.
   hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in CO.
   unfolder in CO; desc; done.
-  generalize (init_issued TCOH); basic_solver.
-  generalize (init_issued TCOH); basic_solver. }
+  all: generalize init_issued; basic_solver. }
 assert (COE: Gcoe x z1).
 { ie_unfolder; unfolder; ins; desc; splits; eauto.
   intro K.
   apply sb_tid_init in K.
   destruct K.
   congruence.
-  generalize (init_issued TCOH); basic_solver. }
+  generalize init_issued; basic_solver. }
 assert (DETOURE: Gdetour x z0).
   by unfold detour; basic_solver.
 apply H6, A; unfolder; ins; desf; splits; eauto.

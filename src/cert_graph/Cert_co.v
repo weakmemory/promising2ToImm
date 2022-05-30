@@ -27,8 +27,7 @@ From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure. 
-Require Import TlsAux.
-Require Import Next. 
+Require Import TlsEventSets.
 
 Import ListNotations. 
 
@@ -408,28 +407,14 @@ Proof using TCOH S_I_in_W_ex I_in_S COH WF S_in_W ST_in_E IT_new_co.
        revert COH; unfold coherence; basic_solver 21.
   rewrite !seqA.
   arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘ ⊆ ⦗Tid_ thread⦘ ⨾ ⦗set_compl Init⦘).
-  { unfold cert_co_base. 
-    generalize (init_issued TCOH). 
+  { unfold cert_co_base.
+    generalize init_issued. 
     basic_solver 21. }
   rewrite ninit_sb_same_tid.
   red. intros ? REL. destruct REL as (? & ? & ? & ? & ? & ?). 
   unfold same_tid in *. unfolder in *. desc. subst. congruence.   
 Qed.
 
-Lemma bunion_alt {A B: Type} (R': B -> relation A):
-  (fun (x y: A) => exists b, R' b x y) ≡ ⋃ b, R' b.
-Proof using. basic_solver. Qed.
-
-
-(* TODO: move to lib / hahn *)
-Lemma fsupp_fin_dom {A: Type} (r: relation A) (M: A -> Prop)
-      (FINM: set_finite M):
-  fsupp (⦗M⦘ ⨾ r).
-Proof using.
-  destruct FINM as [findom FINDOM]. 
-  red. ins. exists findom. ins. apply FINDOM.
-  apply seq_eqv_l in REL. by desc.
-Qed.
 
 Lemma fsupp_cert_co (FAIR: mem_fair G):
   fsupp cert_co.

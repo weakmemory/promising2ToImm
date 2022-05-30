@@ -12,8 +12,9 @@ From imm Require Import travorder.SimClosure.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import TraversalOrder. 
-Require Import TlsAux.
+Require Import TlsEventSets. 
 Require Import Next.
+Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
 
@@ -639,18 +640,6 @@ Proof using WF.
   apply exec_tls_ENI in T'lbl. do 2 red in T'lbl. by desc. 
 Qed. 
 
-(* TODO: move to Next *)
-Lemma iord_coherent_extend_singleton T lbl
-      (ICOH: iord_coherent G sc (T ∪₁ eq lbl)):
-  dom_rel (iord G sc ⨾ ⦗eq lbl⦘) ⊆₁ T.
-Proof using WF IMMCON.
-  red in ICOH. rewrite id_union, seq_union_r, dom_union in ICOH.
-  apply set_subset_union_l in ICOH as [_ ICOH].
-  eapply dom_rel_union_r1; eauto. 
-  red. intros x y REL%seq_eqv_lr. desc. subst. 
-  clear COM WFSC. edestruct iord_irreflexive; eauto; apply IMMCON.
-Qed. 
-
 Lemma ext_itrav_step_cov_coverable T T' e
       (TSTEP : ext_itrav_step (mkTL ta_cover e) T T') :
   coverable G sc T e.
@@ -661,9 +650,10 @@ Proof using WF IMMCON.
   { eapply tlsc_E in T'lbl; eauto. }
   exists (mkTL ta_cover e). do 2 split; vauto. red.
   ins. rewrite set_pair_alt, set_inter_empty_r, set_union_empty_r in ets_upd0.
-  rewrite ets_upd0 in ets_iord_coh0. 
-  apply iord_coherent_extend_singleton; eauto. 
-Qed. 
+  etransitivity.
+  { eapply iord_coherent_element_prefix; eauto. }
+  rewrite ets_upd0. basic_solver. 
+Qed.
 
 Lemma ext_itrav_step_cov_next T T' e
       (TCOH: tls_coherent G T)
@@ -694,7 +684,11 @@ Proof using WF IMMCON.
   apply dom_rel_union_r1 in ets_iord_coh0; [| iord_dom_solver].
   rewrite id_union, seq_union_r, dom_union in ets_iord_coh0.
   apply set_subset_union_l in ets_iord_coh0 as [ICOH _].
-  eapply iord_coherent_extend_singleton; eauto. 
+  etransitivity.
+  { eapply iord_coherent_element_prefix.
+    2: by apply ICOH.
+    all: basic_solver. }
+  basic_solver. 
 Qed. 
 
 Lemma ext_itrav_step_iss_nI T T' e
@@ -718,5 +712,11 @@ Proof using WF.
   rewrite ninit_sb_same_tid.
   basic_solver.
 Qed.
+
+Lemma etc_dom T (TCOH : tls_coherent G T) (RCOH : reserve_coherent G T):
+  covered T ∪₁ issued T ∪₁ reserved T ⊆₁ acts_set G.
+Proof using WF.
+  rewrite coveredE, issuedE, rcoh_S_in_E; basic_solver.  
+Qed. 
 
 End ExtTraversalConfig.

@@ -24,7 +24,7 @@ Require Import ExtTraversalConfig.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsAux.
+Require Import TlsEventSets.
 
 Set Implicit Arguments.
 
@@ -259,3 +259,14 @@ Definition simrel :=
       simrel_thread_local thread sim_normal ⟫.
 
 End SimRel.
+
+Add Parametric Morphism : message_to_event with signature
+    eq ==> (@set_subset trav_label) ==> eq ==> eq ==> eq ==> Basics.impl
+       as message_to_event_mori.
+Proof using.
+  ins. red. intros HH; red.
+  ins; apply HH in MSG; desf; auto.
+  right; eexists; splits; eauto.
+  eapply issued_mori; eauto. 
+Qed.
+

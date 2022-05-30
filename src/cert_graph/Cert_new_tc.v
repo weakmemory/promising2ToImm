@@ -10,7 +10,7 @@ From imm Require Import AuxDef.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsAux.
+Require Import TlsEventSets.
 Require Import AuxRel.
 
 Set Implicit Arguments.

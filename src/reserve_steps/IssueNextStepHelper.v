@@ -326,35 +326,35 @@ Proof using All.
     etransitivity; [|by apply PP'].
     eapply memory_remove_le; eauto. }
 
-  assert (forall thread' langst' local' (TNEQ : tid w <> thread')
-                 (TID' : IdentMap.find thread' (Configuration.threads PC) =
-                         Some (langst', local')),
-             Memory.get locw (f_to' w) (Local.promises local') = None) as NINTER.
-  (* TODO: Move to IssueInterval.v? *)
-  { ins.
-    destruct (Memory.get locw (f_to' w) (Local.promises local')) eqn:HH; auto.
-    exfalso. destruct p as [from].
-    eapply PROM_IN_MEM in HH; eauto.
-    set (AA := HH). apply Memory.get_ts in AA.
-    destruct AA as [|AA]; desc; eauto.
-    apply DISJOINT in HH.
-    apply HH with (x:=f_to' w); constructor; simpls; try reflexivity.
-    apply FCOH0; auto. }
+  foobar. use lemmas from IssueInterval.
+  (* assert (forall thread' langst' local' (TNEQ : tid w <> thread') *)
+  (*                (TID' : IdentMap.find thread' (Configuration.threads PC) = *)
+  (*                        Some (langst', local')), *)
+  (*            Memory.get locw (f_to' w) (Local.promises local') = None) as NINTER. *)
+  (* { ins. *)
+  (*   destruct (Memory.get locw (f_to' w) (Local.promises local')) eqn:HH; auto. *)
+  (*   exfalso. destruct p as [from]. *)
+  (*   eapply PROM_IN_MEM in HH; eauto. *)
+  (*   set (AA := HH). apply Memory.get_ts in AA. *)
+  (*   destruct AA as [|AA]; desc; eauto. *)
+  (*   apply DISJOINT in HH. *)
+  (*   apply HH with (x:=f_to' w); constructor; simpls; try reflexivity. *)
+  (*   apply FCOH0; auto. } *)
 
-  assert (forall thread' langst' local' (TNEQ : tid w <> thread')
-                 (TID' : IdentMap.find thread' (Configuration.threads PC) =
-                         Some (langst', local')),
-             Memory.get locw (f_to' wnext) (Local.promises local') = None) as NINTER'.
-  (* TODO: Move to IssueInterval.v? *)
-  { ins.
-    destruct (Memory.get locw (f_to' wnext) (Local.promises local')) eqn:HH; auto.
-    exfalso. destruct p as [from].
-    eapply PROM_IN_MEM in HH; eauto.
-    set (AA := HH). apply Memory.get_ts in AA.
-    destruct AA as [|AA]; desc; eauto.
-    apply DISJOINT' in HH.
-    apply HH with (x:=f_to' wnext); constructor; simpls; try reflexivity.
-    apply FCOH0; auto. }
+  foobar. use lemmas from IssueInterval.
+  (* assert (forall thread' langst' local' (TNEQ : tid w <> thread') *)
+  (*                (TID' : IdentMap.find thread' (Configuration.threads PC) = *)
+  (*                        Some (langst', local')), *)
+  (*            Memory.get locw (f_to' wnext) (Local.promises local') = None) as NINTER'. *)
+  (* { ins. *)
+  (*   destruct (Memory.get locw (f_to' wnext) (Local.promises local')) eqn:HH; auto. *)
+  (*   exfalso. destruct p as [from]. *)
+  (*   eapply PROM_IN_MEM in HH; eauto. *)
+  (*   set (AA := HH). apply Memory.get_ts in AA. *)
+  (*   destruct AA as [|AA]; desc; eauto. *)
+  (*   apply DISJOINT' in HH. *)
+  (*   apply HH with (x:=f_to' wnext); constructor; simpls; try reflexivity. *)
+  (*   apply FCOH0; auto. } *)
 
   assert (forall tmap (MCLOS : Memory.closed_timemap tmap (Configuration.memory PC)),
              Memory.closed_timemap tmap memory') as MADDCLOS.

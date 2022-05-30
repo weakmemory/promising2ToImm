@@ -19,9 +19,9 @@ From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure. 
-Require Import TlsAux.
-Require Import Next. 
+Require Import TlsEventSets.
 From imm Require Import AuxDef.
+Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
 
@@ -186,19 +186,15 @@ Proof using S_in_W.
   generalize S_in_W. basic_solver.
 Qed.
 
-(* TODO: move somewhere *)
-Lemma covered_events (A: actid -> Prop):
-  covered (event ↓₁ A) ⊆₁ A. 
-Proof using. unfold covered. basic_solver. Qed. 
+Lemma E_ntid_in_D : E ∩₁ NTid_ thread ⊆₁ D.
+Proof using. unfold D. basic_solver 10. Qed.
 
 Lemma D_init : E ∩₁ is_init ⊆₁ D.
 Proof using TCOH.
-  rewrite set_interC, (init_covered TCOH); eauto.
-  unfold D. basic_solver 10. 
+  clear TCOH_rst_new_T. 
+  rewrite set_interC, init_covered; eauto.
+  apply C_in_D. 
 Qed.
-
-Lemma E_ntid_in_D : E ∩₁ NTid_ thread ⊆₁ D.
-Proof using. unfold D. basic_solver 10. Qed.
 
 
 Lemma dom_rppo_S_in_D : dom_rel (Grppo ⨾ ⦗S⦘) ⊆₁ D.
@@ -226,7 +222,7 @@ Proof using WF E_to_S S_in_W TCOH ICOH.
   rewrite E_to_S.
   rewrite id_union; relsf; unionL; splits.
   { rewrite (addr_in_sb WF).
-    generalize (dom_sb_covered ).
+    generalize dom_sb_covered. 
     unfold D; basic_solver 21. }
   rewrite dom_rel_eqv_dom_rel.
   rewrite S_W_S.
@@ -274,7 +270,7 @@ Proof using sc WF TCOH ICOH.
   rewrite !id_union; relsf; unionL; splits.
   { rewrite (dom_l (wf_rmwD WF)).
     rewrite (rmw_in_sb WF) at 1.
-    generalize (dom_sb_covered WF TCOH ICOH), (w_covered_issued TCOH ICOH).
+    generalize (dom_sb_covered WF TCOH ICOH), w_covered_issued. 
     clear; basic_solver 21. }
   { rewrite (rmw_in_ppo WF) at 1.
     clear. basic_solver 12. }
@@ -328,7 +324,7 @@ Lemma dom_R_ex_sb_D :
 Proof using All.
   unfold D.
   rewrite !id_union, !seq_union_r, !dom_union. unionL; splits.
-  { generalize (dom_sb_covered WF TCOH ICOH), (w_covered_issued TCOH ICOH).
+  { generalize (dom_sb_covered WF TCOH ICOH), w_covered_issued. 
     clear. basic_solver 21. }
   { rewrite I_in_S at 1. unfold rppo.
     unionR left -> left -> left -> right.
@@ -381,7 +377,7 @@ ACYC_EXT.
   rewrite !id_union; relsf; unionL; splits.
   { rewrite (dom_l (wf_detourD WF)).
     rewrite detour_in_sb.
-    generalize (dom_sb_covered WF TCOH ICOH), (w_covered_issued TCOH ICOH).
+    generalize (dom_sb_covered WF TCOH ICOH), (w_covered_issued _ _ _ TCOH ICOH).
     clear. basic_solver 21. }
   { rewrite (dom_r (wf_detourD WF)).
     rewrite (issuedW ) at 1; eauto. clear. type_solver. }

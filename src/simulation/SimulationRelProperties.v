@@ -28,7 +28,8 @@ Require Import AuxTime.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsAux.
+Require Import TlsEventSets.
+Require Import EventsTraversalOrder. 
 
 Set Implicit Arguments.
 

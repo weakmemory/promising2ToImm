@@ -32,7 +32,7 @@ From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure. 
 Require Import ExtTraversalConfig.
-Require Import TlsAux.
+Require Import TlsEventSets.
 Require Import Next. 
 Require Import SimulationRelProperties.
 
@@ -90,111 +90,6 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-
-Add Parametric Morphism : c_cur with signature
-    eq ==> (@same_relation actid) ==> eq ==> eq ==> (@set_equiv actid) ==>
-       (@same_relation actid) as c_cur_more. 
-Proof using. 
-  ins. unfold c_cur, urr.
-  rewrite H, H0. reflexivity. 
-Qed. 
-       
-Add Parametric Morphism : c_acq with signature
-    eq ==> (@same_relation actid) ==> eq ==> eq ==> (@set_equiv actid) ==>
-       (@same_relation actid) as c_acq_more. 
-Proof using. 
-  ins. unfold c_acq, urr.
-  rewrite H, H0. reflexivity. 
-Qed. 
-
-(* TODO: move *)
-Add Parametric Morphism : sim_tview with signature
-    eq ==> (@same_relation actid) ==> (@set_equiv actid) ==>
-    eq ==> eq ==> eq ==> Basics.impl as sim_tview_more_impl.
-Proof using.
-  unfold Basics.impl. ins. red in H1. desc. red. splits.
-  { red. ins. red. red in CUR. specialize (CUR l).
-    red in CUR. desc. splits.
-    { ins. apply UB.
-      eapply set_equiv_exp; [| apply INa]. by rewrite H, H0. }
-    des.
-    { left. split; auto. ins. intros TCUR. apply (MAX a).
-      eapply set_equiv_exp; [| apply TCUR]. by rewrite H, H0. }
-    right. eexists. splits; eauto.
-    eapply set_equiv_exp; [| apply INam]. by rewrite H, H0. 
-  }
-  { red in ACQ. red. ins. specialize (ACQ l). red in ACQ. desc.
-    red. splits.
-    { ins. apply UB. eapply set_equiv_exp; [| apply INa]. by rewrite H, H0. }
-    des.
-    { left. split; eauto. ins. intros TCUR. apply (MAX a).
-      eapply set_equiv_exp; [| apply TCUR]. by rewrite H, H0. }
-    right. eexists. splits; eauto.
-    eapply set_equiv_exp; [| apply INam]. by rewrite H, H0. }
-  red in REL. red. ins. specialize (REL l' l). red in REL. desc.
-  red. splits.
-  { ins. eapply UB; eauto. 
-    eapply set_equiv_exp; [| apply INa]. rewrite !H, !H0.
-    destruct (RegSet.Facts.eq_dec l l'); rewrite ?H, ?H0; basic_solver. }
-  { des.
-    { left. splits; eauto. ins. intros TCUR. apply (MAX a).
-      eapply set_equiv_exp; [| apply TCUR]. rewrite !H, !H0.
-      destruct (RegSet.Facts.eq_dec l l'); rewrite ?H, ?H0; basic_solver. }
-    right. eexists. splits; eauto. 
-    eapply set_equiv_exp; [| apply INam]. rewrite !H, !H0.
-    destruct (RegSet.Facts.eq_dec l l'); rewrite ?H, ?H0; basic_solver. }
-Qed.  
-
-(* TODO: move *)
-Add Parametric Morphism : sim_tview with signature
-    eq ==> (@same_relation actid) ==> (@set_equiv actid) ==>
-    eq ==> eq ==> eq ==> iff as sim_tview_more.
-Proof using.
-  split; apply sim_tview_more_impl; eauto.
-  all: symmetry; auto. 
-Qed. 
-
-(* TODO: move *)
-Add Parametric Morphism : message_to_event with signature
-    eq ==> (@set_subset trav_label) ==> eq ==> eq ==> eq ==> Basics.impl
-       as message_to_event_mori.
-Proof using.
-  ins. red. intros HH; red.
-  ins; apply HH in MSG; desf; auto.
-  (* 1: symmetry in H. *)
-  right; eexists; splits; eauto.
-  eapply issued_mori; eauto. 
-Qed.
-
-(* (* TODO: move *) *)
-(* Add Parametric Morphism : reserved_time with signature *)
-(*   eq ==> (@set_subset trav_label) ==> eq ==> eq ==> eq ==> eq ==> Basics.impl *)
-(*       as reserved_time_mori.  *)
-(* Proof using. *)
-(*   ins. red. intros HH. *)
-(*   { match goal with *)
-(*     | H : sim_mode |- _ => destruct H *)
-(*     end *)
-(*     ; [|by red; splits; rewrite <- H; apply HH]. *)
-(*     red; cdes HH; splits; [by rewrite <- H| ..]. *)
-(*     2: { ins; apply HH; auto. *)
-(*          { eapply reserved_mori. ; [apply H| ].  *)
-(*          ; eapply reserved_mori; eauto. *)
-
-(*     } *)
-(*     eapply half_message_to_event_more. *)
-(*     6: by eauto. *)
-(*     all: eauto. *)
-(*     by rewrite H. } *)
-(*   match goal with *)
-(*   | H : sim_mode |- _ => destruct H *)
-(*   end; [|by red; splits; rewrite H; apply HH]. *)
-(*   red; cdes HH; splits; [by rewrite H| ..]. *)
-(*   2: { symmetry in H. ins; apply HH; auto; eapply reserved_more; eauto. } *)
-(*   eapply half_message_to_event_more. *)
-(*   6: by eauto. *)
-(*   all: eauto. *)
-(* Qed. *)
 
 Lemma read_step_helper PC T f_to f_from r w locr valr rel smode
       state local state' 

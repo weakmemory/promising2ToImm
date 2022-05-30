@@ -12,8 +12,9 @@ From imm Require Import CombRelationsMore.
 From imm Require Import TraversalOrder. 
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsAux.
+Require Import TlsEventSets.
 Require Import Next. 
+Require Import EventsTraversalOrder.
 
 
 Set Implicit Arguments.
@@ -529,7 +530,7 @@ split.
   eapply tot_ex.
   * apply Wf_sc.
   * basic_solver.
-  * generalize (coveredE WF TLSCOH); basic_solver.
+  * generalize coveredE; basic_solver.
   * intro; apply NCOV. eapply dom_sc_covered; vauto.
   * intro; subst; eauto.
 - rewrite <- !id_inter. apply eqv_rel_mori. apply set_subset_inter_r. split.

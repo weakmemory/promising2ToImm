@@ -14,12 +14,15 @@ From imm Require Import CombRelations CombRelationsMore.
 
 Require Import AuxRel.
 From imm Require Import AuxRel2.
-From imm Require Import TraversalConfig.
-From imm Require Import Traversal.
+From imm Require Import TraversalOrder. 
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+Require Import TlsEventSets.
+Require Import Next. 
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtTraversalProperties.
-From imm Require Import ViewRelHelpers.
+Require Import ViewRelHelpers.
 Require Import PlainStepBasic.
 Require Import MemoryAux.
 Require Import SimulationRel.

@@ -764,20 +764,20 @@ Proof using All.
   assert (Memory.le promises' memory') as PP.
   { eapply memory_le_add2; eauto. }
 
-  assert (forall thread' langst' local' (TNEQ : tid w <> thread')
-                 (TID' : IdentMap.find thread' (Configuration.threads PC) =
-                         Some (langst', local')),
-             Memory.get locw (f_to' w) (Local.promises local') = None) as NINTER.
-  (* TODO: Move to IssueInterval.v? *)
-  { ins.
-    destruct (Memory.get locw (f_to' w) (Local.promises local')) eqn:HH; auto.
-    exfalso. destruct p as [from]. 
-    eapply PROM_IN_MEM in HH; eauto.
-    set (AA := HH). apply Memory.get_ts in AA.
-    destruct AA as [|AA]; desc; eauto.
-    apply DISJOINT in HH.
-    apply HH with (x:=f_to' w); constructor; simpls; try reflexivity.
-    apply FCOH0; auto. clear. basic_solver. }
+  foobar. use 'interval_ninter' lemma from ExistsIssueInterval. 
+  (* assert (forall thread' langst' local' (TNEQ : tid w <> thread') *)
+  (*                (TID' : IdentMap.find thread' (Configuration.threads PC) = *)
+  (*                        Some (langst', local')), *)
+  (*            Memory.get locw (f_to' w) (Local.promises local') = None) as NINTER. *)
+  (* { ins. *)
+  (*   destruct (Memory.get locw (f_to' w) (Local.promises local')) eqn:HH; auto. *)
+  (*   exfalso. destruct p as [from].  *)
+  (*   eapply PROM_IN_MEM in HH; eauto. *)
+  (*   set (AA := HH). apply Memory.get_ts in AA. *)
+  (*   destruct AA as [|AA]; desc; eauto. *)
+  (*   apply DISJOINT in HH. *)
+  (*   apply HH with (x:=f_to' w); constructor; simpls; try reflexivity. *)
+  (*   apply FCOH0; auto. clear. basic_solver. } *)
 
   assert (forall tmap (MCLOS : Memory.closed_timemap tmap (Configuration.memory PC)),
              Memory.closed_timemap tmap memory') as MADDCLOS.

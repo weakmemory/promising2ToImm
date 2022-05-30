@@ -10,6 +10,7 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
+    From imm Require Import Prog. 
 
 Require Import ViewRelHelpers.
 (* From imm Require Import TraversalConfig. *)
@@ -18,8 +19,9 @@ Require Import Event_imm_promise.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsAux.
+Require Import TlsEventSets.
 Require Import Next.
+Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
 
@@ -546,3 +548,48 @@ Proof using WF.
 Qed.
 
 End ViewRel.
+
+Add Parametric Morphism : sim_tview with signature
+    eq ==> (@same_relation actid) ==> (@set_equiv actid) ==>
+    eq ==> eq ==> eq ==> Basics.impl as sim_tview_more_impl.
+Proof using.
+  unfold Basics.impl. ins. red in H1. desc. red. splits.
+  { red. ins. red. red in CUR. specialize (CUR l).
+    red in CUR. desc. splits.
+    { ins. apply UB.
+      eapply set_equiv_exp; [| apply INa]. by rewrite H, H0. }
+    des.
+    { left. split; auto. ins. intros TCUR. apply (MAX a).
+      eapply set_equiv_exp; [| apply TCUR]. by rewrite H, H0. }
+    right. eexists. splits; eauto.
+    eapply set_equiv_exp; [| apply INam]. by rewrite H, H0. 
+  }
+  { red in ACQ. red. ins. specialize (ACQ l). red in ACQ. desc.
+    red. splits.
+    { ins. apply UB. eapply set_equiv_exp; [| apply INa]. by rewrite H, H0. }
+    des.
+    { left. split; eauto. ins. intros TCUR. apply (MAX a).
+      eapply set_equiv_exp; [| apply TCUR]. by rewrite H, H0. }
+    right. eexists. splits; eauto.
+    eapply set_equiv_exp; [| apply INam]. by rewrite H, H0. }
+  red in REL. red. ins. specialize (REL l' l). red in REL. desc.
+  red. splits.
+  { ins. eapply UB; eauto. 
+    eapply set_equiv_exp; [| apply INa]. rewrite !H, !H0.
+    destruct (RegSet.Facts.eq_dec l l'); rewrite ?H, ?H0; basic_solver. }
+  { des.
+    { left. splits; eauto. ins. intros TCUR. apply (MAX a).
+      eapply set_equiv_exp; [| apply TCUR]. rewrite !H, !H0.
+      destruct (RegSet.Facts.eq_dec l l'); rewrite ?H, ?H0; basic_solver. }
+    right. eexists. splits; eauto. 
+    eapply set_equiv_exp; [| apply INam]. rewrite !H, !H0.
+    destruct (RegSet.Facts.eq_dec l l'); rewrite ?H, ?H0; basic_solver. }
+Qed.  
+
+Add Parametric Morphism : sim_tview with signature
+    eq ==> (@same_relation actid) ==> (@set_equiv actid) ==>
+    eq ==> eq ==> eq ==> iff as sim_tview_more.
+Proof using.
+  split; apply sim_tview_more_impl; eauto.
+  all: symmetry; auto. 
+Qed. 

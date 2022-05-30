@@ -22,8 +22,8 @@ Require Import ViewRelHelpers.
 From imm Require Import TraversalOrder. 
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsAux.
-Require Import Next. 
+Require Import TlsEventSets.
+Require Import EventsTraversalOrder.
 Require Import Event_imm_promise.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
@@ -913,19 +913,6 @@ Proof using.
   all: by rewrite updo.
 Qed.
 
-(* TODO: move to TlsAux1 *)
-Lemma reserved_singleton e:
-  reserved (eq (mkTL ta_reserve e)) ≡₁ eq e.
-Proof using. unfold reserved. split; basic_solver. Qed. 
-
-Lemma issued_reserve_empty e:
-  issued (eq (mkTL ta_reserve e)) ≡₁ ∅.
-Proof using. unfold issued. split; basic_solver. Qed. 
-
-Lemma reserved_issue_empty e:
-  reserved (eq (mkTL ta_issue e)) ≡₁ ∅.
-Proof using. unfold reserved. split; basic_solver. Qed. 
-
 Local Ltac caseT' TMSG := destruct TMSG as [[-> _] | [-> _]]; try rewrite !reserved_union.
 
 Lemma reserved_time_add_S_middle l w wprev wnext memory' n_to n_from T' msg v rel
@@ -962,8 +949,8 @@ Lemma reserved_time_add_S_middle l w wprev wnext memory' n_to n_from T' msg v re
     G (T' ∪₁ eq (mkTL ta_reserve w)) (upd f_to w n_to) (upd f_from w n_from)
     smode memory'
 .
-Proof using WF IMMCON FCOH RESERVED_TIME.
-  clear SIM_MEM.
+Proof using WF IMMCON FCOH RESERVED_TIME.  
+  clear SIM_MEM RELCOV. 
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
 
@@ -1048,8 +1035,8 @@ Proof using WF IMMCON FCOH RESERVED_TIME.
       inv MSG.
       clear MSG. exists w. splits; auto.
       { apply reserved_union. right. by apply reserved_singleton. }
-      apply set_disjoint_eq_r. destruct TMSG as [[-> _] | [-> [=]]]. 
-      rewrite issued_union, issued_reserve_empty. basic_solver. }
+      apply set_disjoint_eq_r. destruct TMSG as [[-> _] | [-> [=]]].
+      simplify_tls_events. basic_solver. }
     rewrite loc_ts_eq_dec_neq in MSG; simpls; auto.
     pose proof MSG as MSG_. apply HMEM in MSG. desc.
     assert (b <> w) as BNEQ.
@@ -1058,20 +1045,18 @@ Proof using WF IMMCON FCOH RESERVED_TIME.
     splits; eauto.
     { apply hahn_subset_exp with (s := S); [| done]. 
       caseT' TMSG; basic_solver 10. }
-    { apply set_disjoint_eq_r. destruct TMSG as [[-> _] | [-> FOO]]. 
-      { rewrite issued_union, issued_reserve_empty. basic_solver. }
-      rewrite !issued_union, issued_reserve_empty, issued_singleton.
-      basic_solver 10. }
+    { apply set_disjoint_eq_r. destruct TMSG as [[-> _] | [-> FOO]].
+      all: simplify_tls_events; basic_solver. }
     1,2: by unfold f_from', f_to'; rewrite updo. }
   splits; auto.
   { apply message_to_event_same_issued with (T := T').
-    2: { rewrite issued_union, issued_reserve_empty. basic_solver. }
+    2: { simplify_tls_events. basic_solver. }
     eapply message_to_event_add_S with (rel := rel); eauto. }
   unfold f_to', f_from'.
   intros x y.
 
   assert (reserved T' ≡₁ S) as S'_EQ. 
-  { caseT' TMSG; [| rewrite reserved_issue_empty]; basic_solver. }
+  { caseT' TMSG; simplify_tls_events; basic_solver. }
   
   (* assert (~ reserved T' w) as NRES'w. *)
   (* { intros RES'w. destruct TMSG as [[T'_ _] | [T'_ _]]. *)
@@ -1173,8 +1158,8 @@ Lemma reserved_time_add_S_after locw memory' w wprev n_from T' msg v rel
     G (T' ∪₁ eq (mkTL ta_reserve w)) (upd f_to w (Time.incr (Time.incr (Memory.max_ts locw memory))))
     (upd f_from w n_from)
     smode memory'.
-Proof using WF IMMCON FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM TCOH RCOH.
-  clear SIM_TVIEW.
+Proof using WF IMMCON FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM TCOH RCOH.  
+  clear SIM_TVIEW RELCOV. 
   assert (sc_per_loc G) as SPL.
   { apply coherence_sc_per_loc. apply IMMCON. }
 
@@ -1214,10 +1199,8 @@ Proof using WF IMMCON FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM TCOH RCOH.
       inv MSG.
       clear MSG. exists w. splits; auto.
       { apply reserved_union. right. by apply reserved_singleton. }
-      apply set_disjoint_eq_r. destruct TMSG as [[-> _] | [-> FOO]]. 
-      { rewrite issued_union, issued_reserve_empty. basic_solver. }
-      rewrite !issued_union, issued_reserve_empty, issued_singleton.
-      basic_solver 10. }
+      apply set_disjoint_eq_r. destruct TMSG as [[-> _] | [-> FOO]].
+      all: simplify_tls_events; basic_solver. }
     rewrite loc_ts_eq_dec_neq in MSG; simpls; auto.
     apply HMEM in MSG. desc.
     assert (b <> w) as BNEQ.
@@ -1228,14 +1211,12 @@ Proof using WF IMMCON FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM TCOH RCOH.
       caseT' TMSG; basic_solver 10. }
     (* { destruct TMSG; desc; subst; auto. ins. *)
     (*   intros [HH|HH]; auto. } *)
-    { apply set_disjoint_eq_r. destruct TMSG as [[-> _] | [-> FOO]]. 
-      { rewrite issued_union, issued_reserve_empty. basic_solver. }
-      rewrite !issued_union, issued_reserve_empty, issued_singleton.
-      basic_solver 10. }
+    { apply set_disjoint_eq_r. destruct TMSG as [[-> _] | [-> FOO]].
+      all: simplify_tls_events; basic_solver. }
     1,2: by unfold f_from', f_to'; rewrite updo. }
   splits; auto.
   { apply message_to_event_same_issued with (T := T').
-    2: { rewrite issued_union, issued_reserve_empty. basic_solver. }
+    2: { simplify_tls_events; basic_solver. }
     eapply message_to_event_add_S with (rel := rel); eauto. }
   unfold f_to', f_from'.
   (* intros x y [SX|] [SY|] CO FT; subst. *)
@@ -1244,7 +1225,7 @@ Proof using WF IMMCON FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM TCOH RCOH.
   (*   rewrite updo in FT; [|by intros AA; desf]. *)
   (*     by apply TFRMW. } *)
   assert (reserved T' ≡₁ S) as S'_EQ. 
-  { caseT' TMSG; [| rewrite reserved_issue_empty]; basic_solver. }
+  { caseT' TMSG; simplify_tls_events; basic_solver. }
   
   intros x y. 
   intros [Sx | ?%reserved_singleton]%reserved_union
