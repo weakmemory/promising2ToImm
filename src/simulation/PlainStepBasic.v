@@ -25,8 +25,9 @@ Require Import ViewRelHelpers.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsAux.
-Require Import Next. 
+Require Import TlsEventSets.
+Require Import EventsTraversalOrder.
+Require Import Next.
 
 Set Implicit Arguments.
 
