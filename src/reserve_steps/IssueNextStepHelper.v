@@ -14,7 +14,10 @@ From imm Require Import CombRelationsMore.
 From imm Require Import AuxDef.
 From imm Require Import FairExecution.
 
-From imm Require Import TraversalConfig.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+Require Import TlsEventSets.
 From imm Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimState.
@@ -29,6 +32,7 @@ Require Import FtoCoherent.
 Require Import SimulationRelProperties.
 Require Import IntervalHelper.
 Require Import ExistsIssueNextInterval.
+Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
 
@@ -75,9 +79,14 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Variable IMMCON : imm_consistent G sc.
 
-Variable T : trav_config.
-Variable S : actid -> Prop.
-Variable ETCCOH : etc_coherent G sc (mkETC T S).
+Variable T : trav_label -> Prop.
+Hypothesis TCOH : tls_coherent G T.
+Hypothesis ICOH : iord_coherent G sc T.
+Hypothesis RCOH : reserve_coherent G T.
+
+Notation "'C'" := (covered T). 
+Notation "'I'" := (issued T). 
+Notation "'S'" := (reserved T). 
 
 Variable RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T.
 
@@ -97,7 +106,7 @@ Hypothesis SC_REQ :
 Variable thread : thread_id.
 Variable local : Local.t.
 Hypothesis SIM_PROM     : sim_prom     G sc T   f_to f_from thread (Local.promises local).
-Hypothesis SIM_RES_PROM : sim_res_prom G    T S f_to f_from thread (Local.promises local).
+Hypothesis SIM_RES_PROM : sim_res_prom G    T f_to f_from thread (Local.promises local).
 
 Hypothesis CLOSED_SC : Memory.closed_timemap (Configuration.sc PC) (Configuration.memory PC).
 
@@ -122,21 +131,40 @@ Hypothesis PLN_RLX_EQ : pln_rlx_eq (Local.tview local).
 Hypothesis MEM_CLOSE : memory_close (Local.tview local) (Configuration.memory PC).
 
 Hypothesis RESERVED_TIME:
-  reserved_time G T S f_to f_from smode (Configuration.memory PC).
+  reserved_time G T f_to f_from smode (Configuration.memory PC).
 
 Hypothesis SIM_RES_MEM :
-  sim_res_mem G T S f_to f_from thread local (Configuration.memory PC).
+  sim_res_mem G T f_to f_from thread local (Configuration.memory PC).
 
 Hypothesis SIM_MEM : sim_mem G sc T f_to f_from thread local (Configuration.memory PC).
 Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) thread.
 Hypothesis RMWREX : dom_rel rmw ⊆₁ R_ex lab.
+
+(* TODO: move *)
+Global Add Parametric Morphism A: (@max_value A) with signature
+       eq ==> (@set_equiv A) ==> eq ==> Basics.impl as max_value_more_impl. 
+Proof using.
+  ins. red. ins. unfold max_value in *. 
+  ins. desc. splits.
+  { ins. by apply UB, H. }
+  des; [left | right].
+  { split; auto. intros a N'a. edestruct MAX. eapply H; eauto. }
+  eexists. splits; eauto. by apply H. 
+Qed. 
+
+(* TODO: move *)
+Global Add Parametric Morphism A: (@max_value A) with signature
+       eq ==> (@set_equiv A) ==> eq ==> iff as max_value_more. 
+Proof using.
+  ins. split; apply max_value_more_impl; auto. by symmetry. 
+Qed.  
 
 Lemma issue_step_helper_next w wnext valw locw ordw langst
       (TID : IdentMap.find (tid w) (Configuration.threads PC) = Some (langst, local))
       (NWEX : ~ W_ex w)
       (NISSB : ~ issued T w)
       (ISSUABLE : issuable G sc T w)
-      (NEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) wnext)
+      (NEXT : dom_sb_S_rfrmw G T rfi (eq w) wnext)
       (LOC : loc lab w = Some locw)
       (VAL : val lab w = Some valw)
       (ORD : mod lab w = ordw)
@@ -145,9 +173,10 @@ Lemma issue_step_helper_next w wnext valw locw ordw langst
   let promises := (Local.promises local) in
   let memory   := (Configuration.memory PC) in
   let sc_view  := (Configuration.sc PC) in
-  let covered' := if Rel w then covered T ∪₁ eq w else covered T in
-  let T'       := mkTC covered' (issued T ∪₁ eq w) in
-  let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
+  (* let covered' := if Rel w then covered T ∪₁ eq w else covered T in *)
+  (* let T'       := mkTC covered' (issued T ∪₁ eq w) in *)
+  (* let S'       := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in *)
+  let T' := T ∪₁ (if Rel w then eq (mkTL ta_cover w) else ∅) ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))) in
   exists p_rel,
     rfrmw_prev_rel G sc T f_to f_from (Configuration.memory PC) w locw p_rel /\
     (⟪ FOR_ISSUE :
@@ -197,7 +226,7 @@ Lemma issue_step_helper_next w wnext valw locw ordw langst
              ⟪ RELMCLOS : Memory.closed_timemap (View.rlx rel') memory_add ⟫ /\
              ⟪ RELVCLOS : Memory.closed_view rel' memory_add ⟫ /\
 
-             ⟪ FCOH : f_to_coherent G S' f_to' f_from' ⟫ /\
+             ⟪ FCOH : f_to_coherent G (reserved T') f_to' f_from' ⟫ /\
 
              ⟪ HELPER :
                  sim_mem_helper
@@ -209,7 +238,7 @@ Lemma issue_step_helper_next w wnext valw locw ordw langst
                               (View.singleton_ur locw (f_to' w))) ⟫ /\
 
              ⟪ RESERVED_TIME :
-                 reserved_time G T' S' f_to' f_from' smode memory' ⟫ /\
+                 reserved_time G T' f_to' f_from' smode memory' ⟫ /\
 
              ⟪ MEM_PROMISE :
                  Memory.promise (Local.promises local) memory locw (f_from' w) (f_to' w)
@@ -241,7 +270,7 @@ Lemma issue_step_helper_next w wnext valw locw ordw langst
              ⟪ SC_REQ : smode = sim_normal -> 
                         forall (l : Loc.t),
                           max_value
-                            f_to' (S_tm G l covered') (LocFun.find l sc_view) ⟫ /\
+                            f_to' (S_tm G l (covered T')) (LocFun.find l sc_view) ⟫ /\
              ⟪ CLOSED_SC : Memory.closed_timemap sc_view memory' ⟫ /\
 
              ⟪ PROM_IN_MEM :
@@ -250,7 +279,7 @@ Lemma issue_step_helper_next w wnext valw locw ordw langst
                    Memory.le (Local.promises local) memory' ⟫ /\
 
              ⟪ SIM_PROM     : sim_prom G sc T' f_to' f_from' (tid w) promises_add2  ⟫ /\
-             ⟪ SIM_RES_PROM : sim_res_prom G T' S' f_to' f_from' (tid w) promises_add2  ⟫ /\
+             ⟪ SIM_RES_PROM : sim_res_prom G T' f_to' f_from' (tid w) promises_add2  ⟫ /\
 
              ⟪ PROM_DISJOINT :
                  forall thread' langst' local'
@@ -262,20 +291,19 @@ Lemma issue_step_helper_next w wnext valw locw ordw langst
                    Memory.get loc to (Local.promises local') = None ⟫ /\
 
              ⟪ SIM_MEM     : sim_mem G sc T' f_to' f_from' (tid w) local' memory' ⟫ /\
-             ⟪ SIM_RES_MEM : sim_res_mem G T' S' f_to' f_from' (tid w) local' memory' ⟫ /\
+             ⟪ SIM_RES_MEM : sim_res_mem G T' f_to' f_from' (tid w) local' memory' ⟫ /\
              ⟪ NOWLOC : Rel w -> Memory.nonsynch_loc locw (Local.promises local') ⟫
      ⟫).
 Proof using All.
-  assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
   assert (complete G) as COMPL by apply IMMCON.
   assert (sc_per_loc G) as SPL by (apply coherence_sc_per_loc; apply IMMCON).
  
   assert (NSW : ~ S w).
-  { intros HH. apply NWEX. apply ETCCOH. by split. }
+  { intros HH. apply NWEX. apply RCOH. by split. }
 
   assert (S ⊆₁ E ∩₁ W) as SEW.
-  { apply set_subset_inter_r. split; [by apply ETCCOH|].
-    apply (reservedW WF ETCCOH). }
+  { apply set_subset_inter_r. split; [by apply RCOH|].
+    eapply reservedW; eauto. }
   assert (E w /\ W w) as [EW WW] by (by apply ISSUABLE).
   assert (~ covered T w) as NCOVB.
   { intros AA. apply NISSB. eapply w_covered_issued; eauto. by split. }
@@ -295,7 +323,8 @@ Proof using All.
   exists promises', memory'.
 
   assert (Time.lt (f_to' w) (f_to' wnext)) as FLT.
-  { eapply f_to_co_mon; eauto; basic_solver. }
+  { eapply f_to_co_mon; eauto.
+    all: clear -NEXT; find_event_set. }
 
   set (rel'' :=
         if is_rel lab w
@@ -304,7 +333,7 @@ Proof using All.
   set (rel' := (View.join (View.join rel'' (View.unwrap p_rel))
                           (View.singleton_ur locw (f_to' w)))).
 
-  set (S':=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)).
+  set (S':=S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)).
   assert (S ⊆₁ S') as SINS by (unfold S'; eauto with hahn).
   assert (S' ⊆₁ E ∩₁ W) as SEW'.
   { subst S'. rewrite SEW at 1. unionL; eauto with hahn.
@@ -326,35 +355,35 @@ Proof using All.
     etransitivity; [|by apply PP'].
     eapply memory_remove_le; eauto. }
 
-  foobar. use lemmas from IssueInterval.
-  (* assert (forall thread' langst' local' (TNEQ : tid w <> thread') *)
-  (*                (TID' : IdentMap.find thread' (Configuration.threads PC) = *)
-  (*                        Some (langst', local')), *)
-  (*            Memory.get locw (f_to' w) (Local.promises local') = None) as NINTER. *)
-  (* { ins. *)
-  (*   destruct (Memory.get locw (f_to' w) (Local.promises local')) eqn:HH; auto. *)
-  (*   exfalso. destruct p as [from]. *)
-  (*   eapply PROM_IN_MEM in HH; eauto. *)
-  (*   set (AA := HH). apply Memory.get_ts in AA. *)
-  (*   destruct AA as [|AA]; desc; eauto. *)
-  (*   apply DISJOINT in HH. *)
-  (*   apply HH with (x:=f_to' w); constructor; simpls; try reflexivity. *)
-  (*   apply FCOH0; auto. } *)
+  assert (forall thread' langst' local' (TNEQ : tid w <> thread')
+                 (TID' : IdentMap.find thread' (Configuration.threads PC) =
+                         Some (langst', local')),
+             Memory.get locw (f_to' w) (Local.promises local') = None) as NINTER.
+  { ins.
+    destruct (Memory.get locw (f_to' w) (Local.promises local')) eqn:HH; auto.
+    exfalso. destruct p as [from].
+    eapply PROM_IN_MEM in HH; eauto.
+    set (AA := HH). apply Memory.get_ts in AA.
+    destruct AA as [|AA]; desc; eauto.
+    apply DISJOINT in HH.
+    apply HH with (x:=f_to' w); constructor; simpls; try reflexivity.
+    apply FCOH0; auto.
+    clear. find_event_set. }
 
-  foobar. use lemmas from IssueInterval.
-  (* assert (forall thread' langst' local' (TNEQ : tid w <> thread') *)
-  (*                (TID' : IdentMap.find thread' (Configuration.threads PC) = *)
-  (*                        Some (langst', local')), *)
-  (*            Memory.get locw (f_to' wnext) (Local.promises local') = None) as NINTER'. *)
-  (* { ins. *)
-  (*   destruct (Memory.get locw (f_to' wnext) (Local.promises local')) eqn:HH; auto. *)
-  (*   exfalso. destruct p as [from]. *)
-  (*   eapply PROM_IN_MEM in HH; eauto. *)
-  (*   set (AA := HH). apply Memory.get_ts in AA. *)
-  (*   destruct AA as [|AA]; desc; eauto. *)
-  (*   apply DISJOINT' in HH. *)
-  (*   apply HH with (x:=f_to' wnext); constructor; simpls; try reflexivity. *)
-  (*   apply FCOH0; auto. } *)
+  assert (forall thread' langst' local' (TNEQ : tid w <> thread')
+                 (TID' : IdentMap.find thread' (Configuration.threads PC) =
+                         Some (langst', local')),
+             Memory.get locw (f_to' wnext) (Local.promises local') = None) as NINTER'.
+  { ins.
+    destruct (Memory.get locw (f_to' wnext) (Local.promises local')) eqn:HH; auto.
+    exfalso. destruct p as [from].
+    eapply PROM_IN_MEM in HH; eauto.
+    set (AA := HH). apply Memory.get_ts in AA.
+    destruct AA as [|AA]; desc; eauto.
+    apply DISJOINT' in HH.
+    apply HH with (x:=f_to' wnext); constructor; simpls; try reflexivity.
+    apply FCOH0; auto.
+    clear -NEXT. find_event_set. }
 
   assert (forall tmap (MCLOS : Memory.closed_timemap tmap (Configuration.memory PC)),
              Memory.closed_timemap tmap memory') as MADDCLOS.
@@ -447,6 +476,10 @@ Proof using All.
     clear -PADD LHS. desc. rewrite PADD in LHS. inv LHS. }
 
   splits; eauto.
+  { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
+    clear. simplify_tls_events. basic_solver. }
+  { eapply reserved_time_same_issued_reserved; eauto.
+    all: clear; simplify_tls_events; basic_solver. }
   1,2: econstructor; eauto; ins.
   { inv MSG. clear MSG.
     set (AA:=GET). apply DISJOINT' in AA.
@@ -471,11 +504,13 @@ Proof using All.
     eapply max_value_same_set.
     { apply BB. }
     eapply s_tm_n_f_steps.
-    { apply TCCOH. }
-    { clear. basic_solver. }
-    intros a [HB|HB] HH AA.
-    { eauto. }
-    subst. clear -WW AA. type_solver. }
+    { eapply init_covered; eauto. }
+    { clear. simplify_tls_events. basic_solver. }
+    { intros a HB HH AA.
+      eapply set_equiv_exp in HB; [| by simplify_tls_events]. 
+      unfolder in HB. des; vauto; type_solver. }
+    eapply max_value_more; [.. | apply BB]; eauto.
+    apply S_tm_more; auto. clear. simplify_tls_events. basic_solver. }
   { ins.
     destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
     { subst. rewrite IdentMap.gss in TID0.
@@ -504,14 +539,16 @@ Proof using All.
         rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in PROM. inv PROM. }
       erewrite Memory.add_o in PROM; eauto.
       rewrite (loc_ts_eq_dec_eq locw (f_to' w)) in PROM.
-      inv PROM. exists w. splits; eauto. by right. }
+      inv PROM. exists w. splits; eauto. 
+      { clear. find_event_set. }
+      clear -NCOVB. separate_set_event. }
     eapply NOTNEWR in PROM; eauto.
     edestruct SIM_PROM as [b H]; eauto; desc.
     exists b; splits; auto.
-    { by left. }
+    { clear -ISS. find_event_set. }
     { assert (W b) as WB by (eapply issuedW; eauto).
       destruct (Rel w) eqn:RELB; auto.
-      intros [HH|HH]; desf. }
+      all: clear -NISSB ISS NCOV; separate_set_event. }
     { by rewrite ISSEQ_FROM. }
     { by rewrite ISSEQ_TO. }
     eapply sim_mem_helper_f_issued with (f_to:=f_to); eauto. }
@@ -520,7 +557,8 @@ Proof using All.
     { simpls; rewrite A' in *; rewrite B' in *.
       rewrite RESGET' in RES. inv RES.
       exists wnext. splits; eauto.
-      intros [HH|HH]; subst; eauto. }
+      { clear -NEXT. find_event_set. }
+      clear -NIWNEXT WNEXTNEQ; separate_set_event. }
     erewrite Memory.add_o in RES; eauto. rewrite (loc_ts_eq_dec_neq LL') in RES.
     destruct (loc_ts_eq_dec (l, to) (locw, f_to' w)) as [[A' B']|LL].
     { simpls; rewrite A' in *; rewrite B' in *.
@@ -531,7 +569,8 @@ Proof using All.
     apply NOTNEWR in RES; auto.
     edestruct SIM_RES_PROM as [b H]; eauto; desc.
     exists b. splits; auto.
-    { intros [A|A]; desf. }
+    { clear -RES0. find_event_set. }
+    { clear -RES0 NOISS NSW. separate_set_event. }
     { rewrite REQ_FROM; auto. }
     rewrite REQ_TO; auto. }
   { ins.
@@ -551,6 +590,7 @@ Proof using All.
     destruct (Memory.get loc to promises') eqn:BB; auto.
     destruct p. eapply NOTNEWA in BB; eauto. desf. }
   { red. ins.
+    eapply set_equiv_exp in ISSB; [| by clear; simplify_tls_events; relsf]. 
     destruct ISSB as [ISSB|]; subst.
     { edestruct SIM_MEM as [rel_opt HH]; eauto. simpls. desc.
       exists rel_opt. unnw.
@@ -558,15 +598,20 @@ Proof using All.
       { exfalso.
         assert (b = w); [|by desf].
         eapply f_to_eq; try apply FCOH0; eauto.
+        { clear -SEW'. simplify_tls_events. rewrite set_union_empty_r.
+          rewrite <- SEW'. subst S'. basic_solver. } 
         { red. by rewrite LOC. }
-        do 2 left. by apply (etc_I_in_S ETCCOH). }
+        { eapply rcoh_I_in_S in ISSB; eauto. clear -ISSB. find_event_set. }
+        clear. find_event_set. }
       destruct (loc_ts_eq_dec (l, f_to' b) (locw, (f_to' wnext))) as [EQ|NEQ'];
         simpls; desc; subst.
       { exfalso.
         assert (b = wnext); [|by desf].
         eapply f_to_eq; try apply FCOH0; eauto.
-        { red. by rewrite WNEXTLOC. }
-        do 2 left. by apply (etc_I_in_S ETCCOH). }
+        { clear -SEW'. simplify_tls_events. subst S'. rewrite <- SEW'. basic_solver. }
+        { red. ins. by rewrite WNEXTLOC. }
+        { eapply rcoh_I_in_S in ISSB; eauto. clear -ISSB. find_event_set. }
+        clear -NEXT. find_event_set. } 
       erewrite Memory.add_o with (mem2:=memory'); eauto.
       erewrite Memory.add_o with (mem2:=memory_add); eauto.
       rewrite !loc_ts_eq_dec_neq; auto.
@@ -575,7 +620,7 @@ Proof using All.
       { rewrite ISSEQ_FROM; auto. eapply sim_mem_helper_f_issued; eauto. }
       intros AA BB.
       assert (~ covered T b) as NCOVBB.
-      { intros HH. apply BB. generalize HH. clear. basic_solver. }
+      { intros HH. apply BB. clear -HH. find_event_set. }
       specialize (HH1 AA NCOVBB).
       desc. splits; auto.
       { apply NOTNEWA; auto.
@@ -583,26 +628,33 @@ Proof using All.
       eexists. splits; eauto.
       2: { destruct HH2 as [[CC DD]|CC]; [left|right].
            { split; eauto. intros [y HH]. destruct_seq_l HH as OO.
+             eapply set_equiv_exp in OO.
+             2: { clear. simplify_tls_events. by rewrite !set_union_empty_r. } 
              destruct OO as [OO|]; subst.
              { apply CC. exists y. apply seq_eqv_l. by split. }
-             apply NISSB. eapply rfrmw_I_in_I; eauto. exists b.
-             apply seqA. apply seq_eqv_r. by split. }
+             apply NISSB.
+             eapply rfrmw_I_in_I; eauto. exists b.
+             clear -ISSB HH. apply seqA. basic_solver 10. }
            desc. exists p. splits; auto.
-           { by left. }
+           { clear -CC. find_event_set. }
            eexists. splits; eauto.
            destruct (classic (l = locw)) as [|LNEQ]; subst; auto.
            2: { apply NOTNEWM.
                 1,2: by left.
                 rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
            assert (S' p) as SPP.
-           { do 2 left. by apply (etc_I_in_S ETCCOH). }
+           { do 2 left. eapply rcoh_I_in_S; eauto. }
            assert (loc lab p = Some locw) as PLOC.
            { rewrite <- LOC0. by apply (wf_rfrmwl WF). }
            apply NOTNEWM.
            3: { rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
            all: right; intros HH.
            all: eapply f_to_eq in HH; eauto; subst; auto.
+           { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
+             clear. simplify_tls_events. subst S'. basic_solver. }
            { red. by rewrite LOC. }
+           { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
+             clear. simplify_tls_events. subst S'. basic_solver. }           
            red. by rewrite WNEXTLOC. }
       destruct (Rel w) eqn:RELW; auto.
       2: by rewrite ISSEQ_TO.
@@ -619,12 +671,15 @@ Proof using All.
       assert ((⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘) w b) as ST.
       { apply seq_eqv_lr. by splits. }
       apply tid_sb in ST. destruct ST as [[[|ST]|ST]|[AI BI]]; subst; auto.
-      2: { apply NCOVBB. apply ISSUABLE. exists w. apply seq_eqv_r. split; auto.
+      2: { apply NCOVBB. eapply fwbob_issuable_in_C; eauto.
+           exists w. apply seq_eqv_r. split; eauto. 
            apply sb_to_w_rel_in_fwbob. apply seq_eqv_r. split; auto. by split. }
-      assert (issuable G sc T b) as IB by (eapply issued_in_issuable; eauto).
-      apply NCOVB. apply IB. exists b. apply seq_eqv_r. split; auto.
-      apply sb_from_w_rel_in_fwbob; auto. apply seq_eqv_lr. splits; auto.
-      all: split; auto. red. by rewrite LOC. }
+      apply NCOVB. eapply fwbob_I_in_C; eauto.
+      exists b. apply seq_eqv_r. split; eauto. 
+      apply sb_from_w_rel_in_fwbob. apply seq_eqv_l. splits; eauto.
+      { by split. }
+      apply seq_eqv_r. split; auto. split; auto. vauto.
+      red. by rewrite LOC. }
     assert (Some l = Some locw) as QQ.
     { by rewrite <- LOC0. }
     inv QQ.
@@ -637,7 +692,7 @@ Proof using All.
     intros _ NT.
     clear PROMGET.
     destruct (Rel b); desf.
-    { exfalso. apply NT. by right. }
+    { exfalso. apply NT. clear. find_event_set. }
     splits.
     { erewrite Memory.add_o; eauto; rewrite loc_ts_eq_dec_neq; eauto.
       erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq; eauto. }
@@ -646,21 +701,38 @@ Proof using All.
     2: { exfalso. apply NWEX. red. generalize INRMW. clear. basic_solver. }
     split; auto.
     intros [a HH].
-    apply seq_eqv_l in HH. destruct HH as [[HH|] RFRMW]; subst; eauto.
+    apply seq_eqv_l in HH as [HH RFRMW].
+    eapply set_equiv_exp in HH.
+    2: { clear. simplify_tls_events. by rewrite !set_union_empty_r. }    
+    destruct HH as [HH|]; subst; eauto.
     { apply NINRMW. generalize HH RFRMW. clear. basic_solver 10. }
     eapply wf_rfrmw_irr; eauto. }
   { red. ins.
     assert (b <> w /\ ~ issued T b) as [BNEQ NISSBB].
-    { generalize NISSB0. clear. basic_solver. }
-    destruct RESB as [[SB|]|HH]; subst.
+    { contra BB. destruct NISSB0. apply not_and_or in BB.
+      clear -BB. destruct BB as [?%NNPP | ?%NNPP]; find_event_set. } 
+    eapply set_equiv_exp in RESB. 
+    2: { clear. simplify_tls_events. by rewrite !set_union_empty_r. }
+
+    (* TODO: move upper? *)
+    assert (reserved
+               (T ∪₁ eq (mkTL ta_issue w)
+                  ∪₁ eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))) ≡₁
+            S') as RES'.
+    { clear. simplify_tls_events. subst S'. basic_solver. }
+    assert (f_to_coherent G S' f_to' f_from') as FCOH'.
+    { eapply f_to_coherent_more; [| symmetry; apply RES'|..]; eauto. } 
+
+    unfolder in RESB. 
+    destruct RESB as [SB | [ | HH]]; subst.
     2: by desf.
     { unnw.
       erewrite Memory.add_o with (mem2:=memory'); eauto.
       destruct (loc_ts_eq_dec (l, f_to' b) (locw, (f_to' w))) as [PEQ'|PNEQ];
         simpls; desc; subst.
       { exfalso. apply BNEQ.
-        eapply f_to_eq with (f_to:=f_to'); eauto. red.
-          by rewrite LOC. }
+        eapply f_to_eq with (f_to:=f_to'); eauto.
+        red. by rewrite LOC. }
       destruct (loc_ts_eq_dec (l, f_to' b) (locw, (f_to' wnext))) as [PEQ'|PNEQ'];
         simpls; desc; subst.
       { exfalso. eapply f_to_eq with (I:=S') in PEQ'0; subst; eauto.
@@ -703,7 +775,9 @@ Proof using All.
        apply seqA.
        do 2 (apply seq_eqv_r; split; auto).
        split; auto. red. rewrite LOC. auto. }
-  apply NCOV. apply ISSUABLE. exists w. apply seq_eqv_r. split; auto.
+
+  apply NCOV. eapply fwbob_issuable_in_C; eauto.
+  exists w. apply seq_eqv_r. split; eauto. 
   apply sb_to_w_rel_in_fwbob. apply seq_eqv_r. 
   do 2 (split; auto).
 Qed.
