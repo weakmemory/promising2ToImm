@@ -504,23 +504,6 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN_RLX_EQ
   rewrite reserved_events. rewrite <- NEWS at 2. basic_solver. 
 Qed.
 
-(* TODO: move to TlsEventSets *)
-Lemma reserved_only_reserve M
-      (RES: M ⊆₁ action ↓₁ eq ta_reserve):
-  reserved M ≡₁ event ↑₁ M. 
-Proof using. 
-  unfold reserved. split; [basic_solver| ].
-  apply set_collect_mori; auto. generalize RES. basic_solver. 
-Qed. 
-
-(* TODO: move to TraversalOrder *)
-Lemma set_pair_cancel_action a B:
-  event ↑₁ (eq a <*> B) ≡₁ B. 
-Proof using. 
-  rewrite set_pair_alt. split; try basic_solver.
-  intros b Bb. exists (mkTL a b). vauto. 
-Qed.   
-
 Lemma exists_time_interval_for_issue_reserved_with_next
       w locw valw langst wnext smode
       (SW : S w)

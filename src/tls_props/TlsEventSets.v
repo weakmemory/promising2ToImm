@@ -135,6 +135,46 @@ Lemma reserved_nonreserve_empty S
   reserved S ≡₁ ∅.
 Proof using. unfold reserved. split; basic_solver. Qed. 
 
+Lemma covered_only_cover M
+      (COV: M ⊆₁ action ↓₁ eq ta_cover):
+  covered M ≡₁ event ↑₁ M. 
+Proof using. 
+  unfold covered. split; [basic_solver| ].
+  apply set_collect_mori; auto. generalize COV. basic_solver. 
+Qed. 
+
+Lemma issued_only_issue M
+      (ISS: M ⊆₁ action ↓₁ eq ta_issue):
+  issued M ≡₁ event ↑₁ M. 
+Proof using. 
+  unfold issued. split; [basic_solver| ].
+  apply set_collect_mori; auto. generalize ISS. basic_solver. 
+Qed. 
+
+Lemma reserved_only_reserve M
+      (RES: M ⊆₁ action ↓₁ eq ta_reserve):
+  reserved M ≡₁ event ↑₁ M. 
+Proof using. 
+  unfold reserved. split; [basic_solver| ].
+  apply set_collect_mori; auto. generalize RES. basic_solver. 
+Qed. 
+
+(* TODO: move to TraversalOrder *)
+Lemma set_pair_cancel_action a B:
+    event ↑₁ (eq a <*> B) ≡₁ B. 
+Proof using. 
+  rewrite set_pair_alt. split; try basic_solver.
+  intros b Bb. exists (mkTL a b). vauto. 
+Qed.   
+
+(* TODO: move to TraversalOrder *)
+Lemma set_pair_exact a e:
+  eq a <*> eq e ≡₁ eq (mkTL a e). 
+Proof using. 
+  unfold set_pair. split; try basic_solver.
+  intros [? ?] [-> ->]. auto. 
+Qed. 
+
 End SimplificationsCIRP. 
 
 
@@ -238,6 +278,14 @@ Section WfSets.
     apply set_collect_mori; [done| ]. apply set_subset_inter; [| done].
     by apply dom_rel_to_cond.
   Qed.
+
+  Lemma issuableE:
+    issuable G sc T ⊆₁ acts_set G. 
+  Proof using. unfold issuable. basic_solver. Qed. 
+  
+  Lemma issuableW:
+    issuable G sc T ⊆₁ is_w (lab G).
+  Proof using. unfold issuable. basic_solver. Qed. 
 
   Lemma w_coverable_issued :
     W ∩₁ coverable G sc T ⊆₁ issued T.
