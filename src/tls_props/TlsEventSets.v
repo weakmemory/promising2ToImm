@@ -189,16 +189,24 @@ Ltac remember_tls_sets :=
 
 Ltac subst_tls_sets_simpl :=
   repeat (match goal with
-          | H: ?E = covered ?S |- _ => subst E; try (rewrite covered_noncover_empty; [| basic_solver 10])
-          | H: ?E = issued ?S |- _ => subst E; try (rewrite issued_nonissue_empty; [| basic_solver 10])
-          | H: ?E = reserved ?S |- _ => subst E; try (rewrite reserved_nonreserve_empty; [| basic_solver 10])
-            end
+          | H: ?E = covered ?S |- _ => subst E; try ((rewrite covered_noncover_empty; [| basic_solver 10 || iord_dom_solver]) || (rewrite covered_only_cover; [| basic_solver 10 || iord_dom_solver]))
+          | H: ?E = issued ?S |- _ => subst E; try ((rewrite issued_nonissue_empty; [| basic_solver 10 || iord_dom_solver]) || (rewrite issued_only_issue; [| basic_solver 10 || iord_dom_solver]))
+          | H: ?E = reserved ?S |- _ => subst E; try ((rewrite reserved_nonreserve_empty; [| basic_solver 10 || iord_dom_solver]) || (rewrite reserved_only_reserve; [| basic_solver 10 || iord_dom_solver]))
+            end;
+          try rewrite !set_pair_cancel_action
          ).
-
+  
 Ltac simplify_tls_events :=
   (repeat rewrite ?covered_union, ?issued_union, ?reserved_union);
   (repeat rewrite ?covered_singleton, ?issued_singleton, ?reserved_singleton);
   remember_tls_sets; subst_tls_sets_simpl. 
+
+Ltac find_event_set :=
+  eapply set_equiv_exp; [by simplify_tls_events| basic_solver]. 
+
+Ltac separate_set_event :=
+  apply set_disjoint_eq_r; simplify_tls_events; basic_solver. 
+
 
 
 Section WfSets.

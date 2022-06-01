@@ -489,19 +489,12 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN_RLX_EQ
   do 2 eexists. splits; eauto.
   { constructor; auto. simpls. by rewrite RELWFEQ. }
   { eapply f_to_coherent_more; [.. | by apply FCOH_NEW]; eauto.
-    rewrite set_pair_alt. simplify_tls_events.
-    split; [| basic_solver].
-    erewrite reserved_mori with (x := _ ∩₁ _); [| intro; apply proj2].
-    rewrite reserved_events. rewrite <- NEWS at 2. basic_solver. }
+    simplify_tls_events. rewrite <- NEWS at 2. clear. basic_solver. }
   { eapply sim_helper_issue with (S':=S); eauto. eapply rcoh_I_in_S; eauto. }
 
   eapply reserved_time_same_issued_reserved; eauto.
-  { rewrite set_pair_alt. simplify_tls_events.
-    rewrite issued_nonissue_empty with (S := _ ∩₁ _); [basic_solver| ].
-    iord_dom_solver. }
-  simplify_tls_events. split; [| basic_solver]. 
-  rewrite set_pair_alt. erewrite reserved_mori with (x := _ ∩₁ _); [| intro; apply proj2].
-  rewrite reserved_events. rewrite <- NEWS at 2. basic_solver. 
+  { simplify_tls_events. clear. basic_solver. }
+  simplify_tls_events. rewrite <- NEWS at 2. clear. basic_solver. 
 Qed.
 
 Lemma exists_time_interval_for_issue_reserved_with_next
@@ -839,10 +832,7 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN_RLX_EQ
     eapply wf_rfrmwf; eauto. }
 
   assert (reserved (T ∪₁ eq (mkTL ta_issue w) ∪₁ eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))) ≡₁ S ∪₁ eq wnext) as RES'.
-  { simplify_tls_events.
-    rewrite reserved_only_reserve with (M := _ <*> _); [| iord_dom_solver].
-    rewrite set_pair_cancel_action.
-    generalize NEWS. basic_solver. }
+  { simplify_tls_events. generalize NEWS. basic_solver. }
   
 
   assert (S ⊆₁ E ∩₁ W) as SEW.
@@ -862,8 +852,7 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN_RLX_EQ
     (* { apply same_tc. } *)
     destruct smode; simpls; desc.
     2: { splits.
-         2: { rewrite RMW_BEF_S. simplify_tls_events.
-              basic_solver 10. }
+         2: { rewrite RMW_BEF_S. simplify_tls_events. basic_solver 10. }
          rewrite <- FOR_SPLIT.
          hahn_frame.
          clear. apply eqv_rel_mori.
@@ -933,18 +922,14 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN_RLX_EQ
       rewrite (loc_ts_eq_dec_eq locw (f_to w)) in MSG. inv MSG.
       exists wnext. rewrite !upds. splits; auto.
       { apply RES'. basic_solver. }
-      apply set_disjoint_eq_r. simplify_tls_events.
-      rewrite issued_nonissue_empty with (S := _ <*> _); [| iord_dom_solver].
-      basic_solver. }
+      apply set_disjoint_eq_r. simplify_tls_events. basic_solver. }
     rewrite loc_ts_eq_dec_neq in MSG; auto. simpls.
     apply HMEM in MSG.
     desc.
     assert (b <> wnext) as BNEQ by (intros HH; desf).
     exists b. rewrite !updo with (a:=wnext); auto. splits; auto.
     { apply RES'. by left. }
-    { apply set_disjoint_eq_r. simplify_tls_events.
-      rewrite issued_nonissue_empty with (S := _ <*> _); [| iord_dom_solver].
-      basic_solver. }
+    { apply set_disjoint_eq_r. simplify_tls_events. basic_solver. }
     destruct (classic (w = b)); subst.
     2: by rewrite updo; auto.
     exfalso. rewrite LOC in LOC0. inv LOC0. inv LTNEQ'. }

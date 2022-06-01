@@ -330,9 +330,8 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE TCOH RCOH
 
   edestruct co_prev_to_imm_co_prev with (w:=w) as [wprev]; eauto. desc.
   split; auto.
-  { red. simplify_tls_events. rewrite NONEXT, !set_union_empty_r.
-    rewrite set_pair_exact, reserved_singleton.
-    rewrite SEW. unionL; basic_solver. }
+  { red. simplify_tls_events. rewrite set_union_empty_r, <- set_unionA.
+    rewrite <- SEW'. basic_solver. }
 
   destruct (classic (exists wconext, (co ⨾ ⦗ S ⦘) w wconext)) as [WCONEXT|WNONEXT]; [|left].
   { edestruct co_next_to_imm_co_next with (w:=w) as [wconext]; eauto. clear WCONEXT. desc.
@@ -570,8 +569,7 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE TCOH RCOH
              by rewrite <- HH; apply Time.middle_spec. }
          { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
            unfold S'. rewrite NONEXT. clear.
-           simplify_tls_events. rewrite !set_union_empty_r.
-           rewrite set_pair_exact, reserved_singleton. auto. }
+           simplify_tls_events. basic_solver. }
 
          exists promises'; exists memory'. unfold rel', rel'' in *.
          splits; auto.
@@ -786,8 +784,7 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE TCOH RCOH
     { constructor; auto. by rewrite RELPLN. }
     { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
       subst S'. rewrite NONEXT. clear.
-      simplify_tls_events. rewrite !set_union_empty_r.
-      rewrite set_pair_exact, reserved_singleton. auto. }
+      simplify_tls_events. basic_solver. }
     { subst. eapply sim_helper_issue with (S':=S ∪₁ eq w); eauto.
       { transitivity (fun _ : actid => False); [|clear; basic_solver].
         generalize NWEX. unfold Execution.W_ex. clear; basic_solver. }
@@ -972,8 +969,7 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE TCOH RCOH
   { constructor; auto. by rewrite RELPLN. }
   { eapply f_to_coherent_mori; [|by apply FCOH_NEW].
     subst S'. rewrite NONEXT. clear.
-    simplify_tls_events. rewrite !set_union_empty_r.
-    rewrite set_pair_exact, reserved_singleton. auto. }
+    simplify_tls_events. basic_solver. }
   { subst. eapply sim_helper_issue with (S':=S ∪₁ eq w); eauto.
     { transitivity (fun _ : actid => False); [|clear; basic_solver].
       generalize NWEX. unfold Execution.W_ex. clear; basic_solver. }
