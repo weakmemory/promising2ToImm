@@ -132,116 +132,159 @@ Proof using WF.
   { unfold ar_int. basic_solver 10. }
   rewrite rmw_in_ar_int; auto. basic_solver 10. 
 Qed. 
-
-(* TODO: move to ExtTraversalConfig *)
-Lemma reserve_coherent_add_issue_reserve T w
-      (TCOH: tls_coherent G T)
-      (ICOH: iord_coherent G sc T)
-      (RCOH: reserve_coherent G T)
-      (I'w: issuable G sc T w)
-      :
-      reserve_coherent G
-    (T ∪₁ eq (mkTL ta_issue w) ∪₁ eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))). 
-Proof using.
-  remember (T ∪₁ eq (mkTL ta_issue w) ∪₁ eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))) as T'.
-  assert (covered T' ≡₁ covered T) as COV' by (subst; simplify_tls_events; basic_solver).
-  assert (issued T' ≡₁ issued T ∪₁ eq w) as ISS' by (subst; simplify_tls_events; basic_solver).
-  assert (reserved T' ≡₁ reserved T ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)) as RES' by (subst; simplify_tls_events; basic_solver).
-  apply set_subset_eq in I'w as I'w_.
-  assert (forall T r D, dom_sb_S_rfrmw G T r D ⊆₁ dom_rel (sb ⨾ ⦗reserved T⦘)) as DSS_HELPER. 
-  { unfold dom_sb_S_rfrmw. ins. basic_solver. }
-
-  pose proof RCOH as RCOH_. destruct RCOH_. 
-  split; rewrite ?COV', ?ISS', ?RES'.
-  { rewrite rcoh_S_in_E, ExtTraversalProperties.dom_sb_S_rfrmwE; auto.
-    arewrite (eq w ⊆₁ E); [apply set_subset_eq, I'w| ]. basic_solver. }
-  { rewrite rcoh_I_in_S. basic_solver. }
-  { rewrite ExtTraversalProperties.dom_sb_S_rfrmw_in_W_ex.
-    (* TODO: introduce tactic for relation simplification *)
-    clear -rcoh_S_I_in_W_ex. relsf. splits; try basic_solver.
-    generalize rcoh_S_I_in_W_ex. basic_solver. }
-  { rewrite !id_union. repeat case_union _ _. rewrite !dom_union.
-    repeat (apply set_subset_union_l; split; auto).
-    { rewrite <- fwbob_issuable_in_C with (sc := sc); eauto.
-      rewrite <- sb_from_f_in_fwbob. rewrite I'w_. basic_solver. }
-    rewrite DSS_HELPER. rewrite <- seqA, dom_rel_eqv_dom_rel, seqA.
-    by sin_rewrite sb_sb. }
-  { remember (detour ∪ rfe) as REL. 
-    rewrite !id_union. repeat case_union _ _. rewrite !dom_union.
-    subst REL. repeat (apply set_subset_union_l; split).
-    { rewrite rcoh_dr_R_acq_I. basic_solver. }
-    { rewrite I'w_ at 1. rewrite dom_detour_rmwrfi_rfe_acq_sb_issuable; basic_solver. }
-    rewrite DSS_HELPER. rewrite <- !seqA, dom_rel_eqv_dom_rel, seqA.
-    sin_rewrite sb_sb.
-    rewrite !seqA, rcoh_dr_R_acq_I. basic_solver. }
-  { rewrite !id_union. repeat case_union _ _. rewrite !dom_union.
-    repeat (apply set_subset_union_l; split; auto).
-    { rewrite rcoh_W_ex_sb_I. basic_solver. }
-    { rewrite I'w_ at 1. rewrite dom_wex_sb_issuable; basic_solver. }
-    rewrite DSS_HELPER. rewrite <- !seqA, dom_rel_eqv_dom_rel, seqA.
-    sin_rewrite sb_sb.
-    rewrite rcoh_W_ex_sb_I. basic_solver. }
-  { subst T'. rewrite !dom_sb_S_rfrmw_union_S, !dom_sb_S_rfrmw_union_T.
-    repeat (apply set_subset_union_l; split).
-    { rewrite rcoh_sb_S. basic_solver. }
-    { unfold dom_sb_S_rfrmw. simplify_tls_events. basic_solver. }
-    { 
-      (* rewrite set_pair_union_r. rewrite dom_sb_S_rfrmw_union_T. *)
-      (* apply set_subset_union_l; split. *)
-      (* 2: { unfold dom_sb_S_rfrmw. simplify_tls_events. *)
-      (*      unfolder. ins. desc. subst.  *)
-      (*      (* ? *) *)
-      (*      right. split. *)
-      (*      { exists y0. splits; eauto. eapply sb_trans; eauto. } *)
-      (*      eexists. splits; eauto. eexists. splits; eauto.  *)
-       
-      (* rewrite <- rcoh_sb_S. do 2 unionR left.   *)
-      (* unfold dom_sb_S_rfrmw. apply set_subset_inter; [| basic_solver].  *)
-      (* simplify_tls_events. *)
-      (* erewrite dom_rel_mori. *)
-      (* 2: { rewrite id_union. case_union _ _.  *)
-      admit. }
-    { admit. }
-    { unfold dom_sb_S_rfrmw. simplify_tls_events. basic_solver. }
-    { admit. }
-  }
-  { remember (detour ∪ rfe) as REL. remember (data ∪ rfi ∪ rmw) as REL'.
-    rewrite !id_union. repeat case_union _ _. rewrite !dom_union.
-    subst REL REL'. repeat (apply set_subset_union_l; split; auto).
-    { rewrite rcoh_rppo_S. basic_solver. }
-    { rewrite I'w_ at 1.
-      sin_rewrite detour_rfe_data_rfi_rmw_rppo_in_detour_rfe_ppo; auto. 
-      rewrite seqA. sin_rewrite dom_detour_rfe_ppo_issuable; basic_solver. }
-    rewrite DSS_HELPER. rewrite <- !seqA, dom_rel_eqv_dom_rel, seqA.
-    arewrite (rppo G ⨾ sb ⨾ ⦗reserved T⦘ ⊆ rppo G ⨾ ⦗reserved T⦘).
-    { rewrite <- seq_eqvK at 1. hahn_frame.
-      rewrite reservedW; eauto. apply rppo_sb_in_rppo; auto. }
-    rewrite rcoh_rppo_S. basic_solver. }
-  { rewrite !id_union. repeat case_union _ _. rewrite !dom_union.
-    repeat (apply set_subset_union_l; split; auto).
-    { rewrite rcoh_d_rmw_S. basic_solver. }
-    { unionR left. 
-      rewrite <- dom_detour_rfe_rmw_rfi_rmw_rt_issuable_in_I; eauto.
-      rewrite I'w_. apply dom_rel_mori. hahn_frame. }
-    unfold dom_sb_S_rfrmw. 
-    (* can be proved if we assume RMWREX *)
-    admit. }
-  repeat rewrite set_inter_union_l. repeat (apply set_subset_union_l; split; auto).
-  { rewrite rcoh_S_W_ex_rfrmw_I. basic_solver 10. }
-  { red. intros ? [<- WEXw]. red in WEXw.
-    destruct WEXw as [r RMWrw].
-    cdes CON. specialize (Comp r). specialize_full Comp.
-    { erewrite same_relation_exp in RMWrw; [| rewrite wf_rmwD, wf_rmwE; eauto].
-      generalize RMWrw. clear. basic_solver. }
-    destruct Comp as [w' RFw'r].
-    exists w'. apply seq_eqv_l. split; [| basic_solver]. left.
-    eapply rfrmw_coverable_issuable_in_I; eauto.
-    exists w. apply seqA. eexists. split; [basic_solver| ]. vauto. } 
-  unfold dom_sb_S_rfrmw. rewrite rfi_in_rf. basic_solver 10.
-Admitted. 
-        
-
       
+
+(* TODO: move to IMM*)  
+Lemma iord_no_reserve:
+  iord G sc ≡ restr_rel (set_compl (action ↓₁ eq ta_reserve)) (iord G sc).
+Proof using.
+  rewrite restr_relE. split; [| basic_solver]. apply dom_helper_3.
+  unfold iord. iord_dom_unfolder; ins; subst; vauto. 
+Qed.
+
+(* TODO: move to IMM*)  
+Lemma iord_coherent_equiv_wo_reserved T1 T2
+      (EQ': T1 \₁ action ↓₁ eq ta_reserve ≡₁ T2 \₁ action ↓₁ eq ta_reserve)
+      (ICOH: iord_coherent G sc T1):
+  iord_coherent G sc T2. 
+Proof using. 
+  red. red in ICOH.
+  rewrite iord_no_reserve, restr_relE in *.
+  rewrite !seqA, seq_eqvC, <- id_inter in *.
+  transitivity (T2 \₁ action ⋄₁ eq ta_reserve); [| basic_solver].
+  rewrite <- EQ'. rewrite !set_minusE in EQ'. rewrite EQ' in ICOH.
+  rewrite set_minusE. apply set_subset_inter_r. split; [| basic_solver].
+  rewrite ICOH. basic_solver. 
+Qed.
+
+(* TODO: move to IMM *)
+Global Add Parametric Morphism : msg_rel with signature
+       eq ==> (@same_relation actid) ==> eq ==>
+          (@same_relation actid) as msg_rel_more. 
+Proof using. ins. unfold msg_rel. rewrite H. basic_solver. Qed. 
+
+(* TODO: move*)
+Global Add Parametric Morphism : sim_prom with signature
+       eq ==> (@same_relation actid) ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
+          ==> (@set_subset Memory.t) as sim_prom_more_impl. 
+Proof using.
+  ins. unfold sim_prom. red. ins.
+  specialize (H1 l to from v rel PROM). desc.
+  eexists. splits; eauto.
+  { eapply issued_more; [symmetry| ]; eauto. }
+  { intros ?. apply NCOV. eapply covered_more; eauto. }
+  red in HELPER. desc. 
+  red. splits; eauto.
+  red in SIMMSG. red. ins. specialize (SIMMSG l0).
+  eapply max_value_more; eauto.
+  eapply set_equiv_union; [| basic_solver].
+  enough (msg_rel y y0 l0 ≡ msg_rel y x l0) by (generalize H1; basic_solver). 
+  apply msg_rel_more; auto. by symmetry. 
+Qed. 
+  
+(* TODO: move*)
+Global Add Parametric Morphism : sim_prom with signature
+       eq ==> (@same_relation actid) ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
+          ==> (@set_equiv Memory.t) as sim_prom_more. 
+Proof using. 
+  ins. split; apply sim_prom_more_impl; auto; by symmetry. 
+Qed. 
+
+(* TODO: move*)
+Global Add Parametric Morphism : sim_res_prom with signature
+       eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
+          ==> (@set_subset Memory.t) as sim_res_prom_more_impl.
+Proof using. 
+  ins. unfold sim_res_prom. red. ins.
+  specialize (H0 l to from RES). desc. eexists. splits; eauto.
+  { eapply reserved_more; [symmetry| ]; eauto. }
+  intros ?. apply NOISS. eapply issued_more; eauto. 
+Qed. 
+ 
+
+(* TODO: move*)
+Global Add Parametric Morphism : sim_res_prom with signature
+       eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
+          ==> (@set_equiv Memory.t) as sim_res_prom_more. 
+Proof using. 
+  ins. split; apply sim_res_prom_more_impl; auto; by symmetry. 
+Qed. 
+
+(* TODO: move*)
+Global Add Parametric Morphism : sim_mem with signature
+       eq ==> (@same_relation actid) ==> (@set_equiv trav_label) ==>
+       eq ==> eq ==> eq ==> eq ==>
+       (@set_subset Memory.t) as sim_mem_more_impl.
+Proof using. 
+  ins. unfold sim_mem. red. ins.
+  specialize (H1 l b). specialize_full H1; eauto.
+  { eapply issued_more; eauto. }
+  desc. eexists. splits; eauto.
+  { red in HELPER. red. desc. splits; eauto.
+    red in SIMMSG. red. desc. splits; eauto. 
+    eapply max_value_more; eauto.
+    eapply set_equiv_union; [| basic_solver].
+    enough (msg_rel y y0 l0 ≡ msg_rel y x l0) as MM by (generalize MM; basic_solver). 
+    apply msg_rel_more; auto. by symmetry. }
+  ins. specialize_full H1; eauto.
+  { intro. apply H3. symmetry in H0. eapply covered_more; eauto. }
+  desc. splits; eauto. 
+  exists p_rel. rewrite REL. splits; vauto. des.
+  { left. split; auto. intro. apply NINRMW.
+    eapply set_equiv_exp; [rewrite H0| ]; eauto. }
+  right. exists p. splits; eauto.
+  symmetry  in H0. eapply issued_more; eauto.    
+Qed. 
+ 
+
+(* TODO: move*)
+Global Add Parametric Morphism : sim_mem with signature
+       eq ==> (@same_relation actid) ==> (@set_equiv trav_label) ==>
+       eq ==> eq ==> eq ==> eq ==>
+       (@set_equiv Memory.t) as sim_mem_more.
+Proof using. 
+  ins. split; apply sim_mem_more_impl; auto; by symmetry. 
+Qed. 
+
+(* TODO: move*)
+Global Add Parametric Morphism : sim_res_mem with signature
+       eq ==> (@set_equiv trav_label) ==>
+       eq ==> eq ==> eq ==> eq ==>
+       (@set_subset Memory.t) as sim_res_mem_more_impl.
+Proof using. 
+  ins. unfold sim_res_mem. red. ins.
+  specialize (H0 l b). specialize_full H0; eauto.
+  { eapply reserved_more; eauto. }
+  intro. apply NISSB. symmetry in H. eapply issued_more; eauto.
+Qed.  
+
+(* TODO: move*)
+Global Add Parametric Morphism : sim_res_mem with signature
+       eq ==> (@set_equiv trav_label) ==>
+       eq ==> eq ==> eq ==> eq ==>
+       (@set_equiv Memory.t) as sim_res_mem_more.
+Proof using. 
+  ins. split; apply sim_res_mem_more_impl; auto; by symmetry. 
+Qed. 
+
+(* TODO: move*)
+Global Add Parametric Morphism : sim_state with signature
+       eq ==> eq ==> (@set_equiv actid) ==> eq ==> eq ==>
+          Basics.impl as sim_state_more_impl.
+Proof using.
+  ins. red. unfold sim_state. ins. desc. splits; eauto.
+  ins. split; ins.
+  { apply PCOV, H. auto. }
+  apply H, PCOV. auto. 
+Qed. 
+
+(* TODO: move*)
+Global Add Parametric Morphism : sim_state with signature
+       eq ==> eq ==> (@set_equiv actid) ==> eq ==> eq ==>
+          iff as sim_state_more.
+Proof using.
+  ins. split; apply sim_state_more_impl; auto; by symmetry. 
+Qed.
 
 Lemma issue_rlx_step_next PC T f_to f_from thread w wnext smode
       (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from thread smode)
@@ -267,8 +310,7 @@ Lemma issue_rlx_step_next PC T f_to f_from thread w wnext smode
 Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
   subst.
-  remember (T ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)))) as T'. 
-  
+
   assert (~ issued T w) as NISSB.
   { eapply ext_itrav_step_iss_nI; eauto. }
   assert (issuable G sc T w) as ISSUABLE.
@@ -286,10 +328,12 @@ Proof using WF CON.
   assert (NSW : ~ reserved T w).
   { intros HH. apply NWEX. apply RCOH. by split. }
   
-  edestruct issue_step_helper_next as [p_rel]; eauto. simpls; desf.
+  edestruct issue_step_helper_next as [p_rel]; eauto. simpls. desf.
   set (rel'' := TView.rel (Local.tview local) locw).
   set (rel' := (View.join (View.join rel'' (View.unwrap p_rel))
                           (View.singleton_ur locw (f_to' w)))).
+
+  remember (T ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)))) as T'.   
 
   set (pe1 :=
          ThreadEvent.promise
@@ -301,7 +345,7 @@ Proof using WF CON.
            Memory.op_kind_add).
   
   assert (Memory.closed_message (Message.full valw (Some rel')) memory_add) as CLOS_MSG.
-  { by do 2 constructor. }
+  { simpls. desf. by do 2 constructor. }
   
   exists f_to', f_from'. eexists.
   apply and_assoc. apply pair_app; unnw.
@@ -325,18 +369,46 @@ Proof using WF CON.
       2: by simpls.
       econstructor; eauto. }
     destruct (is_rel lab w) eqn:RELB; [by desf|].
+    assert (W ∩₁ Rel ∩₁ issued T' ⊆₁ covered T') as RELCOV'. 
+    { subst T'. clear -RELB RELCOV. simplify_tls_events.
+      generalize RELCOV. basic_solver 10. }
+
     subst.
+
     red; splits; red; splits; eauto; simpls.
     all: try (rewrite IdentMap.add_add_eq; eauto).
-    { apply TSTEP. }
-    { generalize RELB RELCOV. clear. basic_solver. }
+    all: try by apply TSTEP.
+    { ins. etransitivity; [etransitivity| ].
+      2: { apply RMWCOV; eauto. }
+      all: apply set_equiv_exp; simplify_tls_events; basic_solver. }
+    { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
+      simplify_tls_events. basic_solver. }
+    { ins. simplify_tls_events. rewrite SC_COV; auto. basic_solver. }
+    { ins. clear -SC_REQ0 H0 l.
+      eapply max_value_more; [..| apply SC_REQ0]; auto.
+      simplify_tls_events. relsf. }
+    { eapply reserved_time_more; [..| apply RESERVED_TIME0]; auto.
+      clear. simplify_tls_events. basic_solver. }
     { do 2 (eapply Memory.add_closed; eauto). }
     simpls.
     exists state; eexists.
     rewrite IdentMap.gss.
     splits; eauto.
-    { simpls. eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
-    do 2 (eapply tview_closedness_preserved_add; eauto). }
+    { eapply sim_prom_more; [..| apply SIM_PROM0]; auto. clear. basic_solver. }
+    { eapply sim_res_prom_more; [..| apply SIM_RES_PROM]; auto.
+      clear. basic_solver. }
+    { eapply sim_mem_more; [..| apply SIM_MEM0]; auto.
+      clear. basic_solver. }
+    { eapply sim_res_mem_more; [..| apply SIM_RES_MEM0]; auto.
+      clear. basic_solver. }
+    { eapply sim_tview_more.
+      3: { simplify_tls_events. relsf. }
+      all: eauto. 
+      eapply sim_tview_f_issued; eauto. }
+    do 2 (eapply tview_closedness_preserved_add; eauto).
+    eapply sim_state_more; [.. | apply STATE]; auto.
+    simplify_tls_events. basic_solver. 
+  }
   assert (IdentMap.In (tid w) (Configuration.threads PC)) as INTT.
   { apply IdentMap.Facts.in_find_iff. rewrite LLH. desf. }
 
@@ -355,15 +427,17 @@ Proof using WF CON.
   destruct AA as [AA|AA]; subst; auto.
   { exfalso. by apply TNEQ. }
   apply SIMREL in AA. cdes AA.
-  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
-  10: { simpls. eapply msg_preserved_trans; eapply msg_preserved_add; eauto. }
-  9: { simpls. eapply closedness_preserved_trans; eapply closedness_preserved_add; eauto. }
-  8: by eapply same_other_threads_steps; eauto.
+  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T); eauto.
+  1-8: clear -WF TLSCOH ISSUABLE NINIT; simplify_tls_events; rewrite !set_union_empty_r.
+  1-8: try by basic_solver. 
+  { by apply coveredE. }
+  { apply issuableE, set_subset_eq in ISSUABLE. rewrite issuedE, ISSUABLE; basic_solver. }
+  { rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver. }
+
+  3: try by (simpls; eapply msg_preserved_trans; eapply msg_preserved_add; eauto).
+  2: { simpls. eapply closedness_preserved_trans; eapply closedness_preserved_add; eauto. }
+  { by eapply same_other_threads_steps; eauto. }
   all: simpls; eauto.
-  { eapply coveredE; eauto. }
-  { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
-  1-4: clear; basic_solver.
-  { rewrite dom_sb_S_rfrmw_same_tid; auto. clear. basic_solver. }
   { ins.
     destruct (classic (thread0 = tid w)); subst.
     { split; ins; auto. apply IdentMap.Facts.add_in_iff; eauto. }
