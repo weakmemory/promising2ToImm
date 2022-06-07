@@ -97,6 +97,14 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Definition dom_sb_S_rfrmw (T: trav_label -> Prop) rrf P :=
   dom_rel (sb ⨾ ⦗reserved T⦘) ∩₁ codom_rel (⦗P⦘ ⨾ rrf ⨾ rmw).
 
+Lemma dom_sb_S_rfrmw_union_S T r S1 S2:
+  dom_sb_S_rfrmw T r (S1 ∪₁ S2) ≡₁ dom_sb_S_rfrmw T r S1 ∪₁ dom_sb_S_rfrmw T r S2.
+Proof using. unfold dom_sb_S_rfrmw. basic_solver 10. Qed. 
+
+Lemma dom_sb_S_rfrmw_union_P P1 P2 r S:
+  dom_sb_S_rfrmw (P1 ∪₁ P2) r S ≡₁ dom_sb_S_rfrmw P1 r S ∪₁ dom_sb_S_rfrmw P2 r S.
+Proof using. unfold dom_sb_S_rfrmw. rewrite reserved_union. basic_solver 10. Qed.
+
 (* Record etc_coherent (T : ext_trav_config) := *)
 (*   mkETCC { *)
 (*   etc_tccoh          : tc_coherent G sc (etc_TC T); *)

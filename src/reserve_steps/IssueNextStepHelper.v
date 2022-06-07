@@ -140,25 +140,6 @@ Hypothesis SIM_MEM : sim_mem G sc T f_to f_from thread local (Configuration.memo
 Hypothesis SIM_TVIEW : sim_tview G sc (covered T) f_to (Local.tview local) thread.
 Hypothesis RMWREX : dom_rel rmw ⊆₁ R_ex lab.
 
-(* TODO: move *)
-Global Add Parametric Morphism A: (@max_value A) with signature
-       eq ==> (@set_equiv A) ==> eq ==> Basics.impl as max_value_more_impl. 
-Proof using.
-  ins. red. ins. unfold max_value in *. 
-  ins. desc. splits.
-  { ins. by apply UB, H. }
-  des; [left | right].
-  { split; auto. intros a N'a. edestruct MAX. eapply H; eauto. }
-  eexists. splits; eauto. by apply H. 
-Qed. 
-
-(* TODO: move *)
-Global Add Parametric Morphism A: (@max_value A) with signature
-       eq ==> (@set_equiv A) ==> eq ==> iff as max_value_more. 
-Proof using.
-  ins. split; apply max_value_more_impl; auto. by symmetry. 
-Qed.  
-
 Lemma issue_step_helper_next w wnext valw locw ordw langst
       (TID : IdentMap.find (tid w) (Configuration.threads PC) = Some (langst, local))
       (NWEX : ~ W_ex w)

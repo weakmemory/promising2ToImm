@@ -20,6 +20,23 @@ Definition sim_state G smode (C : actid -> Prop) thread
   ⟪ PCOV : forall index , C (ThreadEvent thread index) <-> index < (eindex state)⟫ /\
   exists state', sim_state_helper G smode state state'.
 
+Global Add Parametric Morphism : sim_state with signature
+       eq ==> eq ==> (@set_equiv actid) ==> eq ==> eq ==>
+          Basics.impl as sim_state_more_impl.
+Proof using.
+  ins. red. unfold sim_state. ins. desc. splits; eauto.
+  ins. split; ins.
+  { apply PCOV, H. auto. }
+  apply H, PCOV. auto. 
+Qed. 
+
+Global Add Parametric Morphism : sim_state with signature
+       eq ==> eq ==> (@set_equiv actid) ==> eq ==> eq ==>
+          iff as sim_state_more.
+Proof using.
+  ins. split; apply sim_state_more_impl; auto; by symmetry. 
+Qed.
+
 Lemma sim_state_other_thread_step G
       (C C' : actid -> Prop) smode thread (state : Language.state (thread_lts thread))
       (CINCL : C ⊆₁ C')

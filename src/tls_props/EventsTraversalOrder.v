@@ -788,17 +788,18 @@ Context
     rewrite <- ct_step. unfold ar. basic_solver. 
   Qed. 
 
-  Lemma dom_detour_rfe_rmw_rfi_rmw_rt_I_in_I:
-    dom_rel ((((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊) ⨾ rmw) ⨾ ⦗I⦘) ⊆₁ I.
-  Proof using WF TLSCOH IORDCOH. 
+  Lemma dom_detour_rfe_rmw_rfi_rmw_rt_issuable_in_I:
+    dom_rel ((((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊) ⨾ rmw) ⨾ ⦗issuable G sc T⦘) ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH.
     rewrite !seqA. seq_rewrite rt_seq_swap. rewrite seqA.
-    assert (dom_rel ((rfi ⨾ rmw)＊ ⨾ ⦗I⦘) ⊆₁ (I)) as D2.
+    assert (dom_rel ((rfi ⨾ rmw)＊ ⨾ ⦗issuable G sc T⦘) ⊆₁ (issuable G sc T)) as D2.
     { apply dom_rel_clos_refl_trans_eqv.
-      rewrite <- rfrmw_CI_in_I at 2. rewrite rfi_in_rf. basic_solver 10. }
+      transitivity (issued T); [| apply issued_in_issuable; auto].
+      rewrite <- rf_ppo_loc_issuable_in_I; eauto.
+      rewrite rfi_in_rf, rmw_in_ppo_loc; auto. basic_solver. }
     apply dom_rel_helper in D2. rewrite D2.
     rewrite <- !seqA. do 2 rewrite dom_seq. rewrite seqA.
-
-    rewrite issued_in_issuable at 1; eauto.
+    
     unfold issuable. rewrite id_inter. rewrite <- !seqA. 
     apply dom_rel_iord_ext_parts.
     3: { erewrite init_issued; eauto. basic_solver. }
@@ -812,6 +813,13 @@ Context
     { unfold ar_int. basic_solver 10. }
     rewrite rmw_in_ar_int; auto. basic_solver 10. 
   Qed. 
+
+  Lemma dom_detour_rfe_rmw_rfi_rmw_rt_I_in_I:
+    dom_rel ((((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊) ⨾ rmw) ⨾ ⦗I⦘) ⊆₁ I.
+  Proof using WF TLSCOH IORDCOH. 
+    rewrite issued_in_issuable at 1; eauto.
+    by apply dom_detour_rfe_rmw_rfi_rmw_rt_issuable_in_I.
+  Qed.
 
   Lemma dom_detour_rmwrfi_rfe_acq_sb_issuable :
     dom_rel ((detour ∪ rfe) ⨾ (rmw ⨾ rfi)＊ ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb ⨾ ⦗issuable G sc T⦘) ⊆₁ I.

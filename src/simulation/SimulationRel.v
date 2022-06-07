@@ -11,7 +11,6 @@ From imm Require Import ProgToExecution.
 From imm Require Import ProgToExecutionProperties.
 From imm Require Import RMWinstrProps.
 
-From imm Require Import TraversalConfig.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import Event_imm_promise.
@@ -269,4 +268,106 @@ Proof using.
   right; eexists; splits; eauto.
   eapply issued_mori; eauto. 
 Qed.
+
+(* TODO: move to IMM *)
+Global Add Parametric Morphism : msg_rel with signature
+       eq ==> (@same_relation actid) ==> eq ==>
+          (@same_relation actid) as msg_rel_more. 
+Proof using. ins. unfold msg_rel. rewrite H. basic_solver. Qed. 
+
+Global Add Parametric Morphism : sim_prom with signature
+       eq ==> (@same_relation actid) ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
+          ==> (@set_subset Memory.t) as sim_prom_more_impl. 
+Proof using.
+  ins. unfold sim_prom. red. ins.
+  specialize (H1 l to from v rel PROM). desc.
+  eexists. splits; eauto.
+  { eapply issued_more; [symmetry| ]; eauto. }
+  { intros ?. apply NCOV. eapply covered_more; eauto. }
+  red in HELPER. desc. 
+  red. splits; eauto.
+  red in SIMMSG. red. ins. specialize (SIMMSG l0).
+  eapply max_value_more; eauto.
+  eapply set_equiv_union; [| basic_solver].
+  enough (msg_rel y y0 l0 ≡ msg_rel y x l0) by (generalize H1; basic_solver). 
+  apply msg_rel_more; auto. by symmetry. 
+Qed. 
+  
+Global Add Parametric Morphism : sim_prom with signature
+       eq ==> (@same_relation actid) ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
+          ==> (@set_equiv Memory.t) as sim_prom_more. 
+Proof using. 
+  ins. split; apply sim_prom_more_impl; auto; by symmetry. 
+Qed. 
+
+Global Add Parametric Morphism : sim_res_prom with signature
+       eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
+          ==> (@set_subset Memory.t) as sim_res_prom_more_impl.
+Proof using. 
+  ins. unfold sim_res_prom. red. ins.
+  specialize (H0 l to from RES). desc. eexists. splits; eauto.
+  { eapply reserved_more; [symmetry| ]; eauto. }
+  intros ?. apply NOISS. eapply issued_more; eauto. 
+Qed. 
+ 
+
+Global Add Parametric Morphism : sim_res_prom with signature
+       eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
+          ==> (@set_equiv Memory.t) as sim_res_prom_more. 
+Proof using. 
+  ins. split; apply sim_res_prom_more_impl; auto; by symmetry. 
+Qed. 
+
+Global Add Parametric Morphism : sim_mem with signature
+       eq ==> (@same_relation actid) ==> (@set_equiv trav_label) ==>
+       eq ==> eq ==> eq ==> eq ==>
+       (@set_subset Memory.t) as sim_mem_more_impl.
+Proof using. 
+  ins. unfold sim_mem. red. ins.
+  specialize (H1 l b). specialize_full H1; eauto.
+  { eapply issued_more; eauto. }
+  desc. eexists. splits; eauto.
+  { red in HELPER. red. desc. splits; eauto.
+    red in SIMMSG. red. desc. splits; eauto. 
+    eapply max_value_more; eauto.
+    eapply set_equiv_union; [| basic_solver].
+    enough (msg_rel y y0 l0 ≡ msg_rel y x l0) as MM by (generalize MM; basic_solver). 
+    apply msg_rel_more; auto. by symmetry. }
+  ins. specialize_full H1; eauto.
+  { intro. apply H3. symmetry in H0. eapply covered_more; eauto. }
+  desc. splits; eauto. 
+  exists p_rel. rewrite REL. splits; vauto. des.
+  { left. split; auto. intro. apply NINRMW.
+    eapply set_equiv_exp; [rewrite H0| ]; eauto. }
+  right. exists p. splits; eauto.
+  symmetry  in H0. eapply issued_more; eauto.    
+Qed. 
+ 
+Global Add Parametric Morphism : sim_mem with signature
+       eq ==> (@same_relation actid) ==> (@set_equiv trav_label) ==>
+       eq ==> eq ==> eq ==> eq ==>
+       (@set_equiv Memory.t) as sim_mem_more.
+Proof using. 
+  ins. split; apply sim_mem_more_impl; auto; by symmetry. 
+Qed. 
+
+Global Add Parametric Morphism : sim_res_mem with signature
+       eq ==> (@set_equiv trav_label) ==>
+       eq ==> eq ==> eq ==> eq ==>
+       (@set_subset Memory.t) as sim_res_mem_more_impl.
+Proof using. 
+  ins. unfold sim_res_mem. red. ins.
+  specialize (H0 l b). specialize_full H0; eauto.
+  { eapply reserved_more; eauto. }
+  intro. apply NISSB. symmetry in H. eapply issued_more; eauto.
+Qed.  
+
+Global Add Parametric Morphism : sim_res_mem with signature
+       eq ==> (@set_equiv trav_label) ==>
+       eq ==> eq ==> eq ==> eq ==>
+       (@set_equiv Memory.t) as sim_res_mem_more.
+Proof using. 
+  ins. split; apply sim_res_mem_more_impl; auto; by symmetry. 
+Qed. 
+
 

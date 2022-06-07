@@ -335,3 +335,27 @@ Proof using.
   intros x [y [REL ->]%seq_eqv_r]. intros ->.  
   edestruct iord_irreflexive; eauto; apply IMMCON.
 Qed.
+
+(* TODO: move to IMM*)  
+Lemma iord_no_reserve G sc:
+  iord G sc ≡ restr_rel (set_compl (action ↓₁ eq ta_reserve)) (iord G sc).
+Proof using.
+  rewrite restr_relE. split; [| basic_solver]. apply dom_helper_3.
+  unfold iord. iord_dom_unfolder; ins; subst; vauto. 
+Qed.
+
+(* TODO: move to IMM*)  
+Lemma iord_coherent_equiv_wo_reserved G sc T1 T2
+      (EQ': T1 \₁ action ↓₁ eq ta_reserve ≡₁ T2 \₁ action ↓₁ eq ta_reserve)
+      (ICOH: iord_coherent G sc T1):
+  iord_coherent G sc T2. 
+Proof using. 
+  red. red in ICOH.
+  rewrite iord_no_reserve, restr_relE in *.
+  rewrite !seqA, seq_eqvC, <- id_inter in *.
+  transitivity (T2 \₁ action ⋄₁ eq ta_reserve); [| basic_solver].
+  rewrite <- EQ'. rewrite !set_minusE in EQ'. rewrite EQ' in ICOH.
+  rewrite set_minusE. apply set_subset_inter_r. split; [| basic_solver].
+  rewrite ICOH. basic_solver. 
+Qed.
+

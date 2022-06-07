@@ -175,3 +175,20 @@ Proof using.
 Qed.
 
 End MaxValue.
+
+Global Add Parametric Morphism A: (@max_value A) with signature
+       eq ==> (@set_equiv A) ==> eq ==> Basics.impl as max_value_more_impl. 
+Proof using.
+  ins. red. ins. unfold max_value in *. 
+  ins. desc. splits.
+  { ins. by apply UB, H. }
+  des; [left | right].
+  { split; auto. intros a N'a. edestruct MAX. eapply H; eauto. }
+  eexists. splits; eauto. by apply H. 
+Qed. 
+
+Global Add Parametric Morphism A: (@max_value A) with signature
+       eq ==> (@set_equiv A) ==> eq ==> iff as max_value_more. 
+Proof using.
+  ins. split; apply max_value_more_impl; auto. by symmetry. 
+Qed.  
