@@ -7,12 +7,17 @@ From imm Require Import Events Execution.
 From imm Require Import ProgToExecution.
 From imm Require Import ProgToExecutionProperties.
 Require Import SimulationRel.
-From imm Require Import TraversalConfig.
 Require Import Event_imm_promise.
 Require Import SimState.
 Require Import MaxValue.
 Require Import ViewRel.
 Require Import PromiseLTS.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import SimClosure. 
+Require Import Next.
+Require Import TlsEventSets.
 
 Set Implicit Arguments.
 
@@ -53,7 +58,8 @@ Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Lemma next_event_representation e state state' T smode
-      (TCCOH : tc_coherent G sc T)
+      (* (TCCOH : tc_coherent G sc T) *)
+      (TCOH: tls_coherent G T)
       (GPC : wf_thread_state (tid e) state)
       (STEPS : (step (tid e))＊ state state')
       (TEH  : thread_restricted_execution G (tid e) state'.(ProgToExecution.G))
@@ -62,8 +68,8 @@ Lemma next_event_representation e state state' T smode
   e = ThreadEvent (tid e) (eindex state).
 Proof using.
   assert (~ is_init e) as NINIT.
-  { intros H. apply NEXT.
-    apply TCCOH. split; auto. apply NEXT. }
+  { intros H. apply NEXT. eapply init_covered; eauto.    
+    split; auto. apply NEXT. }
   destruct e; desf. simpls.
   assert (index = (eindex state)); [|by subst].
   cdes STATE.
@@ -317,9 +323,9 @@ Proof using WF.
 Qed.
 
 Lemma sim_state_to_events e state state' T smode
-      (TCCOH : tc_coherent G sc T)
       (GPC : wf_thread_state (tid e) state)
       (NEXT : next G (covered T) e)
+      (TCOH: tls_coherent G T)
       (PCOV : forall index, covered T (ThreadEvent (tid e) index) <-> index < (eindex state))
       (SSH : sim_state_helper G smode state state') :
   exists ev state'' state''',
