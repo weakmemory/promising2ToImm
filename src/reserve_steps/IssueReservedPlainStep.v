@@ -12,12 +12,16 @@ From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
 
-From imm Require Import TraversalConfig.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import AuxDef.
+Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import MaxValue.
 Require Import ViewRel.
-From imm Require Import ViewRelHelpers.
+Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimulationPlainStepAux.
 Require Import PlainStepBasic.
@@ -81,38 +85,39 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma issue_rlx_reserved_step_no_next PC T S f_to f_from thread w smode
-      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
+Lemma issue_rlx_reserved_step_no_next PC T f_to f_from thread w smode
+      (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from thread smode)
       (TSTEP : ext_itrav_step
-                 G sc w (mkETC T S)
-                 (mkETC
-                    (mkTC (covered T) (issued T ∪₁ eq w))
-                    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
-      (SW : S w)
+                 G sc (mkTL ta_issue w) T
+                 (* (mkETC *)
+                 (*    (mkTC (covered T) (issued T ∪₁ eq w)) *)
+                 (*    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))) *)
+                 (T ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))))
+      )
+      (SW : reserved T w)
       (NREL : ~ Rel w)
-      (NONEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ ∅)
+      (NONEXT : dom_sb_S_rfrmw G T rfi (eq w) ⊆₁ ∅)
       (WTID : thread = tid w) :
-  let T' := mkTC (covered T) (issued T ∪₁ eq w) in
-  let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
+  (* let T' := mkTC (covered T) (issued T ∪₁ eq w) in *)
+  (* let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in *)
+  let T' := T ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))) in
   exists f_to' PC',
     ⟪ PCSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from thread smode ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' f_to' f_from thread smode ⟫ /\
     ⟪ SIMREL :
-        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
-        simrel G sc PC' T' S' f_to' f_from ⟫.
+        smode = sim_normal -> simrel G sc PC T f_to f_from ->
+        simrel G sc PC' T' f_to' f_from ⟫.
 Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
   subst.
   
-  assert (tc_coherent G sc T) as TCCOHs by apply TCCOH.
-
   assert (~ issued T w) as NISSB.
-  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
+  { eapply ext_itrav_step_iss_nI; eauto. }
   assert (issuable G sc T w) as ISSUABLE.
-  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
-  assert (S ⊆₁ E ∩₁ W) as SEW.
-  { apply set_subset_inter_r. split; [by apply TCCOH|].
-    apply (reservedW WF TCCOH). }
+  { eapply ext_itrav_step_iss_issuable; eauto. }
+  assert (reserved T ⊆₁ E ∩₁ W) as SEW.
+  { apply set_subset_inter_r. split; [by apply RCOH|].
+    eapply reservedW; eauto. }
   assert (E w /\ W w) as [EW WW] by (by apply SEW).
   assert (~ is_init w) as NINIT.
   { intros AA. apply NISSB. eapply init_issued; eauto. by split. }
@@ -121,7 +126,7 @@ Proof using WF CON.
   assert (exists valw, val lab w = Some valw) as [valw WVAL] by (by apply is_w_val).
   
   assert (W_ex w) as [r RMW].
-  { apply TCCOH. by split. }
+  { apply RCOH. by split. }
   
   edestruct issue_reserved_step_helper_no_next as [p_rel]; eauto. simpls; desc.
 
@@ -174,17 +179,42 @@ Proof using WF CON.
     subst.
     red; splits; red; splits; eauto; simpls.
     all: try (rewrite IdentMap.add_add_eq; eauto).
-    { apply TSTEP. }
-    { generalize RELB RELCOV. clear. basic_solver. }
+    1-3: by apply TSTEP. 
+    { clear -RELB RELCOV. simplify_tls_events.
+      generalize RELB RELCOV. basic_solver 10. }
+    { ins. etransitivity; [etransitivity| ].
+      2: { eapply RMWCOV; eauto. }
+      all: apply set_equiv_exp; clear; simplify_tls_events; basic_solver. }
+    { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
+      clear. simplify_tls_events. basic_solver. }
+    { ins. subst. clear -SC_COV. rewrite SC_COV; auto.
+      simplify_tls_events. basic_solver. }
+    { ins. eapply max_value_more; [.. | apply SC_REQ0]; eauto.
+      clear. simplify_tls_events. apply S_tm_more; basic_solver. }
+    { eapply reserved_time_more; [.. | apply RESERVED_TIME0]; eauto.
+      clear. basic_solver. } 
     { eapply Memory.add_closed; eauto.
       eapply Memory.cancel_closed; eauto. }
     simpls.
     exists state; eexists.
     rewrite IdentMap.gss.
     splits; eauto.
-    { eapply sim_tview_f_issued with (f_to':=f_to') (f_to:=f_to); eauto. }
-    eapply tview_closedness_preserved_add; eauto.
-    eapply tview_closedness_preserved_cancel; eauto. }
+
+    { eapply sim_prom_more; [..| apply SIM_PROM0]; auto. clear. basic_solver. }
+    { eapply sim_res_prom_more; [..| apply SIM_RES_PROM]; auto.
+      clear. basic_solver. }
+    { eapply sim_mem_more; [..| apply SIM_MEM0]; auto.
+      clear. basic_solver. }
+    { eapply sim_res_mem_more; [..| apply SIM_RES_MEM0]; auto.
+      clear. basic_solver. }
+    { eapply sim_tview_more.
+      3: { simplify_tls_events. relsf. }
+      all: eauto. 
+      eapply sim_tview_f_issued; eauto. }
+    { eapply tview_closedness_preserved_add; eauto.
+      eapply tview_closedness_preserved_cancel; eauto. }
+    eapply sim_state_more; [.. | apply STATE]; auto.
+    clear. simplify_tls_events. basic_solver. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
   subst. desc. red.
@@ -196,23 +226,25 @@ Proof using WF CON.
   apply IdentMap.Facts.add_in_iff in AA. desf.
   apply IdentMap.Facts.add_in_iff in AA. desf.
   apply SIMREL in AA. cdes AA.
-  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
-  11: { ins. rewrite !IdentMap.Facts.add_in_iff.
+  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T); eauto.
+
+  1-8: clear -WF TLSCOH ISSUABLE NINIT; simplify_tls_events; rewrite !set_union_empty_r.
+  1-8: try by basic_solver. 
+  { by apply coveredE. }
+  { apply issuableE, set_subset_eq in ISSUABLE. rewrite issuedE, ISSUABLE; basic_solver. }
+  { rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver. }
+  4: { ins. rewrite !IdentMap.Facts.add_in_iff.
         split; auto.
         intros [| [ | ]]; auto; subst.
         all: apply IdentMap.Facts.in_find_iff; by rewrite LLH. }
-  10: { eapply msg_preserved_trans.
+  3: { eapply msg_preserved_trans.
         { eapply msg_preserved_cancel; eauto. }
         eapply msg_preserved_add; eauto. }
-  9: { eapply closedness_preserved_trans.
+  2: { eapply closedness_preserved_trans.
        { eapply closedness_preserved_cancel; eauto. }
        eapply closedness_preserved_add; eauto. }
-  8: by eapply same_other_threads_steps; eauto.
+  { by eapply same_other_threads_steps; eauto. }
   all: simpls; eauto.
-  { eapply coveredE; eauto. }
-  { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
-  1-4: basic_solver.
-  { rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver. }
   { repeat (apply IdentMap.Facts.add_in_iff in TP; desf). }
   { eapply sim_prom_f_issued; eauto. }
   { red. ins. apply SIM_RPROM0 in RES. desc.
@@ -229,38 +261,35 @@ Proof using WF CON.
   eapply sim_tview_f_issued; eauto.
 Qed.
 
-Lemma issue_rlx_reserved_step_with_next PC T S f_to f_from thread w wnext smode
-      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
+Lemma issue_rlx_reserved_step_with_next PC T f_to f_from thread w wnext smode
+      (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from thread smode)
       (TSTEP : ext_itrav_step
-                 G sc w (mkETC T S)
-                 (mkETC
-                    (mkTC (covered T) (issued T ∪₁ eq w))
-                    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
-      (SW : S w)
+                 G sc (mkTL ta_issue w) T
+                 (T ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)))))
+      (SW : reserved T w)
       (NREL : ~ Rel w)
-      (WNEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) wnext)
+      (WNEXT : dom_sb_S_rfrmw G T rfi (eq w) wnext)
       (WTID : thread = tid w) :
-  let T' := mkTC (covered T) (issued T ∪₁ eq w) in
-  let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
+  (* let T' := mkTC (covered T) (issued T ∪₁ eq w) in *)
+  (* let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in *)
+  let T' := T ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))) in
   exists f_to' f_from' PC',
     ⟪ PCSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' f_to' f_from' thread smode ⟫ /\
     ⟪ SIMREL :
-        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
-        simrel G sc PC' T' S' f_to' f_from' ⟫.
+        smode = sim_normal -> simrel G sc PC T f_to f_from ->
+        simrel G sc PC' T' f_to' f_from' ⟫.
 Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
   subst.
   
-  assert (tc_coherent G sc T) as TCCOHs by apply TCCOH.
-
   assert (~ issued T w) as NISSB.
-  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
+  { eapply ext_itrav_step_iss_nI; eauto. }
   assert (issuable G sc T w) as ISSUABLE.
-  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
-  assert (S ⊆₁ E ∩₁ W) as SEW.
-  { apply set_subset_inter_r. split; [by apply TCCOH|].
-    apply (reservedW WF TCCOH). }
+  { eapply ext_itrav_step_iss_issuable; eauto. }
+  assert (reserved T ⊆₁ E ∩₁ W) as SEW.
+  { apply set_subset_inter_r. split; [by apply RCOH|].
+    eapply reservedW; eauto. }
   assert (E w /\ W w) as [EW WW] by (by apply SEW).
   assert (~ is_init w) as NINIT.
   { intros AA. apply NISSB. eapply init_issued; eauto. by split. }
@@ -269,7 +298,7 @@ Proof using WF CON.
   assert (exists valw, val lab w = Some valw) as [valw WVAL] by (by apply is_w_val).
   
   assert (W_ex w) as [r RMW].
-  { apply TCCOH. by split. }
+  { apply RCOH. by split. }
   
   edestruct issue_reserved_step_helper_with_next as [REQ_TO]; eauto. simpls; desc.
 
@@ -307,16 +336,44 @@ Proof using WF CON.
     destruct (is_rel lab w) eqn:RELB.
     { desf. }
     subst.
+    (* TODO: very similar to the previous lemma *)
     red; splits; red; splits; eauto; simpls.
     all: try (rewrite IdentMap.add_add_eq; eauto).
-    { apply TSTEP. }
-    { generalize RELB RELCOV. clear. basic_solver. }
+    1-3: by apply TSTEP.     
+    { clear -RELB RELCOV. simplify_tls_events.
+      generalize RELB RELCOV. basic_solver 10. }
+    { ins. etransitivity; [etransitivity| ].
+      2: { eapply RMWCOV; eauto. }
+      all: apply set_equiv_exp; clear; simplify_tls_events; basic_solver. }
+    { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
+      clear. simplify_tls_events. basic_solver. }
+    { ins. subst. clear -SC_COV. rewrite SC_COV; auto.
+      simplify_tls_events. basic_solver. }
+    { ins. eapply max_value_more; [.. | apply SC_REQ0]; eauto.
+      clear. simplify_tls_events. apply S_tm_more; basic_solver. }
+    { eapply reserved_time_more; [.. | apply RESERVED_TIME0]; eauto.
+      clear. basic_solver. } 
     { eapply Memory.split_closed; eauto. }
     simpls.
     exists state; eexists.
     rewrite IdentMap.gss.
     splits; eauto.
-    eapply tview_closedness_preserved_split; eauto. }
+
+    { eapply sim_prom_more; [..| apply SIM_PROM0]; auto. clear. basic_solver. }
+    { eapply sim_res_prom_more; [..| apply SIM_RES_PROM]; auto.
+      clear. basic_solver. }
+    { eapply sim_mem_more; [..| apply SIM_MEM0]; auto.
+      clear. basic_solver. }
+    { eapply sim_res_mem_more; [..| apply SIM_RES_MEM0]; auto.
+      clear. basic_solver. }
+    { eapply sim_tview_more.
+      3: { simplify_tls_events. relsf. }
+      all: eauto. 
+      eapply sim_tview_f_issued; eauto. }
+    { eapply tview_closedness_preserved_split; eauto. }
+    eapply sim_state_more; [.. | apply STATE]; auto.
+    clear. simplify_tls_events. basic_solver. }
+
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
   subst. desc. red.
@@ -327,21 +384,23 @@ Proof using WF CON.
   set (AA:=TP).
   apply IdentMap.Facts.add_in_iff in AA. desf.
   apply SIMREL in AA. cdes AA.
-  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
-  10: { eapply msg_preserved_split; eauto. }
-  9: { eapply closedness_preserved_split; eauto. }
-  8: by eapply same_other_threads_steps; eauto.
-  all: simpls; eauto.
-  { eapply coveredE; eauto. }
-  { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
-  1-4: basic_solver.
+  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T); eauto.
+
+  1-8: clear -WF TLSCOH ISSUABLE NINIT; simplify_tls_events; rewrite !set_union_empty_r.
+  1-8: try by basic_solver. 
+  { by apply coveredE. }
+  { apply issuableE, set_subset_eq in ISSUABLE. rewrite issuedE, ISSUABLE; basic_solver. }
   { rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver. }
+
+  3: { eapply msg_preserved_split; eauto. }
+  2: { eapply closedness_preserved_split; eauto. }
+  { by eapply same_other_threads_steps; eauto. }
+  all: simpls; eauto.
   { ins. etransitivity.
     2: { symmetry. apply IdentMap.Facts.add_in_iff. }
     split; [by ins; eauto|].
     intros [|HH]; subst; auto.
     apply SIMREL_THREAD; auto. }
-
   { apply IdentMap.Facts.add_in_iff in TP. desf. }
   { eapply sim_prom_f_issued; eauto. }
   { (* TODO: generalize to a lemma? *)
