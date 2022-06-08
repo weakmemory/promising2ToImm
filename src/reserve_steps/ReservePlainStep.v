@@ -13,12 +13,16 @@ From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
 From imm Require Import FairExecution.
 
-From imm Require Import TraversalConfig.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import AuxDef.
+Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import MaxValue.
 Require Import ViewRel.
-From imm Require Import ViewRelHelpers.
+Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimulationPlainStepAux.
 Require Import PlainStepBasic.
@@ -82,40 +86,81 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma reserve_step PC T S f_to f_from thread w smode
-      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
+(* TODO: move to Hahn*)
+(* TODO: for some reason adding 'set_map_empty' here causes autorewrite to hang.
+   The same behavior occurs with the manual 'repeat'-based implementation. *)
+Create HintDb set_simpl_db.
+Hint Rewrite set_union_empty_l set_union_empty_r set_inter_empty_l
+     set_inter_empty_r set_compl_full set_minusK set_compl_empty
+     dom_empty codom_empty eqv_empty set_collect_empty
+     (* set_map_empty *)
+  : 
+  set_simpl_db. 
+Ltac simpl_sets := autorewrite with set_simpl_db.
+
+(* TODO: move to TlsEventSets, update simplify_tls_events *)
+Local Ltac ste_old := simplify_tls_events. 
+Ltac simplify_tls_events := ste_old; simpl_sets.
+
+(* TODO: move to SimulationRel; update proof of sim_prom_more *)
+Lemma sim_prom_covered_issued_subsets T1 T2 f_from f_to t
+      (COV_EQ: covered T2 ⊆₁ covered T1) (ISS_EQ: issued T1 ⊆₁ issued T2):
+  sim_prom G sc T1 f_from f_to t ⊆₁ sim_prom G sc T2 f_from f_to t. 
+Proof using. 
+  ins. unfold sim_prom. red. ins.
+  specialize (H l to from v rel PROM). desc.
+  eexists. splits; eauto.
+Qed.
+
+(* TODO: move to SimulationRel; update proof of sim_prom_more *)
+Lemma sim_prom_same_covered_issued T1 T2 f_from f_to t
+      (COV_EQ: covered T1 ≡₁ covered T2) (ISS_EQ: issued T1 ≡₁ issued T2):
+  sim_prom G sc T1 f_from f_to t ≡₁ sim_prom G sc T2 f_from f_to t. 
+Proof using. 
+  destruct COV_EQ, ISS_EQ. split; apply sim_prom_covered_issued_subsets; auto.
+Qed. 
+
+(* TODO: move to SimulationRel; update proof of sim_mem_more *)
+Lemma sim_mem_same_covered_issued T1 T2 f_from f_to t l
+      (COV_EQ: covered T1 ≡₁ covered T2) (ISS_EQ: issued T1 ≡₁ issued T2):
+  sim_mem G sc T1 f_from f_to t l ≡₁ sim_mem G sc T2 f_from f_to t l. 
+Proof using WF.
+  pose proof (set_equiv_symm ISS_EQ). 
+  destruct COV_EQ. split; red; ins; eapply sim_mem_covered_mori; eauto. 
+Qed. 
+
+Lemma reserve_step PC T f_to f_from thread w smode
+      (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from thread smode)
       (TSTEP : ext_itrav_step
-                 G sc w (mkETC T S) (mkETC T (S ∪₁ eq w)))
+                 G sc (mkTL ta_reserve w) T (T ∪₁ eq (mkTL ta_reserve w)))
       (WTID : thread = tid w)
       (FAIR: mem_fair G):
-  let S' := S ∪₁ eq w in
+  let T' := T ∪₁ eq (mkTL ta_reserve w) in
   exists PC' f_to' f_from',
     ⟪ PCSTEP : plain_step MachineEvent.silent thread PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T S' f_to' f_from' thread smode ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' f_to' f_from' thread smode ⟫ /\
     ⟪ SIMREL :
-        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
-        simrel G sc PC' T S' f_to' f_from' ⟫.
+        smode = sim_normal -> simrel G sc PC T f_to f_from ->
+        simrel G sc PC' T' f_to' f_from' ⟫.
 Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
   subst.
   
-  assert (tc_coherent G sc T) as TCCOHs by apply TCCOH.
-
   assert (W w) as WW.
-  { eapply ext_itrav_step_reserveW with (T := mkETC T S); eauto. }
+  { eapply ext_itrav_step_reserveW; eauto. }
 
   assert (E w) as EW.
-  { eapply ext_itrav_stepE with (T := mkETC T S); eauto. }
+  { eapply ext_itrav_stepE in TSTEP; eauto. }
   
   assert (exists locw, loc lab w = Some locw) as [locw WLOC] by (by apply is_w_loc).
   
   edestruct reserve_step_helper as [f_to']; eauto. simpls; desc.
 
   assert (forall e, issued T e -> f_to' e = f_to e) as ISSEQ_TO.
-  { ins. apply REQ_TO. by apply (etc_I_in_S TCCOH). }
+  { ins. apply REQ_TO. eapply rcoh_I_in_S; eauto. }
 
   assert (forall e, issued T e -> f_from' e = f_from e) as ISSEQ_FROM.
-  { ins. apply REQ_FROM. by apply (etc_I_in_S TCCOH). }
+  { ins. apply REQ_FROM. eapply rcoh_I_in_S; eauto. }
 
   set (pe :=
          ThreadEvent.promise
@@ -135,33 +180,54 @@ Proof using WF CON.
       constructor.
       2: by simpls.
       econstructor; eauto. }
-    subst.
+
+    (* red; splits; red; splits. *)
+    (* { eauto.  *)
+    
     red; splits; red; splits; eauto.
-    { apply TSTEP. }
+    1-3: by apply TSTEP.
+    { clear -RELCOV. by simplify_tls_events. }
+    { ins. etransitivity; [etransitivity| ].
+      2: { eapply RMWCOV; eauto. }
+      all: apply set_equiv_exp; clear; simplify_tls_events; basic_solver. }
+    { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
+      clear. simplify_tls_events. basic_solver. }
+    { ins. subst. clear -SC_COV. rewrite SC_COV; auto.
+      simplify_tls_events. basic_solver. }
+    { ins. eapply max_value_more; [.. | apply SC_REQ0]; eauto.
+      clear. simplify_tls_events. apply S_tm_more; basic_solver. }
     { eapply Memory.add_inhabited; eauto. }
     { eapply Memory.add_closed; eauto. }
+
     simpls.
     exists state; eexists.
     rewrite IdentMap.gss.
     splits; eauto.
-    { eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
-    eapply tview_closedness_preserved_add; eauto. }
+
+    { eapply sim_prom_same_covered_issued; [..| apply SIM_PROM0]; auto.
+      all: clear; simplify_tls_events; basic_solver. }
+    { eapply sim_mem_same_covered_issued; [..| apply SIM_MEM0]; auto.
+      all: clear; simplify_tls_events; basic_solver. }
+    { eapply sim_tview_more. 
+      3: { by simplify_tls_events. }
+      all: eauto. 
+      eapply sim_tview_f_issued; eauto. }
+    { eapply tview_closedness_preserved_add; eauto. }
+    eapply sim_state_more; [.. | apply STATE]; auto.
+    clear. simplify_tls_events. basic_solver. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
-  eapply simrel_fS in SIMREL; eauto.
-  eapply full_simrel_step.
-  16: by apply SIMREL.
-  14: { ins. rewrite IdentMap.Facts.add_in_iff.
+  eapply simrel_fS in SIMREL; eauto. 
+  eapply full_simrel_step with (T := T); eauto.
+  1-8: simplify_tls_events; auto using coveredE, issuedE with hahn.
+  { basic_solver. }                                                 
+  4: { ins. rewrite IdentMap.Facts.add_in_iff.
         split; auto. intros [|]; auto; subst.
-        apply IdentMap.Facts.in_find_iff.
-          by rewrite LLH. }
-  13: by eapply msg_preserved_add; eauto.
-  12: by eapply closedness_preserved_add; eauto.
-  10: by eapply same_other_threads_step; eauto.
-  all: simpls; eauto.
-  { eapply coveredE; eauto. }
-  rewrite issuedE; eauto.
-  all: basic_solver.
+        apply IdentMap.Facts.in_find_iff. by rewrite LLH. }
+  3: by eapply msg_preserved_add; eauto.
+  2: by eapply closedness_preserved_add; eauto.
+  { by eapply same_other_threads_step; eauto. }
+  subst. apply SIMREL_THREAD'. 
 Qed.
 
 End ReservePlainStep.
