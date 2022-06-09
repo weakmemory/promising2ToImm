@@ -35,6 +35,7 @@ Require Import ExtTraversalConfig.
 Require Import TlsEventSets.
 Require Import Next. 
 Require Import SimulationRelProperties.
+Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
   
@@ -90,6 +91,19 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
+(* TODO: move to TlsEventsets *)
+Lemma coverable_iord_dom_cond T e (COV: coverable G sc T e):
+  dom_cond (iord G sc) T (mkTL ta_cover e).
+Proof using. 
+  red in COV. apply proj2 in COV as [[a e_] [[AA [=]] [=]]]. by subst. 
+Qed. 
+
+(* TODO: move to TlsEventsets *)
+Lemma issuable_iord_dom_cond T e (ISS: issuable G sc T e):
+  dom_cond (iord G sc) T (mkTL ta_issue e).
+Proof using. 
+  red in ISS. apply proj2 in ISS as [[a e_] [[AA [=]] [=]]]. by subst. 
+Qed. 
 
 Lemma read_step_helper PC T f_to f_from r w locr valr rel smode
       state local state' 
@@ -198,10 +212,10 @@ Proof using WF CON.
     { erewrite (@tls_coh_init G T); basic_solver. }
     unionL; [by apply tls_coh_exec| ].
     unionR right. apply set_subset_eq. vauto. }
-  { apply iord_coherent_add_coverable; auto. }
+  { eapply iord_coherent_extend; eauto.
+    apply coverable_iord_dom_cond; auto. }
   { apply reserve_coherent_add_cover; auto. }
-  { rewrite covered_union, issued_union, issued_cover_empty.
-    generalize RELCOV. clear. basic_solver 10. }
+  { clear -RELCOV. simplify_tls_events. rewrite RELCOV. basic_solver. }
   { intros e' EE. 
     destruct (Ident.eq_dec (tid e') (tid r)) as [EQ|NEQ].
     { rewrite EQ. eexists.
@@ -230,25 +244,17 @@ Proof using WF CON.
     (* TODO: generalize the proof! It's used a couple of times. *)
     edestruct SIM_PROM as [w']; eauto.
     exists w'; splits; desc; auto.
-    assert (W w') as WW'.
-    { eapply issuedW; eauto. }
-    { apply issued_union. by left. }
-    intros C%covered_union. destruct C as [? | C]; vauto.
-    apply covered_singleton in C. subst.
-    eapply issuedW in ISS; eauto.
-    clear -RR ISS. type_solver 10. }
+    { clear -ISS. find_event_set. }
+    assert (r <> w') as NEQ.
+    { eapply issuedW in ISS; eauto. intros ->. type_solver. }  
+    clear -NEQ NCOV. separate_set_event. }
   { eapply reserved_time_same_issued_reserved; eauto.
-    all: rewrite ?issued_union, ?reserved_union,
-        ?issued_cover_empty, ?reserved_cover_empty.
-    all: clear; basic_solver 10. }
+    all: clear; simplify_tls_events; basic_solver. }
   { eapply sim_mem_covered_mori with (TLS:=T); eauto.
-    all: rewrite ?issued_union, ?covered_union, ?issued_cover_empty.
-    all: clear; basic_solver. }
-  { rewrite covered_union, covered_singleton. 
-    eapply sim_tview_read_step; eauto.
+    all: clear; simplify_tls_events; basic_solver. }
+  { simplify_tls_events. eapply sim_tview_read_step; eauto.
     1,2: by apply CON.
-    { red; intros x y H. apply NEXT.
-        by exists y. }
+    { red; intros x y H. apply NEXT. by exists y. }
     unfold is_r, loc, val, Events.mod, rmwmod in *. desf. }
   { cdes PLN_RLX_EQ. 
     unfold View.singleton_ur_if.
