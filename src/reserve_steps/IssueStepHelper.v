@@ -739,7 +739,7 @@ Proof using All.
          split; auto.
          intros [a HH].
          eapply same_relation_exp in HH.
-         2: { simplify_tls_events. rewrite !set_union_empty_r. reflexivity. }
+         2: { simplify_tls_events. reflexivity. }
          apply seq_eqv_l in HH. destruct HH as [[HH|] RFRMW]; subst; eauto.
          { apply NINRMW. generalize HH RFRMW. clear. basic_solver 10. }
          eapply wf_rfrmw_irr; eauto. }
@@ -1034,7 +1034,7 @@ Proof using All.
     split; auto.
     intros [a HH].
     eapply same_relation_exp in HH.
-    2: { clear. simplify_tls_events. rewrite !set_union_empty_r. reflexivity. }
+    2: { clear. simplify_tls_events. reflexivity. }
     apply seq_eqv_l in HH. destruct HH as [[HH|] RFRMW]; subst; eauto.
     { apply NINRMW. generalize HH RFRMW. clear. basic_solver 10. }
     eapply wf_rfrmw_irr; eauto. }

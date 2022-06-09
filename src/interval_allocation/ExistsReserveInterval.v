@@ -182,7 +182,7 @@ Proof using WF IMMCON FCOH TCOH RCOH ICOH.
     exists x. apply seq_eqv_l. split; auto.
     2: by apply seqA.
     forward eapply dom_rf_rmw_S_in_I; [| apply RCOH'| ]; auto.
-    simplify_tls_events. rewrite set_union_empty_r. intros ISS'. apply ISS'.    
+    simplify_tls_events. intros ISS'. apply ISS'.    
     exists w. apply seqA. apply seq_eqv_r. split; [|clear; basic_solver].
     generalize PRMWE'. clear. basic_solver. }
 
@@ -353,7 +353,7 @@ Proof using WF IMMCON FCOH TCOH RCOH ICOH.
   destruct PRMWE as [wprev PRMWE].
   assert (issued T wprev) as IWPREV.
   { apply dom_rf_rmw_S_in_I in RCOH'; auto. generalize RCOH'.
-    simplify_tls_events. rewrite set_union_empty_r. intros ISS'. apply ISS'.
+    simplify_tls_events. intros ISS'. apply ISS'.
     eexists. apply seqA.
     apply seq_eqv_r. split; eauto. by right. }
   assert (S wprev) as SWPREV by (by apply RCOH).

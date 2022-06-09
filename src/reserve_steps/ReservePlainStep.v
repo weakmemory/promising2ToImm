@@ -86,22 +86,6 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-(* TODO: move to Hahn*)
-(* TODO: for some reason adding 'set_map_empty' here causes autorewrite to hang.
-   The same behavior occurs with the manual 'repeat'-based implementation. *)
-Create HintDb set_simpl_db.
-Hint Rewrite set_union_empty_l set_union_empty_r set_inter_empty_l
-     set_inter_empty_r set_compl_full set_minusK set_compl_empty
-     dom_empty codom_empty eqv_empty set_collect_empty
-     (* set_map_empty *)
-  : 
-  set_simpl_db. 
-Ltac simpl_sets := autorewrite with set_simpl_db.
-
-(* TODO: move to TlsEventSets, update simplify_tls_events *)
-Local Ltac ste_old := simplify_tls_events. 
-Ltac simplify_tls_events := ste_old; simpl_sets.
-
 (* TODO: move to SimulationRel; update proof of sim_prom_more *)
 Lemma sim_prom_covered_issued_subsets T1 T2 f_from f_to t
       (COV_EQ: covered T2 ⊆₁ covered T1) (ISS_EQ: issued T1 ⊆₁ issued T2):

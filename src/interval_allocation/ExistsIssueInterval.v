@@ -330,8 +330,7 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE TCOH RCOH
 
   edestruct co_prev_to_imm_co_prev with (w:=w) as [wprev]; eauto. desc.
   split; auto.
-  { red. simplify_tls_events. rewrite set_union_empty_r, <- set_unionA.
-    rewrite <- SEW'. basic_solver. }
+  { red. simplify_tls_events. rewrite <- set_unionA, <- SEW'. basic_solver. }
 
   destruct (classic (exists wconext, (co ⨾ ⦗ S ⦘) w wconext)) as [WCONEXT|WNONEXT]; [|left].
   { edestruct co_next_to_imm_co_next with (w:=w) as [wconext]; eauto. clear WCONEXT. desc.

@@ -178,7 +178,8 @@ Qed.
 End SimplificationsCIRP. 
 
 
-(* The idea for these tactics is to try simplifying all appropriate terms once *)
+(* The idea for these tactics is to simplify as much terms as possible,
+   leaving those that give unsolved premises as is *)
 (* TODO: is there a better way to do this? *)
 Ltac remember_tls_sets :=
   repeat (match goal with
@@ -196,10 +197,30 @@ Ltac subst_tls_sets_simpl :=
           try rewrite !set_pair_cancel_action
          ).
   
+(* TODO: move to Hahn*)
+(* TODO: for some reason adding 'set_map_empty' here causes autorewrite to hang.
+   The same behavior occurs with the manual 'repeat'-based implementation. *)
+Create HintDb set_simpl_db.
+Global Hint Rewrite
+       set_union_empty_l set_union_empty_r set_inter_empty_l set_inter_empty_r
+       set_compl_full set_minusK set_compl_empty
+       dom_empty codom_empty eqv_empty
+       set_collect_empty
+  (* set_map_empty *)
+  : set_simpl_db. 
+Ltac simpl_sets := autorewrite with set_simpl_db.
+
+
+Create HintDb tls_sets_simpl_db.
+Global Hint Rewrite
+       covered_union issued_union reserved_union propagated_union
+       covered_singleton issued_singleton reserved_singleton
+  : tls_sets_simpl_db. 
+
 Ltac simplify_tls_events :=
-  (repeat rewrite ?covered_union, ?issued_union, ?reserved_union);
-  (repeat rewrite ?covered_singleton, ?issued_singleton, ?reserved_singleton);
-  remember_tls_sets; subst_tls_sets_simpl. 
+  autorewrite with tls_sets_simpl_db;
+  remember_tls_sets; subst_tls_sets_simpl;
+  simpl_sets. 
 
 Ltac find_event_set :=
   eapply set_equiv_exp; [by simplify_tls_events| basic_solver]. 
@@ -208,6 +229,21 @@ Ltac separate_set_event :=
   apply set_disjoint_eq_r; simplify_tls_events; basic_solver. 
 
 
+(* TODO: the problem is that 'autorewrite' either tries to rewrite every occurence, including those with unsatisfiable premises, or (with 'using' clause) stops on first failed rewrite. *)
+(* Create HintDb tls_events_db. *)
+(* Hint Rewrite reserved_union reserved_nonreserve_empty reserved_only_reserve using (basic_solver 10 || iord_dom_solver): tls_events_db. *)
+(* Ltac simplify_tls_events' := autorewrite * with tls_events_db.  *)
+
+Section TacticTest.
+Let test T e:
+  reserved (T ∪₁ eq (mkTL ta_issue e) ∪₁ eq (mkTL ta_reserve e)) ≡₁
+  reserved T ∪₁ eq e.
+Proof using.
+  (* simplify_tls_events'. *)
+  simplify_tls_events.
+  basic_solver. 
+Qed.
+End TacticTest.
 
 Section WfSets.
   Context (G: execution) (sc: relation actid) (WF: Wf G). 

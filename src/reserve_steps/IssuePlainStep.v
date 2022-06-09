@@ -13,12 +13,16 @@ From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
 From imm Require Import FairExecution.
 
-From imm Require Import TraversalConfig.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import AuxDef.
+Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import MaxValue.
 Require Import ViewRel.
-From imm Require Import ViewRelHelpers.
+Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimulationPlainStepAux.
 Require Import PlainStepBasic.
@@ -82,40 +86,41 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma issue_rlx_step_no_next PC T S f_to f_from thread w smode
-      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
+Lemma issue_rlx_step_no_next PC T f_to f_from thread w smode
+      (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from thread smode)
       (TSTEP : ext_itrav_step
-                 G sc w (mkETC T S)
-                 (mkETC
-                    (mkTC (covered T) (issued T ∪₁ eq w))
-                    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
+                 G sc (mkTL ta_issue w) T
+                 (* (mkETC *)
+                 (*    (mkTC (covered T) (issued T ∪₁ eq w)) *)
+                 (*    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))) *)
+                 (T ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))))
+      )
       (NWEX : ~ W_ex w)
       (NREL : ~ Rel w)
-      (NONEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ ∅)
+      (NONEXT : dom_sb_S_rfrmw G T rfi (eq w) ⊆₁ ∅)
       (WTID : thread = tid w)
       (FAIR: mem_fair G)
   :
-  let T' := mkTC (covered T) (issued T ∪₁ eq w) in
-  let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
+  (* let T' := mkTC (covered T) (issued T ∪₁ eq w) in *)
+  (* let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in *)
+  let T' := T ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))) in
   exists f_to' f_from' PC',
     ⟪ PCSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' f_to' f_from' thread smode ⟫ /\
     ⟪ SIMREL :
-        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
-        simrel G sc PC' T' S' f_to' f_from' ⟫.
+        smode = sim_normal -> simrel G sc PC T f_to f_from ->
+        simrel G sc PC' T' f_to' f_from' ⟫.
 Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
   subst.
   
-  assert (tc_coherent G sc T) as TCCOHs by apply TCCOH.
-
   assert (~ issued T w) as NISSB.
-  { eapply ext_itrav_step_iss_nI with (T:=mkETC T S); eauto. }
+  { eapply ext_itrav_step_iss_nI; eauto. }
   assert (issuable G sc T w) as ISSUABLE.
-  { eapply ext_itrav_step_iss_issuable with (T:=mkETC T S); eauto. }
-  assert (S ⊆₁ E ∩₁ W) as SEW.
-  { apply set_subset_inter_r. split; [by apply TCCOH|].
-    apply (reservedW WF TCCOH). }
+  { eapply ext_itrav_step_iss_issuable; eauto. }
+  assert (reserved T ⊆₁ E ∩₁ W) as SEW.
+  { apply set_subset_inter_r. split; [by apply RCOH|].
+    eapply reservedW; eauto. }
   assert (E w /\ W w) as [EW WW] by (by apply ISSUABLE).
   assert (~ is_init w) as NINIT.
   { intros AA. apply NISSB. eapply init_issued; eauto. by split. }
@@ -123,8 +128,8 @@ Proof using WF CON.
   assert (exists locw, loc lab w = Some locw) as [locw WLOC] by (by apply is_w_loc).
   assert (exists valw, val lab w = Some valw) as [valw WVAL] by (by apply is_w_val).
   
-  assert (NSW : ~ S w).
-  { intros HH. apply NWEX. apply TCCOH. by split. }
+  assert (NSW : ~ reserved T w).
+  { intros HH. apply NWEX. apply RCOH. by split. }
   
   edestruct issue_step_helper_no_next as [p_rel]; eauto. simpls; desf.
   2: { set (rel'' := TView.rel (Local.tview local) locw).
@@ -155,9 +160,30 @@ Proof using WF CON.
          destruct (is_rel lab w) eqn:RELB; [by desf|].
          subst.
          red; splits; red; splits; eauto; simpls.
+         1-3: by apply TSTEP. 
          all: try (rewrite IdentMap.add_add_eq; eauto).
-         { apply TSTEP. }
-         { generalize RELB RELCOV. clear. basic_solver. }
+         (* { generalize RELB RELCOV. clear. basic_solver. } *)
+         { clear -RELB RELCOV. simplify_tls_events.
+           generalize RELB RELCOV. basic_solver 10. }
+         { ins. etransitivity; [etransitivity| ].
+           2: { eapply RMWCOV; eauto. }
+           all: apply set_equiv_exp; clear; simplify_tls_events; basic_solver. }
+         { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
+           clear. simplify_tls_events. basic_solver. }
+         { ins. subst. clear -SC_COV. rewrite SC_COV; auto.
+           simplify_tls_events. basic_solver. }
+         (***)
+         { desc. splits.
+           { rewrite <- FOR_SPLIT.
+             simplify_tls_events. hahn_frame.
+             foobar. update tactic. 
+             
+
+         (***)
+         { ins. eapply max_value_more; [.. | apply SC_REQ0]; eauto.
+           clear. simplify_tls_events. apply S_tm_more; basic_solver. }
+         { eapply reserved_time_more; [.. | apply RESERVED_TIME0]; eauto.
+           clear. basic_solver. }
          { eapply Memory.split_closed; eauto. }
          simpls.
          exists state; eexists.

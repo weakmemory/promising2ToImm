@@ -579,8 +579,8 @@ Proof using All.
       { exfalso.
         assert (b = w); [|by desf].
         eapply f_to_eq; try apply FCOH0; eauto.
-        { clear -SEW'. simplify_tls_events. rewrite set_union_empty_r.
-          rewrite <- SEW'. subst S'. basic_solver. } 
+        { clear -SEW'. simplify_tls_events.
+          rewrite <- SEW'. subst S'. basic_solver. }
         { red. by rewrite LOC. }
         { eapply rcoh_I_in_S in ISSB; eauto. clear -ISSB. find_event_set. }
         clear. find_event_set. }
@@ -610,7 +610,7 @@ Proof using All.
       2: { destruct HH2 as [[CC DD]|CC]; [left|right].
            { split; eauto. intros [y HH]. destruct_seq_l HH as OO.
              eapply set_equiv_exp in OO.
-             2: { clear. simplify_tls_events. by rewrite !set_union_empty_r. } 
+             2: { clear. by simplify_tls_events. } 
              destruct OO as [OO|]; subst.
              { apply CC. exists y. apply seq_eqv_l. by split. }
              apply NISSB.
@@ -684,7 +684,7 @@ Proof using All.
     intros [a HH].
     apply seq_eqv_l in HH as [HH RFRMW].
     eapply set_equiv_exp in HH.
-    2: { clear. simplify_tls_events. by rewrite !set_union_empty_r. }    
+    2: { clear. by simplify_tls_events. }
     destruct HH as [HH|]; subst; eauto.
     { apply NINRMW. generalize HH RFRMW. clear. basic_solver 10. }
     eapply wf_rfrmw_irr; eauto. }
@@ -693,7 +693,7 @@ Proof using All.
     { contra BB. destruct NISSB0. apply not_and_or in BB.
       clear -BB. destruct BB as [?%NNPP | ?%NNPP]; find_event_set. } 
     eapply set_equiv_exp in RESB. 
-    2: { clear. simplify_tls_events. by rewrite !set_union_empty_r. }
+    2: { clear. by simplify_tls_events. }
 
     (* TODO: move upper? *)
     assert (reserved

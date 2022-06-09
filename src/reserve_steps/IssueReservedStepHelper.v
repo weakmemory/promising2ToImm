@@ -1280,7 +1280,7 @@ Proof using All.
        2: {
          (* eapply sim_tview_more; [.. | apply SIM_TVIEW]; eauto.  *)
          eapply sim_tview_more.
-         3: { clear. simplify_tls_events. rewrite !set_union_empty_r. reflexivity. }
+         3: { clear. simplify_tls_events. reflexivity. }
          1-5: reflexivity. 
          eapply sim_tview_f_issued with (T := T) (f_to:=f_to); eauto. } 
        cdes IMMCON.
@@ -1288,7 +1288,7 @@ Proof using All.
        1,3: clear -LL WW; type_solver.
        
        eapply sim_tview_more.
-       3: { clear. simplify_tls_events. rewrite !set_union_empty_r. reflexivity. }
+       3: { clear. simplify_tls_events. reflexivity. }
        1-5: reflexivity. 
        
        eapply sim_tview_write_step
