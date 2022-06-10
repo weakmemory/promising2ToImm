@@ -300,22 +300,20 @@ Proof using.
   ins. split; apply sim_prom_more_impl; auto; by symmetry. 
 Qed. 
 
-Global Add Parametric Morphism : sim_res_prom with signature
-       eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
-          ==> (@set_subset Memory.t) as sim_res_prom_more_impl.
-Proof using. 
+Lemma sim_res_prom_issued_reserved_subset G T1 T2 f_to f_from thread
+      (ISS: issued T2 ⊆₁ issued T1)
+      (RES: reserved T1 ⊆₁ reserved T2):
+  sim_res_prom G T1 f_to f_from thread ⊆₁ sim_res_prom G T2 f_to f_from thread.
+Proof using.  
   ins. unfold sim_res_prom. red. ins.
-  specialize (H0 l to from RES). desc. eexists. splits; eauto.
-  { eapply reserved_more; [symmetry| ]; eauto. }
-  intros ?. apply NOISS. eapply issued_more; eauto. 
+  specialize (H l to from RES0). desc. eexists. splits; eauto.
 Qed. 
- 
 
 Global Add Parametric Morphism : sim_res_prom with signature
        eq ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
           ==> (@set_equiv Memory.t) as sim_res_prom_more. 
-Proof using. 
-  ins. split; apply sim_res_prom_more_impl; auto; by symmetry. 
+Proof using.
+  ins. split; apply sim_res_prom_issued_reserved_subset; by rewrite H. 
 Qed. 
 
 Global Add Parametric Morphism : sim_mem with signature
