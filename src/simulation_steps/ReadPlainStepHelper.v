@@ -91,20 +91,6 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-(* TODO: move to TlsEventsets *)
-Lemma coverable_iord_dom_cond T e (COV: coverable G sc T e):
-  dom_cond (iord G sc) T (mkTL ta_cover e).
-Proof using. 
-  red in COV. apply proj2 in COV as [[a e_] [[AA [=]] [=]]]. by subst. 
-Qed. 
-
-(* TODO: move to TlsEventsets *)
-Lemma issuable_iord_dom_cond T e (ISS: issuable G sc T e):
-  dom_cond (iord G sc) T (mkTL ta_issue e).
-Proof using. 
-  red in ISS. apply proj2 in ISS as [[a e_] [[AA [=]] [=]]]. by subst. 
-Qed. 
-
 Lemma read_step_helper PC T f_to f_from r w locr valr rel smode
       state local state' 
       (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from (tid r) smode)
@@ -250,7 +236,7 @@ Proof using WF CON.
     clear -NEQ NCOV. separate_set_event. }
   { eapply reserved_time_same_issued_reserved; eauto.
     all: clear; simplify_tls_events; basic_solver. }
-  { eapply sim_mem_covered_mori with (TLS:=T); eauto.
+  { eapply sim_mem_covered_mori with (T:=T); eauto.
     all: clear; simplify_tls_events; basic_solver. }
   { simplify_tls_events. eapply sim_tview_read_step; eauto.
     1,2: by apply CON.

@@ -37,6 +37,14 @@ Require Import SimulationRelProperties.
 Require Import ExistsIssueInterval.
 Require Import IssueStepHelper.
 
+(* TODO: Neither of versions works with the intended set usage *)
+(* Global Add Parametric Morphism A: (fun (S: A -> Prop) s => S s) with signature *)
+(*        (@set_equiv A) ==> eq ==> iff as set_apply_more. *)
+(* Proof using. ins. by apply AuxRel.set_equiv_exp_equiv. Qed. *)
+(* Global Add Parametric Morphism A: (@Basics.apply A Prop) with signature *)
+(*        (@set_equiv A) ==> eq ==> iff as apply_more. *)
+(* Proof using. ins. by apply AuxRel.set_equiv_exp_equiv. Qed.  *)
+
 Set Implicit Arguments.
 
 Section IssuePlainStep.
@@ -165,30 +173,33 @@ Proof using WF CON.
          (* { generalize RELB RELCOV. clear. basic_solver. } *)
          { clear -RELB RELCOV. simplify_tls_events.
            generalize RELB RELCOV. basic_solver 10. }
-         { ins. etransitivity; [etransitivity| ].
+         {
+           ins. etransitivity; [etransitivity| ].
            2: { eapply RMWCOV; eauto. }
            all: apply set_equiv_exp; clear; simplify_tls_events; basic_solver. }
          { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
            clear. simplify_tls_events. basic_solver. }
          { ins. subst. clear -SC_COV. rewrite SC_COV; auto.
            simplify_tls_events. basic_solver. }
-         (***)
          { desc. splits.
-           { rewrite <- FOR_SPLIT.
-             simplify_tls_events. hahn_frame.
-             foobar. update tactic. 
-             
-
-         (***)
-         { ins. eapply max_value_more; [.. | apply SC_REQ0]; eauto.
-           clear. simplify_tls_events. apply S_tm_more; basic_solver. }
-         { eapply reserved_time_more; [.. | apply RESERVED_TIME0]; eauto.
-           clear. basic_solver. }
+           { rewrite <- FOR_SPLIT. clear. 
+             by simplify_tls_events. }
+           rewrite RMW_BEF_S. clear. by simplify_tls_events. }
          { eapply Memory.split_closed; eauto. }
          simpls.
          exists state; eexists.
          rewrite IdentMap.gss.
          splits; eauto.
+         { eapply sim_prom_more; [..| apply SIM_PROM0]; eauto.
+           clear. by simplify_tls_events. }
+         { eapply sim_res_prom_more; [..| apply SIM_RES_PROM]; eauto.
+           clear. by simplify_tls_events. }
+         { eapply sim_mem_more; [..| apply SIM_MEM0]; eauto. 
+           clear. by simplify_tls_events. }
+         { eapply sim_res_mem_more; [..| apply SIM_RES_MEM0]; eauto.
+           clear. by simplify_tls_events. }
+         Tactic Notation "simplify_tls_events" "in" hyp(H)
+         
          { simpls. eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
          eapply tview_closedness_preserved_split; eauto. }
        intros [PCSTEP SIMREL_THREAD']; split; auto.

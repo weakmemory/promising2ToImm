@@ -86,33 +86,6 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-(* TODO: move to SimulationRel; update proof of sim_prom_more *)
-Lemma sim_prom_covered_issued_subsets T1 T2 f_from f_to t
-      (COV_EQ: covered T2 ⊆₁ covered T1) (ISS_EQ: issued T1 ⊆₁ issued T2):
-  sim_prom G sc T1 f_from f_to t ⊆₁ sim_prom G sc T2 f_from f_to t. 
-Proof using. 
-  ins. unfold sim_prom. red. ins.
-  specialize (H l to from v rel PROM). desc.
-  eexists. splits; eauto.
-Qed.
-
-(* TODO: move to SimulationRel; update proof of sim_prom_more *)
-Lemma sim_prom_same_covered_issued T1 T2 f_from f_to t
-      (COV_EQ: covered T1 ≡₁ covered T2) (ISS_EQ: issued T1 ≡₁ issued T2):
-  sim_prom G sc T1 f_from f_to t ≡₁ sim_prom G sc T2 f_from f_to t. 
-Proof using. 
-  destruct COV_EQ, ISS_EQ. split; apply sim_prom_covered_issued_subsets; auto.
-Qed. 
-
-(* TODO: move to SimulationRel; update proof of sim_mem_more *)
-Lemma sim_mem_same_covered_issued T1 T2 f_from f_to t l
-      (COV_EQ: covered T1 ≡₁ covered T2) (ISS_EQ: issued T1 ≡₁ issued T2):
-  sim_mem G sc T1 f_from f_to t l ≡₁ sim_mem G sc T2 f_from f_to t l. 
-Proof using WF.
-  pose proof (set_equiv_symm ISS_EQ). 
-  destruct COV_EQ. split; red; ins; eapply sim_mem_covered_mori; eauto. 
-Qed. 
-
 Lemma reserve_step PC T f_to f_from thread w smode
       (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from thread smode)
       (TSTEP : ext_itrav_step

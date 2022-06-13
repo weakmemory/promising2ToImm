@@ -187,7 +187,7 @@ Proof using WF CON.
       all: apply set_equiv_exp; simplify_tls_events; basic_solver. }
     { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
       simplify_tls_events. basic_solver. }
-    { ins. simplify_tls_events. rewrite SC_COV; auto. basic_solver. }
+    { ins. simplify_tls_events. rewrite SC_COV; auto. }
     { ins. clear -SC_REQ0 H0 l.
       eapply max_value_more; [..| apply SC_REQ0]; auto.
       simplify_tls_events. relsf. }
@@ -232,7 +232,7 @@ Proof using WF CON.
   { exfalso. by apply TNEQ. }
   apply SIMREL in AA. cdes AA.
   eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T); eauto.
-  1-8: clear -WF TLSCOH ISSUABLE NINIT; simplify_tls_events; rewrite !set_union_empty_r.
+  1-8: clear -WF TLSCOH ISSUABLE NINIT; simplify_tls_events.
   1-8: try by basic_solver. 
   { by apply coveredE. }
   { apply issuableE, set_subset_eq in ISSUABLE. rewrite issuedE, ISSUABLE; basic_solver. }

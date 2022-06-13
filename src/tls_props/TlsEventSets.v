@@ -222,6 +222,11 @@ Ltac simplify_tls_events :=
   remember_tls_sets; subst_tls_sets_simpl;
   simpl_sets. 
 
+Tactic Notation "simplify_tls_events'" :=
+  eapply set_equiv_exp; [by simplify_tls_events| ].
+Tactic Notation "simplify_tls_events'" "in" hyp(H) :=
+  eapply set_equiv_exp in H; [by simplify_tls_events| ].
+
 Ltac find_event_set :=
   eapply set_equiv_exp; [by simplify_tls_events| basic_solver]. 
 
@@ -395,3 +400,14 @@ Proof using.
   rewrite ICOH. basic_solver. 
 Qed.
 
+Lemma coverable_iord_dom_cond G sc T e (COV: coverable G sc T e):
+  dom_cond (iord G sc) T (mkTL ta_cover e).
+Proof using. 
+  red in COV. apply proj2 in COV as [[a e_] [[AA [=]] [=]]]. by subst. 
+Qed. 
+
+Lemma issuable_iord_dom_cond G sc T e (ISS: issuable G sc T e):
+  dom_cond (iord G sc) T (mkTL ta_issue e).
+Proof using. 
+  red in ISS. apply proj2 in ISS as [[a e_] [[AA [=]] [=]]]. by subst. 
+Qed. 

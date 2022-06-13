@@ -228,7 +228,7 @@ Proof using WF CON.
   apply SIMREL in AA. cdes AA.
   eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T); eauto.
 
-  1-8: clear -WF TLSCOH ISSUABLE NINIT; simplify_tls_events; rewrite !set_union_empty_r.
+  1-8: clear -WF TLSCOH ISSUABLE NINIT; simplify_tls_events.
   1-8: try by basic_solver. 
   { by apply coveredE. }
   { apply issuableE, set_subset_eq in ISSUABLE. rewrite issuedE, ISSUABLE; basic_solver. }
@@ -386,7 +386,7 @@ Proof using WF CON.
   apply SIMREL in AA. cdes AA.
   eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T); eauto.
 
-  1-8: clear -WF TLSCOH ISSUABLE NINIT; simplify_tls_events; rewrite !set_union_empty_r.
+  1-8: clear -WF TLSCOH ISSUABLE NINIT; simplify_tls_events.
   1-8: try by basic_solver. 
   { by apply coveredE. }
   { apply issuableE, set_subset_eq in ISSUABLE. rewrite issuedE, ISSUABLE; basic_solver. }

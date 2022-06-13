@@ -131,29 +131,6 @@ Proof using WF IMMCON RELCOV ISSEQ_TO TLSCOH IORDCOH.
   eapply sim_msg_f_issued; eauto.
 Qed.
 
-Lemma sim_mem_covered_mori T' threads thread memory
-      (ISSEQ : I ≡₁ issued T')
-      (COVIN : C ⊆₁ covered T')
-      (SIMMEM : sim_mem G sc TLS f_to f_from threads thread memory) :
-  sim_mem G sc T' f_to f_from threads thread memory.
-Proof using WF.
-  red in SIMMEM.
-  red; splits.
-  edestruct SIMMEM as [rel]; eauto; desc.
-  { by apply ISSEQ. }
-  exists rel. splits; auto. 
-  intros TIDB NCOV.
-  destruct H1; auto; split; auto.
-  destruct H0 as [p_rel]; desc.
-  exists p_rel; splits; auto.
-  desf; [left; split; auto|right].
-  { intros HH; apply NINRMW. generalize HH.
-    generalize ISSEQ. basic_solver 10. }
-  exists p; splits; auto.
-  { by apply ISSEQ. }
-  eexists; split; eauto.
-Qed.
-
 Lemma sim_mem_f_issued threads thread memory
       (SIMMEM : sim_mem G sc TLS f_to f_from threads thread memory) :
   sim_mem G sc TLS f_to' f_from' threads thread memory.

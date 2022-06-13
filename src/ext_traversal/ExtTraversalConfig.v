@@ -187,7 +187,6 @@ Proof using WF TCOH RCOH.
 Qed.
 
 
-(* TODO: move somewhere *)
 Lemma reserve_coherent_add_cover e:
   reserve_coherent (T ∪₁ eq (mkTL ta_cover e)).
 Proof using RCOH. 

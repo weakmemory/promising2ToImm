@@ -89,11 +89,6 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-(* TODO: move to Next*)
-Global Add Parametric Morphism : next with signature
-       eq ==> (@set_equiv actid) ==> (@set_equiv actid) as next_more. 
-Proof using. ins. unfold next. rewrite H. basic_solver. Qed. 
-
 Lemma issue_rel_step_next PC T f_to f_from thread w wnext smode
       (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from thread smode)
       (TSTEP1:
@@ -278,13 +273,11 @@ Proof using WF CON.
       etransitivity; [etransitivity| ].
       2: { eapply RMWCOV; eauto. }
       { etransitivity.
-        { apply set_equiv_exp. clear. simplify_tls_events.
-          rewrite !set_union_empty_r. reflexivity. }
+        { apply set_equiv_exp. clear. simplify_tls_events. reflexivity. }
         unfolder. split; auto. intros [? | ->]; auto.
         apply wf_rmwD, seq_eqv_lr in RMW; auto. desc. type_solver. }
       etransitivity.
-      2: { apply set_equiv_exp. clear. simplify_tls_events.
-           rewrite !set_union_empty_r. reflexivity. }
+      2: { apply set_equiv_exp. clear. simplify_tls_events. reflexivity. }
       unfolder. split; auto. intros [? | ->]; auto.
       destruct NWEX. red. eexists. eauto. }
     { intros e' EE. 
@@ -318,7 +311,7 @@ Proof using WF CON.
         eexists (Some _); splits; eauto.
         { eapply Memory.add_closed_timemap; eauto. }
         intros _ H. destruct H. clear. find_event_set. }
-      eapply set_equiv_exp in ISSB; [| by clear; simplify_tls_events; rewrite !set_union_empty_r]. 
+      eapply set_equiv_exp in ISSB; [| by clear; simplify_tls_events]. 
       destruct ISSB as [ISSB|]; [|by subst].
       edestruct SIM_MEM as [rel]; eauto.
       simpls; desc.
@@ -368,7 +361,7 @@ Proof using WF CON.
       split; auto.
       destruct REL'0 as [AA|AA]; desc; [left|right].
       { split; auto. intros HH.
-        eapply set_equiv_exp in HH; [| by clear; simplify_tls_events; rewrite !set_union_empty_r].
+        eapply set_equiv_exp in HH; [| by clear; simplify_tls_events].
         eapply set_equiv_exp in HH; [| by rewrite id_union, !seq_union_l, codom_union].
         destruct HH as [ | HH]; [done| ].
         exfalso.
@@ -379,8 +372,7 @@ Proof using WF CON.
       exists p. splits; eauto.
       { clear -AA. find_event_set. }
       exists p_v. split; auto. rewrite ISSEQ_TO; auto. rewrite ISSEQ_FROM; auto. }
-    { simplify_tls_events. rewrite !set_union_empty_r. 
-      eapply sim_tview_write_step; eauto.
+    { simplify_tls_events. eapply sim_tview_write_step; eauto.
       { by apply coveredE. }
       { apply doma_alt. eapply dom_sb_covered; eauto. }
       { eapply sim_tview_f_issued; eauto. }
@@ -413,8 +405,7 @@ Proof using WF CON.
     red. splits; eauto.
     ins. rewrite INDEX_NRMW; auto.
     etransitivity.
-    { apply set_equiv_exp. clear.
-      simplify_tls_events. rewrite !set_union_empty_r. reflexivity. }
+    { apply set_equiv_exp. clear. simplify_tls_events. reflexivity. }
     apply sim_state_cover_event; auto. }
 
   assert (IdentMap.In (tid w) (Configuration.threads PC)) as INTT.

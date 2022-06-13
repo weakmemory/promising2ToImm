@@ -281,7 +281,7 @@ Global Add Parametric Morphism : sim_prom with signature
 Proof using.
   ins. unfold sim_prom. red. ins.
   specialize (H1 l to from v rel PROM). desc.
-  eexists. splits; eauto.
+   eexists. splits; eauto.
   { eapply issued_more; [symmetry| ]; eauto. }
   { intros ?. apply NCOV. eapply covered_more; eauto. }
   red in HELPER. desc. 
@@ -292,12 +292,48 @@ Proof using.
   enough (msg_rel y y0 l0 ≡ msg_rel y x l0) by (generalize H1; basic_solver). 
   apply msg_rel_more; auto. by symmetry. 
 Qed. 
-  
+
+
+Lemma sim_mem_helper_same_sc G sc1 sc2 f_from b from v rel
+      (HELPER: sim_mem_helper G sc1 f_from b from v (View.unwrap rel))
+      (SC_EQ: sc1 ≡ sc2):
+  sim_mem_helper G sc2 f_from b from v (View.unwrap rel).
+Proof using. 
+  red in HELPER. desc.
+  red. splits; eauto.
+  red in SIMMSG. red. ins. specialize (SIMMSG l).
+  eapply max_value_more; eauto.
+  eapply set_equiv_union; [| basic_solver].
+  enough (msg_rel G sc2 l ≡ msg_rel G sc1 l) by (generalize H; basic_solver).
+  apply msg_rel_more; auto. by symmetry.
+Qed.    
+
+Lemma sim_prom_covered_issued_subsets G sc1 sc2 T1 T2 f_from f_to t
+      (COV_IN: covered T2 ⊆₁ covered T1) (ISS_IN: issued T1 ⊆₁ issued T2)
+      (SC_EQ: sc1 ≡ sc2) (* TODO: maybe it can be relaxed *)
+  :
+  sim_prom G sc1 T1 f_from f_to t ⊆₁ sim_prom G sc2 T2 f_from f_to t.
+Proof using. 
+  ins. unfold sim_prom. red. ins.
+  specialize (H l to from v rel PROM). desc.
+  eexists. splits; eauto.
+  eapply sim_mem_helper_same_sc; eauto. 
+Qed.
+
+Lemma sim_prom_same_covered_issued G sc1 sc2 T1 T2 f_from f_to t
+      (COV_EQ: covered T1 ≡₁ covered T2) (ISS_EQ: issued T1 ≡₁ issued T2)
+      (SC_EQ: sc1 ≡ sc2):
+  sim_prom G sc1 T1 f_from f_to t ≡₁ sim_prom G sc2 T2 f_from f_to t. 
+Proof using.
+  destruct COV_EQ, ISS_EQ. split; apply sim_prom_covered_issued_subsets; auto.
+  by symmetry. 
+Qed. 
+
 Global Add Parametric Morphism : sim_prom with signature
        eq ==> (@same_relation actid) ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
           ==> (@set_equiv Memory.t) as sim_prom_more. 
-Proof using. 
-  ins. split; apply sim_prom_more_impl; auto; by symmetry. 
+Proof using.
+  ins. eapply sim_prom_same_covered_issued; eauto; by rewrite H0. 
 Qed. 
 
 Lemma sim_res_prom_issued_reserved_subset G T1 T2 f_to f_from thread
@@ -323,7 +359,7 @@ Global Add Parametric Morphism : sim_mem with signature
 Proof using. 
   ins. unfold sim_mem. red. ins.
   specialize (H1 l b). specialize_full H1; eauto.
-  { eapply issued_more; eauto. }
+  { eapply issued_more; eauto. } 
   desc. eexists. splits; eauto.
   { red in HELPER. red. desc. splits; eauto.
     red in SIMMSG. red. desc. splits; eauto. 
@@ -341,12 +377,47 @@ Proof using.
   symmetry  in H0. eapply issued_more; eauto.    
 Qed. 
  
+Lemma sim_mem_covered_mori G sc1 sc2 T T' f_to f_from threads thread memory
+      (ISSEQ : issued T ≡₁ issued T')
+      (COVIN : covered T ⊆₁ covered T')
+      (SC_EQ: sc1 ≡ sc2)
+      (SIMMEM : sim_mem G sc1 T f_to f_from threads thread memory) :
+  sim_mem G sc2 T' f_to f_from threads thread memory.
+Proof using. 
+  red in SIMMEM.
+  red; splits.
+  edestruct SIMMEM as [rel]; eauto; desc.
+  { by apply ISSEQ. }
+  exists rel. splits; auto.
+  { eapply sim_mem_helper_same_sc; eauto. }  
+  intros TIDB NCOV.
+  destruct H1; auto; split; auto.
+  destruct H0 as [p_rel]; desc.
+  exists p_rel; splits; auto.
+  desf; [left; split; auto|right].
+  { intros HH; apply NINRMW. generalize HH.
+    generalize ISSEQ. basic_solver 10. }
+  exists p; splits; auto.
+  { by apply ISSEQ. }
+  eexists; split; eauto.
+Qed.
+
+Lemma sim_mem_same_covered_issued G sc1 sc2 T1 T2 f_from f_to t l
+      (COV_EQ: covered T1 ≡₁ covered T2) (ISS_EQ: issued T1 ≡₁ issued T2)
+      (SC_EQ: sc1 ≡ sc2)
+  :
+  sim_mem G sc1 T1 f_from f_to t l ≡₁ sim_mem G sc2 T2 f_from f_to t l. 
+Proof using.
+  pose proof (set_equiv_symm ISS_EQ). pose proof (same_rel_Symmetric SC_EQ). 
+  destruct COV_EQ. split; red; ins; eapply sim_mem_covered_mori; eauto.
+Qed. 
+
 Global Add Parametric Morphism : sim_mem with signature
        eq ==> (@same_relation actid) ==> (@set_equiv trav_label) ==>
        eq ==> eq ==> eq ==> eq ==>
        (@set_equiv Memory.t) as sim_mem_more.
 Proof using. 
-  ins. split; apply sim_mem_more_impl; auto; by symmetry. 
+  ins. split; apply sim_mem_same_covered_issued; auto; rewrite ?H, ?H0; auto.   
 Qed. 
 
 Global Add Parametric Morphism : sim_res_mem with signature

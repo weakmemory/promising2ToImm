@@ -13,12 +13,16 @@ From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
 From imm Require Import FairExecution.
 
-From imm Require Import TraversalConfig.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import AuxDef.
+Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import MaxValue.
 Require Import ViewRel.
-From imm Require Import ViewRelHelpers.
+Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimulationPlainStepAux.
 Require Import PlainStepBasic.
@@ -32,6 +36,7 @@ Require Import MemoryClosedness.
 Require Import SimulationRelProperties.
 Require Import ExistsIssueInterval.
 Require Import IssueStepHelper.
+Require Import Next.
 
 Set Implicit Arguments.
 
@@ -82,46 +87,42 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma issue_rel_step_no_next PC T S f_to f_from thread w smode
-      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode)
+Lemma issue_rel_step_no_next PC T f_to f_from thread w smode
+      (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from thread smode)
       (TSTEP1 :
          ext_itrav_step
-           G sc w (mkETC T S)
-           (mkETC
-              (mkTC (covered T) (issued T ∪₁ eq w))
-              (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
+           G sc (mkTL ta_issue w) T
+           (T ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))))
+      )
       (TSTEP2 :
          ext_itrav_step
-           G sc w
-           (mkETC
-              (mkTC (covered T) (issued T ∪₁ eq w))
-              (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)))
-           (mkETC
-              (mkTC (covered T ∪₁ eq w) (issued T ∪₁ eq w))
-              (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
+           G sc (mkTL ta_cover w)
+           (T ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))))
+           (T ∪₁ eq (mkTL ta_cover w) ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)))))
       (NWEX : ~ W_ex w)
       (REL : Rel w)
-      (NONEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ ∅)
+      (NONEXT : dom_sb_S_rfrmw G T rfi (eq w) ⊆₁ ∅)
       (WTID : thread = tid w)
       (FAIR: mem_fair G):
-  let T' := mkTC (covered T ∪₁ eq w) (issued T ∪₁ eq w) in
-  let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
+  (* let T' := mkTC (covered T ∪₁ eq w) (issued T ∪₁ eq w) in *)
+  (* let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in *)
+  let T' := (T ∪₁ eq (mkTL ta_cover w) ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w)))) in 
   exists f_to' f_from' PC',
     ⟪ PCSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from' thread smode ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' f_to' f_from' thread smode ⟫ /\
     ⟪ SIMREL :
-        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
-        simrel G sc PC' T' S' f_to' f_from' ⟫.
+        smode = sim_normal -> simrel G sc PC T f_to f_from ->
+        simrel G sc PC' T' f_to' f_from' ⟫.
 Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
   subst.
 
-  assert (tc_coherent G sc T) as TCCOHs by apply TCCOH.
-  
   (* assert (COV : coverable G sc T w). *)
   (* { eapply ext_itrav_step_cov_coverable with (T:=mkETC T S); eauto. } *)
   assert (NEXT : next G (covered T) w).
-  { eapply ext_itrav_step_cov_next with
+  { 
+    eapply ext_itrav_step_cov_next. 
+    eapply ext_itrav_step_cov_next with
         (T:=mkETC (mkTC (covered T) (issued T ∪₁ eq w)) _); eauto.
     apply TSTEP1. }
   assert (~ issued T w) as NISSB.
