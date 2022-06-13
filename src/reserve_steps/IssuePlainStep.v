@@ -197,11 +197,15 @@ Proof using WF CON.
          { eapply sim_mem_more; [..| apply SIM_MEM0]; eauto. 
            clear. by simplify_tls_events. }
          { eapply sim_res_mem_more; [..| apply SIM_RES_MEM0]; eauto.
-           clear. by simplify_tls_events. }
-         Tactic Notation "simplify_tls_events" "in" hyp(H)
-         
-         { simpls. eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
-         eapply tview_closedness_preserved_split; eauto. }
+           clear. by simplify_tls_events. }         
+         { simpls. eapply sim_tview_more.
+           3: { clear. by simplify_tls_events. }
+           all: auto. 
+           eapply sim_tview_f_issued with (f_to:=f_to); eauto. }         
+         eapply tview_closedness_preserved_split; eauto.
+         eapply sim_state_more.
+         3: { clear. by simplify_tls_events. }
+         all: auto. }
        intros [PCSTEP SIMREL_THREAD']; split; auto.
        intros SMODE SIMREL.
        subst. desc. red.
@@ -235,15 +239,39 @@ Proof using WF CON.
     subst.
     red; splits; red; splits; eauto; simpls.
     all: try (rewrite IdentMap.add_add_eq; eauto).
-    { apply TSTEP. }
-    { generalize RELB RELCOV. clear. basic_solver. }
+    1-3: by apply TSTEP. 
+    { clear -RELB RELCOV. simplify_tls_events.
+      rewrite set_inter_union_r, RELCOV. basic_solver. }
+    { ins. etransitivity; [etransitivity| ].
+      2: { eapply RMWCOV; eauto. }
+      all: eapply set_equiv_exp; clear; by simplify_tls_events. }
+    { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
+      clear. simplify_tls_events. basic_solver. }
+    { ins. clear -SC_COV H0. simplify_tls_events. auto. }
+    { ins. generalize (SC_REQ0 H0 l).
+      clear. by simplify_tls_events. }
+    { eapply reserved_time_same_issued_reserved; eauto.
+      all: clear; by simplify_tls_events. }
     { eapply Memory.add_closed; eauto. }
     simpls.
     exists state; eexists.
     rewrite IdentMap.gss.
     splits; eauto.
-    { simpls. eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
-    eapply tview_closedness_preserved_add; eauto. }
+    { eapply sim_prom_more; [..| apply SIM_PROM0]; eauto.
+      clear. by simplify_tls_events. }
+    { eapply sim_res_prom_more; [..| apply SIM_RES_PROM]; eauto.
+      clear. by simplify_tls_events. }
+    { eapply sim_mem_more; [..| apply SIM_MEM0]; eauto. 
+      clear. by simplify_tls_events. }
+    { eapply sim_res_mem_more; [..| apply SIM_RES_MEM0]; eauto.
+      clear. by simplify_tls_events. }         
+    { simpls. eapply sim_tview_more.
+      3: { clear. by simplify_tls_events. }
+      all: auto. 
+      eapply sim_tview_f_issued with (f_to:=f_to); eauto. }
+    { eapply tview_closedness_preserved_add; eauto. }
+    eapply sim_state_more; [..| apply STATE]; eauto.
+    clear. by simplify_tls_events. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
   subst. desc. red.
@@ -256,15 +284,16 @@ Proof using WF CON.
   destruct AA as [AA|AA]; subst; auto.
   { apply SIMREL_THREAD'. }
   apply SIMREL in AA. cdes AA.
-  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
-  10: { simpls. eapply msg_preserved_add; eauto. }
-  9: { simpls. eapply closedness_preserved_add; eauto. }
-  8: by eapply same_other_threads_steps; eauto.
+  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T); eauto.
+  (* 10: { simpls. eapply msg_preserved_add; eauto. } *)
+  11: { simpls. eapply msg_preserved_add; eauto. }
+  10: { simpls. eapply closedness_preserved_add; eauto. }
+  9: by eapply same_other_threads_steps; eauto.
   all: simpls; eauto.
-  { eapply coveredE; eauto. }
-  { rewrite issuedE; eauto. generalize EW. clear. basic_solver. }
-  1-4: clear; basic_solver.
-  { rewrite dom_sb_S_rfrmw_same_tid; auto. clear. basic_solver. }
+  1-8: clear -TLSCOH EW WF NINIT; simplify_tls_events; try basic_solver. 
+  { apply coveredE; eauto. }
+  { rewrite issuedE; eauto. basic_solver. }
+  { rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver. }
   { ins.
     etransitivity; [|by symmetry; apply IdentMap.Facts.add_in_iff].
     split.
