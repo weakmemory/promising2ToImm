@@ -439,4 +439,10 @@ Proof using.
   ins. split; apply sim_res_mem_more_impl; auto; by symmetry. 
 Qed. 
 
-
+Lemma sim_res_mem_issued_reserved_subsets G T1 T2 f_from f_to t l
+      (RES_IN: reserved T2 ⊆₁ reserved T1) (ISS_IN: issued T1 ⊆₁ issued T2):
+  sim_res_mem G T1 f_from f_to t l ⊆₁ sim_res_mem G T2 f_from f_to t l.
+Proof using. 
+  ins. unfold sim_res_mem. red. ins.
+  specialize (H l0 b). specialize_full H; eauto.
+Qed.

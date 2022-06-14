@@ -1103,13 +1103,19 @@ Context
     basic_solver.
   Qed.
 
+  Lemma dom_release_rf_coverable :
+    dom_rel (release ⨾ rf ⨾ ⦗ coverable G sc T ⦘) ⊆₁ C.
+  Proof using WF RELCOV TLSCOH IORDCOH.
+    generalize dom_release_issued.
+    generalize dom_rf_coverable. 
+    basic_solver 21.
+  Qed.
+
   Lemma dom_release_rf_covered :
     dom_rel (release ⨾ rf ⨾ ⦗ C ⦘) ⊆₁ C.
   Proof using WF RELCOV TLSCOH IORDCOH.
-    generalize dom_release_issued.
-    generalize dom_rf_covered.
-    basic_solver 21.
-  Qed.
+    rewrite covered_in_coverable at 1; eauto. by apply dom_release_rf_coverable. 
+  Qed. 
 
   Lemma release_rf_covered :
     release ⨾ rf ⨾ ⦗ C ⦘ ⊆ ⦗ C ⦘ ⨾ release ⨾ rf.
@@ -1136,142 +1142,219 @@ Context
     basic_solver.
   Qed.
 
+  Lemma dom_sw_coverable :
+    dom_rel (sw ⨾ ⦗ coverable G sc T ⦘) ⊆₁ C.
+  Proof using WF RELCOV TLSCOH IORDCOH.
+    unfold imm_s_hb.sw.
+    generalize dom_sb_coverable, dom_release_rf_coverable.
+    generalize covered_in_coverable.
+    basic_solver 21.
+  Qed.
+
+  Local Ltac by_similar lem :=
+    etransitivity; [| apply lem];
+    (rewrite covered_in_coverable at 1 || rewrite issued_in_issuable at 1); 
+    eauto; basic_solver. 
+
   Lemma dom_sw_covered :
     dom_rel (sw ⨾ ⦗ C ⦘) ⊆₁ C.
   Proof using WF RELCOV TLSCOH IORDCOH.
-    unfold imm_s_hb.sw.
-    generalize dom_sb_covered.
-    generalize dom_release_rf_covered.
-    basic_solver 21.
+    by_similar dom_sw_coverable. 
+  Qed. 
+
+  Lemma sw_coverable : sw ⨾ ⦗ coverable G sc T ⦘ ⊆ ⦗C⦘ ⨾ sw.
+  Proof using WF RELCOV TLSCOH IORDCOH.
+    seq_rewrite (dom_rel_helper dom_sw_coverable).
+    basic_solver.
   Qed.
 
   Lemma sw_covered : sw ⨾ ⦗ C ⦘ ⊆ ⦗C⦘ ⨾ sw.
   Proof using WF RELCOV TLSCOH IORDCOH.
-    seq_rewrite (dom_rel_helper dom_sw_covered).
-    basic_solver.
-  Qed.
+    by_similar sw_coverable. 
+  Qed. 
 
-  Lemma hb_covered :
-    hb ⨾ ⦗ C ⦘ ⊆ ⦗C⦘ ⨾ hb.
+  Lemma hb_coverable :
+    hb ⨾ ⦗ coverable G sc T ⦘ ⊆ ⦗C⦘ ⨾ hb.
   Proof using WF RELCOV TLSCOH IORDCOH.
     unfold imm_s_hb.hb.
-    assert (A: (sb ∪ sw) ⨾ ⦗C⦘ ⊆ ⦗C⦘ ⨾ (sb ∪ sw)⁺).
+    assert (A: (sb ∪ sw) ⨾ ⦗coverable G sc T⦘ ⊆ ⦗C⦘ ⨾ (sb ∪ sw)⁺).
     { relsf.
-      rewrite sb_covered, sw_covered.
+      rewrite sb_coverable, sw_coverable.
       rewrite <- ct_step; basic_solver. }
     unfold imm_s_hb.hb.
-    eapply ct_ind_left with (P:= fun r => r ⨾ ⦗C⦘); eauto with hahn.
+    eapply ct_ind_left with (P:= fun r => r ⨾ ⦗coverable G sc T⦘); eauto with hahn.
     intros k H; rewrite !seqA, H.
+    rewrite covered_in_coverable at 1; eauto. 
     sin_rewrite A.
     arewrite ((sb ∪ sw)⁺ ⊆ (sb ∪ sw)＊) at 1.
     relsf.
   Qed.
 
+  Lemma hb_covered :
+    hb ⨾ ⦗ C ⦘ ⊆ ⦗C⦘ ⨾ hb.
+  Proof using WF RELCOV TLSCOH IORDCOH. by_similar hb_coverable. Qed. 
+
+  Lemma dom_hb_coverable :
+    dom_rel (hb ⨾ ⦗ coverable G sc T ⦘) ⊆₁ C.
+  Proof using WF RELCOV TLSCOH IORDCOH.
+    rewrite hb_coverable; basic_solver 10.
+  Qed.
+
   Lemma dom_hb_covered :
     dom_rel (hb ⨾ ⦗ C ⦘) ⊆₁ C.
-  Proof using WF RELCOV TLSCOH IORDCOH.
-    rewrite hb_covered; basic_solver 10.
+  Proof using WF RELCOV TLSCOH IORDCOH. by_similar dom_hb_coverable. Qed. 
+
+  Lemma dom_urr_coverable l:
+    dom_rel (urr l ⨾ ⦗ coverable G sc T ⦘) ⊆₁ I.
+  Proof using WF RELCOV TLSCOH IORDCOH WFSC.
+    unfold CombRelations.urr.
+    unfold CombRelations.urr.
+    generalize dom_hb_coverable.
+    generalize dom_sc_coverable.
+    generalize dom_rf_coverable.
+    generalize covered_in_coverable.
+    generalize w_coverable_issued.
+    basic_solver 21.
   Qed.
 
   Lemma dom_urr_covered l:
     dom_rel (urr l ⨾ ⦗ C ⦘) ⊆₁ I.
-  Proof using WF RELCOV TLSCOH IORDCOH WFSC.
-    unfold CombRelations.urr.
-    generalize dom_rf_covered.
-    generalize dom_sc_covered.
-    generalize dom_hb_covered.
-    generalize w_covered_issued.
-    basic_solver 21.
+  Proof using WF RELCOV TLSCOH IORDCOH WFSC. by_similar dom_urr_coverable. Qed.
+
+  Lemma urr_coverable l:
+    urr l ⨾ ⦗ coverable G sc T ⦘ ⊆ ⦗I⦘ ⨾ urr l.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH.
+    rewrite (dom_rel_helper (@dom_urr_coverable l)).
+    basic_solver.
   Qed.
 
   Lemma urr_covered l:
     urr l ⨾ ⦗ C ⦘ ⊆ ⦗I⦘ ⨾ urr l.
-  Proof using WF WFSC RELCOV TLSCOH IORDCOH.
-    rewrite (dom_rel_helper (@dom_urr_covered l)).
-    basic_solver.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. by_similar urr_coverable. Qed. 
+
+  Lemma dom_c_acq_coverable i l A:
+    dom_rel (c_acq i l A ⨾ ⦗ coverable G sc T ⦘) ⊆₁ I.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. 
+    unfold CombRelations.c_acq.
+    generalize (@dom_urr_coverable l).
+    generalize covered_in_coverable.
+    generalize dom_release_issued.
+    generalize dom_rf_coverable.
+    basic_solver 21.
   Qed.
 
   Lemma dom_c_acq_covered i l A:
     dom_rel (c_acq i l A ⨾ ⦗ C ⦘) ⊆₁ I.
-  Proof using WF WFSC RELCOV TLSCOH IORDCOH. 
-    unfold CombRelations.c_acq.
-    generalize (@dom_urr_covered l).
-    generalize dom_release_issued.
-    generalize dom_rf_covered.
-    basic_solver 21.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. by_similar dom_c_acq_coverable. Qed.
+
+  Lemma c_acq_coverable i l A:
+    c_acq i l A ⨾ ⦗ coverable G sc T ⦘ ⊆ ⦗I⦘ ⨾ c_acq i l A.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH.
+    rewrite (dom_rel_helper (@dom_c_acq_coverable i l A)).
+    basic_solver.
   Qed.
 
   Lemma c_acq_covered i l A:
     c_acq i l A ⨾ ⦗ C ⦘ ⊆ ⦗I⦘ ⨾ c_acq i l A.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. by_similar c_acq_coverable. Qed. 
+
+  Lemma dom_c_cur_coverable i l A:
+    dom_rel (c_cur i l A ⨾ ⦗ coverable G sc T ⦘) ⊆₁ I.
   Proof using WF WFSC RELCOV TLSCOH IORDCOH.
-    rewrite (dom_rel_helper (@dom_c_acq_covered i l A)).
-    basic_solver.
+    unfold CombRelations.c_cur.
+    generalize (@dom_urr_coverable l).
+    basic_solver 21.
   Qed.
 
   Lemma dom_c_cur_covered i l A:
     dom_rel (c_cur i l A ⨾ ⦗ C ⦘) ⊆₁ I.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. by_similar dom_c_cur_coverable. Qed.
+
+  Lemma c_cur_coverable i l A:
+    c_cur i l A ⨾ ⦗ coverable G sc T ⦘ ⊆ ⦗I⦘ ⨾ c_cur i l A.
   Proof using WF WFSC RELCOV TLSCOH IORDCOH.
-    unfold CombRelations.c_cur.
-    generalize (@dom_urr_covered l).
-    basic_solver 21.
+    seq_rewrite (dom_rel_helper (@dom_c_cur_coverable i l A)).
+    basic_solver.
   Qed.
 
   Lemma c_cur_covered i l A:
     c_cur i l A ⨾ ⦗ C ⦘ ⊆ ⦗I⦘ ⨾ c_cur i l A.
-  Proof using WF WFSC RELCOV TLSCOH IORDCOH.
-    seq_rewrite (dom_rel_helper (@dom_c_cur_covered i l A)).
-    basic_solver.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. by_similar c_cur_coverable. Qed. 
+
+  Lemma dom_c_rel_coverable i l l' A:
+    dom_rel (c_rel i l l' A ⨾ ⦗ coverable G sc T ⦘) ⊆₁ I.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. 
+    unfold CombRelations.c_rel.
+    generalize (@dom_urr_coverable l).
+    basic_solver 21.
   Qed.
 
   Lemma dom_c_rel_covered i l l' A:
     dom_rel (c_rel i l l' A ⨾ ⦗ C ⦘) ⊆₁ I.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. by_similar dom_c_rel_coverable. Qed. 
+
+  Lemma c_rel_coverable i l l' A:
+    c_rel i l l' A ⨾ ⦗ coverable G sc T ⦘ ⊆ ⦗I⦘ ⨾ c_rel i l l' A.
   Proof using WF WFSC RELCOV TLSCOH IORDCOH. 
-    unfold CombRelations.c_rel.
-    generalize (@dom_urr_covered l).
-    basic_solver 21.
+    seq_rewrite (dom_rel_helper (@dom_c_rel_coverable i l l' A)).
+    basic_solver.
   Qed.
 
   Lemma c_rel_covered i l l' A:
     c_rel i l l' A ⨾ ⦗ C ⦘ ⊆ ⦗I⦘ ⨾ c_rel i l l' A.
-  Proof using WF WFSC RELCOV TLSCOH IORDCOH. 
-    seq_rewrite (dom_rel_helper (@dom_c_rel_covered i l l' A)).
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. by_similar c_rel_coverable. Qed. 
+
+  Lemma t_acq_coverable l thread:
+    t_acq thread l (coverable G sc T) ⊆₁ I.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH.
+    unfold CombRelations.t_acq.
+    rewrite (dom_r (wf_c_acqD G sc thread l (coverable G sc T))).
+    arewrite (⦗(Tid_ thread ∪₁ Init) ∩₁ coverable G sc  T⦘ ⊆ ⦗coverable G sc T⦘) by basic_solver.
+    rewrite c_acq_coverable.
     basic_solver.
   Qed.
 
   Lemma t_acq_covered l thread:
     t_acq thread l (C) ⊆₁ I.
-  Proof using WF WFSC RELCOV TLSCOH IORDCOH.
-    unfold CombRelations.t_acq.
-    rewrite (dom_r (wf_c_acqD G sc thread l (C))).
-    arewrite (⦗(Tid_ thread ∪₁ Init) ∩₁ C⦘ ⊆ ⦗C⦘) by basic_solver.
-    rewrite c_acq_covered.
-    basic_solver.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. by_similar t_acq_coverable. Qed.
+
+  Lemma t_cur_coverable l thread:
+    t_cur thread l (coverable G sc T) ⊆₁ I.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. 
+    etransitivity; [by apply t_cur_in_t_acq|].
+      by apply t_acq_coverable.
   Qed.
 
   Lemma t_cur_covered l thread:
     t_cur thread l (C) ⊆₁ I.
-  Proof using WF WFSC RELCOV TLSCOH IORDCOH. 
-    etransitivity; [by apply t_cur_in_t_acq|].
-      by apply t_acq_covered.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. by_similar t_cur_coverable. Qed. 
+
+  Lemma t_rel_coverable l l' thread:
+    t_rel thread l l' (coverable G sc T) ⊆₁ I.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH.
+    etransitivity; [by apply t_rel_in_t_cur|].
+      by apply t_cur_coverable. 
   Qed.
 
   Lemma t_rel_covered l l' thread:
     t_rel thread l l' (C) ⊆₁ I.
-  Proof using WF WFSC RELCOV TLSCOH IORDCOH.
-    etransitivity; [by apply t_rel_in_t_cur|].
-      by apply t_cur_covered.
+  Proof using WF WFSC RELCOV TLSCOH IORDCOH. by_similar t_rel_coverable. Qed. 
+
+  Lemma S_tm_coverable l :
+    S_tm l (coverable G sc T) ⊆₁ I.
+  Proof using WF RELCOV TLSCOH IORDCOH. 
+    unfold CombRelations.S_tm, CombRelations.S_tmr.
+    generalize dom_hb_coverable.
+    generalize w_coverable_issued.
+    generalize dom_release_issued.
+    generalize dom_rf_coverable.
+    generalize covered_in_coverable.
+    basic_solver 21.
   Qed.
 
   Lemma S_tm_covered l :
     S_tm l (C) ⊆₁ I.
-  Proof using WF RELCOV TLSCOH IORDCOH. 
-    unfold CombRelations.S_tm, CombRelations.S_tmr.
-    generalize dom_hb_covered.
-    generalize w_covered_issued.
-    generalize dom_release_issued.
-    generalize dom_rf_covered.
-    basic_solver 21.
-  Qed.
+  Proof using WF RELCOV TLSCOH IORDCOH. by_similar S_tm_coverable. Qed. 
 
   Lemma msg_rel_issued l:
     dom_rel (msg_rel l ⨾ ⦗ I ⦘) ⊆₁ I.

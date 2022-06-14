@@ -12,12 +12,17 @@ From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
 
-From imm Require Import TraversalConfig.
+From imm Require Import TraversalOrder.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import AuxDef.
+Require Import TlsEventSets.
+Require Import Next.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import MaxValue.
 Require Import ViewRel.
-From imm Require Import ViewRelHelpers.
+Require Import ViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimulationPlainStepAux.
 Require Import PlainStepBasic.
@@ -32,6 +37,8 @@ Require Import IssueReservedStepHelper.
 Require Import MemoryClosedness.
 Require Import SimulationRelProperties.
 Require Import ReadPlainStepHelper.
+Require Import EventsTraversalOrder.
+Require Import ExtTraversalProperties. 
 
 Set Implicit Arguments.
 
@@ -82,40 +89,48 @@ Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
-Lemma issue_rel_reserved_step_no_next PC T (S : actid -> Prop) f_to f_from thread r w smode
+Lemma issue_rel_reserved_step_no_next PC T f_to f_from thread r w smode
       (TID : tid r = thread)
       (REL : Rel w) (RMW : rmw r w)
-      (SW : S w)
-      (NONEXT : dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) ⊆₁ ∅)
+      (SW : reserved T w)
+      (NONEXT : dom_sb_S_rfrmw G T rfi (eq w) ⊆₁ ∅)
 
       (TSTEP1 : ext_itrav_step
-                 G sc r (mkETC T S)
-                 (mkETC (mkTC (covered T ∪₁ eq r) (issued T)) S))
+                 G sc (mkTL ta_cover r) T
+                 (* (mkETC (mkTC (covered T ∪₁ eq r) (issued T)) S) *)
+                 (T ∪₁ eq (mkTL ta_cover r))
+      )
       (TSTEP2 : ext_itrav_step
-                  G sc w (mkETC (mkTC (covered T ∪₁ eq r) (issued T)) S)
-                  (mkETC
-                     (mkTC (covered T ∪₁ eq r) (issued T ∪₁ eq w))
-                     (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
+                  G sc (mkTL ta_issue w) (T ∪₁ eq (mkTL ta_cover r))
+                  (* (mkETC *)
+                  (*    (mkTC (covered T ∪₁ eq r) (issued T ∪₁ eq w)) *)
+                  (*    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))) *)
+                  (T ∪₁ eq (mkTL ta_cover r) ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))))
+      )
 
       (TSTEP3 : ext_itrav_step
-                  G sc w
-                  (mkETC
-                     (mkTC (covered T ∪₁ eq r) (issued T ∪₁ eq w))
-                     (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w)))
-                  (mkETC
-                     (mkTC (covered T ∪₁ eq r ∪₁ eq w) (issued T ∪₁ eq w))
-                     (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))))
+                  G sc (mkTL ta_cover w)
+                  (* (mkETC *)
+                  (*    (mkTC (covered T ∪₁ eq r) (issued T ∪₁ eq w)) *)
+                  (*    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))) *)
+                  (T ∪₁ eq (mkTL ta_cover r) ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))))
+                  (* (mkETC *)
+                  (*    (mkTC (covered T ∪₁ eq r ∪₁ eq w) (issued T ∪₁ eq w)) *)
+                  (*    (S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w))) *)
+                  (T ∪₁ eq (mkTL ta_cover r) ∪₁ eq (mkTL ta_cover w) ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))))
+      )
 
-      (SIMREL_THREAD : simrel_thread G sc PC T S f_to f_from thread smode) :
+      (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from thread smode) :
 
-  let T' := mkTC (covered T ∪₁ eq r ∪₁ eq w) (issued T ∪₁ eq w) in
-  let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in
+  (* let T' := mkTC (covered T ∪₁ eq r ∪₁ eq w) (issued T ∪₁ eq w) in *)
+  (* let S' := S ∪₁ eq w ∪₁ dom_sb_S_rfrmw G (mkETC T S) rfi (eq w) in *)
+  let T' := T ∪₁ eq (mkTL ta_cover r) ∪₁ eq (mkTL ta_cover w) ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))) in 
   exists f_to' PC',
     ⟪ PCSTEP : (plain_step MachineEvent.silent thread)⁺ PC PC' ⟫ /\
-    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' S' f_to' f_from thread smode ⟫ /\
+    ⟪ SIMREL_THREAD : simrel_thread G sc PC' T' f_to' f_from thread smode ⟫ /\
     ⟪ SIMREL :
-        smode = sim_normal -> simrel G sc PC T S f_to f_from ->
-        simrel G sc PC' T' S' f_to' f_from ⟫.
+        smode = sim_normal -> simrel G sc PC T f_to f_from ->
+        simrel G sc PC' T' f_to' f_from ⟫.
 Proof using WF CON.
   cdes SIMREL_THREAD. cdes COMMON. cdes LOCAL.
 
@@ -124,21 +139,19 @@ Proof using WF CON.
   assert (coh_sc G sc) as COH_sc by apply CON.
 
   assert (NEXT : next G (covered T) r).
-  { eapply ext_itrav_step_cov_next with (T:=mkETC T S); eauto. }
+  { eapply ext_itrav_step_cov_next; eauto. }
  
   assert (WTID : thread = tid w).
   { rewrite <- TID. by apply (wf_rmwt WF). }
   assert (ISS : ~ issued T w).
-  { cdes TSTEP2. desf. unfold ecovered, eissued in *; simpls.
-    intros HH. apply NCOV. apply COVEQ. clear. basic_solver. }
+  { cdes TSTEP2. inversion TSTEP0. intros HH. apply ets_new_ta.
+    left. destruct HH as [[a e] [[? [=]] [=]]]. vauto. }
 
-  assert (S ⊆₁ E ∩₁ W) as SEW.
-  { generalize (etc_S_in_E TCCOH). generalize (reservedW WF TCCOH). clear. basic_solver. }
+  assert (reserved T ⊆₁ E ∩₁ W) as SEW.
+  { apply set_subset_inter_r. split; [apply RCOH| apply reservedW]; eauto. }
 
   assert (sc_per_loc G) as SC_PER_LOC.
   { by apply coherence_sc_per_loc; cdes CON. }
-  assert (tc_coherent G sc T) as TCCOHs.
-  { apply TCCOH. }
 
   assert (~ covered T r) as RNCOV.
   { apply NEXT. }
@@ -178,18 +191,13 @@ Proof using WF CON.
     unfold same_loc, loc in *; desf. }
 
   assert (COV : coverable G sc T r).
-  { apply coverable_add_eq_iff; auto.
-    apply covered_in_coverable; [|clear; basic_solver].
-    apply TSTEP1. }
+  { eapply ext_itrav_step_cov_coverable; eauto. } 
 
   assert (issued T w') as WISS.
-  { red in COV. destruct COV as [_ [[COV|COV]|COV]].
-    1,3: type_solver.
-    eapply COV.
-    eexists. apply seq_eqv_r. eauto. }
+  { eapply dom_rf_coverable; eauto. eexists. splits; vauto. } 
 
-  assert (S w') as SW'.
-  { by apply (etc_I_in_S TCCOH). }
+  assert (reserved T w') as SW'.
+  { by eapply RCOH. }
 
   assert (~ is_init r) as RNINIT.
   { intros H; apply (init_w WF) in H.
@@ -199,10 +207,9 @@ Proof using WF CON.
 
   assert (~ covered T w) as WNCOV.
   { intros H; apply NEXT.
-    apply TCCOH in H. apply H.
-    exists w. by apply seq_eqv_r; split. }
+    eapply dom_sb_covered; eauto. basic_solver 10. }
   assert (~ is_init w) as WNINIT.
-  { intros H. apply WNCOV. by apply TCCOH. }
+  { intros H. apply WNCOV. eapply init_covered; vauto. }
 
   assert (loc lab r = Some locr) as RLOC.
   { unfold loc. by rewrite PARAMS. }
@@ -237,12 +244,12 @@ Proof using WF CON.
   assert (tid w = tid r) as TIDWR.
   { destruct (sb_tid_init WRSB); desf. }
 
-  set (S' := S ∪₁ eq w ∪₁
-               dom_sb_S_rfrmw G (mkETC (mkTC (covered T ∪₁ eq r) (issued T)) S) rfi (eq w)).
+  set (S' := reserved T ∪₁ eq w ∪₁
+               dom_sb_S_rfrmw G (T ∪₁ eq (mkTL ta_cover r)) rfi (eq w)).
   assert (S' ⊆₁ E ∩₁ W) as SEW'.
   { unfold S'. rewrite SEW at 1. unionL; auto.
     { generalize WACT WWRITE. clear. basic_solver. }
-    rewrite NONEXT. basic_solver. }
+    apply set_subset_inter_r. split; auto using ExtTraversalProperties.dom_sb_S_rfrmwE, ExtTraversalProperties.dom_sb_S_rfrmwD. }
 
   edestruct SIM_MEM as [rel' DOM'].
   { apply WISS. }
@@ -279,43 +286,71 @@ Proof using WF CON.
   edestruct (@read_step_helper G WF sc CON) as [TCCOH' HH]; eauto.
   desc. rewrite <- TIDWR in *.
 
-  assert (tc_coherent G sc (mkTC (covered T ∪₁ eq r) (issued T)))
-    as TCCOH1.
-  { apply TSTEP1. }
-
-  assert (issuable G sc (mkTC (covered T ∪₁ eq r) (issued T)) w) as WNNISS.
+  assert (issuable G sc (T ∪₁ eq (mkTL ta_cover r)) w) as WNNISS.
   { eapply issuable_next_w; eauto.
     split; simpls.
     red; split; [split|]; auto.
     { red. intros x [y SBB]. apply seq_eqv_r in SBB. desc. rewrite <- SBB0 in *.
       clear y SBB0.
-      destruct (classic (x = r)) as [EQ|NEQ].
-      { by right. }
-      left.
+      destruct (classic (x = r)) as [->|NEQ].
+      { clear. find_event_set. }
       edestruct sb_semi_total_r with (x:=w) (y:=x) (z:=r); eauto.
-      { apply NEXT. eexists. apply seq_eqv_r. eauto. }
+      { eapply dom_sb_covered; eauto. exists r.
+        apply seq_eqv_r. split; auto. clear. find_event_set. }
       exfalso. eapply (wf_rmwi WF); eauto. }
     clear WREPR REPR.
-    red; intros [H|H]; [by desf|].
-    type_solver. }
+    assert (r <> w) as NEQ by (intros ->; type_solver). 
+    clear -NEQ WNCOV. separate_set_event. }
 
-  edestruct (fun w1 w2 x z k w3 w4 w5 =>
+  assert (reserve_coherent G (T ∪₁ eq (mkTL ta_cover r))) as RCOH'.
+  { by apply reserve_coherent_add_cover. }
+
+
+  (*****)
+  (* forward eapply issue_reserved_step_helper_no_next with (T := T ∪₁ eq (mkTL ta_cover r)); eauto. *)
+  (* { clear -FCOH. by simplify_tls_events. } *)
+  (* { eapply sim_res_prom_issued_reserved_subset; [.. | apply SIM_RPROM]. *)
+  (*   all: clear; by simplify_tls_events. } *)
+  (* { eapply sim_res_mem_issued_reserved_subsets; [.. | apply SIM_RES_MEM]. *)
+  (*   all: clear; by simplify_tls_events. } *)
+  (* { simpl in SIM_TVIEW0. ins. simpls. *)
+  (*   red. splits.  *)
+  (*   { move SIM_TVIEW at bottom. red in SIM_TVIEW. desc. *)
+  (*     red in CUR. red. *)
+  (*     ins. specialize (CUR l). *)
+  (*     simplify_tls_events. rewrite t_cur_union. *)
+      
+
+  edestruct (fun w1 w2 rcoh wri fcoh x z k w3 w4 w5 =>
                @issue_reserved_step_helper_no_next
-               G WF sc CON (mkTC (covered T ∪₁ eq r) (issued T)) S
-               w1 w2 f_to f_from FCOH
+               G WF sc CON (T ∪₁ eq (mkTL ta_cover r))
+               w1 w2 rcoh wri f_to f_from fcoh
                (Configuration.mk x (Configuration.sc PC) (Configuration.memory PC))
                w3 smode w4 w5 (Local.mk z k)
             ) with (w:=w) (valw:=valw) (ordw:=Events.mod lab w)
     as [p_rel H].
+  1-3: by apply TSTEP1.
+  { clear -RELCOV. simplify_tls_events. rewrite RELCOV. basic_solver. }
+  { clear -FCOH. by simplify_tls_events. }
   all: simpls.
   2: by apply SIM_PROM0.
   5: by apply PLN_RLX_EQ0.
   all: eauto.
+  { eapply sim_res_prom_issued_reserved_subset; [.. | apply SIM_RPROM].
+    all: clear; by simplify_tls_events. }
   { ins. rewrite IdentMap.gso in *; eauto. }
+  { eapply sim_res_mem_issued_reserved_subsets; [.. | apply SIM_RES_MEM].
+    all: clear; by simplify_tls_events. }
   { rewrite IdentMap.gss. eauto. }
+  { clear -SW. find_event_set. }
+  { clear -ISS. separate_set_event. }
+  { clear -NONEXT. unfold dom_sb_S_rfrmw in *. by simplify_tls_events. }
+
+  (*****)
   desc. red in H. desc.
   destruct H0 as [H|H]; desc.
-  { exfalso. apply NINRMW. exists w'. apply seq_eqv_l. split; eauto. }
+  { exfalso. apply NINRMW. exists w'. apply seq_eqv_l. split; eauto.
+    clear -WISS. find_event_set. }
   assert (p = w') as PW.
   { eapply wf_rfrmwf; eauto. }
   rewrite PW in *; clear PW.
@@ -374,8 +409,8 @@ Proof using WF CON.
   assert (f_to w' = f_from w) as FF.
   { rewrite <- ISSEQ_TO; auto.
     apply FCOH0; auto.
-    { by do 2 left. }
-    clear. basic_solver. }
+    { clear -SW'. find_event_set. }
+    clear. find_event_set. }
 
   assert (forall l to from msg 
                  (NEQ  : l <> locr \/ to <> f_to  w)
@@ -395,22 +430,26 @@ Proof using WF CON.
 
   assert (f_to w' <> f_to w) as FWNEQ.
   { intros HH.
-    eapply f_to_eq with (I:=S) in HH; subst; eauto.
+    eapply f_to_eq with (I:=reserved T) in HH; subst; eauto.
     red. by rewrite WLOC. }
   assert (f_to w' <> f_to' w) as FWNEQ'.
   { rewrite <- ISSEQ_TO; auto.
     intros HH.
     eapply f_to_eq in HH; (try by apply FCOH0); subst; eauto.
+    { clear -TLSCOH RCOH WF WACT WWRITE. simplify_tls_events.
+      apply set_subset_inter_r. split.
+      { rewrite rcoh_S_in_E, dom_sb_S_rfrmwE; basic_solver. }
+      rewrite reservedW, dom_sb_S_rfrmwD; basic_solver. }
     { red. by rewrite WLOC. }
-    all: clear -SW'; basic_solver. }
+    all: clear -SW'; find_event_set. }
 
   assert (forall y : actid, covered T y /\ tid y = tid r -> sb y r) as COVNR.
   { intros y [COVY TIDY].
     edestruct same_thread with (x:=r) (y:=y) as [[|SB]|SB]; eauto.
-    { apply TCCOH in COVY. apply COVY. }
+    { eapply coveredE with (T := T); eauto. }
     { exfalso. apply RNCOV. by subst. }
-    exfalso. apply RNCOV. apply TCCOH in COVY.
-    apply COVY. eexists. apply seq_eqv_r. eauto. }
+    exfalso. apply RNCOV.
+    eapply dom_sb_covered; eauto. clear -COVY SB. basic_solver 10. }
   assert (doma (sb ⨾ ⦗eq r⦘) (covered T)) as DOMASBR.
   { red. ins. eapply NEXT. red. eauto. }
 
@@ -453,11 +492,10 @@ Proof using WF CON.
           revert CCUR; unfold seq; unfolder; ins; desf.
             by apply CON. }
         assert (issued T a_max) as AISS.
-        { assert (A: (urr G sc locr ⨾ ⦗coverable G sc T⦘) a_max r).
-            by basic_solver.
-            apply (urr_coverable) in A; try done.
-            revert A; unfold seq; unfolder; ins; desf. }
-        assert (S a_max) as SA by (by apply (etc_I_in_S TCCOH)).
+        { assert (A: (urr G sc locr ⨾ ⦗coverable G sc T⦘) a_max r)by basic_solver.
+          apply (urr_coverable) in A; try done.
+          revert A; unfold seq; unfolder; ins; desf. }
+        assert (reserved T a_max) as SA by (by apply (rcoh_I_in_S RCOH)).
         rewrite <- FF.
         destruct (classic (a_max = w')) as [|AWNEQ]; [by desf|].
         edestruct (@wf_co_total G WF (Some locr) a_max) as [AWCO|AWCO].
@@ -492,23 +530,23 @@ Proof using WF CON.
       eapply nonsynch_loc_le with (mem2:=(Local.promises local)); auto.
       eapply memory_remove_le; eauto. }
     unnw.
+    assert (  covered
+                (T ∪₁ eq (mkTL ta_cover r) ∪₁ eq (mkTL ta_cover w) ∪₁ eq (mkTL ta_issue w)
+                   ∪₁ eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))) ≡₁ covered T ∪₁ eq r ∪₁ eq w) as COV'.
+    { clear. by simplify_tls_events. }
     red; splits; red; splits; simpls.
-    { apply TSTEP3. }
-    { rewrite set_inter_union_r.
-      apply set_subset_union_l; split.
-      etransitivity; eauto.
-      all: clear; basic_solver. }
+    1-3: by apply TSTEP3. 
+    { clear -RELCOV. simplify_tls_events. relsf. rewrite RELCOV. basic_solver. }
     { ins. apply (wf_rmwD WF) in RMW0.
       apply seq_eqv_l in RMW0; destruct RMW0 as [RR RMW0].
       apply seq_eqv_r in RMW0; destruct RMW0 as [RMW0 WW].
-      split; intros [[HH|HH]|HH].
-      { left; left. erewrite <- RMWCOV; eauto. }
-      { subst. right. eapply wf_rmwf; eauto. }
-      { subst. clear -WWRITE RR. type_solver. }
-      { left; left. erewrite RMWCOV; eauto. }
-      { subst. clear -WW RREAD. type_solver. }
-      subst. left; right.
-      eapply wf_rmw_invf; eauto. }
+      split; intros [[HH|<-]|<-]%COV'.
+      { pose proof (RMWCOV _ _ RMW0). clear -HH H. find_event_set. } 
+      { apply COV'. right. eapply wf_rmwf; eauto. }
+      { clear -WWRITE RR. type_solver. }
+      { pose proof (RMWCOV _ _ RMW0). clear -HH H. find_event_set. }
+      { clear -WW RREAD. type_solver. }
+      apply COV'. left. right. eapply wf_rmw_invf; eauto. }
     { intros e' EE. 
       destruct (Ident.eq_dec (tid e') (tid w)) as [EQ|NEQ].
       { rewrite EQ. eexists.
@@ -520,54 +558,79 @@ Proof using WF CON.
       eapply PROM_IN_MEM1; eauto.
       do 2 (rewrite IdentMap.gso in TID; auto).
       do 2 (rewrite IdentMap.gso; eauto). }
+    { eapply f_to_coherent_more; [..| apply FCOH0]; eauto.
+      unfold dom_sb_S_rfrmw. clear. simplify_tls_events. basic_solver. }
     { intros NFSC. etransitivity; [by apply SC_COV|].
-      clear. basic_solver. }
+      clear. simplify_tls_events. basic_solver. }
     { intros QQ l.
       eapply max_value_same_set.
       { by apply SC_REQ1. }
       apply s_tm_n_f_steps.
-      { apply TCCOH'. }
-      { clear. basic_solver. }
-      intros a [[H|H]|H] HH AA.
-      { apply HH. by left. }
+      { etransitivity; [apply init_covered| ]; eauto. }
+      { clear. simplify_tls_events. basic_solver. }      
+      intros a [[H|H]|H]%COV' HH AA.
+      { apply HH. clear -H. find_event_set. }
       { subst. clear -RREAD AA. type_solver. }
       subst. clear -WWRITE AA. type_solver. }
+    { eapply reserved_time_same_issued_reserved; [apply RESERVED_TIME1| ..]; auto.
+      all: clear; unfold dom_sb_S_rfrmw; simplify_tls_events; auto. }
     { eapply Memory.add_closed with (mem1:=memory_cancel); eauto.
       eapply Memory.cancel_closed; eauto. }
     rewrite IdentMap.gss.
+    assert (dom_sb_S_rfrmw G (T ∪₁ eq (mkTL ta_cover r)) rfi (eq w) ≡₁ dom_sb_S_rfrmw G T rfi (eq w)) as DS' by (unfold dom_sb_S_rfrmw; clear; by simplify_tls_events).
+    assert (tls_coherent G (T ∪₁ eq (mkTL ta_cover r))) as TCOH'.
+    { eapply tls_coherent_ext; eauto.
+      red. left. do 2 (split; eauto). }  
+    assert (iord_coherent G sc (T ∪₁ eq (mkTL ta_cover r))) as ICOH'.
+    { eapply iord_coherent_extend; eauto.
+      eapply coverable_iord_dom_cond; eauto. }
+    assert (covered T ∪₁ eq r ≡₁ covered (T ∪₁ eq (mkTL ta_cover r))) as COV'_. 
+    { clear. by simplify_tls_events. }
+
     eexists; eexists; eexists; splits; eauto; simpls.
     { erewrite tau_steps_step_same_instrs; eauto. }
     { ins. edestruct PROM_DISJOINT0 as [HH|]; eauto.
       do 2 (rewrite IdentMap.gso in *; eauto). }
+    { eapply sim_prom_more; [..| apply SIM_PROM1]; auto. rewrite DS'. auto. }
+    { eapply sim_res_prom_more; [..| apply SIM_RES_PROM]; auto.
+      rewrite DS'. auto. }
+    (* { eapply sim_mem_more; [..| apply SIM_MEM1]; auto.
+      { rewrite DS'. auto. }
+      f_equal. ins. vauto.  *)
+    (* } *)
     { clear WREPR REPR. rewrite <- FF, <- RORD, <- WORD.
-      apply SIM_MEM1. }
-    { eapply sim_tview_write_step; eauto.
+      eapply sim_mem_more; [..| apply SIM_MEM1]; eauto.
+      by rewrite DS'. }
+    { clear WREPR REPR. rewrite <- FF, <- RORD, <- WORD.
+      eapply sim_res_mem_more; [..| apply SIM_RES_MEM0]; eauto.
+      by rewrite DS'. }
+    { rewrite COV'. 
+      eapply sim_tview_write_step; eauto. 
       3: { rewrite <- FF.
-           eapply sim_tview_f_issued with (T:=mkTC (covered T ∪₁ eq r) (issued T)); eauto.
-           eapply sim_tview_read_step; eauto. }
-      { apply set_subset_union_l; split.
-        all: intros x H.
-        { apply TCCOH in H; apply H. }
-          by desf. }
-      { red. ins. left. apply seq_eqv_r in REL0.
-        destruct REL0 as [SB [COVY|]]; subst.
-        { apply TCCOH in COVY. apply COVY. eexists.
-          apply seq_eqv_r. eauto. }
-        apply NEXT. eexists. apply seq_eqv_r. eauto. }
-      { intros [HH|HH]. 
-        { by apply WNCOV. }
-        clear -HH RREAD WWRITE.
-        type_solver. }
+           rewrite COV'_. 
+           eapply sim_tview_f_issued
+                  with (T := T ∪₁ eq (mkTL ta_cover r)). 
+           7: { rewrite covered_union, covered_singleton.  
+                eapply sim_tview_read_step; eauto. }
+           all: eauto.
+           ins. apply ISSEQ_TO.
+           clear -ISS0. eapply set_equiv_exp; [| apply ISS0].
+           by simplify_tls_events. }
+      { rewrite coveredE; eauto. clear -RACT. basic_solver. }
+      { apply doma_alt. rewrite COV'_. eapply dom_sb_covered; eauto. }
+      { clear -WNCOV WWRITE RREAD.
+        assert (r <> w) by (intros ->; type_solver). 
+        separate_set_event. }
       { intros y [[COVY|XX] TIDY].
         2: { subst. apply rmw_in_sb; auto. }
         eapply sb_trans.
         2: { apply rmw_in_sb; eauto. }
         edestruct same_thread with (x:=r) (y:=y) as [[SS|SB]|SB]; eauto.
-        { apply TCCOH in COVY. apply COVY. }
+        { eapply coveredE; [..| apply COVY]; eauto. }
         { by rewrite TIDY. }
         { by subst. }
-        exfalso. apply RNCOV. apply TCCOH in COVY.
-        apply COVY. eexists. apply seq_eqv_r. eauto. }
+        exfalso. apply RNCOV. eapply dom_sb_covered; eauto.
+        clear -COVY SB. basic_solver 10. }
       { intros y z HH. apply seq_eqv_r in HH. destruct HH as [SB HH].
         rewrite <- HH in *. clear z HH.
         destruct (classic (y = r)) as [|NEQ].
@@ -637,6 +700,8 @@ Proof using WF CON.
     red. splits; eauto.
     ins. rewrite (INDEX_RMW w RMW); auto.
     rewrite TIDWR in *.
+    etransitivity; [apply set_equiv_exp| ].
+    { clear. simplify_tls_events. reflexivity. }    
     apply sim_state_cover_rmw_events; auto. }
   intros [PCSTEP SIMREL_THREAD']; split; auto.
   intros SMODE SIMREL.
@@ -653,7 +718,7 @@ Proof using WF CON.
   destruct AA as [AA|AA]; subst; auto.
   { clear -TNEQ. desf. }
   apply SIMREL in AA. cdes AA.
-  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T) (S:=S); eauto.
+  eapply simrel_thread_local_step with (thread:=tid w) (PC:=PC) (T:=T); eauto.
   11: { simpls.
         eapply msg_preserved_trans.
         2: by eapply msg_preserved_add; eauto.
@@ -664,11 +729,10 @@ Proof using WF CON.
         eapply closedness_preserved_cancel; eauto. }
   9: by eapply same_other_threads_steps; eauto.
   all: simpls; eauto.
-  { erewrite coveredE; eauto.
-    clear -RACT WACT. basic_solver. }
-  { rewrite issuedE; eauto. generalize WACT. clear. basic_solver. }
-  1-5: clear; basic_solver.
-  { rewrite dom_sb_S_rfrmw_same_tid; auto. clear. basic_solver. }
+  1-8: clear -TLSCOH WNINIT WACT RACT WF; simplify_tls_events; try basic_solver. 
+  { erewrite coveredE; eauto. basic_solver. }
+  { rewrite issuedE; eauto. basic_solver. }
+  { rewrite dom_sb_S_rfrmw_same_tid; auto. basic_solver. }
   { ins.
     etransitivity; [|by symmetry; apply IdentMap.Facts.add_in_iff].
     split.
