@@ -1527,18 +1527,20 @@ Proof using.
     rewrite IEW.
     clear. unfold set_pair. unfolder. ins. do 2 desf. }
   { unionR right -> right -> right.
-    arewrite (T ∩₁ action ⋄₁ is_ta_propagate
-                ⊆₁ is_ta_propagate <*> (event □₁ (T ∩₁ action ⋄₁ is_ta_propagate))).
-    { clear. unfold set_pair. basic_solver 10. }
-    rewrite (tls_coh_exec TCOH).
-    rewrite set_inter_union_l.
-    rewrite set_collect_union.
-    rewrite set_pair_union_r.
-    rewrite set_inter_union_r.
-    unionL.
-    { rewrite init_tls_EI. unfold set_pair. unfolder. ins. do 2 desf. }
-    (* unfold set_pair. unfolder. ins. do 2 desf. unfolder. splits; auto. *)
-    (* rewrite exec_tls_ENI. *)
+    unfolder. intros [a e] [NINIT [TAE BB]]; ins.
+    assert (is_ta_propagate_to_G Gf a) as PGF.
+    { apply TCOH in TAE.
+      unfold init_tls, exec_tls, set_pair in TAE.
+      unfolder in TAE. desf. }
+    assert (propagated Gf T e) as PP.
+    { red. unfolder. exists (a, e).
+      splits; auto; ins. }
+    enough (E0 e) as E0E.
+    { unfolder; splits; auto using E0_in_Gf.
+      eapply propagatedW; eauto. }
+    enough (issued T e) as ITE.
+    { apply I_in_E in ITE. now apply E_E0 in ITE. }
+    (* TODO: add a lemma that propagated ⊆₁ issued. *)
     admit. }
   { unionR right -> right -> left.
     rewrite ISTEW.
