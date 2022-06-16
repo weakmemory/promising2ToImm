@@ -72,37 +72,66 @@ End MorphismsCIRP.
 
 Section SimplificationsCIRP. 
 
-Lemma covered_events (A: actid -> Prop):
-  covered (event ↓₁ A) ⊆₁ A. 
+
+Lemma tls_set_inter_helper T1 T2 (a: trav_action):
+  event □₁ ((T1 ∩₁ T2) ∩₁ action ⋄₁ eq a) ≡₁
+  event □₁ (T1 ∩₁ action ⋄₁ eq a) ∩₁ event □₁ (T2 ∩₁ action ⋄₁ eq a).
+Proof using. 
+  split; try basic_solver 10.
+  unfolder. ins. desc. destruct y, y0; ins; subst. eauto. 
+Qed.  
+
+Lemma tls_set_minus_helper T1 T2 (a: trav_action):
+  event □₁ ((T1 \₁ T2) ∩₁ action ⋄₁ eq a) ≡₁
+  event □₁ (T1 ∩₁ action ⋄₁ eq a) \₁ event □₁ (T2 ∩₁ action ⋄₁ eq a).
+Proof using.
+  split; try basic_solver 10.
+  unfolder. ins. desc. destruct y; ins; subst. 
+  splits; try by eauto.
+  intro. desc. ins. desc. destruct y; ins; subst. done. 
+Qed.
+
+Lemma covered_events (A: actid -> Prop): covered (event ↓₁ A) ⊆₁ A. 
 Proof using. unfold covered. basic_solver. Qed. 
 
-Lemma issued_events (A: actid -> Prop):
-  issued (event ↓₁ A) ⊆₁ A. 
+Lemma issued_events (A: actid -> Prop): issued (event ↓₁ A) ⊆₁ A. 
 Proof using. unfold issued. basic_solver. Qed. 
 
-Lemma reserved_events (A: actid -> Prop):
-  reserved (event ↓₁ A) ⊆₁ A. 
+Lemma reserved_events (A: actid -> Prop): reserved (event ↓₁ A) ⊆₁ A. 
 Proof using. unfold reserved. basic_solver. Qed. 
 
-Lemma propagated_events G (A: actid -> Prop):
-  propagated G (event ↓₁ A) ⊆₁ A. 
+Lemma propagated_events G (A: actid -> Prop): propagated G (event ↓₁ A) ⊆₁ A. 
 Proof using. unfold propagated. basic_solver. Qed. 
 
-Lemma covered_union T1 T2:
-  covered (T1 ∪₁ T2) ≡₁ covered T1 ∪₁ covered T2. 
+Lemma covered_union T1 T2: covered (T1 ∪₁ T2) ≡₁ covered T1 ∪₁ covered T2. 
 Proof using. unfold covered. basic_solver 10. Qed. 
+Lemma covered_inter T1 T2: covered (T1 ∩₁ T2) ≡₁ covered T1 ∩₁ covered T2.
+Proof using. apply tls_set_inter_helper. Qed.  
+Lemma covered_minus T1 T2: covered (T1 \₁ T2) ≡₁ covered T1 \₁ covered T2.
+Proof using. apply tls_set_minus_helper. Qed. 
 
-Lemma issued_union T1 T2:
-  issued (T1 ∪₁ T2) ≡₁ issued T1 ∪₁ issued T2. 
+Lemma issued_union T1 T2: issued (T1 ∪₁ T2) ≡₁ issued T1 ∪₁ issued T2. 
 Proof using. unfold issued. basic_solver 10. Qed. 
+Lemma issued_inter T1 T2: issued (T1 ∩₁ T2) ≡₁ issued T1 ∩₁ issued T2.
+Proof using. apply tls_set_inter_helper. Qed.  
+Lemma issued_minus T1 T2: issued (T1 \₁ T2) ≡₁ issued T1 \₁ issued T2.
+Proof using. apply tls_set_minus_helper. Qed. 
 
-Lemma reserved_union T1 T2:
-  reserved (T1 ∪₁ T2) ≡₁ reserved T1 ∪₁ reserved T2. 
+Lemma reserved_union T1 T2: reserved (T1 ∪₁ T2) ≡₁ reserved T1 ∪₁ reserved T2. 
 Proof using. unfold reserved. basic_solver 10. Qed. 
+Lemma reserved_inter T1 T2: reserved (T1 ∩₁ T2) ≡₁ reserved T1 ∩₁ reserved T2.
+Proof using. apply tls_set_inter_helper. Qed.  
+Lemma reserved_minus T1 T2: reserved (T1 \₁ T2) ≡₁ reserved T1 \₁ reserved T2.
+Proof using. apply tls_set_minus_helper. Qed. 
 
 Lemma propagated_union G T1 T2:
   propagated G (T1 ∪₁ T2) ≡₁ propagated G T1 ∪₁ propagated G T2. 
-Proof using. unfold propagated. basic_solver 10. Qed. 
+Proof using. unfold propagated. basic_solver 10. Qed.
+(* Not true: an event can be propagated into different threads in T1 and T2*)
+(* Lemma propagated_inter G T1 T2: *)
+(*   propagated G (T1 ∩₁ T2) ≡₁ propagated G T1 ∩₁ propagated G T2.  *)
+(* Lemma propagated_minus G T1 T2: *)
+(*   propagated G (T1 \₁ T2) ≡₁ propagated G T1 \₁ propagated G T2. *)
 
 Lemma covered_singleton e:
   covered (eq (mkTL ta_cover e)) ≡₁ eq e.
@@ -178,6 +207,8 @@ Qed.
 End SimplificationsCIRP. 
 
 
+
+
 (* The idea for these tactics is to simplify as much terms as possible,
    leaving those that give unsolved premises as is *)
 (* TODO: is there a better way to do this? *)
@@ -188,11 +219,22 @@ Ltac remember_tls_sets :=
           |  |- context [ (reserved ?S) ] => remember (@reserved S) eqn:?HeqS
           end).
 
+
+Ltac tls_set_simpl_solvers :=
+  basic_solver 10 || iord_dom_solver || (unfolder; ins; congruence). 
+
+Ltac try_simplify_set nonset_lem only_lem :=
+  try (
+      (rewrite nonset_lem; [| tls_set_simpl_solvers]) ||
+      (rewrite only_lem; [| tls_set_simpl_solvers])
+    ). 
+
 Ltac subst_tls_sets_simpl :=
   repeat (match goal with
-          | H: ?E = covered ?S |- _ => subst E; try ((rewrite covered_noncover_empty; [| basic_solver 10 || iord_dom_solver]) || (rewrite covered_only_cover; [| basic_solver 10 || iord_dom_solver]))
-          | H: ?E = issued ?S |- _ => subst E; try ((rewrite issued_nonissue_empty; [| basic_solver 10 || iord_dom_solver]) || (rewrite issued_only_issue; [| basic_solver 10 || iord_dom_solver]))
-          | H: ?E = reserved ?S |- _ => subst E; try ((rewrite reserved_nonreserve_empty; [| basic_solver 10 || iord_dom_solver]) || (rewrite reserved_only_reserve; [| basic_solver 10 || iord_dom_solver]))
+          | H: ?E = covered ?S |- _ => subst E; try_simplify_set covered_noncover_empty covered_only_cover
+          | H: ?E = issued ?S |- _ => subst E; try_simplify_set issued_nonissue_empty issued_only_issue
+          | H: ?E = reserved ?S |- _ =>
+              subst E; try_simplify_set reserved_nonreserve_empty reserved_only_reserve
             end;
           try rewrite !set_pair_cancel_action
          ).
@@ -213,7 +255,10 @@ Ltac simpl_sets := autorewrite with set_simpl_db.
 
 Create HintDb tls_sets_simpl_db.
 Global Hint Rewrite
-       covered_union issued_union reserved_union propagated_union
+       covered_union covered_inter covered_minus
+       issued_union issued_inter issued_minus
+       reserved_union reserved_inter reserved_minus
+       propagated_union
        covered_singleton issued_singleton reserved_singleton
   : tls_sets_simpl_db. 
 
@@ -225,7 +270,7 @@ Ltac simplify_tls_events :=
 Tactic Notation "simplify_tls_events'" :=
   eapply set_equiv_exp; [by simplify_tls_events| ].
 Tactic Notation "simplify_tls_events'" "in" hyp(H) :=
-  eapply set_equiv_exp in H; [by simplify_tls_events| ].
+  eapply set_equiv_exp in H; [| by simplify_tls_events].
 
 Ltac find_event_set :=
   eapply set_equiv_exp; [by simplify_tls_events| basic_solver]. 
