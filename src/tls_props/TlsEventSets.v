@@ -8,6 +8,17 @@ Require Import AuxRel.
 From imm Require Import AuxDef.
 From imm Require Import imm_s.
 
+(* TODO: move to imm/TLSCoherency.v and combine the proof w/ tlsc_P_in_W *)
+Lemma tlsc_P_in_E G thread tc (WF: Wf G) (TCOH: tls_coherent G tc) :
+  tc ∩₁ (action ↓₁ eq (ta_propagate thread)) ⊆₁ event ↓₁ acts_set G. 
+Proof using. 
+  apply tls_coherent_defs_equiv in TCOH as [tc' [INE TC']].
+  rewrite TC', set_inter_union_l. apply set_subset_union_l. split.
+  { etransitivity; [red; intro; apply proj1| ].
+    unfold init_tls. erewrite set_pair_alt, init_w; eauto. basic_solver. }
+  rewrite INE. unfold exec_tls. rewrite !set_pair_alt.
+  unfold action, event. unfolder. ins; desf; congruence.  
+Qed. 
 
 Definition covered  TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_cover)).
 Definition issued   TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_issue)).
@@ -311,16 +322,22 @@ Section WfSets.
     unfold issued. rewrite tlsc_I_in_W; eauto. basic_solver.  
   Qed. 
 
-  Lemma propagatedW : propagated G T ⊆₁ W.
+  Lemma propagatedEW : propagated G T ⊆₁ E ∩₁ W.
   Proof using WF TLSCOH.
     clear -WF TLSCOH.
     unfold propagated.
     unfolder. ins. desf.
     unfold is_ta_propagate_to_G in *.
     unfolder in *. desf.
-    eapply tlsc_P_in_W; eauto.
-    basic_solver.
+    split; [eapply tlsc_P_in_E|eapply tlsc_P_in_W].
+    all: eauto.
+    all: basic_solver.
   Qed. 
+
+  Lemma propagatedE : propagated G T ⊆₁ E.
+  Proof using WF TLSCOH. rewrite propagatedEW. basic_solver 1. Qed. 
+  Lemma propagatedW : propagated G T ⊆₁ W.
+  Proof using WF TLSCOH. rewrite propagatedEW. basic_solver 1. Qed. 
 
   Lemma issuedE :
     issued T ⊆₁ E.
@@ -342,6 +359,18 @@ Section WfSets.
     forward eapply tlsc_w_covered_issued with (x := mkTL ta_cover x); eauto.
     destruct y; ins; vauto. 
   Qed.
+  
+  (* TODO: move to imm/TraversalOrder.v *)
+  Lemma IPROP_in_iord_simpl : IPROP G ⊆ iord_simpl G sc.
+  Proof using. unfold iord_simpl. eauto with hahn. Qed.
+  
+  (* TODO: move to AuxRel.v *)
+  Lemma set_split {A} (s s' : A -> Prop) : s ≡₁ s ∩₁ s' ∪₁ s \₁ s'.
+  Proof using. unfolder; splits; ins; desf; tauto. Qed.
+
+  (* TODO: move to AuxRel.v *)
+  Lemma split_rel {A} (r r' : relation A) : r ≡ r ∩ r' ∪ r \ r'.
+  Proof using. unfolder; splits; ins; desf; tauto. Qed.
 
   Lemma init_issued : is_init ∩₁ E ⊆₁ issued T.
   Proof using TLSCOH.
@@ -355,6 +384,33 @@ Section WfSets.
     unfolder; ins; desf. red.
     exists (mkTL ta_cover x). repeat split; auto. 
     destruct TLSCOH. apply tls_coh_init. red. split; basic_solver. 
+  Qed.
+
+  Lemma propagated_in_issued : propagated G T ⊆₁ issued T.
+  Proof using WF TLSCOH IORDCOH.
+    rewrite set_split with (s := propagated G T) (s' := fun x => is_init x = true).
+    unionL.
+    { rewrite propagatedE. rewrite <- init_issued. clear; basic_solver 1. }
+    arewrite (propagated G T ⊆₁ propagated G T ∩₁ (E ∩₁ W)).
+    { apply set_subset_inter_r. splits; auto.
+      apply propagatedEW. }
+    rewrite <- set_inter_minus_r.
+    intros x [HH BB]. destruct HH as [[t e] HH]; desf; ins.
+    destruct HH as [HH AA].
+    unfolder in AA; ins.
+    exists (ta_issue, e); ins.
+    splits; auto.
+    split.
+    2: basic_solver 1. 
+    eapply IORDCOH.
+    red. exists (t, e).
+    apply seq_eqv_r. split; auto.
+    do 2 red. splits.
+    all: try now red; ins; generalize BB; clear; basic_solver 10.
+    apply IPROP_in_iord_simpl.
+    red. unfolder; ins. splits; eauto.
+    eexists; splits; eauto.
+    generalize BB; clear; basic_solver 10.
   Qed.
 
   Lemma covered_in_coverable: 

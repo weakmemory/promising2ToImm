@@ -1471,7 +1471,7 @@ Proof using sc WF TCOH RCOH.
 Qed.
 
 Lemma TCOH_rst : tls_coherent rstG (certT T thread E).
-Proof using.
+Proof using WF TCOH RCOH ICOH.
   (* assert (FE ∩₁ Init ⊆₁ E ∩₁ Init) as AA. *)
   (* { arewrite (FE ∩₁ Init ⊆₁ (Init ∩₁ FE) ∩₁ Init). *)
   (*   { clear. basic_solver. } *)
@@ -1540,14 +1540,13 @@ Proof using.
       eapply propagatedW; eauto. }
     enough (issued T e) as ITE.
     { apply I_in_E in ITE. now apply E_E0 in ITE. }
-    (* TODO: add a lemma that propagated ⊆₁ issued. *)
-    admit. }
+    eapply propagated_in_issued; eauto. }
   { unionR right -> right -> left.
     rewrite ISTEW.
     unfold set_pair. unfolder. ins. do 2 desf. }
   unionR left.
   clear. unfold set_pair. unfolder. ins. do 2 desf.
-Admitted.
+Qed.
 
 (* Lemma TCOH_rst : tc_coherent rstG rst_sc T. *)
 (* Proof using WF  RELCOV RMWCOV. *)
