@@ -269,12 +269,6 @@ Proof using.
   eapply issued_mori; eauto. 
 Qed.
 
-(* TODO: move to IMM *)
-Global Add Parametric Morphism : msg_rel with signature
-       eq ==> (@same_relation actid) ==> eq ==>
-          (@same_relation actid) as msg_rel_more. 
-Proof using. ins. unfold msg_rel. rewrite H. basic_solver. Qed. 
-
 Global Add Parametric Morphism : sim_prom with signature
        eq ==> (@same_relation actid) ==> (@set_equiv trav_label) ==> eq ==> eq ==> eq
           ==> (@set_subset Memory.t) as sim_prom_more_impl. 

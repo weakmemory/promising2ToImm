@@ -8,18 +8,6 @@ Require Import AuxRel.
 From imm Require Import AuxDef.
 From imm Require Import imm_s.
 
-(* TODO: move to imm/TLSCoherency.v and combine the proof w/ tlsc_P_in_W *)
-Lemma tlsc_P_in_E G thread tc (WF: Wf G) (TCOH: tls_coherent G tc) :
-  tc ∩₁ (action ↓₁ eq (ta_propagate thread)) ⊆₁ event ↓₁ acts_set G. 
-Proof using. 
-  apply tls_coherent_defs_equiv in TCOH as [tc' [INE TC']].
-  rewrite TC', set_inter_union_l. apply set_subset_union_l. split.
-  { etransitivity; [red; intro; apply proj1| ].
-    unfold init_tls. erewrite set_pair_alt, init_w; eauto. basic_solver. }
-  rewrite INE. unfold exec_tls. rewrite !set_pair_alt.
-  unfold action, event. unfolder. ins; desf; congruence.  
-Qed. 
-
 Definition covered  TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_cover)).
 Definition issued   TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_issue)).
 Definition reserved TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_reserve)).
@@ -220,22 +208,6 @@ Proof using.
   apply set_collect_mori; auto. generalize PROP. basic_solver.
 Qed. 
 
-(* TODO: move to TraversalOrder *)
-Lemma set_pair_cancel_action a B:
-    event ↑₁ (eq a <*> B) ≡₁ B. 
-Proof using. 
-  rewrite set_pair_alt. split; try basic_solver.
-  intros b Bb. exists (mkTL a b). vauto. 
-Qed.   
-
-(* TODO: move to TraversalOrder *)
-Lemma set_pair_exact a e:
-  eq a <*> eq e ≡₁ eq (mkTL a e). 
-Proof using. 
-  unfold set_pair. split; try basic_solver.
-  intros [? ?] [-> ->]. auto. 
-Qed. 
-
 End SimplificationsCIRP. 
 
 
@@ -383,18 +355,9 @@ Section WfSets.
     destruct y; ins; vauto. 
   Qed.
   
-  (* TODO: move to imm/TraversalOrder.v *)
   Lemma IPROP_in_iord_simpl : IPROP G ⊆ iord_simpl G sc.
   Proof using. unfold iord_simpl. eauto with hahn. Qed.
   
-  (* TODO: move to AuxRel.v *)
-  Lemma set_split {A} (s s' : A -> Prop) : s ≡₁ s ∩₁ s' ∪₁ s \₁ s'.
-  Proof using. unfolder; splits; ins; desf; tauto. Qed.
-
-  (* TODO: move to AuxRel.v *)
-  Lemma split_rel {A} (r r' : relation A) : r ≡ r ∩ r' ∪ r \ r'.
-  Proof using. unfolder; splits; ins; desf; tauto. Qed.
-
   Lemma init_issued : is_init ∩₁ E ⊆₁ issued T.
   Proof using TLSCOH.
     unfolder; ins; desf. red.
@@ -411,12 +374,13 @@ Section WfSets.
 
   Lemma propagated_in_issued : propagated G T ⊆₁ issued T.
   Proof using WF TLSCOH IORDCOH.
-    rewrite set_split with (s := propagated G T) (s' := fun x => is_init x = true).
+    rewrite AuxRel2.set_split_complete with (s' := propagated G T) (s := fun x => is_init x = true).
     unionL.
     { rewrite propagatedE. rewrite <- init_issued. clear; basic_solver 1. }
     arewrite (propagated G T ⊆₁ propagated G T ∩₁ (E ∩₁ W)).
     { apply set_subset_inter_r. splits; auto.
       apply propagatedEW. }
+    rewrite <- set_minusE. 
     rewrite <- set_inter_minus_r.
     intros x [HH BB]. destruct HH as [[t e] HH]; desf; ins.
     destruct HH as [HH AA].
@@ -476,53 +440,6 @@ Section WfSets.
   Qed.
 
 End WfSets. 
-
-(* TODO: move to IordCoherency in IMM *)
-Lemma iord_coherent_extend G sc T lbl
-      (ICOH: iord_coherent G sc T)
-      (ADD: dom_cond (iord G sc) T lbl):
-  iord_coherent G sc (T ∪₁ eq lbl). 
-Proof using. 
-  red. rewrite id_union, seq_union_r, dom_union.
-  red in ICOH, ADD. rewrite ICOH, ADD. basic_solver. 
-Qed.
-
-(* TODO: move to IordCoherency in IMM *)
-Lemma iord_coherent_element_prefix G sc (T: trav_label -> Prop) (lbl: trav_label)
-      (Tlbl: T lbl)
-      (ICOH: iord_coherent G sc T)
-      (IMMCON: imm_consistent G sc)
-      (WF: Wf G):
-  dom_rel (iord G sc ⨾ ⦗eq lbl⦘) ⊆₁ T \₁ eq lbl.
-Proof using.
-  rewrite set_minusE. apply set_subset_inter_r. split.
-  { etransitivity; [| apply ICOH]. basic_solver. }
-  intros x [y [REL ->]%seq_eqv_r]. intros ->.  
-  edestruct iord_irreflexive; eauto; apply IMMCON.
-Qed.
-
-(* TODO: move to IMM*)  
-Lemma iord_no_reserve G sc:
-  iord G sc ≡ restr_rel (set_compl (action ↓₁ eq ta_reserve)) (iord G sc).
-Proof using.
-  rewrite restr_relE. split; [| basic_solver]. apply dom_helper_3.
-  unfold iord. iord_dom_unfolder; ins; subst; vauto. 
-Qed.
-
-(* TODO: move to IMM*)  
-Lemma iord_coherent_equiv_wo_reserved G sc T1 T2
-      (EQ': T1 \₁ action ↓₁ eq ta_reserve ≡₁ T2 \₁ action ↓₁ eq ta_reserve)
-      (ICOH: iord_coherent G sc T1):
-  iord_coherent G sc T2. 
-Proof using. 
-  red. red in ICOH.
-  rewrite iord_no_reserve, restr_relE in *.
-  rewrite !seqA, seq_eqvC, <- id_inter in *.
-  transitivity (T2 \₁ action ⋄₁ eq ta_reserve); [| basic_solver].
-  rewrite <- EQ'. rewrite !set_minusE in EQ'. rewrite EQ' in ICOH.
-  rewrite set_minusE. apply set_subset_inter_r. split; [| basic_solver].
-  rewrite ICOH. basic_solver. 
-Qed.
 
 Lemma coverable_iord_dom_cond G sc T e (COV: coverable G sc T e):
   dom_cond (iord G sc) T (mkTL ta_cover e).

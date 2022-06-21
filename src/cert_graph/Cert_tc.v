@@ -573,22 +573,6 @@ Unshelve.
 all:auto.
 Qed. 
 
-
-(* TODO: move to IMM; update original proof (no UU premise) *)
-Lemma dom_rel_collect_event (b : trav_action) A B r
-      (AA : dom_rel (⦗action ↓₁ eq b⦘ ⨾ event ↓ r ⨾ ⦗A⦘) ⊆₁ B) :
-  dom_rel (r ⨾ ⦗event ↑₁ A⦘) ⊆₁ event ↑₁ B.
-Proof using.
-  clear -AA. unfolder. ins. desf.
-  exists (mkTL b x); ins.
-  split; auto.
-  apply AA.
-  unfolder. do 2 eexists; ins; eauto.
-  splits; eauto.
-Qed.
-
-
-
 Lemma dom_prop_cert:
   dom_rel (PROP certG sc ⨾ ⦗certT⦘) ⊆₁ certT. 
 Proof using. 

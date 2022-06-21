@@ -7,7 +7,7 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 From imm Require Import imm_s_ppo.
 From imm Require Import AuxDef.
-From imm Require Import AuxDef.
+From imm Require Import AuxRel2.
 Require Import ExtTraversalConfig.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
@@ -442,38 +442,6 @@ Qed.
 
 End Props.
 
-
-(* TODO: move to IMM *)
-Lemma dom_rel_tls_helper T_ (a1 a2: trav_action) (r: relation actid)
-      (DOM: dom_rel (r ⨾ ⦗event ↑₁ (T_ ∩₁ action ↓₁ eq a2)⦘)
-                    ⊆₁ event ↑₁ (T_ ∩₁ action ↓₁ eq a1)):
-  dom_rel (⦗action ↓₁ eq a1⦘ ⨾ event ↓ r ⨾ ⦗action ↓₁ eq a2⦘ ⨾ ⦗T_⦘) ⊆₁ T_.
-Proof using. 
-  rewrite <- id_inter.
-  transitivity (T_ ∩₁ action ↓₁ eq a1); [| basic_solver].
-  apply dom_rel_collect_event2; [basic_solver| ].
-  generalize DOM. basic_solver 10.
-Qed.  
-  
-(* TODO: move to IMM, strengthen specification of clos_trans_domb_l_strong *)
-Lemma clos_trans_doma_r_strong {B: Type} (r: relation B) (s: B -> Prop)
-      (DOMA_S: doma (r ⨾ ⦗s⦘) s):
-   r^+ ⨾ ⦗s⦘≡ (⦗s⦘ ⨾ r ⨾ ⦗s⦘)^+. 
-Proof using.
-  split.
-  2: { rewrite inclusion_ct_seq_eqv_l, inclusion_ct_seq_eqv_r. basic_solver. }
-  red. intros x y TT. apply seq_eqv_r in TT as [R'xy Sy].
-  apply ctEE in R'xy as [n [_ Rnxy]].
-  generalize dependent y. induction n.
-  { ins. apply ct_step. apply seq_eqv_l in Rnxy as [_ Rnxy].
-    apply seq_eqv_lr. splits; auto.
-    eapply DOMA_S. basic_solver. }
-  ins. destruct Rnxy as [z [Rnxz Rzy]]. specialize (IHn _ Rnxz).
-  apply ct_unit. exists z. split; eauto.
-  { apply IHn. eapply DOMA_S; eauto. basic_solver. } 
-  apply seq_eqv_lr. splits; auto.
-  eapply DOMA_S. basic_solver.
-Qed.
 
 Lemma tls_iord_coherent_alt_old_implies_iord_coherent
       (TICOH: tls_iord_coherent_alt_old)

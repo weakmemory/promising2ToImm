@@ -26,7 +26,6 @@ Require Import AuxRel.
 From imm Require Import AuxDef.
 Require Import Cert_co.
 Require Import Cert_D.
-Require Import SimRelationsHelpers.
 
 Import ListNotations.
 

@@ -226,15 +226,6 @@ Proof using RCOH.
   basic_solver 10.
 Qed.
 
-(* TODO: move to ImmProperties.v *)
-Lemma codom_rfi_rfe_empty : codom_rel rfi ∩₁ codom_rel rfe ⊆₁ ∅.
-Proof using WF.
-  unfold Execution.rfi, Execution.rfe.
-  unfolder. ins. desf. 
-  assert (x0 = x1); subst; eauto.
-  eapply (wf_rff WF); eauto.
-Qed.
-
 (* iord_step *)
 (* Lemma iord_step_to_ext_trav_step T' (TS : iord_step G sc T T') : *)
 (*   exists T'', ext_trav_step T T''. *)

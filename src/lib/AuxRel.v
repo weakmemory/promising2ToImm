@@ -951,12 +951,11 @@ Proof using.
   apply propositional_extensionality; split; apply H.
 Qed.
 
-
-
-(* TODO: move to IMM lib *)
-Lemma pref_union_alt (r1 r2: relation A):
-  pref_union r1 r2 ≡ r1 ∪ r2 \ (r1)⁻¹.
-Proof. basic_solver. Qed.
+Lemma split_rel: r ≡ r ∩ r' ∪ r \ r'.
+Proof using s s' r.
+  clear  s''. 
+  unfolder; splits; ins; desf; tauto.
+Qed.
 
 
 Lemma minus_eqv_r : r ⨾ ⦗ s ⦘ \ r' ≡ (r \ r') ⨾ ⦗ s ⦘.
@@ -1001,27 +1000,6 @@ Proof using.
   rewrite <- !seqA. do 2 rewrite dom_seq. auto. 
 Qed.
 
-
-Require Import SetSize.
-(* TODO: move to SetSize *)
-Lemma set_size_empty {A: Type} (s: A -> Prop):
-  set_size s = NOnum 0 <-> s ≡₁ ∅.
-Proof.
-  split; intros. 
-  { unfold set_size in H. destruct excluded_middle_informative; try by vauto.
-    destruct constructive_indefinite_description. simpl in *.
-    inversion H. apply length_zero_iff_nil in H1.
-    destruct (classic (s ≡₁ ∅)) as [? | NEMPTY]; auto. 
-    apply set_nonemptyE in NEMPTY. desc.
-    specialize (i _ NEMPTY).
-    assert (In x0 nil); [| by vauto].
-    rewrite <- H1. apply in_undup_iff. apply in_filterP_iff. auto. }
-  erewrite set_size_equiv; eauto.
-  unfold set_size. destruct excluded_middle_informative.
-  2: { destruct n. by exists nil. }
-  f_equal. destruct constructive_indefinite_description. simpl in *.
-  rewrite (proj2 (filterP_eq_nil ∅ x)); vauto.
-Qed. 
 
 Lemma InAE A x (l : list A) : SetoidList.InA eq x l <-> In x l.
 Proof using.

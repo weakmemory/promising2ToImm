@@ -132,20 +132,6 @@ Qed.
     apply NEXT.
   Qed.
 
-  (* TODO: move to TraversalOrder in IMM *)
-  Ltac clear_iord_union :=
-    unfold SB, RF, FWBOB, AR, IPROP, PROP, is_ta_propagate_to_G;
-    repeat case_union _ _; rewrite !seqA;
-    repeat apply union_mori;
-    try (transitivity (fun (_ _: trav_label) => False); [basic_solver| apply inclusion_refl2]);
-    reflexivity.
-
-  (* TODO: move to TraversalOrder in IMM *)
-  Ltac filter_iord_seq := 
-      unfold iord; rewrite <- ?restr_seq_eqv_r, <- ?restr_seq_eqv_l;
-      erewrite restr_rel_mori; [| reflexivity| clear_iord_union];
-      rewrite !union_false_l, !union_false_r. 
-
   Lemma issuable_next_w T 
     (TCOH: tls_coherent G T)
     (ICOH: iord_coherent G sc T):

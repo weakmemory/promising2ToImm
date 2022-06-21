@@ -246,20 +246,6 @@ Context
     basic_solver.
   Qed.
   
-  (* TODO: move to IordCoherency *)
-  Lemma ar_rf_ppo_loc_ct_E_ENI: 
-    (ar ∪ rf ⨾ ppo ∩ same_loc)⁺ ⊆ E × (E \₁ Init).
-  Proof using WF WFSC. 
-    rewrite inclusion_inter_l1, ppo_in_sb; auto. 
-    rewrite sb_E_ENI, rf_E_ENI, ar_E_ENI; auto.
-    remember (E × (E \₁ Init)) as E_ENI. 
-    repeat (rewrite ?(@rt_of_trans _ E_ENI), ?(@rewrite_trans _ E_ENI),
-             ?unionK, ?(@rewrite_trans _ E_ENI),
-             ?(@rewrite_trans_seq_cr_cr _ E_ENI), ?(@ct_of_trans _ E_ENI)
-           ); try by (subst; apply E_ENI_trans).
-    basic_solver. 
-  Qed. 
-
   Lemma ar_rf_ppo_loc_ct_issuable_in_I  :
     dom_rel (⦗W⦘ ⨾ (ar ∪ rf ⨾ (ppo ∩ same_loc))⁺ ⨾ ⦗issuable G sc T⦘) ⊆₁ I.
   Proof using WF TLSCOH WFSC.

@@ -64,15 +64,6 @@ Proof using.
   unfold rstG. by apply restrict_fair.
 Qed.
 
-(* TODO: move to imm*)
-Lemma restrict_threads_bound (G: execution) (b: thread_id) (S: actid -> Prop)
-      (BOUND: threads_bound G b):
-  threads_bound (restrict G S) b.
-Proof using.
-  unfold restrict, threads_bound. simpl.
-  ins. apply BOUND, Ge.
-Qed. 
-
 
 Lemma tid_is_init_fin_helper (S: actid -> Prop) thread
       (NT: thread <> tid_init)
@@ -1479,12 +1470,6 @@ Section CertGraphInit.
     
   End SimRelCert.
 
-  (* TODO: move to FinExecution *)
-  Lemma fin_exec_same_events G G'
-        (SAME: acts_set G ≡₁ acts_set G') (FIN: fin_exec G):
-    fin_exec G'.
-  Proof using. unfold fin_exec in *. by rewrite <- SAME. Qed.
-      
   Lemma cert_graph_init:
     exists G' sc' T' S',
       ⟪ WF : Wf G' ⟫ /\
