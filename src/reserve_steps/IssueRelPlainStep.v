@@ -38,6 +38,7 @@ Require Import ExistsIssueInterval.
 Require Import IssueStepHelper.
 Require Import Next.
 Require Import EventsTraversalOrder.
+Require Import AuxRel.
 
 Set Implicit Arguments.
 
@@ -87,14 +88,6 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 Notation "'Loc_' l" := (fun x => loc lab x = Some l) (at level 1).
 Notation "'W_ex'" := (W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
-
-(* TODO: move to lib *)
-Lemma set_equiv_inter_singleton {A: Type} (S1 S2: A -> Prop) (a: A):
-  (S1 a <-> S2 a) <-> (S1 ∩₁ eq a ≡₁ S2 ∩₁ eq a). 
-Proof using. 
-  split; ins; [basic_solver 10| ]. 
-  split; ins; apply H; split; auto. 
-Qed. 
 
 Lemma issue_rel_step_no_next PC T f_to f_from thread w smode
       (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from thread smode)

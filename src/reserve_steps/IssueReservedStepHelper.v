@@ -1141,7 +1141,6 @@ Proof using All.
       edestruct (PROM_DISJOINT TNEQ TID') as [HH|HH]; eauto. }
     rewrite NOTNEWP; auto. eapply PROM_DISJOINT; eauto. }
   { red. ins.
-    (* TODO: move upper? *)
     assert (issued
               (T ∪₁ (if Rel w then eq (mkTL ta_cover w) else ∅)
                  ∪₁ eq (mkTL ta_issue w)
@@ -1332,7 +1331,6 @@ Proof using All.
         clear -DOMSBEQ. simplify_tls_events. rewrite DOMSBEQ. basic_solver. }
       { red. by rewrite LOC. }
       all: generalize WNEXT; clear; basic_solver. }
-    (* TODO: move upper? *)
     assert (reserved
                (T ∪₁ (if Rel w then eq (mkTL ta_cover w) else ∅)
             ∪₁ eq (mkTL ta_issue w)

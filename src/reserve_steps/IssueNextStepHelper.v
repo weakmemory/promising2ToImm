@@ -695,7 +695,6 @@ Proof using All.
     eapply set_equiv_exp in RESB. 
     2: { clear. by simplify_tls_events. }
 
-    (* TODO: move upper? *)
     assert (reserved
                (T ∪₁ eq (mkTL ta_issue w)
                   ∪₁ eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))) ≡₁

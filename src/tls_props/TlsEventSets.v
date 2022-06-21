@@ -33,6 +33,14 @@ Definition issuable G sc T :=
   acts_set G ∩₁ (is_w (lab G)) ∩₁ event ↑₁ (dom_cond (iord G sc) T ∩₁ action ↓₁ eq ta_issue). 
 
 
+Lemma tls_set_alt T a e:
+  (event ↑₁ (T ∩₁ action ↓₁ eq a)) e <-> T (mkTL a e). 
+Proof using. 
+  unfolder. split; ins; desc; eauto.
+  destruct y; ins; by subst. 
+Qed. 
+
+
 Section MorphismsCIRP.
 
 Local Ltac cirp_morph :=
@@ -175,6 +183,11 @@ Lemma reserved_nonreserve_empty S
   reserved S ≡₁ ∅.
 Proof using. unfold reserved. split; basic_solver. Qed. 
 
+Lemma propagated_nonpropagated_empty G S
+      (NONPROP: set_disjoint S (action ↓₁ is_ta_propagate_to_G G)):
+  propagated G S ≡₁ ∅.
+Proof using. unfold propagated. split; basic_solver. Qed. 
+
 Lemma covered_only_cover M
       (COV: M ⊆₁ action ↓₁ eq ta_cover):
   covered M ≡₁ event ↑₁ M. 
@@ -197,6 +210,14 @@ Lemma reserved_only_reserve M
 Proof using. 
   unfold reserved. split; [basic_solver| ].
   apply set_collect_mori; auto. generalize RES. basic_solver. 
+Qed. 
+
+Lemma propagated_only_propagate G (M: trav_label -> Prop)
+      (PROP: M ⊆₁ action ↓₁ is_ta_propagate_to_G G):
+  propagated G M ≡₁ event ↑₁ M. 
+Proof using. 
+  unfold propagated. split; [basic_solver| ].
+  apply set_collect_mori; auto. generalize PROP. basic_solver.
 Qed. 
 
 (* TODO: move to TraversalOrder *)
@@ -228,6 +249,7 @@ Ltac remember_tls_sets :=
           |  |- context [ (covered ?S) ] => remember (@covered S) eqn:?HeqS
           |  |- context [ (issued ?S) ] => remember (@issued S) eqn:?HeqS
           |  |- context [ (reserved ?S) ] => remember (@reserved S) eqn:?HeqS
+          |  |- context [ (propagated ?G ?S) ] => remember (@propagated G S) eqn:?HeqS
           end).
 
 
@@ -246,11 +268,12 @@ Ltac subst_tls_sets_simpl :=
           | H: ?E = issued ?S |- _ => subst E; try_simplify_set issued_nonissue_empty issued_only_issue
           | H: ?E = reserved ?S |- _ =>
               subst E; try_simplify_set reserved_nonreserve_empty reserved_only_reserve
+          | H: ?E = propagated ?G ?S |- _ =>
+              subst E; try_simplify_set propagated_nonpropagated_empty propagated_only_propagate
             end;
           try rewrite !set_pair_cancel_action
          ).
   
-(* TODO: move to Hahn*)
 (* TODO: for some reason adding 'set_map_empty' here causes autorewrite to hang.
    The same behavior occurs with the manual 'repeat'-based implementation. *)
 Create HintDb set_simpl_db.

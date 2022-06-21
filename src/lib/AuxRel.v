@@ -1044,6 +1044,13 @@ Proof using.
 Qed.
 
 
+Lemma set_equiv_inter_singleton {A: Type} (S1 S2: A -> Prop) (a: A):
+  (S1 a <-> S2 a) <-> (S1 ∩₁ eq a ≡₁ S2 ∩₁ eq a). 
+Proof using. 
+  split; ins; [basic_solver 10| ]. 
+  split; ins; apply H; split; auto. 
+Qed. 
+
 
 Require Import Setoid.
 
