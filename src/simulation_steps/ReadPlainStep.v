@@ -16,7 +16,6 @@ From imm Require Import ProgToExecution.
 
 Require Import AuxRel.
 From imm Require Import AuxRel2.
-From imm Require Import AuxRel2.
 From imm Require Import TraversalOrder. 
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
