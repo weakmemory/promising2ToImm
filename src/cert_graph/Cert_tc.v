@@ -440,16 +440,6 @@ Proof using TCOH SAME RCOH WF.
   unfold exec_tls. rewrite !set_pair_alt. unionR right. basic_solver. 
 Qed.  
 
-
-(* TODO: type_solver doesn't handle this *)
-Lemma sc_ra: Sc ⊆₁ Acq/Rel. 
-Proof using.
-  clear. 
-  unfolder. ins. unfold is_sc, is_ra, is_acq, is_rel in *.
-  destruct (mod Glab x); vauto. 
-Qed. 
-
-
 Lemma TICOH_cert_old:
   tls_iord_coherent_alt_old certG sc certT.
 Proof using All.
@@ -512,7 +502,7 @@ Proof using All.
     erewrite eqv_rel_mori with (y := C). 
     2: { apply set_subset_union_l. split; [basic_solver| ].
          rewrite <- E_F_AcqRel_in_C.
-         rewrite sc_ra. basic_solver. }
+         mode_solver.  }
     rewrite (@dom_sc_covered G) with (T := T); eauto. basic_solver. }
   { eapply (@issuedE G); eauto. }
   { rewrite cert_W; eauto. eapply (@issuedW G); eauto. }
