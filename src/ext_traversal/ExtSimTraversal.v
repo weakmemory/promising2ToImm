@@ -979,7 +979,7 @@ End SimTravStepExistence.
 
 Lemma ext_sim_trav_step_to_step T T' thread
       (TS : ext_isim_trav_step thread T T') :
-  exists e T'', ext_itrav_step G sc e T T'' /\ tid e = thread.
+  exists lbl T'', ext_itrav_step G sc lbl T T'' /\ tid (event lbl) = thread.
 Proof using. destruct TS; eauto. Qed.
 
 End ExtSimTraversal.

@@ -3,6 +3,10 @@ From imm Require Import Events Execution imm_s AuxDef.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtSimTraversal.
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import TraversalOrder. 
+Require Import TlsEventSets.
 
 Set Implicit Arguments.
 
@@ -55,93 +59,102 @@ Notation "'Acqrel'" := (fun x => is_true (is_acqrel lab x)).
 Notation "'Sc'" := (fun x => is_true (is_sc lab x)).
 Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 
-Lemma ext_sim_trav_step_coherence (C C' : ext_trav_config)
-      (STEP : ext_sim_trav_step G sc C C') :
-  etc_coherent G sc C'.
+Lemma ext_sim_trav_step_coherence (T T' : trav_label -> Prop)
+      (STEP : ext_sim_trav_step G sc T T') :
+  (* etc_coherent G sc C'. *)
+  tls_coherent G T' /\ iord_coherent G sc T' /\ reserve_coherent G T'. 
 Proof using.
   red in STEP. desf.
-  inv STEP; try apply TS.
-  all: try apply TS2.
-  apply TS3.
+  inversion STEP; subst.
+  all: try by (inversion TS; vauto). 
+  all: try by (inversion TS2; vauto).
+  inversion TS3; vauto. 
 Qed.
 
-Lemma ext_sim_trav_step_ct_coherence (C C' : ext_trav_config)
-      (STEPS : (ext_sim_trav_step G sc)⁺ C C') :
-  etc_coherent G sc C'.
+Lemma ext_sim_trav_step_ct_coherence (T T' : trav_label -> Prop)
+      (STEPS : (ext_sim_trav_step G sc)⁺ T T') :
+  tls_coherent G T' /\ iord_coherent G sc T' /\ reserve_coherent G T'. 
 Proof using.
   apply ct_end in STEPS. unfolder in STEPS.
   desf. eapply ext_sim_trav_step_coherence; eauto.
 Qed.
 
-Lemma ext_sim_trav_step_rt_coherence (C C' : ext_trav_config)
-      (STEPS : (ext_sim_trav_step G sc)＊ C C')
-      (TCCOH : etc_coherent G sc C):
-  etc_coherent G sc C'.
+Lemma ext_sim_trav_step_rt_coherence (T T' : trav_label -> Prop)
+      (STEPS : (ext_sim_trav_step G sc)＊ T T')
+      (COH0: tls_coherent G T /\ iord_coherent G sc T /\ reserve_coherent G T):
+  tls_coherent G T' /\ iord_coherent G sc T' /\ reserve_coherent G T'.
 Proof using.
   apply rtE in STEPS.
   unfolder in STEPS. desf.
   eapply ext_sim_trav_step_ct_coherence; eauto.
 Qed.
 
-Lemma ext_sim_trav_step_issued_le (C C' : ext_trav_config)
-      (STEP : ext_sim_trav_step G sc C C') :
-  eissued C ⊆₁ eissued C'.
+Lemma ext_sim_trav_step_issued_le (T T' : trav_label -> Prop)
+      (STEP : ext_sim_trav_step G sc T T'):
+  issued T ⊆₁ issued T'.
 Proof using.
-  red in STEP. destruct STEP as [thread T].
-  destruct T.
-  all: unfold eissued; simpls.
-  all: basic_solver.
+  red in STEP. destruct STEP as [thread STEP].
+  inversion STEP; subst.
+  all: try by (inversion TS; rewrite ets_upd; clear;
+               simplify_tls_events; basic_solver).
+  all: try by (inversion TS1; inversion TS2; rewrite ets_upd0, ets_upd;
+               clear; simplify_tls_events; basic_solver). 
+  inversion TS1; inversion TS2; inversion TS3; rewrite ets_upd1, ets_upd0, ets_upd; clear; simplify_tls_events; basic_solver. 
 Qed.
 
-Lemma ext_sim_trav_steps_issued_le (C C' : ext_trav_config)
-      (STEPS : (ext_sim_trav_step G sc)＊ C C') :
-  eissued C ⊆₁ eissued C'.
+Lemma ext_sim_trav_steps_issued_le (T T' : trav_label -> Prop)
+      (STEPS : (ext_sim_trav_step G sc)＊ T T') :
+  issued T ⊆₁ issued T'.
 Proof using.
   induction STEPS; auto.
   { by apply ext_sim_trav_step_issued_le. }
   etransitivity; eauto.
 Qed.
 
-Lemma ext_sim_trav_step_covered_le (C C' : ext_trav_config)
-      (STEP : ext_sim_trav_step G sc C C') :
-  ecovered C ⊆₁ ecovered C'.
+Lemma ext_sim_trav_step_covered_le (T T' : trav_label -> Prop)
+      (STEP : ext_sim_trav_step G sc T T'):
+  covered T ⊆₁ covered T'.
 Proof using.
-  red in STEP. destruct STEP as [thread T].
-  destruct T.
-  all: unfold ecovered; simpls.
-  all: basic_solver.
+  red in STEP. destruct STEP as [thread STEP].
+  inversion STEP; subst.
+  all: try by (inversion TS; rewrite ets_upd; clear;
+               simplify_tls_events; basic_solver).
+  all: try by (inversion TS1; inversion TS2; rewrite ets_upd0, ets_upd;
+               clear; simplify_tls_events; basic_solver). 
+  inversion TS1; inversion TS2; inversion TS3; rewrite ets_upd1, ets_upd0, ets_upd; clear; simplify_tls_events; basic_solver. 
 Qed.
 
-Lemma ext_sim_trav_steps_covered_le (C C' : ext_trav_config)
-      (STEPS : (ext_sim_trav_step G sc)＊ C C') :
-  ecovered C ⊆₁ ecovered C'.
+Lemma ext_sim_trav_steps_covered_le (T T' : trav_label -> Prop)
+      (STEPS : (ext_sim_trav_step G sc)＊ T T'):
+  covered T ⊆₁ covered T'.
 Proof using.
   induction STEPS; auto.
   { by apply ext_sim_trav_step_covered_le. }
   etransitivity; eauto.
 Qed.
 
-Lemma ext_sim_trav_step_rel_covered (C C' : ext_trav_config)
-      (STEP : ext_sim_trav_step G sc C C')
-      (RELCOV : W ∩₁ Rel ∩₁ eissued C ⊆₁ ecovered C) :
-  W ∩₁ Rel ∩₁ eissued C' ⊆₁ ecovered C'.
+Ltac subst_next_T := 
+  repeat (match goal with
+    | STEP: ext_itrav_step ?G ?sc ?lbl ?T1 ?T2 |- _ =>
+        inversion STEP;
+        (match goal with | EQ2: T2 ≡₁ _ |- _ => rewrite EQ2; clear EQ2 end);
+        clear STEP
+    end).
+
+Lemma ext_sim_trav_step_rel_covered (T T' : trav_label -> Prop)
+      (STEP : ext_sim_trav_step G sc T T')
+      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T) :
+  W ∩₁ Rel ∩₁ issued T' ⊆₁ covered T'.
 Proof using.
   red in STEP. destruct STEP as [thread STEP].
-  destruct STEP; unfold eissued, ecovered; simpls.
-  1,2,4,6: by etransitivity; eauto; basic_solver.
-  { etransitivity.
-    2: by apply RELCOV.
-    basic_solver. }
-  { rewrite set_inter_union_r. rewrite RELCOV.
-    basic_solver. }
-  rewrite set_inter_union_r. rewrite RELCOV.
-  basic_solver.
+  inversion STEP; subst.
+  all: subst_next_T; simplify_tls_events; generalize RELCOV; basic_solver 10. 
 Qed. 
 
-Lemma ext_sim_trav_steps_rel_covered (C C' : ext_trav_config)
-      (STEPS : (ext_sim_trav_step G sc)＊ C C')
-      (RELCOV : W ∩₁ Rel ∩₁ eissued C ⊆₁ ecovered C) :
-  W ∩₁ Rel ∩₁ eissued C' ⊆₁ ecovered C'.
+Lemma ext_sim_trav_steps_rel_covered (T T' : trav_label -> Prop)
+      (STEPS : (ext_sim_trav_step G sc)＊ T T')
+      (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T) :
+  W ∩₁ Rel ∩₁ issued T' ⊆₁ covered T'.
 Proof using.
   induction STEPS.
   2: done.
@@ -149,57 +162,78 @@ Proof using.
   apply IHSTEPS2. by apply IHSTEPS1.
 Qed.
 
-Lemma ext_sim_trav_step_rmw_covered (C C' : ext_trav_config)
-      (STEP : ext_sim_trav_step G sc C C')
-      (RMWCOV : forall r w (RMW : rmw r w), ecovered C r <-> ecovered C w) :
-  forall r w (RMW : rmw r w), ecovered C' r <-> ecovered C' w.
+Lemma ext_sim_trav_step_rmw_covered (T T' : trav_label -> Prop)
+      (STEP : ext_sim_trav_step G sc T T')
+      (RMWCOV : forall r w (RMW : rmw r w), covered T r <-> covered T w) :
+  forall r w (RMW : rmw r w), covered T' r <-> covered T' w.
 Proof using WF.
   ins.
   red in STEP. destruct STEP as [thread STEP].
-  apply (wf_rmwD WF) in RMW.
-  apply seq_eqv_l in RMW. destruct RMW as [RR RMW].
-  apply seq_eqv_r in RMW. destruct RMW as [RMW WW].
-  destruct STEP; unfold eissued, ecovered in *; simpls.
-  all: try by apply RMWCOV.
-  { specialize (RMWCOV r w RMW).
+  apply (wf_rmwD WF), seq_eqv_lr in RMW as (RR & RMW & WW).
+  inversion STEP; subst; specialize (RMWCOV r w RMW). 
+  { inversion TS. 
+    etransitivity; [| etransitivity].
+    1, 3: eapply set_equiv_exp; rewrite ets_upd; clear; by simplify_tls_events.
     split; intros [HH|HH]; left. 
-    all: type_solver. }
-  { specialize (RMWCOV r w RMW).
-    split; intros [HH|HH]; subst; left. 
-    all: try type_solver.
-    exfalso. apply NRMW. eexists; eauto. }
-  { specialize (RMWCOV r w RMW).
-    split; intros [HH|HH]; subst; left. 
-    all: try type_solver.
-    exfalso. apply NRMW. eexists; eauto. }
-  { specialize (RMWCOV r w RMW).
-    split; intros [HH|HH]; subst; left. 
-    all: try type_solver.
-    exfalso. apply NRMW. eexists; eauto. }
-  { split; intros [[HH|HH]|HH]; subst. 
-    { left. left. by apply (RMWCOV r w RMW). }
+    all: type_solver. }  
+  { inversion TS. 
+    etransitivity; [| etransitivity].
+    1, 3: eapply set_equiv_exp; rewrite ets_upd; clear; by simplify_tls_events.
+    split; intros [HH|HH]; left. 
+    all: try type_solver. 
+    subst. exfalso; apply NRMW; eexists; eauto. }  
+  { inversion TS. 
+    etransitivity; [| etransitivity].
+    1, 3: eapply set_equiv_exp; rewrite ets_upd; clear; by simplify_tls_events.
+    eauto. }  
+  { inversion TS. 
+    etransitivity; [| etransitivity].
+    1, 3: eapply set_equiv_exp; rewrite ets_upd; clear; by simplify_tls_events.
+    eauto. }
+  { inversion TS. 
+    etransitivity; [| etransitivity].
+    1, 3: eapply set_equiv_exp; rewrite ets_upd; clear; by simplify_tls_events.
+    split; intros [HH|HH]; left. 
+    all: try type_solver. 
+    subst. exfalso; apply NRMW; eexists; eauto. }  
+  { inversion TS1. inversion TS2.
+    etransitivity; [| etransitivity].
+    1, 3: eapply set_equiv_exp; rewrite ?ets_upd0, ?ets_upd; clear; by simplify_tls_events.
+    split; intros [HH|HH]; subst. 
+    { left. eapply RMWCOV; eauto. }
+    { type_solver. }
+    { type_solver. }
+    edestruct NRMW; vauto. }
+  { inversion TS1. inversion TS2. 
+    etransitivity; [| etransitivity].
+    1, 3: eapply set_equiv_exp; rewrite ?ets_upd0, ?ets_upd; clear; by simplify_tls_events.
+    split; intros [[HH|HH]|HH]; subst. 
+    { left. left. eapply RMWCOV; eauto. }
     { right. eapply (wf_rmwf WF); eauto. }
     { apply (dom_r (wf_rmwD WF)) in RMW0. apply seq_eqv_r in RMW0.
       type_solver. }
-    { left. left. by apply (RMWCOV r w RMW). }
+    { left. left. eapply RMWCOV; eauto. }
     { apply (dom_l (wf_rmwD WF)) in RMW0. apply seq_eqv_l in RMW0.
       type_solver. }
     left. right. eapply wf_rmw_invf; eauto. }
-  split; intros [[HH|HH]|HH]; subst. 
-  { left. left. by apply (RMWCOV r w RMW). }
-  { right. eapply (wf_rmwf WF); eauto. }
-  { apply (dom_r (wf_rmwD WF)) in RMW0. apply seq_eqv_r in RMW0.
-    type_solver. }
-  { left. left. by apply (RMWCOV r w RMW). }
-  { apply (dom_l (wf_rmwD WF)) in RMW0. apply seq_eqv_l in RMW0.
-    type_solver. }
-  left. right. eapply wf_rmw_invf; eauto.
+  { inversion TS1. inversion TS2. inversion TS3.
+    etransitivity; [| etransitivity].
+    1, 3: eapply set_equiv_exp; rewrite ?ets_upd1, ?ets_upd0, ?ets_upd; clear; by simplify_tls_events.
+    split; intros [[HH|HH]|HH]; subst. 
+    { left. left. eapply RMWCOV; eauto. }
+    { right. eapply (wf_rmwf WF); eauto. }
+    { apply (dom_r (wf_rmwD WF)) in RMW0. apply seq_eqv_r in RMW0.
+      type_solver. }
+    { left. left. eapply RMWCOV; eauto. }
+    { apply (dom_l (wf_rmwD WF)) in RMW0. apply seq_eqv_l in RMW0.
+      type_solver. }
+    left. right. eapply wf_rmw_invf; eauto. }
 Qed. 
 
-Lemma ext_sim_trav_steps_rmw_covered (C C' : ext_trav_config)
-      (STEPS : (ext_sim_trav_step G sc)＊ C C')
-      (RMWCOV : forall r w (RMW : rmw r w), ecovered C r <-> ecovered C w) :
-  forall r w (RMW : rmw r w), ecovered C' r <-> ecovered C' w.
+Lemma ext_sim_trav_steps_rmw_covered (T T' : trav_label -> Prop)
+      (STEPS : (ext_sim_trav_step G sc)＊ T T')
+      (RMWCOV : forall r w (RMW : rmw r w), covered T r <-> covered T w) :
+  forall r w (RMW : rmw r w), covered T' r <-> covered T' w.
 Proof using WF.
   induction STEPS.
   2: done.
@@ -207,7 +241,8 @@ Proof using WF.
   apply IHSTEPS2. by apply IHSTEPS1.
 Qed.
 
-Lemma ext_sim_trav_step_in_trav_steps : ext_sim_trav_step G sc ⊆ (ext_trav_step G sc)⁺.
+Lemma ext_sim_trav_step_in_trav_steps:
+  ext_sim_trav_step G sc ⊆ (ext_trav_step G sc)⁺.
 Proof using.
   intros C C' [tid TT].
   inv TT.
@@ -218,18 +253,16 @@ Proof using.
   eapply t_trans; apply t_step; eexists; eauto.
 Qed.
 
-Lemma ext_isim_trav_step_new_e_tid thread (C C' : ext_trav_config)
-      (STEP : ext_isim_trav_step G sc thread C C') :
-  ecovered C' ∪₁ eissued C' ≡₁
-  ecovered C ∪₁ eissued C ∪₁ (ecovered C' ∪₁ eissued C') ∩₁ Tid_ thread.
+Lemma ext_isim_trav_step_new_e_tid thread (T T' : trav_label -> Prop)
+      (STEP : ext_isim_trav_step G sc thread T T') :
+  covered T' ∪₁ issued T' ≡₁
+  covered T ∪₁ issued T ∪₁ (covered T' ∪₁ issued T') ∩₁ Tid_ thread.
 Proof using WF.
-  inv STEP; unfold ecovered, eissued; simpls.
-  all: split; [|basic_solver].
-  all: unionL; eauto with hahn.
-  all: unionR right.
-  1-7,9: basic_solver.
-  all: arewrite (tid r = tid w); [|basic_solver].
-  all: eapply wf_rmwt; eauto.
+  inv STEP.
+  1-6: subst_next_T; clear; simplify_tls_events; basic_solver 10.
+  all: subst_next_T; clear -RMW WF; simplify_tls_events;
+    assert (tid r = tid w) as TID by (eapply wf_rmwt; eauto);
+    basic_solver 10. 
 Qed.
 
 End ExtSimTraversalProperties.
