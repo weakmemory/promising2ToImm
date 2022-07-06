@@ -111,7 +111,7 @@ Lemma issue_rel_reserved_step_with_next PC T f_to f_from thread r w wnext smode
                   (T ∪₁ eq (mkTL ta_cover r) ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))))
       )
       (TSTEP3 : ext_itrav_step
-                  G sc (mkTL ta_reserve w)
+                  G sc (mkTL ta_cover w)
                   (T ∪₁ eq (mkTL ta_cover r) ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))))
                   (T ∪₁ eq (mkTL ta_cover r) ∪₁ eq (mkTL ta_cover w) ∪₁ eq (mkTL ta_issue w) ∪₁ (eq ta_reserve <*> (eq w ∪₁ dom_sb_S_rfrmw G T rfi (eq w))))
       )
