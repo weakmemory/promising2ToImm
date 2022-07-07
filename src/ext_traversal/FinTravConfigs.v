@@ -8,8 +8,11 @@ From imm Require Import RMWinstrProps.
 From imm Require Import AuxRel2.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
-From imm Require Import Traversal.
-From imm Require Import TraversalConfig.
+From imm Require Import AuxDef. 
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import TraversalOrder. 
+Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtSimTraversal.
@@ -17,70 +20,139 @@ Require Import ExtSimTraversalProperties.
 Import ListNotations.
 Require Import IndefiniteDescription.
 
-(* TODO: move this file to another place *)
+Set Implicit Arguments. 
+
+Definition tls_fin (T: trav_label -> Prop) :=
+  set_finite (T ∩₁ event ↓₁ (set_compl is_init)). 
+
+Global Add Parametric Morphism : tls_fin with signature
+       Basics.flip set_subset ==> Basics.impl as tls_fin_mori. 
+Proof using. ins. red. unfold tls_fin. ins. by rewrite H. Qed. 
+
+Global Add Parametric Morphism : tls_fin with signature
+       set_equiv ==> iff as tls_fin_more. 
+Proof using. ins. destruct H. split; apply tls_fin_mori; auto. Qed. 
+
+Lemma tls_fin_union T1 T2 (FIN1: tls_fin T1) (FIN2: tls_fin T2):
+  tls_fin (T1 ∪₁ T2). 
+Proof using. 
+  unfold tls_fin in *. rewrite set_inter_union_l.
+  apply set_finite_union. split; auto. 
+Qed. 
+
+Lemma tls_fin_T_fin T (FIN: set_finite T):
+  tls_fin T. 
+Proof using.
+  unfold tls_fin. eapply set_finite_mori; eauto. red. basic_solver 10. 
+Qed. 
+
+(* TODO: move to IMM*)
+Lemma set_pair_empty_l (A B: Type) (S: A -> Prop):
+  S <*> (∅: B -> Prop) ≡₁ ∅.
+Proof using. rewrite set_pair_alt. basic_solver. Qed. 
+
+(* TODO: move to IMM*)
+Lemma set_pair_empty_r (A B: Type) (S: B -> Prop):
+  (∅: A -> Prop) <*> S ≡₁ ∅.
+Proof using. rewrite set_pair_alt. basic_solver. Qed. 
 
 
-Definition tc_fin (tc: trav_config) :=
-  ⟪ COV_FIN: set_finite (covered tc \₁ is_init) ⟫ /\
-  ⟪ ISS_FIN: set_finite (issued tc \₁ is_init) ⟫.
+(* TODO: move to TlsEventsets*)
+Global Hint Rewrite set_pair_empty_l set_pair_empty_r: set_simpl_db. 
 
-Definition etc_fin (etc: ext_trav_config) :=
-  ⟪ TC_FIN: tc_fin (etc_TC etc) ⟫ /\
-  ⟪ RES_FIN: set_finite (reserved etc \₁ is_init) ⟫ .
 
 Section FinTravConfigs.
   Variable (G: execution).
   Variable (sc: relation actid).
   Hypothesis (WF: Wf G). 
 
-  Lemma init_tc_fin:
-    tc_fin (init_trav G).
+  Lemma init_tls_fin:
+    tls_fin (init_tls G).
   Proof using.
-    unfold init_trav. red. simpl. apply set_finite_union.
-    eapply set_finite_mori; [| by apply set_finite_empty].
-    red. basic_solver.
+    unfold init_tls, tls_fin. rewrite set_pair_alt.
+    exists []. basic_solver 10. 
   Qed.
 
-  Lemma init_etc_fin:
-    etc_fin (ext_init_trav G).
-  Proof using.
-    red. splits; [by apply init_tc_fin| ].
-    unfold ext_init_trav. simpl. 
-    eapply set_finite_mori; [| by apply set_finite_empty].
-    red. basic_solver.
-  Qed.
-
-  Lemma isim_step_preserves_fin (T T': ext_trav_config) (t: thread_id)
-        (FIN: etc_fin T) (STEP: ext_isim_trav_step G sc t T T'):
-      etc_fin T'.
+  Lemma dom_sb_S_rfrmw_tls_fin T rrf M (TFIN: tls_fin T):
+    set_finite (dom_sb_S_rfrmw G T rrf M).
   Proof using WF.
-    red in FIN. desc. red in TC_FIN. desc.
+    unfold dom_sb_S_rfrmw.
+    rewrite rmw_non_init_lr; eauto. rewrite !codom_seq, codom_eqv.
+    rewrite set_interC, <- dom_eqv1.
+    rewrite no_sb_to_init, seqA, <- id_inter. 
+    rewrite <- seqA. apply fin_dom_rel_fsupp.
+    { eapply fsupp_sb; auto. }
+    destruct TFIN as [ts TFIN]. exists (map event ts). ins.
+    apply in_map_iff. exists (mkTL ta_reserve x). split; auto.
+    destruct IN. 
+    apply TFIN. split; [| done].
+    by apply tls_set_alt. 
+  Qed. 
 
-    assert (forall S e, set_finite (S \₁ is_init) ->
-                   set_finite ((S ∪₁ eq e) \₁ is_init)) as FIN_HELPER.
-    { ins. rewrite set_minus_union_l. apply set_finite_union. split; auto.
-      exists [e]. basic_solver. }
-
-    assert (forall w, set_finite ((reserved T ∪₁ eq w ∪₁ dom_sb_S_rfrmw G T (rfi G) (eq w)) \₁ is_init)) as RES'_HELPER.
-    { ins. rewrite set_minus_union_l. apply set_finite_union. split; auto.
-      unfold dom_sb_S_rfrmw.
-      eapply set_finite_mori.
-      { red. eapply set_subset_minus; [| by apply set_subset_refl].
-        unfold set_inter. red. intros ?. apply proj1. }
-      rewrite set_minusE, set_interC, <- dom_eqv1.
-      rewrite no_sb_to_init, seqA, <- id_inter. 
-      rewrite <- seqA. apply fin_dom_rel_fsupp.
-      2: { apply fsupp_sb; auto. }
-      eapply set_finite_more; [| by apply RES_FIN]. basic_solver. }
+  (* TODO: move*)
+  Lemma tls_set_fin_events_fin (a: trav_action) (M: actid -> Prop)
+        (EFIN: set_finite M):
+    set_finite (eq a <*> M). 
+  Proof using. 
+    destruct EFIN as [es EFIN]. exists (map (mkTL a) es). intros [? e] [<- Me]. 
+    apply in_map_iff. exists e. split; auto. 
+  Qed. 
     
+  
+  Lemma dom_sb_S_rfrmw_same_reserved rrf P T1 T2
+        (SAME_RES: reserved T1 ≡₁ reserved T2):
+    dom_sb_S_rfrmw G T1 rrf P ≡₁ dom_sb_S_rfrmw G T2 rrf P.
+  Proof using. unfold dom_sb_S_rfrmw. by rewrite SAME_RES. Qed. 
+
+  Lemma isim_step_preserves_fin (T T': trav_label -> Prop) (t: thread_id)
+        (FIN: tls_fin T) (STEP: ext_isim_trav_step G sc t T T'):
+      tls_fin T'.
+  Proof using WF.
     inversion STEP; subst.
-    all: red; unfold tc_fin; simpl; splits; auto. 
+    { inversion TS. rewrite ets_upd.
+      rewrite set_unionA. apply tls_fin_union; auto.
+      simpl. simpl_sets. apply tls_fin_T_fin, set_finite_eq. }
+    { inversion TS. rewrite ets_upd.
+      rewrite set_unionA. apply tls_fin_union; auto.
+      simpl. simpl_sets. apply tls_fin_T_fin, set_finite_eq. }
+    { inversion TS. rewrite ets_upd.
+      rewrite set_unionA. apply tls_fin_union; auto.
+      simpl. simpl_sets. apply tls_fin_T_fin, set_finite_eq. }
+    { inversion TS. rewrite ets_upd.
+      rewrite set_unionA. apply tls_fin_union; auto.
+      apply tls_fin_T_fin, set_finite_union. split. 
+      { apply set_finite_eq. }
+      apply tls_set_fin_events_fin. simpl. apply set_finite_union.
+      split; auto using set_finite_eq, dom_sb_S_rfrmw_tls_fin. }
+    { inversion TS. rewrite ets_upd.
+      rewrite set_unionA. apply tls_fin_union; auto.
+      simpl. simpl_sets. apply tls_fin_T_fin, set_finite_eq. }
+    { inversion TS1. inversion TS2. rewrite ets_upd0, ets_upd.
+      simpl. simpl_sets. rewrite !set_unionA. apply tls_fin_union; auto.
+      apply tls_fin_T_fin. 
+      repeat (apply set_finite_union; split); try by (apply set_finite_eq).
+      apply tls_set_fin_events_fin. simpl. apply set_finite_union.
+      split; auto using set_finite_eq, dom_sb_S_rfrmw_tls_fin. }
+    { inversion TS1. inversion TS2. rewrite ets_upd0, ets_upd.
+      simpl. simpl_sets. rewrite !set_unionA. apply tls_fin_union; auto.
+      apply tls_fin_T_fin. 
+      repeat (apply set_finite_union; split); apply set_finite_eq. }
+    inversion TS1. inversion TS2. inversion TS3.
+    rewrite ets_upd1, ets_upd0, ets_upd.
+    simpl. simpl_sets.
+    rewrite dom_sb_S_rfrmw_same_reserved with (T2 := T).
+    2: { clear. by simplify_tls_events. }
+    rewrite !set_unionA. apply tls_fin_union; auto.      
+    apply tls_fin_T_fin.
+    repeat (apply set_finite_union; split); try by apply set_finite_eq.
+    apply tls_set_fin_events_fin. simpl. apply set_finite_union.
+    split; auto using set_finite_eq, dom_sb_S_rfrmw_tls_fin.   
   Qed.
 
   Lemma sim_steps_preserves_fin T T'
         (STEPS: (ext_sim_trav_step G sc)＊ T T')
-        (FIN: etc_fin T):
-    etc_fin T'.
+        (FIN: tls_fin T):
+    tls_fin T'.
   Proof using WF.
     apply rtEE in STEPS as [n [_ STEPS]].
     generalize dependent T'. induction n. 
