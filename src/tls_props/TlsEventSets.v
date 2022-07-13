@@ -11,9 +11,11 @@ From imm Require Import imm_s.
 Definition covered  TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_cover)).
 Definition issued   TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_issue)).
 Definition reserved TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_reserve)).
+
 Definition propagated G TLS :=
   event ↑₁ (TLS ∩₁ (action ↓₁ is_ta_propagate_to_G G)). 
-
+Definition propagated_thread TLS t := 
+  event ↑₁ (TLS ∩₁ (action ↓₁ eq (ta_propagate t))). 
 
 Definition coverable G sc T :=
   acts_set G ∩₁ event ↑₁ (dom_cond (iord G sc) T ∩₁ action ↓₁ eq ta_cover). 
@@ -27,6 +29,12 @@ Proof using.
   unfolder. split; ins; desc; eauto.
   destruct y; ins; by subst. 
 Qed. 
+
+Lemma propagated_alt G T: 
+  propagated G T ≡₁ ⋃₁ t ∈ threads_set G \₁ eq tid_init, propagated_thread T t.
+Proof using.
+  unfold propagated_thread, propagated, is_ta_propagate_to_G. basic_solver 10.
+Qed.   
 
 
 Section MorphismsCIRP.
@@ -370,6 +378,15 @@ Section WfSets.
     unfolder; ins; desf. red.
     exists (mkTL ta_cover x). repeat split; auto. 
     destruct TLSCOH. apply tls_coh_init. red. split; basic_solver. 
+  Qed.
+
+  Lemma init_propagated_thread t (Gt: (threads_set G \₁ eq tid_init) t):
+    is_init ∩₁ E ⊆₁ event □₁ (T ∩₁ action ⋄₁ eq (ta_propagate t)). 
+  Proof using TLSCOH. 
+    unfolder; ins; desf.
+    exists (mkTL (ta_propagate t) x). repeat split; auto. 
+    destruct TLSCOH. apply tls_coh_init. red. split; try basic_solver.
+    right. red. exists t. split; auto.
   Qed.
 
   Lemma propagated_in_issued : propagated G T ⊆₁ issued T.

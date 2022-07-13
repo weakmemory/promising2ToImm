@@ -73,6 +73,17 @@ Section FinTravConfigs.
     exists []. basic_solver 10. 
   Qed.
 
+
+  Lemma tls_fin_event_set T (a: trav_action) (TFIN: tls_fin T):
+    set_finite ((event ↑₁ (T ∩₁ action ↓₁ eq a)) \₁ is_init). 
+  Proof using. 
+    destruct TFIN as [ts TFIN]. exists (map event ts). ins.
+    apply in_map_iff. exists (mkTL a x). split; auto.
+    destruct IN. 
+    apply TFIN. split; [| done].
+    by apply tls_set_alt.
+  Qed. 
+
   Lemma dom_sb_S_rfrmw_tls_fin T rrf M (TFIN: tls_fin T):
     set_finite (dom_sb_S_rfrmw G T rrf M).
   Proof using WF.
@@ -82,11 +93,7 @@ Section FinTravConfigs.
     rewrite no_sb_to_init, seqA, <- id_inter. 
     rewrite <- seqA. apply fin_dom_rel_fsupp.
     { eapply fsupp_sb; auto. }
-    destruct TFIN as [ts TFIN]. exists (map event ts). ins.
-    apply in_map_iff. exists (mkTL ta_reserve x). split; auto.
-    destruct IN. 
-    apply TFIN. split; [| done].
-    by apply tls_set_alt. 
+    rewrite set_interC. by apply tls_fin_event_set. 
   Qed. 
 
   (* TODO: move*)
@@ -97,7 +104,6 @@ Section FinTravConfigs.
     destruct EFIN as [es EFIN]. exists (map (mkTL a) es). intros [? e] [<- Me]. 
     apply in_map_iff. exists e. split; auto. 
   Qed. 
-    
   
   Lemma dom_sb_S_rfrmw_same_reserved rrf P T1 T2
         (SAME_RES: reserved T1 ≡₁ reserved T2):
