@@ -330,11 +330,11 @@ Proof using.
   unfold reserved. unfolder. ins. desc. vauto.   
 Qed. 
 
-Lemma T_propagations_certT:
-  certT ∩₁ action ↓₁ (is_ta_propagate_to_G G) ≡₁
-  T ∩₁ action ↓₁ (is_ta_propagate_to_G G).
-Proof using. 
-  clear.
+Lemma T_propagations_certT_thread t:
+  certT ∩₁ action ↓₁ (eq (ta_propagate t)) ≡₁
+  T ∩₁ action ↓₁ (eq (ta_propagate t)).
+Proof using.
+  clear. 
   unfold certT. simplify_tls_events.
   rewrite !set_pair_alt. fold action event. 
   rewrite set_minus_union_l, !set_inter_union_l.
@@ -342,12 +342,28 @@ Proof using.
   2: { rewrite set_minusE, set_interA.
        rewrite set_interC with (s := set_compl _).
        rewrite set_inter_absorb_r with (s := action ↓₁ _); [reflexivity| ].
-       iord_dom_solver. }
+       unfolder. by intros ? <-. }
   2: { split; [| basic_solver].
-       unfold is_ta_propagate_to_G. unfolder. ins; des; vauto; congruence. }
-  basic_solver. 
+       unfolder. ins; des; vauto; congruence. }
+  basic_solver.
+Qed.  
+
+
+Lemma T_propagations_certT:
+  certT ∩₁ action ↓₁ (is_ta_propagate_to_G G) ≡₁
+  T ∩₁ action ↓₁ (is_ta_propagate_to_G G).
+Proof using.
+  unfold is_ta_propagate_to_G.
+  rewrite set_map_bunion, <- !set_bunion_inter_compat_l.
+  apply set_equiv_bunion; [done| ].
+  ins. apply T_propagations_certT_thread. 
 Qed. 
 
+Lemma propagated_thread_certT t:
+  propagated_thread certT t ≡₁ propagated_thread T t.
+Proof using. 
+  unfold propagated_thread. by rewrite T_propagations_certT_thread. 
+Qed. 
 
 Lemma propagated_certT: propagated G certT ≡₁ propagated G T.
 Proof using.
@@ -378,6 +394,21 @@ Proof using SAME.
   unfold exec_tls. rewrite cert_E. erewrite cert_W; eauto. 
 Qed.  
 
+Lemma certT_alt:
+  certT ≡₁ T ∩₁ action ↓₁ (eq ta_cover ∪₁ eq ta_issue ∪₁
+                     is_ta_propagate) ∪₁
+    (eq ta_reserve <*> (I ∪₁ S ∩₁ Tid_ thread)) ∪₁
+    ((eq ta_cover) <*> (E ∩₁ NTid_ thread)). 
+Proof using.
+  clear. 
+  unfold certT. rewrite !set_pair_alt. apply AuxRel.set_equiv_exp_equiv.
+  unfolder. intros [t a]. split; ins; des; destruct t; ins; splits. 
+  all: try (by vauto || tauto).
+  all: try by (repeat left; vauto). 
+  { left. right. vauto. }
+  right. vauto.
+Qed.  
+  
 Lemma cert_imm_consistent (FAIR: mem_fair G):
   imm_consistent certG sc.
 Proof using All.
