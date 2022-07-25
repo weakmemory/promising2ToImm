@@ -38,6 +38,12 @@ Section E_E.
   Lemma fr_E_E: fr G ⊆ E_E. 
   Proof using WF. rewrite wf_frE; basic_solver. Qed.
 
+  Lemma furr_E_E_cr: furr G sc ⊆ E_E^?. 
+  Proof using WF WFSC.
+    rewrite wf_furrE; eauto.
+    rewrite crE. apply union_mori; basic_solver 10.
+  Qed.
+
   Lemma E_E_trans: transitive E_E. 
   Proof using. unfold E_E. basic_solver. Qed. 
 
@@ -50,8 +56,10 @@ Section E_E.
     repeat rewrite inclusion_seq_eqv_r with (dom := action ↓₁ eq _). 
     rewrite inclusion_inter_l1 with (r := sb G).
     rewrite ?sb_E_ENI, ?rf_E_ENI, ?co_E_E; auto.
+    rewrite furr_E_E_cr; auto. 
     rewrite ar_E_ENI; auto.
     rewrite (sc_E_ENI _ _ WF WFSC); auto.
+    rewrite inclusion_inter_l1. 
     arewrite (E × (E \₁ is_init) ⊆ E × E) by basic_solver. 
     fold E_E. 
     rewrite <- !seqA.
@@ -302,6 +310,9 @@ Inductive ext_isim_trav_step:
       (* (mkETC (mkTC (ecovered T ∪₁ eq r ∪₁ eq w) (eissued T ∪₁ eq w)) *)
       (*        (reserved T ∪₁ eq w ∪₁ *)
       (*         dom_sb_S_rfrmw G T rfi (eq w))) *)
+| ext_propagation_trav_step T T'
+    t e (TS : ext_itrav_step G sc (mkTL (ta_propagate t) e) T T') :
+    ext_isim_trav_step t T T'
 .
 
 Definition ext_sim_trav_step T T' :=
@@ -430,15 +441,36 @@ Section SimTravStepExistence.
   Qed.
 
 
-  (* TODO: move *)
+  (* TODO: move to IMM  *)
   Global Add Parametric Morphism: ar with signature
          eq ==> (@inclusion actid) ==> (@inclusion actid) as ar_mori. 
   Proof using. ins. now unfold ar; rewrite H. Qed.
+  
+    (* TODO: move to IMM *)
+  Lemma bunion_mori_equiv {A B: Type} (As1 As2: A -> Prop) (ABB1 ABB2: A -> relation B)
+        (EQA: As1 ⊆₁ As2) (EQB: forall a (AS: As1 a), ABB1 a ⊆ ABB2 a):
+    (⋃ a ∈ As1, ABB1 a) ⊆ (⋃ a ∈ As2, ABB2 a). 
+  Proof using. 
+    unfolder. ins; desc; exists a.
+    splits; [apply EQA | apply EQB]; auto.
+  Qed.
+
+  (* TODO: move to IMM *)
+  Global Add Parametric Morphism : furr with signature
+         eq ==> inclusion ==> inclusion as furr_mori. 
+  Proof using. 
+    ins. rewrite !furr_bunion.
+    apply bunion_mori_equiv; [done| ]. intros l _.
+    unfold urr. rewrite H. done.
+  Qed. 
 
   (* TODO: move *)
   Global Add Parametric Morphism : iord with signature
          eq ==> (@inclusion actid) ==> (@inclusion trav_label) as iord_mori. 
-  Proof using. ins. iord_parts_unfolder. rewrite H. done. Qed.  
+  Proof using.
+    ins. iord_parts_unfolder.
+    rewrite H. done.
+  Qed. 
 
   (* TODO: move *)
   Global Add Parametric Morphism : coverable with signature
@@ -958,28 +990,37 @@ Proof using.
   econstructor; eauto.  
 Qed. 
 
+Lemma exists_ext_sim_trav_step_propagate t e
+      (TS_PROP: ext_itrav_step G sc (mkTL (ta_propagate t) e) T T'):
+  exists T'', ext_sim_trav_step T T''.
+Proof using.  
+  clear TS. inversion TS_PROP. 
+  eexists. eexists. eapply ext_propagation_trav_step. 
+  econstructor; eauto.  
+Qed. 
+
 Lemma exists_ext_sim_trav_step:
   exists T'', ext_sim_trav_step T T''.
-Proof using WF IMMCON.
-  (* destruct TS as [e TS]. *)
+Proof using WF IMMCON WFSC TS TCOH RMWCOV RELCOV RCOH ICOH.
   inversion_clear TS as [[a e] TS_]. rename TS_ into TS. 
-  (* cdes TS. *)
   inversion TS.
-  (* desf. *)
-  destruct a.
-  { eapply exists_ext_sim_trav_step_cover; eauto. }
-  { eapply exists_ext_sim_trav_step_issue; eauto. }
-  { (* TODO: add propagation step in ext_sim_trav_step *)
-    admit. }
-  eapply exists_ext_sim_trav_step_reserve; eauto. 
-Admitted. 
+  destruct a; 
+    eauto using
+          exists_ext_sim_trav_step_cover, exists_ext_sim_trav_step_issue,
+    exists_ext_sim_trav_step_propagate, exists_ext_sim_trav_step_reserve.
+Qed.
 
 End SimTravStepExistence. 
 
 
 Lemma ext_sim_trav_step_to_step T T' thread
       (TS : ext_isim_trav_step thread T T') :
-  exists lbl T'', ext_itrav_step G sc lbl T T'' /\ tid (event lbl) = thread.
-Proof using. destruct TS; eauto. Qed.
+  exists lbl T'', ext_itrav_step G sc lbl T T''
+             (* TODO: not true for propagations *)
+             (* /\ tid (event lbl) = thread. *)
+.
+Proof using.
+  destruct TS; eauto.
+Qed.
 
 End ExtSimTraversal.
