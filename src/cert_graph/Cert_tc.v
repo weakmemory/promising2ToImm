@@ -617,13 +617,50 @@ Proof using.
   arewrite (⦗action ↓₁ is_ta_propagate_to_G certG⦘ ⨾ ⦗certT⦘ ⊆
             ⦗action ↓₁ is_ta_propagate_to_G G⦘ ⨾ ⦗T⦘).
   { clear. unfold certT. iord_dom_unfolder; eauto 10. }
+  rewrite furr_alt; auto.
+  rewrite Cert_hb.cert_hb; auto.
+  apply set_subset_inter_r. split.
+  2: { clear. basic_solver. }
+  rewrite cert_W; eauto.
+  arewrite (Crf^? ⨾ Ghb^? ⊆ cert_rfe^? ⨾ Ghb^?).
+  { unfold certG; ins.
+    rewrite cert_rfi_union_cert_rfe.
+    arewrite (cert_rfi ⊆ Ghb).
+    rewrite cr_union_r. rewrite seq_union_l.
+    rewrite rewrite_trans_seq_cr_r; auto using hb_trans.
+    unionL; try easy.
+    clear; basic_solver 10. }
+
+  (* Cco^?      -> Gco^? *)
+  (* cert_rfe^? -> rfe^? *)
+  transitivity
+    (dom_rel
+       (⦗action ↓₁ eq ta_cover⦘
+          ⨾ event ↓ (⦗W⦘ ⨾ Grfe^? ⨾ Ghb^? ⨾ sc^? ⨾ Ghb^? ⨾ Gco^? ⨾ ⦗W⦘)
+          ∩ (fun ta1 ta2 : trav_label => tid (event ta1) = ta_propagate_tid (action ta2))
+          ⨾ ⦗action ↓₁ is_ta_propagate_to_G G⦘ ⨾ ⦗T⦘) ∩₁ event ↓₁ Tid_ thread).
+  2: { rewrite rfe_in_rf.
+       rewrite AuxRel.set_subset_inter_l; try reflexivity. left.
+       transitivity (dom_rel (PROP G sc ⨾ ⦗T⦘)).
+       { unfold PROP. now rewrite furr_alt, !seqA. }
+       (* TODO: should be easy *)
+       (* arewrite (PROP G sc ⊆ iord G sc). *)
+       (* 2: now apply ICOH.  *)
+       (* unfold iord. *)
+       admit. }
+  assert (⦗W⦘ ⨾ cert_rfe^? ⨾ Ghb^? ⨾ sc^? ⨾ Ghb^? ⨾ Cco^? ⨾ ⦗W⦘ ≡
+          ⦗W⦘ ⨾ cert_rfe^? ⨾ (Ghb^? ⨾ sc^? ⨾ Ghb^?) ⨾ Cco^? ⨾ ⦗W⦘) as QQ1.
+  { clear. now rewrite !seqA. }
+  rewrite QQ1. clear QQ1.
+  assert (⦗W⦘ ⨾ Grfe^? ⨾ Ghb^? ⨾ sc^? ⨾ Ghb^? ⨾ Gco^? ⨾ ⦗W⦘ ≡
+          ⦗W⦘ ⨾ Grfe^? ⨾ (Ghb^? ⨾ sc^? ⨾ Ghb^?) ⨾ Gco^? ⨾ ⦗W⦘) as QQ2.
+  { clear. now rewrite !seqA. }
+  rewrite QQ2. clear QQ2.
   intros [t1 e1] [HH E1T].
   red in E1T; ins.
   destruct HH as [[t2 e2] HH].
   apply seq_eqv_l in HH. destruct HH as [AA HH].
   red in AA; ins; subst t1.
-  split.
-  2: { clear. red; ins. }
   destruct HH as [[t3 e3] [[AA BB] HH]].
   apply seq_eqv_r in HH. destruct HH as [HH CT2].
   assert (t3 = t2 /\ e3 = e2) as [A1 A2].
@@ -631,88 +668,53 @@ Proof using.
   subst t3. subst e3.
   destruct HH as [_ HH]. red in HH; ins.
   red in HH. destruct HH as [thread' [[HH DD] CC]].
-  red in AA. ins.
-  do 3 (apply seqA in AA).
-  apply seq_eqv_r in AA. destruct AA as [AA _].
-  assert (I e2) as IE2.
-  { admit. (* since it is propagated *) }
-  destruct AA as [e3 [AA CC23]].
-  assert (Gco^? e3 e2) as CO32.
-  { (* cert_co_I *) admit. }
-
-  (* might be wrong... *)
-  assert (T (ta_cover, e3)) as CT3.
-  { (* via ICOH *) admit. }
-
-  (* red in HH. desc. clear HH. red in HH0; ins. *)
-  (* apply seq_eqv_l in HH. destruct HH as [_ HH]. *)
-  (* apply seq_eqv_r in HH. destruct HH as [HH E2T]. *)
-  (* red in E2T; ins. *)
-
-  (* unfolder. ins. desc. *)
-
-
-  (* rewrite !seqA. *)
-  (* arewrite () *)
-
-  (* rewrite !seqA. *)
-  (* rewrite seq_eqvC, <- id_inter. *)
-  (* rewrite inclusion_inter_l1. *)
-  (* rewrite certG_same_props. *)
-  (* arewrite (certT ∩₁ action ↓₁ is_ta_propagate_to_G G ⊆₁ *)
-  (*               T ∩₁ action ↓₁ is_ta_propagate_to_G G). *)
-  (* { clear. unfold certT. iord_dom_unfolder; eauto 10. } *)
-  (* rewrite dom_rel_collect_event2. *)
-  (* 2: { clear. unionL; iord_dom_unfolder. } *)
-  (* rewrite set_collect_union. *)
-  (* rewrite set_pair_cancel_action. *)
-  (* transitivity (C ∪₁ E ∩₁ NTid_ thread); [|reflexivity]. *)
-  (* arewrite (event ↑₁ (T ∩₁ action ↓₁ is_ta_propagate_to_G G) ⊆₁ propagated G T). *)
-  (* rewrite propagated_in_issued; eauto. *)
-  (* arewrite_id ⦗CW⦘. rewrite seq_id_l. *)
-
-  (* arewrite (Cco^? ⨾ ⦗I⦘ ⊆ Gco^? ⨾ ⦗I⦘). *)
-  (* { (* cert_co_I *) admit. } *)
-
+  subst t2.
+  red in AA. ins. subst thread'.
+  split; ins.
+  red; eexists.
+  apply seq_eqv_l. split; ins.
+  assert (is_ta_propagate_to_G G (ta_propagate (tid e1))) as E1PROP.
+  { red; ins. red. eexists. splits; eauto. split; auto. }
+  apply seqA. eexists. split.
+  2: { red. split; [|now apply CT2]. eauto. }
+  apply seq_eqv_r. split; ins.
+  split; ins. red; ins.
+  apply seq_eqv_l in AA. destruct AA as [Q1 AA].
+  apply seq_eqv_l. split; auto.
+  destruct AA as [e12 [CRFE AA]].
+  exists e12. split.
+  { destruct CRFE as [|CRFE].
+    { subst. clear. basic_solver. }
+    right.
+    enough ((<|I|> ;; Grfe) e1 e12) as QQ.
+    { generalize QQ. clear. basic_solver. }
+    eapply cert_rfe_D; eauto.
+    apply seq_eqv_r. split; auto.
+    apply E_ntid_in_D. split.
+    { destruct CRFE as [CRF _].
+      apply cert_rfE in CRF; auto. 
+      generalize CRF. clear. basic_solver. }
+    intros TT. rewrite <- TT in E1T.
+    eapply rfe_n_same_tid with (G:=certG); auto.
+    { apply cert_coherence; auto. }
+    split; eauto. }
+  destruct AA as [e122 [HB AA]].
+  exists e122. split; auto.
+  apply seq_eqv_r in AA. destruct AA as [AA W2].
+  apply seq_eqv_r. split; auto.
+  destruct AA as [AA|AA].
+  { subst. clear. basic_solver. }
+  right.
+  enough ((cert_co ⨾ ⦗cert_co_base G T thread⦘) e122 e2) as QQ.
+  { apply cert_co_I in QQ; auto.
+    generalize QQ. clear. basic_solver. }
+  apply seq_eqv_r. split; auto.
+  enough (I e2) as IE2.
+  { now apply I_in_cert_co_base. }
+  eapply propagated_in_issued with (G:=G); eauto.
+  red. exists (ta_propagate (tid e1), e2). splits; auto.
+  red. splits; auto.
 Admitted. 
-
-(* Lemma dom_prop_cert: *)
-(*   dom_rel (PROP certG sc ⨾ ⦗certT⦘) ⊆₁ certT.  *)
-(* Proof using.  *)
-(*   unfold PROP. *)
-(*   transitivity (T ∩₁ action ↓₁ eq ta_cover ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)). *)
-(*   2: { clear. *)
-(*        unfold certT. unionR left. *)
-(*        unionL. *)
-(*        all: iord_dom_unfolder; vauto. } *)
-(*   rewrite !seqA. *)
-(*   rewrite seq_eqvC, <- id_inter. *)
-(*   rewrite inclusion_inter_l1. *)
-(*   rewrite certG_same_props. *)
-(*   arewrite (certT ∩₁ action ↓₁ is_ta_propagate_to_G G ⊆₁ *)
-(*                 T ∩₁ action ↓₁ is_ta_propagate_to_G G). *)
-(*   { clear. unfold certT. iord_dom_unfolder; eauto 10. } *)
-(*   rewrite dom_rel_collect_event2. *)
-(*   2: { clear. unionL; iord_dom_unfolder. } *)
-(*   rewrite set_collect_union. *)
-(*   rewrite set_pair_cancel_action. *)
-(*   transitivity (C ∪₁ E ∩₁ NTid_ thread); [|reflexivity]. *)
-(*   arewrite (event ↑₁ (T ∩₁ action ↓₁ is_ta_propagate_to_G G) ⊆₁ propagated G T). *)
-(*   rewrite propagated_in_issued; eauto. *)
-(*   arewrite_id ⦗CW⦘. rewrite seq_id_l. *)
-(*   match goal with *)
-(*   | |- ?X ⊆₁ ?Y => remember X as A *)
-(*   end. *)
-(*   transitivity (A ∩₁ (Tid_ thread ∪₁ NTid_ thread)). *)
-(*   { clear. rewrite tid_set_dec. basic_solver. } *)
-(*   rewrite set_inter_union_r. *)
-(*   unionL; [unionR left | unionR right]. *)
-(*   2: { arewrite (A ⊆₁ E); eauto. *)
-(*        admit. } *)
-(*   arewrite (Cco^? ⨾ ⦗I⦘ ⊆ Gco^? ⨾ ⦗I⦘). *)
-(*   { (* cert_co_I *) admit. } *)
-
-(* Admitted.  *)
 
 Lemma ICOH_cert (FAIR: mem_fair G):
   iord_coherent certG sc certT. 
