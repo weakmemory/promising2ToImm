@@ -328,17 +328,25 @@ Proof using WF CON.
        all: eauto. 
        rewrite ets_upd1. basic_solver 10. }
 
-  desc. edestruct issue_rel_reserved_step_with_next; eauto.
-  { eapply ext_itrav_step_more; [..| apply TS1]; eauto. by symmetry. }  
-  { eapply ext_itrav_step_more; [..| apply TS2]; eauto; by symmetry. }
-  { eapply ext_itrav_step_more; [..| apply TS3]; eauto.
-    { by symmetry. }
-    rewrite ets_upd1. basic_solver 10. }  
-  
-  desc. edestruct step_end_helper with (T' := T').
-  3: by apply SIMREL_THREAD0.
-  all: eauto. 
-  rewrite ets_upd1. basic_solver 10. 
-Qed.
+  { desc. edestruct issue_rel_reserved_step_with_next; eauto.
+    { eapply ext_itrav_step_more; [..| apply TS1]; eauto. by symmetry. }  
+    { eapply ext_itrav_step_more; [..| apply TS2]; eauto; by symmetry. }
+    { eapply ext_itrav_step_more; [..| apply TS3]; eauto.
+      { by symmetry. }
+      rewrite ets_upd1. basic_solver 10. }  
+    
+    desc. edestruct step_end_helper with (T' := T').
+    3: by apply SIMREL_THREAD0.
+    all: eauto. 
+    rewrite ets_upd1. basic_solver 10. }
+
+  { (* Propagation *)
+    inversion TS. simpl in ets_upd.
+    rewrite set_pair_alt, set_inter_empty_r, set_union_empty_r in ets_upd.
+    admit. 
+    
+  } 
+
+Admitted. 
 
 End PlainStep.

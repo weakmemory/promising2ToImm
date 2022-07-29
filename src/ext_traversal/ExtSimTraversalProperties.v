@@ -228,6 +228,10 @@ Proof using WF.
     { apply (dom_l (wf_rmwD WF)) in RMW0. apply seq_eqv_l in RMW0.
       type_solver. }
     left. right. eapply wf_rmw_invf; eauto. }
+  { inversion TS. 
+    etransitivity; [| etransitivity].
+    1, 3: eapply set_equiv_exp; rewrite ets_upd; clear; by simplify_tls_events.
+    split; intros HH; by apply RMWCOV. }
 Qed. 
 
 Lemma ext_sim_trav_steps_rmw_covered (T T' : trav_label -> Prop)
@@ -246,11 +250,11 @@ Lemma ext_sim_trav_step_in_trav_steps:
 Proof using.
   intros C C' [tid TT].
   inv TT.
-  1-5: by apply t_step; eexists; eauto.
+  1-5, 9: by apply t_step; eexists; eauto.
   1,2: by eapply t_trans; apply t_step; eexists; eauto.
   eapply t_trans.
   2: by apply t_step; eexists; eauto.
-  eapply t_trans; apply t_step; eexists; eauto.
+  eapply t_trans; apply t_step; eexists; eauto. 
 Qed.
 
 Lemma ext_isim_trav_step_new_e_tid thread (T T' : trav_label -> Prop)
@@ -259,7 +263,7 @@ Lemma ext_isim_trav_step_new_e_tid thread (T T' : trav_label -> Prop)
   covered T ∪₁ issued T ∪₁ (covered T' ∪₁ issued T') ∩₁ Tid_ thread.
 Proof using WF.
   inv STEP.
-  1-6: subst_next_T; clear; simplify_tls_events; basic_solver 10.
+  1-6, 9: subst_next_T; clear; simplify_tls_events; basic_solver 10.
   all: subst_next_T; clear -RMW WF; simplify_tls_events;
     assert (tid r = tid w) as TID by (eapply wf_rmwt; eauto);
     basic_solver 10. 

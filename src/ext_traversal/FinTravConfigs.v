@@ -143,6 +143,9 @@ Section FinTravConfigs.
       simpl. simpl_sets. rewrite !set_unionA. apply tls_fin_union; auto.
       apply tls_fin_T_fin. 
       repeat (apply set_finite_union; split); apply set_finite_eq. }
+    2: { inversion TS. rewrite ets_upd.
+         rewrite set_unionA. apply tls_fin_union; auto.
+         simpl. simpl_sets. apply tls_fin_T_fin, set_finite_eq. } 
     inversion TS1. inversion TS2. inversion TS3.
     rewrite ets_upd1, ets_upd0, ets_upd.
     simpl. simpl_sets.
