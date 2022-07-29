@@ -19,7 +19,7 @@ Require Import TlsEventSets.
 Require Import EventsTraversalOrder.
 Require Import ExtTraversalConfig ExtTraversalProperties.
 Require Import AuxRel.
-Require Import Cert_new_tc.
+Require Import Cert_tc.
 
 Set Implicit Arguments.
 
@@ -1470,7 +1470,23 @@ Proof using sc WF TCOH RCOH.
   now rewrite INIT.
 Qed.
 
-Lemma TCOH_rst : tls_coherent rstG (certT T thread E).
+(* TODO: move*)
+Lemma init_tls_in_certT:
+  init_tls Gf ⊆₁ certT rstG T thread.
+Proof using TCOH.
+  unfold init_tls. rewrite set_pair_alt. fold action event.
+  rewrite !set_map_union, !set_inter_union_l.
+  repeat (apply set_subset_union_l; split).
+  1-3: red; intros [? e] [[=<-] [Ie]]; apply tls_set_alt.
+  { apply covered_certT. left. eapply init_covered; vauto. }
+  { apply issued_certT. eapply init_issued; vauto. }
+  { apply reserved_certT. left. eapply init_issued; vauto. }
+  red. intros [? e] [[t_ [TS [=<-]]] [Ie]]. apply tls_set_alt.
+  eapply propagated_thread_certT.
+  eapply init_propagated_thread; vauto.
+Qed.
+
+Lemma TCOH_rst : tls_coherent rstG (certT rstG T thread).
 Proof using WF TCOH RCOH ICOH.
   (* assert (FE ∩₁ Init ⊆₁ E ∩₁ Init) as AA. *)
   (* { arewrite (FE ∩₁ Init ⊆₁ (Init ∩₁ FE) ∩₁ Init). *)
@@ -1486,12 +1502,15 @@ Proof using WF TCOH RCOH ICOH.
   split.
   { rewrite <- init_tls_eq_rstG.
     now apply init_tls_in_certT. }
-  arewrite (certT T thread E ⊆₁ (event ↓₁ (is_init ∪₁ set_compl is_init)) ∩₁ certT T thread E).
+  arewrite (certT rstG T thread ⊆₁ (event ↓₁ (is_init ∪₁ set_compl is_init)) ∩₁ certT rstG T thread).
   { clear. unfolder; ins; desf; tauto. }
   rewrite set_map_union.
   rewrite set_inter_union_l.
   apply set_union_mori.
-  { unfold certT.
+  {
+    (* unfold certT. *)
+    rewrite certT_alt. 
+    
     rewrite !set_inter_union_r.
     unionL.
     3: { unfold init_tls.
@@ -1510,7 +1529,10 @@ Proof using WF TCOH RCOH ICOH.
     arewrite (event ⋄₁ Init ∩₁ exec_tls Gf ⊆₁ ∅).
     { rewrite exec_tls_ENI. clear. basic_solver 10. }
     clear; basic_solver. }
-  unfold certT, exec_tls.
+  (* unfold certT. *)
+  rewrite certT_alt. 
+
+  unfold exec_tls.
   rewrite !set_unionA.
   rewrite !set_map_union.
   rewrite !set_inter_union_r.
@@ -1547,28 +1569,6 @@ Proof using WF TCOH RCOH ICOH.
   unionR left.
   clear. unfold set_pair. unfolder. ins. do 2 desf.
 Qed.
-
-(* Lemma TCOH_rst : tc_coherent rstG rst_sc T. *)
-(* Proof using WF  RELCOV RMWCOV. *)
-(*   cdes TCOH. *)
-(*   red; splits. *)
-(*   { rewrite (sub_E_in SUB). apply TCOH. } *)
-(*   { unfold coverable in *; repeat (splits; try apply set_subset_inter_r). *)
-(*     { unfold E0. basic_solver. } *)
-(*     { rewrite CC. basic_solver. }  *)
-(*     { rewrite (sub_sb_in SUB). rewrite CC at 1. basic_solver 12. } *)
-(*     rewrite (sub_rf_in SUB), (sub_W SUB), (sub_R SUB), (sub_F SUB). *)
-(*     arewrite (rst_sc ⊆ sc) by (unfold rst_sc; basic_solver). *)
-(*     rewrite CC at 1. basic_solver 21. } *)
-(*   unfold issuable in *; repeat (splits; try apply set_subset_inter_r). *)
-(*   { rewrite <- E_E0. apply I_in_E. } *)
-(*   { rewrite II. basic_solver. } *)
-(*   { rewrite (sub_W SUB). rewrite II at 1. basic_solver 12. } *)
-(*   { rewrite (sub_fwbob_in SUB). rewrite II at 1. basic_solver 12. } *)
-(*   rewrite (sub_ar_in SUB), (sub_rf_in SUB), (sub_ppo_in SUB). *)
-(*   rewrite (sub_same_loc_in SUB). *)
-(*   rewrite II at 1. basic_solver 12. *)
-(* Qed. *)
 
 Lemma C_E_NTid : C ∪₁ (E ∩₁ NTid_ thread) ≡₁
                  C ∪₁ (I ∩₁ NTid_ thread) ∪₁ 
