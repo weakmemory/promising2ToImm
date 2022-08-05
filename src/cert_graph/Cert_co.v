@@ -115,10 +115,12 @@ Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
 (* Hypothesis TCCOH : tc_coherent G sc T. *)
-Hypotheses (TCOH: tls_coherent G T)
-           (ICOH: iord_coherent G sc T)
-           (* (RCOH: reserve_coherent G T).  *)
-           . 
+Hypotheses
+  (* (TCOH: tls_coherent G T) *)
+  (* (ICOH: iord_coherent G sc T) *)
+(* (RCOH: reserve_coherent G T).  *)
+  (T_INIT: init_tls G ⊆₁ T)
+. 
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -399,8 +401,17 @@ Proof using WF S_in_W ST_in_E IT_new_co.
   exfalso. by apply ICOXZ with (c:=y).
 Qed.
 
+(* TODO: move (? to imm) *)
+Lemma T_INIT_init_issued:
+  Init ∩₁ acts_set G ⊆₁ issued T. 
+Proof using T_INIT. 
+  unfolder; ins; desf. red.
+  exists (mkTL ta_issue x). repeat split; auto. 
+  apply T_INIT. red. split; basic_solver.
+Qed. 
+
 Lemma cert_co_sb_irr : irreflexive (cert_co ⨾ Gsb).
-Proof using TCOH S_I_in_W_ex I_in_S COH WF S_in_W ST_in_E IT_new_co. 
+Proof using S_I_in_W_ex I_in_S COH WF S_in_W ST_in_E IT_new_co T_INIT.
   rewrite cert_co_alt at 1.
   relsf; unionL.
   1-2: rewrite co_in_eco, sb_in_hb; 
@@ -408,7 +419,7 @@ Proof using TCOH S_I_in_W_ex I_in_S COH WF S_in_W ST_in_E IT_new_co.
   rewrite !seqA.
   arewrite (⦗E ∩₁ W ∩₁ Tid_ thread \₁ cert_co_base⦘ ⊆ ⦗Tid_ thread⦘ ⨾ ⦗set_compl Init⦘).
   { unfold cert_co_base.
-    generalize init_issued. 
+    generalize T_INIT_init_issued. 
     basic_solver 21. }
   rewrite ninit_sb_same_tid.
   red. intros ? REL. destruct REL as (? & ? & ? & ? & ? & ?). 
@@ -438,7 +449,7 @@ Qed.
   
 Lemma imm_cert_co_inv_exists (FAIR: mem_fair G):
   E ∩₁ W ∩₁ set_compl Init ⊆₁ codom_rel (immediate cert_co).
-Proof using WF S_in_W S_I_in_W_ex ST_in_E IT_new_co COH I_in_S RELCOV FIN TCOH.
+Proof using WF S_in_W S_I_in_W_ex ST_in_E IT_new_co COH I_in_S RELCOV FIN T_INIT.
 unfolder; ins.
 ins; eapply fsupp_immediate_pred.
 { by apply fsupp_cert_co. }

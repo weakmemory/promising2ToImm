@@ -25,6 +25,7 @@ Require Import Cert_co.
 Require Import Cert_D.
 Require Import Cert_rf.
 Require Import CertExecution2.
+Require Import CertT.
 
 Set Implicit Arguments.
 
@@ -119,8 +120,8 @@ Notation "'cert_rfe'" := (cert_rfe G sc T thread).
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCOH : tls_coherent G T.
-Hypothesis ICOH : iord_coherent G sc T.
+(* Hypothesis TCOH : tls_coherent G T. *)
+(* Hypothesis ICOH : iord_coherent G sc T. *)
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -144,8 +145,8 @@ Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
 
 (* Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I). *)
-Hypothesis TCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
-Hypothesis ICOH_rst_new_T : iord_coherent G sc (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
+Hypothesis TCOH_rst_new_T : tls_coherent G (certT G T thread).
+Hypothesis ICOH_rst_new_T : iord_coherent G sc (certT G T thread).
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
@@ -162,6 +163,8 @@ Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ �
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 
 Hypothesis RMWREX : dom_rel Grmw ⊆₁ GR_ex.
+
+Hypothesis INIT_TLS_T: init_tls G ⊆₁ T. 
 
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.

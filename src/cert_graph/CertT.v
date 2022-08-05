@@ -7,7 +7,6 @@ From imm Require Import IordCoherency.
 Require Import TlsEventSets.
 Require Import EventsTraversalOrder.
 From imm Require Import AuxDef.
-Require Import CertExecution2.
 
 Section CertT.
 Variables (G: execution) (sc: relation actid) (T: trav_label -> Prop). 

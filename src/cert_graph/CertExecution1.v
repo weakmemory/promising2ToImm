@@ -19,7 +19,6 @@ Require Import TlsEventSets.
 Require Import EventsTraversalOrder.
 Require Import ExtTraversalConfig ExtTraversalProperties.
 Require Import AuxRel.
-Require Import Cert_tc.
 
 Set Implicit Arguments.
 
@@ -104,9 +103,10 @@ Hypothesis IMMCON : imm_consistent Gf sc.
 Hypothesis RELCOV : FW ∩₁ FRel ∩₁ I ⊆₁ C.
 Hypothesis RMWCOV : forall r w (RMW : Frmw r w), C r <-> C w.
 (* Hypothesis ETCCOH : etc_coherent Gf sc (mkETC T S). *)
-Hypotheses (TCOH: tls_coherent Gf T)
-           (ICOH: iord_coherent Gf sc T)
-           (RCOH: reserve_coherent Gf T).
+Hypotheses
+  (TCOH: tls_coherent Gf T)
+  (ICOH: iord_coherent Gf sc T)
+  (RCOH: reserve_coherent Gf T).
 
 (* Local Lemma TCCOH : tc_coherent Gf sc T. *)
 (* Proof using ETCCOH. apply ETCCOH. Qed. *)
@@ -1080,7 +1080,7 @@ Qed.
 
 Lemma COMP_RMW_S :
   dom_rel (Grmw ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
-Proof using WF  IMMCON TCOH RCOH ICOH.
+Proof using WF IMMCON TCOH RCOH ICOH.
   rewrite (dom_l (wf_rmwE rstWF)).
   rewrite (dom_l (wf_rmwD rstWF)).
   unfolder; ins; desf.
@@ -1392,7 +1392,7 @@ generalize w_covered_issued; basic_solver 21.
 Qed.
 
 Lemma detour_E : dom_rel (Gdetour ⨾ ⦗E ∩₁ NTid_ thread⦘) ⊆₁ I.
-Proof using WF TCOH RCOH IMMCON ICOH.
+Proof using WF TCOH RCOH ICOH.
   clear RELCOV.
   rewrite (sub_detour_in SUB).
   rewrite E_E0; unfold E0.
@@ -1420,7 +1420,7 @@ Proof using WF TCOH RCOH IMMCON ICOH.
 Qed.
 
 Lemma detour_Acq_E : dom_rel (Gdetour ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ I.
-Proof using WF TCOH RCOH IMMCON ICOH.
+Proof using WF TCOH RCOH ICOH.
   clear RELCOV.
   rewrite (sub_detour_in SUB).
   rewrite E_E0; unfold E0.
@@ -1450,7 +1450,7 @@ Proof using WF TCOH RCOH IMMCON ICOH.
 Qed.
 
 Lemma ICOH_rst : iord_coherent rstG rst_sc T.
-Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH IMMCON ICOH.
+Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH ICOH.
   red. etransitivity; [|now apply ICOH].
   apply dom_rel_mori. hahn_frame_r.
   apply sub_iord; eauto using SUB.
@@ -1471,6 +1471,8 @@ Proof using sc WF TCOH RCOH.
 Qed.
 
 (* TODO: move*)
+Require Import CertT.
+(* TODO: move*)
 Lemma init_tls_in_certT:
   init_tls Gf ⊆₁ certT rstG T thread.
 Proof using TCOH.
@@ -1486,6 +1488,15 @@ Proof using TCOH.
   eapply init_propagated_thread; vauto.
 Qed.
 
+(* Lemma TCOH_rst: *)
+(*   tls_coherent rstG T.  *)
+(* Proof using. *)
+(*   unfold rstG. split. *)
+(*   2: { unfold restrict, init_tls, exec_tls, is_ta_propagate_to_G. simpl. *)
+(*        unfold E0.  *)
+  
+
+(* TODO: rename *)
 Lemma TCOH_rst : tls_coherent rstG (certT rstG T thread).
 Proof using WF TCOH RCOH ICOH.
   (* assert (FE ∩₁ Init ⊆₁ E ∩₁ Init) as AA. *)

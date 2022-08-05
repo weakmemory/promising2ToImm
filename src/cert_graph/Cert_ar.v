@@ -25,6 +25,7 @@ Require Import Cert_co.
 Require Import Cert_D.
 Require Import Cert_rf.
 Require Import CertExecution2.
+Require Import CertT.
 
 Set Implicit Arguments.
 
@@ -119,8 +120,8 @@ Notation "'cert_rfe'" := (cert_rfe G sc T thread).
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCOH : tls_coherent G T.
-Hypothesis ICOH : iord_coherent G sc T.
+(* Hypothesis TCOH : tls_coherent G T. *)
+(* Hypothesis ICOH : iord_coherent G sc T. *)
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -144,8 +145,8 @@ Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
 
 (* Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I). *)
-Hypothesis TCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
-Hypothesis ICOH_rst_new_T : iord_coherent G sc (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
+Hypothesis TCOH_rst_new_T : tls_coherent G (certT G T thread).
+Hypothesis ICOH_rst_new_T : iord_coherent G sc (certT G T thread).
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
@@ -169,6 +170,8 @@ Hypothesis FACQREL : E ∩₁ F ⊆₁ Acq/Rel.
 
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
+
+Hypothesis INIT_TLS: init_tls G ⊆₁ T. 
 
 Notation "'certG'" := (certG G sc T thread lab').
 
@@ -263,7 +266,21 @@ Notation "'CAcqrel'" := (fun a => is_true (is_acqrel Clab a)).
 Notation "'CAcq/Rel'" := (fun a => is_true (is_ra Clab a)).
 Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 
+(* TODO: move, remove duplicates in code*)
+Lemma coveredE_rst_new_T:
+  C ⊆₁ E. 
+Proof using WF TCOH_rst_new_T. 
+  erewrite <- coveredE; [..| apply TCOH_rst_new_T]; auto.
+  rewrite covered_certT. basic_solver. 
+Qed. 
 
+(* TODO: move, remove duplicates in code*)
+Lemma issuedE_rst_new_T:
+  I ⊆₁ E. 
+Proof using WF TCOH_rst_new_T. 
+  erewrite <- issuedE; [..| apply TCOH_rst_new_T]; auto.
+  rewrite issued_certT. basic_solver.
+Qed. 
 
 Lemma cert_ppo_D : Cppo ⨾ ⦗ D ⦘ ⊆ Gppo.
 Proof using All.
@@ -289,7 +306,7 @@ unfold ppo; ins.
 
 arewrite ((⦗GR_ex⦘ ⨾ Gsb)^? ⨾ ⦗W⦘ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (⦗GR_ex⦘ ⨾ Gsb)^? ⨾ ⦗W⦘).
 { rewrite crE, !seq_union_l, !seqA.
-  forward (eapply dom_R_ex_sb_D with (G:=G)); try edone.
+  forward (eapply dom_R_ex_sb_D with (G:=G)); eauto using coveredE_rst_new_T, issuedE_rst_new_T.
   clear; basic_solver 12. }
 
 rewrite <- ct_cr with (r:=(Gdata ∪ Gctrl ∪ Gaddr ⨾ Gsb^? ∪ Grfi ∪ Grmw ∪ Grmw_dep ⨾ Gsb^? ∪ ⦗GR_ex⦘ ⨾ Gsb)).
@@ -500,11 +517,11 @@ Proof using All.
   2: { clear. basic_solver. }
   rewrite seq_union_l. unionL.
   2: { rewrite <- ct_step. rewrite <- detour_in_ar_int at 2.
-       rewrite dom_ar_int_rt_CI_D; eauto.
+       rewrite dom_ar_int_rt_CI_D; eauto using coveredE_rst_new_T, issuedE_rst_new_T.
        rewrite id_union. rewrite seq_union_r. unionL.
        { sin_rewrite cert_detour_D. clear. basic_solver. }
        rewrite cert_detour_R_Acq. clear. basic_solver. }
-  rewrite dom_ar_int_rt_CI_D; eauto.
+  rewrite dom_ar_int_rt_CI_D; eauto using coveredE_rst_new_T, issuedE_rst_new_T.
   rewrite id_union. rewrite seq_union_r. unionL.
   { rewrite cert_ppo_D. rewrite ppo_in_ar_int. apply ct_step. }
   rewrite wf_ppoD. rewrite cert_W; eauto.
@@ -536,7 +553,7 @@ Proof using All.
   { clear. basic_solver. }
   rewrite <- !seqA.
   rewrite cert_ar_int_ct_CI.
-  forward (eapply dom_ar_int_rt_CI_D with (G:=G)); eauto.
+  forward (eapply dom_ar_int_rt_CI_D with (G:=G)); eauto using coveredE_rst_new_T, issuedE_rst_new_T.
   rewrite rtE. clear. basic_solver 20.
 Qed.
 

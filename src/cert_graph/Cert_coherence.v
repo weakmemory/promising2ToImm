@@ -24,8 +24,10 @@ From imm Require Import FinExecution.
 Require Import Cert_co.
 Require Import Cert_D.
 Require Import Cert_rf.
+Require Import CertT.
 Require Import CertExecution2.
 Require Import Cert_hb.
+Require Import CertT.
 
 Set Implicit Arguments.
 
@@ -120,8 +122,6 @@ Notation "'cert_rfe'" := (cert_rfe G sc T thread).
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCOH : tls_coherent G T.
-Hypothesis ICOH : iord_coherent G sc T.
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -145,8 +145,8 @@ Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
 
 (* Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I). *)
-Hypothesis TCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
-Hypothesis ICOH_rst_new_T : iord_coherent G sc (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
+Hypothesis TCOH_rst_new_T : tls_coherent G (certT G T thread).
+Hypothesis ICOH_rst_new_T : iord_coherent G sc (certT G T thread). 
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
@@ -163,6 +163,8 @@ Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ �
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 Hypothesis RMWREX        : dom_rel Grmw ⊆₁ GR_ex.
 Hypothesis FACQREL       : E ∩₁ F ⊆₁ Acq/Rel.
+
+Hypothesis INIT_TLS: init_tls G ⊆₁ T. 
 
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
@@ -279,27 +281,35 @@ assert (CO: Gco x z1).
   intro; generalize COH CSC; unfold coherence, coh_sc, eco, fr.
   desf; try subst z0; basic_solver 21.
   intro; subst x; auto. }
+
+assert (~ issued (certT G T thread) x) as NI'x.
+{ intro. apply H6. eapply issued_certT; eauto. }
+
 assert (SB: Gsb x z0).
-{ apply hb_sc_hb_de; generalize w_covered_issued; basic_solver 21. }
+{ apply hb_sc_hb_de.
+  eapply hahn_inclusion_exp.
+  { rewrite C_in_certC, <- issued_certT. reflexivity. }
+  generalize w_covered_issued. 
+  basic_solver 20. }
 assert (RFE: Grfe z1 z0).
 { ie_unfolder; unfolder; ins; desc; splits; eauto.
   intro K.
   apply sb_tid_init in SB.
   apply sb_tid_init in K.
   destruct SB, K.
-  congruence.
-  hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in CO.
-  unfolder in CO; desc; done.
+  { congruence. }
+  { hahn_rewrite (no_co_to_init WF (coherence_sc_per_loc COH)) in CO.
+    unfolder in CO; desc; done. }
   all: generalize init_issued; basic_solver. }
 assert (COE: Gcoe x z1).
 { ie_unfolder; unfolder; ins; desc; splits; eauto.
   intro K.
   apply sb_tid_init in K.
   destruct K.
-  congruence.
+  { congruence. }
   generalize init_issued; basic_solver. }
 assert (DETOURE: Gdetour x z0).
-  by unfold detour; basic_solver.
+{ by unfold detour; basic_solver. }
 apply H6, A; unfolder; ins; desf; splits; eauto.
 Qed.
 
@@ -329,7 +339,7 @@ Lemma hb_rfe_irr : irreflexive (Ghb ⨾ (sc ⨾ Ghb)^? ⨾ Crfe).
 Proof using ACYC_EXT COH COMP_ACQ COMP_C COMP_NTID COMP_RPPO CSC ETC_DR_R_ACQ_I E_to_S
 F_in_C G Grfe_E IT_new_co I_in_S RELCOV RMWREX ST_in_E S_I_in_W_ex S_in_W T
 WF WF_SC W_hb_sc_hb_to_I_NTid detour_Acq_E lab' sc thread urr_helper
-urr_helper_C TCOH_rst_new_T.
+urr_helper_C TCOH_rst_new_T. 
 rewrite cert_rfe_eq. rewrite cert_rfe_alt; eauto.
 relsf; unionL.
 { revert COH CSC; unfold coherence, coh_sc, eco.

@@ -23,6 +23,7 @@ From imm Require Import FinExecution.
 Require Import ExtTraversalConfig.
 From imm Require Import AuxDef.
 
+Require Import CertT.
 Require Import Cert_co.
 Require Import Cert_D.
 Require Import Cert_rf.
@@ -121,8 +122,8 @@ Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
 (* Hypothesis TCCOH : tc_coherent G sc T. *)
-Hypothesis TCOH : tls_coherent G T.
-Hypothesis ICOH : iord_coherent G sc T.
+(* Hypothesis TCOH : tls_coherent G T. *)
+(* Hypothesis ICOH : iord_coherent G sc T. *)
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -145,8 +146,8 @@ Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
 
 (* Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I). *)
-Hypothesis TCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
-Hypothesis ICOH_rst_new_T : iord_coherent G sc (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
+Hypothesis TCOH_rst_new_T : tls_coherent G (certT G T thread).
+Hypothesis ICOH_rst_new_T : iord_coherent G sc (certT G T thread).
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
@@ -162,7 +163,7 @@ Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ �
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 
-
+Hypothesis INIT_TLS_T: init_tls G ⊆₁ T. 
 (******************************************************************************)
 (** The new label function   *)
 (******************************************************************************)
@@ -171,6 +172,7 @@ Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
 Hypothesis NEW_VAL : forall r w (RF: cert_rf w r), val lab' w = val lab' r.
 Hypothesis OLD_VAL : forall a (NIN: ~ (E \₁ D) a), val lab' a = Gval a.
+
 
 Lemma cert_R : is_r lab' ≡₁ R.
 Proof using SAME. ins; erewrite same_lab_u2v_is_r; eauto. Qed.
@@ -307,14 +309,15 @@ Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 (******************************************************************************)
 
 Lemma cert_lab_init : forall a (IN: is_init a), lab' a = Glab a.
-Proof using SAME OLD_VAL TCOH.
+Proof using SAME OLD_VAL TCOH_rst_new_T. 
 ins; cut (val lab' a = Gval a).
 - assert (same_label_u2v (lab' a) (Glab a)) as SS by (by apply SAME).
   unfold same_label_u2v in *. unfold val; desf; desf.
   all: intros HH; inv HH.
 - apply OLD_VAL.
   unfolder; desf.
-  generalize (D_init); unfolder; ins; desf; intro; desf; eauto 20.
+  intros [Ea NDa]. destruct NDa.
+  apply D_init; basic_solver.   
 Qed.
 
 Lemma cert_E : (acts_set certG) ≡₁ E.
@@ -415,6 +418,10 @@ Proof using All.
   unionL.
   { unfolder; ins; desf.
     forward (eapply (complete_D) with (T:=T) (x:=x)); try edone.
+    { erewrite <- coveredE; [..| apply TCOH_rst_new_T]; auto.
+      rewrite covered_certT. basic_solver. }
+    { erewrite <- issuedE; [..| apply TCOH_rst_new_T]; auto.
+      rewrite issued_certT. basic_solver. }
     unfold Cert_rf.cert_rf.
     unfolder; ins; desf; eauto 20. }
   { unfolder; ins; desf.

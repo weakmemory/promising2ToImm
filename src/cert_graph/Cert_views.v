@@ -26,6 +26,7 @@ Require Import Cert_D.
 Require Import Cert_rf.
 Require Import CertExecution2.
 Require Import Cert_hb.
+Require Import CertT.
 
 Set Implicit Arguments.
 
@@ -120,8 +121,6 @@ Notation "'cert_rfe'" := (cert_rfe G sc T thread).
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCOH : tls_coherent G T.
-Hypothesis ICOH : iord_coherent G sc T.
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -145,8 +144,8 @@ Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
 
 (* Hypothesis TCCOH_rst_new_T : tc_coherent G sc (mkTC (C ∪₁ (E ∩₁ NTid_ thread)) I). *)
-Hypothesis TCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
-Hypothesis ICOH_rst_new_T : iord_coherent G sc (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
+Hypothesis TCOH_rst_new_T : tls_coherent G (certT G T thread).
+Hypothesis ICOH_rst_new_T : iord_coherent G sc (certT G T thread).
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
@@ -162,6 +161,8 @@ Hypothesis ETC_DR_R_ACQ_I : dom_rel ((Gdetour ∪ Grfe) ⨾ (Grmw ⨾ Grfi)＊ �
 
 Hypothesis COMP_R_ACQ_SB : dom_rel ((Grmw ⨾ Grfi)＊ ⨾ ⦗E ∩₁ R ∩₁ Acq⦘) ⊆₁ codom_rel Grf.
 Hypothesis RMWREX : dom_rel Grmw ⊆₁ GR_ex.
+
+Hypothesis INIT_TLS_T: init_tls G ⊆₁ T. 
 
 Variable lab' : actid -> label.
 Hypothesis SAME : same_lab_u2v lab' Glab.
@@ -293,6 +294,15 @@ Proof using All.
   clear. basic_solver.
 Qed.
 
+(* TODO: move (? to imm)*)
+Lemma T_INIT_init_covered:
+  Init ∩₁ acts_set G ⊆₁ covered T. 
+Proof using INIT_TLS_T. 
+  unfolder; ins; desf. red.
+  exists (mkTL ta_cover x). repeat split; auto. 
+  apply INIT_TLS_T. red. split; basic_solver.
+Qed.   
+
 Lemma cert_t_cur_thread l : t_cur certG sc thread l
   (covered T ∪₁ E ∩₁ NTid_ thread) ≡₁ t_cur G sc thread l (covered T).
 Proof using All.
@@ -305,7 +315,7 @@ Proof using All.
 
   arewrite  (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ≡  ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘).
   { unfolder; splits; ins; desf; splits; eauto.
-    all: by eapply init_covered; eauto; split; eauto; apply (sub_E_in SUB). }
+    all: eapply T_INIT_init_covered; basic_solver. }
   arewrite (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘) at 2 by basic_solver 12.
 
   arewrite ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ (Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ ⦗C⦘).
@@ -345,7 +355,7 @@ Proof using All.
 
   arewrite  (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ≡  ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘).
   { unfolder; splits; ins; desf; splits; eauto.
-    all: by eapply init_covered; eauto; split; eauto; apply (sub_E_in SUB). }
+    all: eapply T_INIT_init_covered; basic_solver. }
 
   arewrite (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘) at 2 by basic_solver 12.
   arewrite (⦗Rel⦘ ⨾ ⦗W_ l' ∪₁ F⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Rel⦘ ⨾ ⦗W_ l' ∪₁ F⦘) by basic_solver 12.
@@ -382,7 +392,7 @@ Proof using All.
   rewrite !seqA.
   arewrite  (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘ ≡  ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘).
   { unfolder; splits; ins; desf; splits; eauto.
-    all: by eapply init_covered; eauto; split; eauto; apply (sub_E_in SUB). }
+    all: eapply T_INIT_init_covered; basic_solver. }
 
   arewrite (⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘ ≡ ⦗C⦘ ⨾ ⦗Tid_ thread ∪₁ Init⦘ ⨾ ⦗C⦘) at 2 by basic_solver 12.
   arewrite ((Crelease ⨾ Crf)^? ⨾ ⦗C⦘ ≡ (Grelease ⨾ Grf)^? ⨾ ⦗C⦘).
@@ -391,17 +401,15 @@ Proof using All.
       { generalize C_in_D; basic_solver. }
       basic_solver. }
     rewrite !crE; relsf.
-    rewrite !seqA.
+    rewrite !seqA. 
     arewrite (Crf ⨾ ⦗D⦘ ≡ Grf ⨾ ⦗ D ⦘) by (by apply cert_rf_D).
     apply union_more; [done|].
     rewrite seq_eqvC at 1 2.
-    seq_rewrite rf_covered; eauto. rewrite !seqA.
-    arewrite (⦗I⦘ ≡ ⦗D⦘ ⨾ ⦗I⦘).
-    { generalize I_in_D. clear. basic_solver. }
-    arewrite (Crelease ⨾ ⦗D⦘ ≡ Grelease ⨾ ⦗D⦘).
-    { apply Crelease_D_eq_Grelease_D; eauto. }
-    done. }
 
+    rewrite seq_eqvC. 
+    forward eapply dom_rf_D as RF_D%dom_rel_helper; eauto. seq_rewrite RF_D.
+    rewrite <- !seqA. rewrite Crelease_D_eq_Grelease_D; eauto. } 
+  
   arewrite ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ (Grelease ⨾ Grf)^? ⨾  ⦗C⦘ ≡
             ⦗C⦘ ⨾ (Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ sc^? ⨾ Ghb^? ⨾ (Grelease ⨾ Grf)^? ⨾ ⦗C⦘).
   { split; generalize (urr_helper_C); clear; basic_solver 21. }
