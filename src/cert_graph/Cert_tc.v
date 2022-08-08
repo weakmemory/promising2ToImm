@@ -37,6 +37,7 @@ Require Import Cert_atomicity.
 Require Import Cert_coherence.
 Require Import CertExecution2.
 Require Import TLSCoherencyAltOld. 
+Require Import CertT. 
 
 Set Implicit Arguments.
 
@@ -130,9 +131,9 @@ Notation "'cert_rfe'" := (cert_rfe G sc T thread).
 Hypothesis WF : Wf G.
 Hypothesis WF_SC : wf_sc G sc.
 Hypothesis RELCOV : W ∩₁ Rel ∩₁ I ⊆₁ C.
-Hypothesis TCOH : tls_coherent G T.
-Hypothesis ICOH : iord_coherent G sc T.
-Hypothesis RCOH : reserve_coherent G T.
+(* Hypothesis TCOH : tls_coherent G T. *)
+(* Hypothesis ICOH : iord_coherent G sc T. *)
+(* Hypothesis RCOH : reserve_coherent G T. *)
 Hypothesis ACYC_EXT : acyc_ext G sc.
 Hypothesis CSC : coh_sc G sc.
 Hypothesis COH : coherence G.
@@ -154,9 +155,9 @@ Hypothesis COMP_C : C ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_NTID : E ∩₁ NTid_ thread ∩₁ R ⊆₁ codom_rel Grf.
 Hypothesis COMP_PPO : dom_rel (Gppo ⨾ ⦗I⦘) ⊆₁ codom_rel Grf.
 Hypothesis COMP_RPPO : dom_rel (⦗R⦘ ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ codom_rel Grf.
-Hypothesis TCCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
-(* Hypothesis TCOH_rst_new_T_restr : tls_coherent G ((T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)) \₁ action ↓₁ eq ta_reserve). *)
-Hypothesis ICOH_rst_new_T : iord_coherent G sc (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
+(* Hypothesis TCCOH_rst_new_T : tls_coherent G (T ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)). *)
+Hypothesis TCOH_rst_new_T : tls_coherent G (certT G T thread).
+Hypothesis ICOH_rst_new_T : iord_coherent G sc (certT G T thread).
 
 Hypothesis S_in_W : S ⊆₁ W.
 Hypothesis RPPO_S : dom_rel ((Gdetour ∪ Grfe) ⨾ (Gdata ∪ Grfi ∪ Grmw)＊ ⨾ Grppo ⨾ ⦗S⦘) ⊆₁ I.
@@ -189,6 +190,8 @@ Notation "'certG'" := (certG G sc T thread lab').
 
 Hypothesis WF_cert    : Wf certG.
 Hypothesis WF_SC_cert : wf_sc certG sc.
+
+Hypothesis INIT_TLS_T: init_tls G ⊆₁ T. 
 
 (* Notation "'CE'" := (acts_set certG). *)
 (* Notation "'Cacts'" := (acts certG). *)
@@ -307,64 +310,79 @@ Lemma cert_imm_consistent (FAIR: mem_fair G):
   imm_consistent certG sc.
 Proof using All.
   red; splits.
+  { apply WF_SC_cert. }
   all: eauto 20 using WF_SC_cert, cert_acyc_ext, cert_coh_sc, cert_complete, cert_coherence, cert_rmw_atomicity.
 Qed.
 
-Lemma dom_fwbob_I : dom_rel (Gfwbob ⨾ ⦗C ∪₁ I⦘) ⊆₁ C ∪₁ I.
-Proof using E_F_AcqRel_in_C E_to_S F_in_C RELCOV S_in_W WF TCOH ICOH.
+(* Lemma dom_fwbob_I : dom_rel (Gfwbob ⨾ ⦗C ∪₁ I⦘) ⊆₁ C ∪₁ I. *)
+(* Proof using E_F_AcqRel_in_C E_to_S F_in_C RELCOV S_in_W WF. *)
+(*   unfold fwbob; relsf; unionL; splits. *)
+(*   { rewrite sb_W_rel_CI; eauto. basic_solver. } *)
+(*   { rewrite W_rel_sb_loc_W_CI; eauto. basic_solver. } *)
+(*   { rewrite (dom_r (@wf_sbE G)). *)
+(*     generalize dom_sb_F_AcqRel_in_C. basic_solver 12. } *)
+(*   rewrite (dom_l (@wf_sbE G)). *)
+(*   generalize E_F_AcqRel_in_C; basic_solver 12. *)
+(* Qed.   *)
+
+(* TODO: move? *)
+Lemma covered_cert_in_D:
+  covered (certT G T thread) ⊆₁ D. 
+Proof using. 
+  rewrite covered_certT. unfold D. basic_solver 10. 
+Qed.
+
+(* TODO: move? *)
+Lemma issued_cert_in_D:
+  issued (certT G T thread) ⊆₁ D. 
+Proof using. 
+  rewrite issued_certT. apply I_in_D. 
+Qed.
+
+Lemma dom_fwbob_CI_D : dom_rel (Gfwbob ⨾ ⦗C ∪₁ I⦘) ⊆₁ D.
+Proof using E_F_AcqRel_in_C E_to_S F_in_C RELCOV S_in_W WF TCOH_rst_new_T
+ICOH_rst_new_T. 
   unfold fwbob; relsf; unionL; splits.
-  { rewrite sb_W_rel_CI; eauto. basic_solver. }
-  { rewrite W_rel_sb_loc_W_CI; eauto. basic_solver. }
+  { rewrite id_union. relsf. split.
+    { rewrite inclusion_seq_eqv_r with (r := Gsb). eapply dom_sb_C_in_D; eauto. }
+    rewrite <- issued_certT. rewrite seqA, dom_sb_W_rel_issued; eauto.
+    unfold D. rewrite covered_certT. basic_solver 10. }
+  { rewrite C_in_certC, <- issued_certT. 
+    rewrite W_rel_sb_loc_W_CI; eauto.
+    rewrite covered_cert_in_D, issued_cert_in_D. basic_solver. }
   { rewrite (dom_r (@wf_sbE G)).
-    generalize dom_sb_F_AcqRel_in_C. basic_solver 12. }
+    generalize dom_sb_F_AcqRel_in_D. basic_solver 10. }
   rewrite (dom_l (@wf_sbE G)).
-  generalize E_F_AcqRel_in_C; basic_solver 12.
-Qed.  
-  
-Notation "'certT'" := (certT G T thread). 
- 
+  generalize E_F_AcqRel_in_C. rewrite (@C_in_D G T thread).
+  basic_solver 20.
+Qed.
+
+
+Notation "'certT'" := (certT G T thread).
 
 Lemma TCOH_cert:
   tls_coherent certG certT.
-Proof using TCOH SAME RCOH WF.
-  clear -TCOH SAME RCOH WF. 
-  pose proof TCOH as TCOH_. destruct TCOH_. split.
+Proof using SAME WF TCOH_rst_new_T. 
+  clear -TCOH_rst_new_T SAME WF.
+  pose proof TCOH_rst_new_T as TCOH_. destruct TCOH_. split.
   { simpl. rewrite init_tls_cert.
     unfold init_tls.
     rewrite !set_pair_alt. fold event action.
     rewrite !set_map_union, !set_inter_union_l.
     repeat (apply set_subset_union_l; split).
     { red. intros [a e] [[=] [?]]. ins. subst.
-      apply tls_set_alt. apply covered_certT. left.
-      eapply init_covered; eauto. basic_solver. }
+      apply tls_set_alt. eapply init_covered; eauto. basic_solver. }
     { red. intros [a e] [[=] [?]]. ins. subst.
-      apply tls_set_alt. apply issued_certT.
-      eapply init_issued; eauto. basic_solver. }
+      apply tls_set_alt. eapply init_issued; eauto. basic_solver. }
     { red. intros [a e] [[=] [?]]. ins. subst.
-      apply tls_set_alt. apply reserved_certT. left.
-      eapply init_issued; eauto. basic_solver. }
+      apply tls_set_alt. 
+      apply reserved_certT. left.
+      eapply issued_certT. eapply init_issued; eauto. basic_solver. }
     transitivity (certT ∩₁ action ↓₁ is_ta_propagate_to_G G); [| basic_solver].
-    rewrite T_propagations_certT. 
     rewrite <- tls_coh_init. unfold init_tls.
     rewrite set_pair_alt. basic_solver. }
-  rewrite init_tls_cert, exec_tls_cert. unfold certT. rewrite set_minus_union_l.
-  repeat (apply set_subset_union_l; split).
-  { rewrite <- tls_coh_exec. basic_solver. }
-  { rewrite set_pair_alt. fold action event.
-    rewrite set_minusE. rewrite set_inter_absorb_r; [| iord_dom_solver].
-    rewrite AuxRel2.set_split_complete with (s := Init).
-    rewrite set_map_union, set_inter_union_r. apply set_subset_union.
-    { unfold init_tls. rewrite set_pair_alt. basic_solver. }
-    unfold exec_tls. rewrite set_pair_alt. basic_solver. }
-  rewrite rcoh_I_in_S; eauto.
-  arewrite (S ∪₁ S ∩₁ Tid_ thread ⊆₁ E ∩₁ W).
-  { forward eapply reservedW; eauto. forward eapply rcoh_S_in_E; basic_solver. }
-  rewrite AuxRel2.set_split_complete with (s := Init).
-  rewrite set_pair_alt. fold action event. 
-  rewrite set_map_union, set_inter_union_r. apply set_subset_union.
-  { unfold init_tls. rewrite set_pair_alt. basic_solver. }
-  unfold exec_tls. rewrite !set_pair_alt. unionR right. basic_solver. 
-Qed.  
+  by rewrite init_tls_cert, exec_tls_cert.
+Qed.
 
 Lemma TICOH_cert_old:
   tls_iord_coherent_alt_old certG sc certT.
@@ -385,55 +403,51 @@ Proof using All.
     arewrite (⦗GW_ex⦘ ⨾ Grfi ⨾ ⦗R ∩₁ Acq⦘ ⊆ Gar_int).
     arewrite (Gar_int ⨾ Gar_int ⊆ Gar_int⁺).
     { by rewrite <- ct_ct, <- ct_step. }
+    rewrite <- issued_certT. 
     rewrite (@issued_in_issuable G) at 1; eauto.
     eapply ar_int_ct_issuable_in_I; eauto. }
 
   assert ((C ∪₁ E ∩₁ NTid_ thread) ∩₁ CW ⊆₁ I) as CNI.
   { erewrite same_lab_u2v_is_w; eauto.
     rewrite set_inter_union_l. apply set_subset_union_l. split.
-    { rewrite set_interC. eapply w_covered_issued; eauto. }
+    { rewrite set_interC.
+      rewrite <- issued_certT, C_in_certC. 
+      eapply w_covered_issued; eauto. }
     rewrite set_interA, set_interC with (s' := W), <- set_interA.
     rewrite <- IT_new_co. basic_solver. }
   assert (dom_rel (Csb ⨾ ⦗C ∪₁ E ∩₁ NTid_ thread⦘) ⊆₁ C ∪₁ E ∩₁ NTid_ thread) as SBCN.
   { rewrite ?cert_E, ?cert_sb. 
     rewrite id_union, seq_union_r, dom_union.
     apply set_subset_union_l. split.
-    { erewrite dom_sb_covered; eauto. basic_solver. }
-    (* TODO: generalize this approach? *)
-    rewrite AuxRel2.set_split_complete with (s' := dom_rel _) (s := is_init).
-    apply set_subset_union_l. split.
-    { unionR left. rewrite <- init_covered; eauto.
-      rewrite wf_sbE; eauto. basic_solver. }
-    rewrite set_interC, <- dom_eqv1.
-    unionR right. apply E_ntid_sb_prcl. }  
+    { rewrite C_in_certC at 1.
+      erewrite dom_sb_covered; eauto.
+      by rewrite covered_certT. }
+    rewrite <- covered_certT.
+    rewrite <- dom_sb_covered with (G := G); eauto.
+    rewrite covered_certT. basic_solver 10. }
+
+  forward eapply cert_W as CERT_W; [by vauto| ]. 
   
   constructor.
   (* all: try by ins. *)
-  all: rewrite ?covered_certT, ?issued_certT, ?reserved_certT, ?propagated_certT; simplify_tls_events.
+  (* all: rewrite ?covered_certT, ?issued_certT, ?reserved_certT, ?propagated_certT; simplify_tls_events. *)
   all: rewrite ?cert_E, ?cert_sb.
-  { erewrite (init_covered _ _ TCOH); eauto. basic_solver. }
-  { erewrite (@coveredE G); eauto. basic_solver. }
-  { auto. }
-  (* { ins; rewrite cert_W; edone. } *)
-  { auto. }
+  { by apply init_covered. } 
+  { by apply coveredE. }
+  { eapply dom_sb_covered; eauto. }
+  { rewrite set_interC, CERT_W. 
+    eapply w_covered_issued; eauto. }
   { rewrite rfi_union_rfe; relsf; unionL; splits; ins.
-    { rewrite (dom_l (wf_rfiD WF_cert)), cert_W; eauto.
+    { rewrite (dom_l (wf_rfiD WF_cert)), CERT_W; eauto.
       arewrite (Crfi ⊆ Gsb).
-      rewrite <- CNI. rewrite cert_W with (lab' := lab'); eauto.
-      generalize SBCN. basic_solver 10. }
-    rewrite (dom_rel_helper AA). basic_solver 21. }
-  (* { ins; rewrite cert_W; edone. } *)
-  { rewrite (dom_r (wf_scD WF_SC)).
-    rewrite seqA, <- id_inter, set_inter_union_r.
-    erewrite eqv_rel_mori with (y := C). 
-    2: { apply set_subset_union_l. split; [basic_solver| ].
-         rewrite <- E_F_AcqRel_in_C.
-         mode_solver.  }
-    rewrite (@dom_sc_covered G) with (T := T); eauto. basic_solver. }
+      rewrite dom_eqv1, dom_sb_covered; eauto. eapply w_covered_issued; eauto. }
+    rewrite (dom_rel_helper AA).
+    rewrite issued_certT. basic_solver. }
+  { eapply dom_sc_covered with (G := G); eauto. }
   { eapply (@issuedE G); eauto. }
   { rewrite cert_W; eauto. eapply (@issuedW G); eauto. }
   { ins; rewrite cert_fwbob; eauto.
-    rewrite fwbob_I_in_C; eauto. basic_solver. }
+    rewrite fwbob_I_in_C; eauto. }
   { rewrite cert_W_ex, cert_R, cert_Acq; eauto.
     arewrite (⦗GW_ex⦘ ⨾ Crfi ⨾ ⦗R ∩₁ Acq⦘ ⊆ ⦗GW_ex⦘ ⨾ Grfi ⨾ ⦗R ∩₁ Acq⦘).
     { arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗Acq⦘ ⨾ ⦗R ∩₁ Acq⦘).
@@ -443,25 +457,28 @@ Proof using All.
     remember (Cppo ∪ bob certG) as X.
     rewrite !seq_union_l, !dom_union.
     unionL.
-    3: { subst X. apply BB. }
-    2: { rewrite (dom_rel_helper AA); basic_solver. }
+    3: { subst X. by rewrite issued_certT. }
+    2: { rewrite issued_certT. rewrite (dom_rel_helper AA); basic_solver. }
     subst X. rewrite !seq_union_l, !seq_union_r, !dom_union. unionL; simpls.
-    { rewrite I_in_D at 1.
+    { rewrite issued_certT. rewrite (@I_in_D G T thread) at 1.
       arewrite (⦗D⦘ ⊆ ⦗D⦘ ⨾ ⦗D⦘) by basic_solver.
       forward (eapply cert_ppo_D with (G:=G)); eauto.
       intros HH. sin_rewrite HH.
       forward (eapply dom_ppo_D with (G:=G)); try edone.
+      { eapply coveredE_rst_new_T; eauto. }
+      { eapply issuedE_rst_new_T; eauto. }
       forward (eapply cert_detour_D with (G:=G)); try edone.
       clear. unfolder; ins; desf. eapply H; basic_solver 42. }
     unfold bob; relsf; unionL; splits; simpls.
-    { arewrite (⦗I⦘ ⊆ ⦗C ∪₁ I⦘) at 1.
+    { rewrite issued_certT. 
+      arewrite (⦗I⦘ ⊆ ⦗C ∪₁ I⦘) at 1.
       rewrite cert_fwbob; auto.
-      rewrite (dom_rel_helper dom_fwbob_I).
-      rewrite C_in_D, I_in_D at 1; relsf.
+      rewrite (dom_rel_helper dom_fwbob_CI_D).
       forward (eapply cert_detour_D with (G:=G)); eauto.
       intros HH. sin_rewrite HH.
       basic_solver 20. }
-    rewrite I_in_D at 1.
+    rewrite issued_certT. 
+    rewrite (@I_in_D G T thread) at 1.
     rewrite !seqA.
     rewrite cert_sb.
     rewrite cert_R, cert_Acq; eauto.
@@ -471,6 +488,7 @@ Proof using All.
     eapply dom_wex_sb_issued; eauto. }
   simpls.
   rewrite same_lab_u2v_same_loc; eauto.
+  rewrite issued_certT. 
   arewrite (Cppo ∩ Gsame_loc ⨾ ⦗I⦘ ⊆ (Cppo ⨾ ⦗I⦘) ∩ Gsame_loc ⨾ ⦗I⦘).
   { basic_solver. }
   arewrite (Cppo ⨾ ⦗I⦘ ⊆ Gppo).
@@ -478,15 +496,15 @@ Proof using All.
   arewrite (Gppo ∩ Gsame_loc ⨾ ⦗I⦘ ⊆ ⦗D⦘ ⨾ Gppo ∩ Gsame_loc ⨾ ⦗I⦘).
   { apply dom_rel_helper.
     arewrite (Gppo ∩ Gsame_loc ⊆ Gppo).
-    rewrite I_in_D. eapply dom_ppo_D; edone. }
+    rewrite (@I_in_D G T thread). eapply dom_ppo_D;
+      eauto using coveredE_rst_new_T, issuedE_rst_new_T. }
   rewrite cert_rfi_eq.
   forward (eapply cert_rfi_D with (G:=G) (T:=T) (thread:=thread)); eauto.
   intros HH. sin_rewrite HH.
   arewrite_id ⦗D⦘. rewrite !seq_id_l.
   arewrite (Grfi ⊆ Grf).
+  rewrite <- issued_certT. 
   eapply rf_ppo_loc_I_in_I; eauto.
-Unshelve.
-all:auto.
 Qed.
 
 (* TODO: move, replace original lemma *)
@@ -552,7 +570,7 @@ Qed.
         
 Lemma dom_prop_cert:
   dom_rel (PROP certG sc ⨾ ⦗certT⦘) ⊆₁ certT. 
-Proof using All. 
+Proof using All.
   unfold PROP.
   transitivity (T ∩₁ action ↓₁ eq ta_cover ∪₁ eq ta_cover <*> (E ∩₁ NTid_ thread)).
   2: { clear.
@@ -564,8 +582,10 @@ Proof using All.
   end.
   transitivity ((A ∩₁ event ↓₁ Tid_ thread) ∪₁ (A ∩₁ event ↓₁ NTid_ thread)).
   { clear. unfolder. ins. tauto. }
-  unionL; [unionR left | unionR right].
-  2: { arewrite (A ⊆₁ eq ta_cover <*> E); eauto.
+  (* unionL; [unionR left | unionR right]. *)
+  unionL. 
+  2: { unionR right. 
+       arewrite (A ⊆₁ eq ta_cover <*> E); eauto.
        2: { rewrite !set_pair_alt. basic_solver. }
        subst A. fold (PROP certG sc).
        rewrite (@tlsc_E certG certT); eauto.
@@ -573,11 +593,14 @@ Proof using All.
        rewrite PROP_E_end; auto. 
        unfold PROP. rewrite <- !seqA, <- id_inter. rewrite !dom_seq, dom_eqv.
        simpl. rewrite !set_pair_alt. basic_solver. }
+  etransitivity; [etransitivity | ].
+  2: { forward eapply (tls_cover_certT G T thread) as [IN _]. apply IN. }
+  2: { rewrite set_pair_alt. basic_solver. }
   subst A.
   rewrite !seqA.
-  arewrite (⦗action ↓₁ is_ta_propagate_to_G certG⦘ ⨾ ⦗certT⦘ ⊆
-            ⦗action ↓₁ is_ta_propagate_to_G G⦘ ⨾ ⦗T⦘).
-  { clear. unfold certT. iord_dom_unfolder; eauto 10. }
+  (* arewrite (⦗action ↓₁ is_ta_propagate_to_G certG⦘ ⨾ ⦗certT⦘ ⊆ *)
+  (*           ⦗action ↓₁ is_ta_propagate_to_G G⦘ ⨾ ⦗T⦘). *)
+  (* { clear. unfold certT. iord_dom_unfolder; eauto 10. } *)
   rewrite furr_alt; auto.
   rewrite Cert_hb.cert_hb; auto.
   apply set_subset_inter_r. split.
@@ -599,20 +622,26 @@ Proof using All.
        (⦗action ↓₁ eq ta_cover⦘
           ⨾ event ↓ (⦗W⦘ ⨾ Grfe^? ⨾ Ghb^? ⨾ sc^? ⨾ Ghb^? ⨾ Gco^? ⨾ ⦗W⦘)
           ∩ (fun ta1 ta2 : trav_label => tid (event ta1) = ta_propagate_tid (action ta2))
-          ⨾ ⦗action ↓₁ is_ta_propagate_to_G G⦘ ⨾ ⦗T⦘) ∩₁ event ↓₁ Tid_ thread).
+          ⨾ ⦗action ↓₁ is_ta_propagate_to_G G⦘ ⨾ ⦗certT⦘) ∩₁ event ↓₁ Tid_ thread).
   2: { rewrite rfe_in_rf.
-       rewrite AuxRel.set_subset_inter_l; try reflexivity. left.
-       transitivity (dom_rel (PROP G sc ⨾ ⦗T⦘)).
+       rewrite AuxRel.set_subset_inter_l; try reflexivity. left. 
+       transitivity (dom_rel (PROP G sc ⨾ ⦗certT⦘)).
        { unfold PROP. now rewrite furr_alt, !seqA. }
-       rewrite <- seq_eqvK, <- seqA.  
+       (* arewrite (PROP G sc ⨾ ⦗T⦘ ⊆ PROP G sc ⨾ ⦗certT⦘). *)
+       (* { unfold PROP. do 2 hahn_frame_l. *)
+       (*   rewrite <- !id_inter. apply eqv_rel_mori.  *)
+       (*   do 2 rewrite set_interC with (s := action ↓₁ _).  *)
+       (*   apply T_propagations_certT. } *)
+       rewrite <- seq_eqvK, <- seqA.
        apply dom_rel_iord_ext_parts_tl; auto.
        { unfold iord_simpl. basic_solver. }
        { rewrite tlsc_E, PROP_E_end; eauto.
          rewrite PROP_to_ninit. basic_solver. }
-       rewrite (@tlsc_E G T) at 1; eauto. rewrite PROP_E_end at 1; eauto.
+       rewrite tlsc_E with (tc := certT) at 1; [..| apply TCOH_rst_new_T]; auto. 
+       rewrite PROP_E_end at 1; eauto.
        unfold PROP. rewrite <- !seqA, <- id_inter. rewrite !dom_seq, dom_eqv.  
        unfolder. ins. desc. destruct x; auto; ins. subst. 
-       apply tls_set_alt. eapply init_covered; vauto. } 
+       apply tls_set_alt. eapply init_covered; vauto. }
 
   assert (⦗W⦘ ⨾ cert_rfe^? ⨾ Ghb^? ⨾ sc^? ⨾ Ghb^? ⨾ Cco^? ⨾ ⦗W⦘ ≡
           ⦗W⦘ ⨾ cert_rfe^? ⨾ (Ghb^? ⨾ sc^? ⨾ Ghb^?) ⨾ Cco^? ⨾ ⦗W⦘) as QQ1.
@@ -677,6 +706,7 @@ Proof using All.
   apply seq_eqv_r. split; auto.
   enough (I e2) as IE2.
   { now apply I_in_cert_co_base. }
+  eapply issued_certT. 
   eapply propagated_in_issued with (G:=G); eauto.
   red. exists (ta_propagate (tid e1), e2). splits; auto.
   red. splits; auto.
@@ -690,18 +720,18 @@ Proof using All.
   { apply TICOH_cert_old. }
   { arewrite (IPROP certG ≡ IPROP G).
     { unfold IPROP. erewrite certG_same_props, cert_W; eauto. }
-    transitivity (certT ∩₁ action ↓₁ eq ta_issue); [| basic_solver].
-    assert (dom_rel (IPROP G ⨾ ⦗T⦘) ⊆₁ T ∩₁ action ↓₁ eq ta_issue) as DOM'.
-    { apply iord_coh_implies_iord_simpl_coh' in ICOH; eauto.
-      2: { by apply coherence_sc_per_loc. }
-      rewrite <- ICOH at 2. assert (IPROP G ⊆ iord_simpl G sc) as <-. 
-      { unfold iord_simpl. basic_solver. }
-      unfold IPROP. basic_solver 10. } 
-    etransitivity; [| etransitivity]; [| by apply DOM'| ].
-    2: { rewrite tls_issue_certT. basic_solver. }
-    unfold IPROP. rewrite !seqA, <- !id_inter.
-    rewrite set_interC with (s' := certT), T_propagations_certT.
-    basic_solver 10. }
+    rewrite AuxRel2.set_split_complete with (s' := dom_rel _) (s := event ↓₁ is_init).
+    unionL.
+    { destruct TCOH_rst_new_T. rewrite <- tls_coh_init at 2. unfold init_tls.
+      rewrite tlsc_E with (tc := certT) (G := G); eauto.
+      unfold IPROP. unfolder. ins. desc.
+      destruct x, y; ins; subst. basic_solver. }
+    rewrite set_interC, <- dom_eqv1. rewrite <- seq_eqvK with (dom := certT), <- !seqA.
+    apply dom_rel_iord_ext_parts_tl; auto.
+    { unfold iord_simpl. basic_solver. }
+    { unfold IPROP. rewrite tlsc_E with (tc := certT) (G := G); eauto.
+      unfolder. ins. desc. destruct x, y; ins; subst. vauto. }
+    basic_solver. }
   apply dom_prop_cert. 
 Qed. 
 
@@ -728,7 +758,7 @@ Proof using SAME.
 Qed.
 
 Lemma dom_data_Crfi_rmw_D_in_D : dom_rel ((Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘) ⊆₁ D.
-Proof using Grfe_E WF WF_SC TCOH ICOH.
+Proof using Grfe_E WF WF_SC TCOH_rst_new_T ICOH_rst_new_T.
   cut ((Gdata ∪ Crfi ∪ Grmw)＊ ⨾ ⦗D⦘ ⊆ ⦗D⦘ ⨾ (fun _ _ => True)).
   { unfolder; intros HH; ins; desf. eapply HH; eauto. }
   apply rt_ind_right with (P:= fun r => r ⨾ ⦗D⦘).
@@ -766,8 +796,9 @@ Proof using All.
     rewrite wf_new_rfE. clear. basic_solver 10. }*)
   constructor.
   (* all: unfold eissued, ecovered; simpls. *)
-  all: rewrite ?covered_certT, ?issued_certT, ?reserved_certT. 
-  { rewrite cert_E, (@issuedE G), ST_in_E; eauto. basic_solver.  }
+  all: rewrite ?covered_certT, ?issued_certT, ?reserved_certT.
+  { rewrite <- issued_certT. 
+    rewrite (@issuedE G), ST_in_E; eauto. basic_solver.  }
   (* { arewrite (I ∪₁ S ∩₁ Tid_ thread ⊆₁ E ∩₁ W). *)
   (*   2: { unfold CertExecution2.certG. unfold acts_set. basic_solver. } *)
   (*   rewrite <- IST_new_co; try edone. *)
@@ -798,6 +829,7 @@ rewrite rmw_in_sb, rfi_in_sb, detour_in_sb; eauto.
 
 rewrite cert_sb.
 generalize (@sb_trans G); ins; relsf.
+rewrite C_in_certC, <- issued_certT. 
 rewrite <- w_covered_issued at 2; eauto.
 seq_rewrite sb_covered; eauto.
 clear; basic_solver 12.
