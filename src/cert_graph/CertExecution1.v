@@ -19,6 +19,7 @@ Require Import TlsEventSets.
 Require Import EventsTraversalOrder.
 Require Import ExtTraversalConfig ExtTraversalProperties.
 Require Import AuxRel.
+Require Import CertT.
 
 Set Implicit Arguments.
 
@@ -1456,6 +1457,82 @@ Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH ICOH.
   apply sub_iord; eauto using SUB.
 Qed.
 
+Lemma Gsb_Fsb_restr:
+  restr_rel E0 Fsb ≡ Gsb. 
+Proof using WF TCOH RCOH. 
+  unfold sb. rewrite <- !restr_relE, restr_restr.
+  rewrite set_inter_absorb_l; [| apply E0_in_Gf].
+  rewrite E_E0. done. 
+Qed. 
+  
+
+Lemma ICOH_rst_certT: iord_coherent rstG rst_sc (certT Gf T thread).
+Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH ICOH.
+  forward eapply ICOH_rst as ICOH'. red in ICOH'. red.
+  unfold certT.
+
+  assert (forall e (NIe: ~ is_init e),
+             dom_rel (Fsb^? ⨾ ⦗Tid_ thread ∩₁ S⦘) e -> tid e = thread) as DOM_THREAD.
+  { intros e NIe DOM.
+    destruct DOM as [s [SB_ [Ts Ss]]%seq_eqv_r].
+    destruct SB_ as [-> | SB]; [done| ].
+    rewrite <- Ts. 
+    eapply (@ninit_sb_same_tid Gf); eauto.
+    apply seq_eqv_l. split; auto. }
+ 
+  relsf. rewrite !id_union. relsf. splits.
+  { unionR left -> left.
+    rewrite iord_no_reserve. rewrite iord_no_reserve in ICOH'.
+    generalize ICOH'. basic_solver 10. }
+  2: { rewrite iord_no_reserve. rewrite set_pair_alt. basic_solver 10. }
+  unfold iord. rewrite restr_relE, !seqA. 
+  iord_dom_unfolder.
+  { apply path_ut_first in d6. red in d6.
+    rename b into e1, a0 into e2. 
+    des.
+    { left. right. splits; vauto.
+      { apply d. }
+      replace (tid e1) with (tid e2); [congruence| ].
+      apply clos_trans_of_transitiveD in d6; [| apply sb_trans].
+      symmetry. eapply (@ninit_sb_same_tid Gf).
+      apply Gsb_Fsb_restr in d6. red in d6. desc. basic_solver. }
+    destruct d6 as [c [SB_ [c' [SC REL]]]].
+    enough (covered T c) as Cc.
+    { apply clos_refl_trans_of_transitive in SB_; [| apply sb_trans]. 
+      do 2 left. split; auto. apply tls_set_alt.
+      destruct SB_ as [-> | SB]; [done | ].
+      eapply dom_sb_covered; eauto.
+      apply Gsb_Fsb_restr in SB. red in SB. desc. basic_solver 10. }
+    red in SC. apply seq_eqv_lr in SC. desc.
+    eapply wf_scD, seq_eqv_lr in SC0; eauto. desc. 
+    red in SC. unfold set_union in SC. des; auto.
+    { eapply issuedW in SC; eauto.
+      type_solver. }
+    { destruct SC as [s [SB__ [Ts Ss]]%seq_eqv_r].
+      destruct SB__ as [-> | SB].
+      { eapply reservedW in Ss; eauto. type_solver. }
+      eapply rcoh_F_sb_S; eauto.
+      eexists. apply seq_eqv_lr. splits; eauto. mode_solver. }
+    destruct SC as [? [? [RMW%wf_rmwD%seq_eqv_lr _]]]; auto.
+    type_solver. }
+  { do 2 left. split; vauto. apply tls_set_alt. 
+    do 2 (red in d; desc). unfold set_union in d. des; auto. 
+    { eapply w_covered_issued; vauto. }
+    { destruct d6. apply DOM_THREAD; basic_solver. }
+    destruct d as [? [? [RMW%wf_rmwD%seq_eqv_lr _]]]; auto.
+    type_solver. }
+  do 2 left. split; vauto. apply tls_set_alt. 
+  apply seq_eqv_lr in d9. desc.
+  do 2 (red in d7; desc). unfold set_union in d7. des.
+  { eapply dom_rf_covered; basic_solver 10. }
+  { apply wf_rfD, seq_eqv_lr in d2; eauto. 
+    eapply issuedW in d7; eauto. type_solver. }
+  { destruct d6. apply DOM_THREAD; basic_solver. }
+  eapply rfrmw_I_in_I; eauto. 
+  destruct d7 as [? [RMW%wf_rmwD%seq_eqv_lr [NT II]]%seq_eqv_r]; auto.
+  basic_solver 10. 
+Qed. 
+
 Lemma init_tls_eq_rstG : init_tls Gf ≡₁ init_tls rstG.
 Proof using sc WF TCOH RCOH.
   split.
@@ -1470,8 +1547,6 @@ Proof using sc WF TCOH RCOH.
   now rewrite INIT.
 Qed.
 
-(* TODO: move*)
-Require Import CertT.
 (* TODO: move*)
 Lemma init_tls_in_certT:
   init_tls Gf ⊆₁ certT rstG T thread.
@@ -1488,21 +1563,10 @@ Proof using TCOH.
   eapply init_propagated_thread; vauto.
 Qed.
 
-(* Lemma TCOH_rst: *)
-(*   tls_coherent rstG T.  *)
-(* Proof using. *)
-(*   unfold rstG. split. *)
-(*   2: { unfold restrict, init_tls, exec_tls, is_ta_propagate_to_G. simpl. *)
-(*        unfold E0.  *)
-  
 
 (* TODO: rename *)
-Lemma TCOH_rst : tls_coherent rstG (certT rstG T thread).
+Lemma TCOH_rst_certT: tls_coherent rstG (certT rstG T thread).
 Proof using WF TCOH RCOH ICOH.
-  (* assert (FE ∩₁ Init ⊆₁ E ∩₁ Init) as AA. *)
-  (* { arewrite (FE ∩₁ Init ⊆₁ (Init ∩₁ FE) ∩₁ Init). *)
-  (*   { clear. basic_solver. } *)
-  (*   now rewrite INIT.  } *)
   assert (I ⊆₁ E ∩₁ W) as IEW.
   { generalize I_in_E issuedW. basic_solver 10. }
   assert (I ∪₁ S ∩₁ Tid_ thread ⊆₁ E ∩₁ W) as ISTEW.
