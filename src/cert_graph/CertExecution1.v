@@ -1466,11 +1466,10 @@ Proof using WF TCOH RCOH.
 Qed. 
   
 
-Lemma ICOH_rst_certT: iord_coherent rstG rst_sc (certT Gf T thread).
+Lemma ICOH_rst_certT: iord_coherent rstG rst_sc (certT rstG T thread).
 Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH ICOH.
   forward eapply ICOH_rst as ICOH'. red in ICOH'. red.
   unfold certT.
-
   assert (forall e (NIe: ~ is_init e),
              dom_rel (Fsb^? ⨾ ⦗Tid_ thread ∩₁ S⦘) e -> tid e = thread) as DOM_THREAD.
   { intros e NIe DOM.
@@ -1491,7 +1490,6 @@ Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH ICOH.
     rename b into e1, a0 into e2. 
     des.
     { left. right. splits; vauto.
-      { apply d. }
       replace (tid e1) with (tid e2); [congruence| ].
       apply clos_trans_of_transitiveD in d6; [| apply sb_trans].
       symmetry. eapply (@ninit_sb_same_tid Gf).
@@ -1532,7 +1530,7 @@ Proof using WF_SC WF TCOH RMWCOV RELCOV RCOH ICOH.
   destruct d7 as [? [RMW%wf_rmwD%seq_eqv_lr [NT II]]%seq_eqv_r]; auto.
   basic_solver 10. 
 Qed. 
-
+  
 Lemma init_tls_eq_rstG : init_tls Gf ≡₁ init_tls rstG.
 Proof using sc WF TCOH RCOH.
   split.
