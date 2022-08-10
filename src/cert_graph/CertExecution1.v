@@ -26,6 +26,79 @@ Set Implicit Arguments.
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
 Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 
+
+(* TODO: move to Eventstraversalorder *)
+Section Tmp.
+  Variable (G: execution) (sc: relation actid).
+  Variable (T: trav_label -> Prop). 
+  Hypothesis RELCOV : is_w (lab G) ∩₁ is_rel (lab G) ∩₁ issued T ⊆₁ covered T.
+  (* Hypothesis RMWCOV : forall r w (RMW : Frmw r w), C r <-> C w. *)
+  Hypotheses
+    (TCOH: tls_coherent G T)
+    (ICOH: iord_coherent G sc T)
+    (RCOH: reserve_coherent G T).
+  Hypotheses (WF: Wf G) (WF_SC: wf_sc G sc). 
+
+  Lemma urr_helper_impl:
+    dom_rel ((hb G ⨾ ⦗is_f (lab G) ∩₁ is_sc (lab G)⦘)^? ⨾ sc^? ⨾ (hb G)^? ⨾ ⦗covered T⦘) ⊆₁ covered T.
+  Proof using WF_SC WF TCOH RELCOV ICOH.
+    rewrite <- !seqA. 
+    rewrite seqA. erewrite cr_helper.
+    2: { apply dom_rel_helper_in. eapply dom_hb_covered; eauto. }
+    rewrite <- seqA, dom_seq. rewrite seqA. erewrite cr_helper.
+    2: { apply dom_rel_helper_in. eapply dom_sc_covered; eauto. }
+    rewrite <- seqA, dom_seq. erewrite cr_helper.
+    2: { apply dom_rel_helper_in.
+         rewrite <- dom_hb_covered at 2; eauto. basic_solver. }
+    basic_solver.
+  Qed.
+
+  Lemma urr_helper: 
+    dom_rel ((hb G ⨾ ⦗is_f (lab G) ∩₁ is_sc (lab G)⦘)^? ⨾ sc^? ⨾ (hb G)^? ⨾ release G ⨾ ⦗issued T⦘) ⊆₁ covered T.
+  Proof using WF_SC WF TCOH RELCOV ICOH. 
+    rewrite <- !seqA. 
+    rewrite seqA. forward eapply dom_release_issued as ->%dom_rel_helper_in; eauto.
+    rewrite <- seqA, dom_seq.
+    rewrite !seqA. apply urr_helper_impl. 
+  Qed.
+
+  Lemma urr_helper_C:
+    dom_rel ((hb G ⨾ ⦗is_f (lab G) ∩₁ is_sc (lab G)⦘)^? ⨾ sc^? ⨾ (hb G)^? ⨾ (release G ⨾ rf G)^? ⨾ ⦗covered T⦘) ⊆₁ covered T.
+  Proof using WF_SC WF TCOH RELCOV ICOH.
+    rewrite <- !seqA. 
+    rewrite seqA. erewrite cr_helper.
+    2: { apply dom_rel_helper_in.
+         rewrite seqA. eapply dom_release_rf_covered; eauto. }
+    rewrite <- seqA, dom_seq.
+    rewrite !seqA. apply urr_helper_impl. 
+  Qed. 
+
+  Lemma rfe_rmw_I: dom_rel (rfe G ⨾ rmw G ⨾ ⦗issued T⦘) ⊆₁ issued T.
+  Proof using WF TCOH ICOH.
+    arewrite (rfe G ⊆ rf G).
+    eapply rfrmw_I_in_I; eauto. 
+  Qed.
+
+  Lemma release_S : release G ⨾ ⦗reserved T⦘ ⊆ ⦗covered T⦘ ⨾ (fun _ _ => True) +++ (sb G)^?.
+  Proof using WF TCOH RELCOV RCOH ICOH. 
+    unfold imm_s_hb.release at 1, imm_s_hb.rs at 1.
+    rewrite !seqA.
+    rewrite (rt_rf_rmw_S' WF ); eauto. 
+    rewrite (crE (⦗issued T⦘ ⨾ (rf G ⨾ rmw G)⁺)); relsf; unionL.
+    { arewrite (rfi G ⊆ sb G).
+      rewrite (rmw_in_sb WF).
+      generalize (@sb_trans G). intros AA. relsf.
+      clear -AA. basic_solver 12. }
+    arewrite (rfi G ⊆ rf G).
+    arewrite (⦗is_rel (lab G)⦘ ⨾ (⦗is_f (lab G)⦘ ⨾ sb G)^? ⨾ ⦗is_w (lab G)⦘ ⨾ (sb G ∩ same_loc (lab G))^? ⨾ ⦗is_w (lab G)⦘ ⨾ (rf G ⨾ rmw G)＊ ⊆ release G).
+    rewrite <- seqA. 
+    forward eapply dom_release_issued as ->%dom_rel_helper_in; eauto.
+    basic_solver. 
+  Qed.
+
+
+End Tmp. 
+
 Section RestExec.
 
 Variable Gf : execution.
@@ -264,12 +337,6 @@ Qed.
 (*   basic_solver 40. *)
 (* Qed. *)
 
-Lemma rfe_rmw_I :dom_rel (Frfe ⨾ Frmw ⨾ ⦗I⦘) ⊆₁ I.
-Proof using WF TCOH ICOH.
-  arewrite (Frfe ⊆ Frf).
-  eapply rfrmw_I_in_I; eauto. 
-Qed.
-
 Lemma rmw_E_rfe :  dom_rel (Frmw ⨾ ⦗E⦘) ∩₁ codom_rel Frfe ⊆₁ E.
 Proof using WF TCOH RCOH ICOH.
   rewrite E_E0; unfold E0.
@@ -381,7 +448,7 @@ Proof using WF TCOH RCOH ICOH.
       basic_solver. }
     rewrite <- inclusion_t_rt, <- ct_step.
     rewrite <- inclusion_id_cr. rewrite seq_id_l, !seqA.
-    rewrite (dom_rel_helper_in rfe_rmw_I).
+    forward eapply rfe_rmw_I as ->%dom_rel_helper_in; eauto.  
     generalize I_in_E rfe_rmw_I rmw_E_rfe; ie_unfolder; basic_solver 80. }
   intros k H.
   rewrite !seqA, H.
@@ -409,7 +476,8 @@ Proof using WF TCOH RCOH ICOH.
   arewrite (Frfe ⨾ Frmw ⨾ ⦗I⦘ ⨾ ⦗E⦘ ⊆ ⦗E⦘ ⨾ (⦗E⦘ ⨾ Frf ⨾ ⦗E⦘ ⨾ Frmw ⨾ ⦗E⦘)^?).
   2:{ subst. relsf. remember (⦗E⦘ ⨾ Frf ⨾ ⦗E⦘ ⨾ Frmw ⨾ ⦗E⦘) as X. basic_solver 21. }
   rewrite crE. rewrite seq_union_r. unionR right. 
-  hahn_frame_r. rewrite (dom_rel_helper rfe_rmw_I).
+  hahn_frame_r.
+  forward eapply rfe_rmw_I as ->%dom_rel_helper; eauto. 
   rewrite I_in_E at 1.
   unfold rfe.
   unfolder. ins. desf. splits; auto.
@@ -452,22 +520,6 @@ Proof using WF RELCOV TCOH RCOH ICOH.
   ins; seq_rewrite <- (sub_sb SUB); basic_solver 21.
 Qed.
 
-
-Lemma release_S : Frelease ⨾ ⦗S⦘ ⊆ ⦗C⦘ ⨾ (fun _ _ => True) +++ Fsb^?.
-Proof using thread WF RELCOV TCOH RCOH ICOH.
-  unfold imm_s_hb.release at 1, imm_s_hb.rs at 1.
-  rewrite !seqA.
-  rewrite (rt_rf_rmw_S' WF ); eauto. 
-  rewrite (crE (⦗I⦘ ⨾ (Frf ⨾ Frmw)⁺)); relsf; unionL.
-  { arewrite (Frfi ⊆ Fsb).
-    rewrite (rmw_in_sb WF).
-    generalize (@sb_trans Gf). intros AA. relsf.
-    clear -AA. basic_solver 12. }
-  arewrite (Frfi ⊆ Frf).
-  arewrite (⦗FRel⦘ ⨾ (⦗FF⦘ ⨾ Fsb)^? ⨾ ⦗FW⦘ ⨾ (Fsb ∩ Fsame_loc)^? ⨾ ⦗FW⦘ ⨾ (Frf ⨾ Frmw)＊ ⊆ Frelease).
-  sin_rewrite release_I.
-  clear. basic_solver 21.
-Qed.
 
 Lemma sb_F_E : dom_rel (Fsb ⨾ ⦗FF ∩₁ FAcq/Rel ∩₁ E⦘) ⊆₁ C ∪₁ I.
 Proof using thread WF RELCOV  TCOH RCOH ICOH.
@@ -1103,52 +1155,22 @@ Proof using WF IMMCON TCOH RCOH ICOH.
   generalize H0. basic_solver 21.
 Qed.
 
-Lemma urr_helper: 
+Lemma urr_helper_rst: 
   dom_rel ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ rst_sc^? ⨾ Ghb^? ⨾ Grelease ⨾ ⦗I⦘) ⊆₁ C.
 Proof using All.
   rewrite (sub_hb_in SUB), (sub_release_in SUB), (sub_F SUB), (sub_Sc SUB).
   arewrite (rst_sc ⊆ sc) by unfold rst_sc; basic_solver.
-  rewrite release_I.
-  sin_rewrite (cr_helper hb_C).
-  rewrite !seqA.
-  sin_rewrite (cr_helper sc_C).
-  rewrite !seqA.
-  arewrite ((Fhb ⨾ ⦗FF ∩₁ FSc⦘)^? ⨾ ⦗C⦘ ⊆ ⦗C⦘ ⨾ (Ghb ⨾ ⦗FF ∩₁ FSc⦘)^?).
-  { generalize hb_C.
-    unfolder; ins; desf; splits; eauto 20.
-    eapply H; eauto.
-    right; eexists; splits; eauto.
-    eapply H; eauto. }
-  basic_solver.
+  apply urr_helper; eauto. 
 Qed.
 
 
-Lemma urr_helper_C: 
+Lemma urr_helper_C_rst: 
   dom_rel ((Ghb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ rst_sc^? ⨾ Ghb^? ⨾ (Grelease ⨾ Grf)^? ⨾ ⦗C⦘) ⊆₁ C.
 Proof using All.
-rewrite (sub_hb_in SUB), (sub_release_in SUB), (sub_F SUB), (sub_Sc SUB).
-rewrite (sub_rf_in SUB).
-arewrite (rst_sc ⊆ sc) by unfold rst_sc; basic_solver.
-
-arewrite ((Frelease ⨾ Frf)^? ⨾ ⦗C⦘ ⊆ ⦗C⦘ ⨾ (Grelease ⨾ Grf)^?).
-{ case_refl _; [basic_solver 12|].
-rewrite !seqA.
-rewrite rf_C.
-sin_rewrite release_I.
-basic_solver 12. }
-
-
-sin_rewrite (cr_helper hb_C).
-rewrite !seqA.
-sin_rewrite (cr_helper sc_C).
-rewrite !seqA.
-arewrite ((Fhb ⨾ ⦗FF ∩₁ FSc⦘)^? ⨾ ⦗C⦘ ⊆ ⦗C⦘ ⨾ (Ghb ⨾ ⦗FF ∩₁ FSc⦘)^?).
-{ generalize hb_C.
-unfolder; ins; desf; splits; eauto 20.
-eapply H; eauto.
-right; eexists; splits; eauto.
-eapply H; eauto. }
-basic_solver.
+  rewrite (sub_hb_in SUB), (sub_release_in SUB), (sub_F SUB), (sub_Sc SUB).
+  rewrite (sub_rf_in SUB).
+  arewrite (rst_sc ⊆ sc) by unfold rst_sc; basic_solver.
+  apply urr_helper_C; eauto. 
 Qed.
 
 Lemma release_CI_de :
