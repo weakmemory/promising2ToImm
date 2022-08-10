@@ -1355,12 +1355,21 @@ T⦘)
     Hypothesis (SAME: same_lab_u2v (lab (ProgToExecution.G s'))
                                    (lab (ProgToExecution.G state''))). 
 
+    Lemma reserved_certT_in_S:
+      reserved (certT G T thread) ⊆₁ reserved T.
+    Proof using SIMREL. 
+      rewrite reserved_certT.
+      rewrite rcoh_I_in_S; eauto. basic_solver.
+    Qed.
 
     Lemma simrel_cert_common:
-      simrel_common (certG G Gsc T S thread (lab' s')) Gsc PC
-                    {| covered := covered T ∪₁ acts_set G ∩₁ NTid_ thread;
-                       issued := issued T |}
-                    (issued T ∪₁ S ∩₁ Tid_ thread) f_to f_from sim_certification.
+      simrel_common (certG G Gsc T thread (lab' s')) Gsc PC
+
+                    (* {| covered := covered T ∪₁ acts_set G ∩₁ NTid_ thread; *)
+                    (*    issued := issued T |} *)
+                    (* (issued T ∪₁ S ∩₁ Tid_ thread) *)
+                    (certT G T thread)
+                    f_to f_from sim_certification.
     Proof using WF TEH'' SIMREL RECP NV IMMCON FAIRf Gf_THREADS_BOUND TLS_FIN.
       cdes SIMREL. cdes COMMON. cdes RECP.
       (* TODO: eauto doesn't use hints? *)
@@ -1369,11 +1378,12 @@ T⦘)
         rewrite <- cert_E. rewrite acts_G_in_acts_Gf; eauto. }
       { erewrite same_lab_u2v_is_ra; eauto  using SAME'. 
         rewrite <- cert_E, cert_F; eauto using SAME'. }
-      { eapply ETCCOH_cert; eauto using SAME_VAL_RF_CERT, SAME_VAL, WF_CERT, WF_SC_CERT, SAME'.  
-      }
+      { eapply TCOH_cert; eauto using SAME_VAL_RF_CERT, SAME_VAL, WF_CERT, WF_SC_CERT, SAME', TCOH_rst_certT. }
+      { eapply ICOH_cert; eauto using SAME_VAL_RF_CERT, SAME_VAL, WF_CERT, WF_SC_CERT, SAME', ICOH_rst_certT, TCOH_rst_certT, INIT_TLS_T. }
+      { eapply RCOH_cert; eauto using SAME_VAL_RF_CERT, SAME_VAL, WF_CERT, WF_SC_CERT, SAME', ICOH_rst_certT, TCOH_rst_certT, INIT_TLS_T. } 
       { erewrite same_lab_u2v_is_rel; eauto using SAME'.
         erewrite same_lab_u2v_is_w; eauto using SAME'.
-        rewrite RELCOV_G. basic_solver. }
+        rewrite issued_certT, covered_certT. rewrite RELCOV_G. basic_solver. }
       { ins.
         assert (acts_set G r) as ER.
         { apply (dom_l (wf_rmwE WF_G)) in RMW. apply seq_eqv_l in RMW. desf. }
@@ -1385,57 +1395,68 @@ T⦘)
         apply seq_eqv_r in RMW'. destruct RMW' as [RMW' EEW].
         assert (tid r = tid w) as TIDRW.
         { by apply (wf_rmwt WF). }
+
+        etransitivity; [etransitivity| ].
+        3: symmetry. 
+        1, 3: by apply set_equiv_exp_equiv, covered_certT. 
         split; (intros [COVV|[ACTS NTID]]; [by left; apply (RMWCOV r w)|]).
         all: right; split; [auto|by generalize NTID; rewrite TIDRW]. }
       { red. splits.
         1,2: by (intros x [AA BB]; apply FCOH; split; auto).
-        { intros x HH AA. apply FCOH; auto. }
+        { intros x HH AA. apply FCOH; auto. by apply reserved_certT_in_S. }
         { ins. apply FCOH.
-          1,2: by apply IST_in_S.
-          assert ((cert_co G T S thread ⨾ ⦗cert_co_base G T S thread⦘) x y) as HH.
-          { apply seq_eqv_r. split; auto. apply IST_in_cert_co_base; auto. }
+          1,2: by apply reserved_certT_in_S. 
+          assert ((cert_co G T thread ⨾ ⦗cert_co_base G T thread⦘) x y) as HH.
+          { apply seq_eqv_r. split; auto. apply IST_in_cert_co_base; auto.
+            eapply reserved_certT; eauto. }
           eapply cert_co_I in HH; eauto.
           apply seq_eqv_r in HH. destruct HH as [HH _].
           eapply (sub_co SUB) in HH.
           apply seq_eqv_l in HH. destruct HH as [_ HH].
           apply seq_eqv_r in HH. desf. }
         ins. apply FCOH; auto.
-        apply RFRMW_IST_IN. apply seq_eqv_r. split; auto. }
+        1,2: by apply reserved_certT_in_S.
+        apply RFRMW_IST_IN. apply seq_eqv_r. split; auto.
+        eapply reserved_certT; eauto. }
       { intros _.
         erewrite same_lab_u2v_is_sc; eauto using SAME'.
         erewrite same_lab_u2v_is_f; eauto using SAME'.
         unfold certG, acts_set. simpls.
         unfold G.
-        arewrite (acts_set (rstG Gf T S thread) ⊆₁ acts_set (rstG Gf T S thread)).
+        arewrite (acts_set (rstG Gf T thread) ⊆₁ acts_set (rstG Gf T thread)).
         erewrite E_F_Sc_in_C; eauto.
-        basic_solver. }
+        rewrite covered_certT. basic_solver. }
       { rewrite same_lab_u2v_R_ex; eauto  using SAME'. }
       splits.
       { unfold G.
-        erewrite <- cert_co_for_split with (G:=rstG Gf T S thread); eauto.
+        erewrite <- cert_co_for_split with (G:=rstG Gf T thread); eauto.
         unfold cert_co_base.
         hahn_frame. apply eqv_rel_mori.
         apply AuxRel.set_compl_mori. red.
-          by erewrite Grfi_in_cert_rfi with (G:=rstG Gf T S thread); eauto. }
+        erewrite Grfi_in_cert_rfi with (G:=rstG Gf T thread); eauto.
+        2-4: eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. 
+        fold G. rewrite <- reserved_certT with (G := G). 
+        simpl. basic_solver 10. }
       
       unfold G. unfold W_ex. rewrite cert_sb. unfold certG. simpls.
       rewrite <- seqA, codom_eqv1.
-      arewrite (codom_rel (⦗E0 Gf T S thread⦘ ⨾ rmw Gf) ⊆₁ is_w (lab Gf)).
+      arewrite (codom_rel (⦗E0 Gf T thread⦘ ⨾ rmw Gf) ⊆₁ is_w (lab Gf)).
       { rewrite (wf_rmwD WF). basic_solver. }
       (* TODO: introduce a lemma *)
-      arewrite (E0 Gf T S thread ⊆₁ E0 Gf T S thread ∩₁ E0 Gf T S thread).
+      arewrite (E0 Gf T thread ⊆₁ E0 Gf T thread ∩₁ E0 Gf T thread).
       rewrite <- set_interA.
       unfold E0 at 1. rewrite !set_inter_union_r, !set_inter_union_l.
       unionL.
       4: { rewrite (wf_rmwD WF). type_solver 10. }
-      { rewrite w_covered_issued; eauto. basic_solver 10. }
-      { basic_solver 10. }
+      { rewrite w_covered_issued; eauto.
+        rewrite reserved_certT. basic_solver 10. }
+      { rewrite reserved_certT. basic_solver 10. }
       unfold sb. unfold rstG, restrict.
-      arewrite (Tid_ thread ∩₁ S ⊆₁ Tid_ thread ∩₁ S ∩₁ E0 Gf T S thread).
-      { assert (Tid_ thread ∩₁ S ⊆₁ E0 Gf T S thread) as AA.
+      arewrite (Tid_ thread ∩₁ reserved T ⊆₁ Tid_ thread ∩₁ reserved T ∩₁ E0 Gf T thread).
+      { assert (Tid_ thread ∩₁ reserved T ⊆₁ E0 Gf T thread) as AA.
         { unfold E0. basic_solver 10. }
         generalize AA. basic_solver. }
-      clear.
+      simpl. rewrite reserved_certT. clear.
       unfolder. ins. desf; eexists; eauto.
       unfold acts_set; simpls. splits; [|by eauto].
       right. splits; auto.
@@ -1444,9 +1465,13 @@ T⦘)
     Qed.
 
     Lemma simrel_cert_local:
-      simrel_thread_local (certG G Gsc T S thread (lab' s')) Gsc PC
-                          {| covered := covered T ∪₁ acts_set G ∩₁ NTid_ thread; issued := issued T |}
-                          (issued T ∪₁ S ∩₁ Tid_ thread) f_to f_from thread sim_certification. 
+      simrel_thread_local (certG G Gsc T thread (lab' s')) Gsc PC
+
+                          (* {| covered := covered T ∪₁ acts_set G ∩₁ NTid_ thread; issued := issued T |} *)
+                          (* (issued T ∪₁ S ∩₁ Tid_ thread) *)
+                          (certT G T thread)
+
+                          f_to f_from thread sim_certification. 
     Proof using WF TEH'' STATE0 SIMREL SAME RECP NV IMMCON FAIRf Gf_THREADS_BOUND TLS_FIN.
       cdes STATE0.
       red. splits.
@@ -1459,7 +1484,8 @@ T⦘)
         { unfold certG. unfold acts_set. simpls.
           unfold G. unfold rstG, restrict. simpls. split; auto.
           red. left. left. by right. }
-        { intros [HH|[_ HH]]; desf. }
+        { by apply issued_certT. }
+        { intros [HH|[_ HH]]%covered_certT; desf. }
         { erewrite same_lab_u2v_loc; eauto. }
         cdes HELPER.
         red. splits; auto.
@@ -1476,11 +1502,14 @@ T⦘)
           eapply cert_msg_rel with (lab':= (lab' s')); eauto.
           all: unfold G; eauto.
           all: try by unfold rst_sc; rewrite <- HeqGsc.
-          apply seq_eqv_r. split; eauto. }
-        assert ((msg_rel (certG G Gsc T S thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
+          4: by apply seq_eqv_r; split; eauto.
+          all: eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. }
+          
+        assert ((msg_rel (certG G Gsc T thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
         2: { apply seq_eqv_r in XX. desf. }
         unfold G. simpl. 
-        eapply cert_msg_rel; eauto.  
+        eapply cert_msg_rel; eauto.
+        1-3: by eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. 
         unfold G. 
         eapply msg_rel_I; eauto.
         apply seq_eqv_r. split; auto. }
@@ -1488,7 +1517,7 @@ T⦘)
         eapply SIM_RPROM in RES.
         desc.
         assert (acts_set Gf b0) as FEB.
-        { by apply (etc_S_in_E ETCCOH). }
+        { eapply rcoh_S_in_E; eauto. }
         assert (acts_set G b0) as EB.
         { subst. eapply ST_in_E; eauto. by split. }
 
@@ -1496,14 +1525,17 @@ T⦘)
            See ad483e9 commit *)
         
         exists b0. splits; auto.
-        { right. by split. }
+        { apply reserved_certT. vauto. } 
+        { intros ISS. eapply NOISS, issued_certT; eauto. }
         erewrite same_lab_u2v_loc in LOC; eauto.
         rewrite <- lab_G_eq_lab_Gf; eauto.
           by apply same_lab_u2v_comm. }
       { red. ins. (* sim_mem *)
         edestruct SIM_MEM with (b:=b0) as [rel_opt]; eauto.
-        { erewrite same_lab_u2v_loc in LOC; eauto. }
-        { erewrite <- ISS_OLD; eauto. }
+        { erewrite same_lab_u2v_loc in LOC; eauto.
+          eapply issued_certT; eauto. }
+        { erewrite same_lab_u2v_loc; eauto. eapply same_lab_u2v_comm; eauto. }
+        { erewrite <- ISS_OLD; eauto. eapply issued_certT; eauto. }
         simpls. desc.
         exists rel_opt.
         splits; eauto.
@@ -1517,17 +1549,22 @@ T⦘)
             2: { apply seq_eqv_r in XX. desf. }
             eapply msg_rel_I; eauto.
             eapply cert_msg_rel with (lab':=(lab' s')); eauto.
-            apply seq_eqv_r. split; auto. }
-          assert ((msg_rel (certG G Gsc T S thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
+            1-3: by eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. 
+            apply seq_eqv_r. split; auto.
+            eapply issued_certT; eauto. }
+          assert ((msg_rel (certG G Gsc T thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
           2: { apply seq_eqv_r in XX. desf. }
           unfold G.          
           eapply cert_msg_rel; eauto.
+          1-3: by eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. 
           eapply msg_rel_I; eauto.
-          apply seq_eqv_r. split; auto. }
+          apply seq_eqv_r. split; auto.
+          eapply issued_certT; eauto. }
         rename H1 into UU.
         intros UU1 UU2.
         destruct UU as [AA BB]; auto.
-        { intros HH. apply UU2. by left. }
+        { intros HH. apply UU2.
+          apply covered_certT. by left. }
         splits; auto. red in BB. desc.
         exists p_rel. splits; auto.
         destruct BB0; desc; [left|right].
@@ -1535,26 +1572,35 @@ T⦘)
           intros HH. apply NINRMW.
           destruct HH as [z HH]. apply seq_eqv_l in HH. desc.
           exists z. apply seq_eqv_l. split; auto.
-          apply RFRMW_IN. apply seq_eqv_r. by split. }
+          { eapply issued_certT; eauto. }
+          apply RFRMW_IN. apply seq_eqv_r.
+          split; auto. eapply issued_certT; eauto. }
         exists p. splits; eauto.
+        { eapply issued_certT; eauto. }
         { destruct INRMW as [z [RF RMW]].
-          assert ((E0 Gf T S thread) z).
+          assert ((E0 Gf T thread) z).
           { unfold E0; left; right; exists b0.
+            apply seq_eqv_r. split.
+            2: { split; auto.
+                 eapply rcoh_I_in_S, issued_certT; eauto. }
             generalize (rmw_in_sb WF); basic_solver 12. }
-          assert ((E0 Gf T S thread) b0).
-          { unfold E0; left; left; right; basic_solver 12. }
-          assert ((E0 Gf T S thread) p).
+          assert ((E0 Gf T thread) b0).
+          { unfold E0; left; left; right.
+            eapply issued_certT; eauto. }
+          assert ((E0 Gf T thread) p).
           { unfold E0; left; left; right; basic_solver 12. }
           assert ((rmw G) z b0).
-          apply rmw_G_rmw_Gf; basic_solver 12.
+          { apply rmw_G_rmw_Gf; basic_solver 12. }
           exists z; splits; [|done].
-          cut ((cert_rf G Gsc T S thread ⨾ ⦗D G T S thread⦘) p z).
+          cut ((cert_rf G Gsc T thread ⨾ ⦗D G T thread⦘) p z).
           { clear. basic_solver. }
           apply cert_rf_D; auto. apply seq_eqv_r. split; auto.
           {  unfold G, rstG. unfold restrict. ins.
              apply seq_eqv_lr. splits; auto. }
-          eapply dom_rmw_D; eauto. exists b0.
-          apply seq_eqv_r. split; auto. by apply I_in_D. }
+          eapply dom_rmw_D; eauto.
+          1-2: by eauto using TCOH_rst_certT, ICOH_rst_certT. 
+          exists b0. apply seq_eqv_r. split; auto.
+          eapply I_in_D; eauto. eapply issued_certT; eauto. }
         exists p_v. splits; eauto.
         erewrite ISS_OLD; eauto. }
       { red. ins.
@@ -1563,68 +1609,77 @@ T⦘)
           erewrite same_lab_u2v_loc; eauto.
           (* by rewrite <- lab_G_eq_lab_Gf. *)
         }
-        apply SIM_RES_MEM; auto. }
+        apply SIM_RES_MEM; auto.
+        { by eapply reserved_certT_in_S. } 
+        intros ISS. eapply NISSB, issued_certT; eauto. }
       { red. splits; red; ins. (* sim_tview *)
         { assert
-            (t_cur (certG G Gsc T S thread (lab' s')) Gsc thread l
+            (t_cur (certG G Gsc T thread (lab' s')) Gsc thread l
                    (covered T ∪₁ acts_set G ∩₁ NTid_ thread) ≡₁
                    t_cur Gf sc thread l (covered T)) as XX.
-          2: { eapply max_value_same_set; eauto. apply SIM_TVIEW. }
+          2: { rewrite covered_certT.
+               eapply max_value_same_set; eauto. 
+               apply SIM_TVIEW. }
           
           rewrite cert_t_cur_thread; try by eauto. 
-          arewrite (Gsc ≡ (rst_sc Gf sc T S thread)).
-          subst; eapply t_cur_thread; eauto. }
+          arewrite (Gsc ≡ (rst_sc Gf sc T thread)).
+          subst; eapply t_cur_thread; eauto.
+          1-3: by eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. }
         { assert
-            (t_acq (certG G Gsc T S thread (lab' s')) Gsc thread l
+            (t_acq (certG G Gsc T thread (lab' s')) Gsc thread l
                    (covered T ∪₁ acts_set G ∩₁ NTid_ thread) ≡₁
                    t_acq Gf sc thread l (covered T)) as XX.
-          2: { eapply max_value_same_set; eauto. apply SIM_TVIEW. }
+          2: { rewrite covered_certT. 
+               eapply max_value_same_set; eauto. apply SIM_TVIEW. }
           
           rewrite cert_t_acq_thread; eauto.
-          arewrite (Gsc ≡ (rst_sc Gf sc T S thread)).
-          subst; eapply t_acq_thread; eauto. }
+          arewrite (Gsc ≡ (rst_sc Gf sc T thread)).
+          subst; eapply t_acq_thread; eauto.
+          1-3: by eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. }
         
-        assert (t_rel (certG G Gsc T S thread (lab' s')) Gsc thread l l'
+        assert (t_rel (certG G Gsc T thread (lab' s')) Gsc thread l l'
                       (covered T ∪₁ acts_set G ∩₁ NTid_ thread) ≡₁
                       t_rel Gf sc thread l l' (covered T)) as XX.
         { rewrite cert_t_rel_thread; eauto.
-          arewrite (Gsc ≡ (rst_sc Gf sc T S thread)).
-          subst; eapply t_rel_thread; eauto. }
+          arewrite (Gsc ≡ (rst_sc Gf sc T thread)).
+          subst; eapply t_rel_thread; eauto.
+          1-3: by eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. }
         
         cdes SIM_TVIEW.
         eapply max_value_same_set.
         { by apply REL. }
         apply set_equiv_union; auto.
+        { by rewrite covered_certT. }
         destruct (Loc.eq_dec l l'); [|done].
         erewrite same_lab_u2v_loc; eauto.
         erewrite same_lab_u2v_is_w; eauto.
         rewrite <- lab_G_eq_lab_Gf; eauto.
+        rewrite covered_certT. 
         unfold tid. basic_solver 10. }
       red. splits. (* sim_state *)
       { cdes STATE. 
         ins. split.
-        2: { intros HH. left. by apply PCOV. }
-        intros [HH|[_ HH]]; simpls.
+        2: { intros HH. apply covered_certT. left. by apply PCOV. }
+        intros [HH|[_ HH]]%covered_certT; simpls.
           by apply PCOV. }
       cdes RECP.
       eexists. red. splits.
       { apply STEPS'. }
-      { intros HH. inv HH. }
-      
+      { intros HH. inv HH. }      
       eapply YY; eauto.  
-    Qed.                   
+    Qed.
     
   End SimRelCert.
 
   Lemma cert_graph_init:
-    exists G' sc' T' S',
+    exists G' sc' T',
       ⟪ WF : Wf G' ⟫ /\
       ⟪ IMMCON : imm_consistent G' sc' ⟫ /\
       ⟪ NTID  : NTid_ thread ∩₁ G'.(acts_set) ⊆₁ covered T' ⟫ /\
-      ⟪ SIMREL : simrel_thread G' sc' PC T' S' f_to f_from thread sim_certification ⟫ /\
+      ⟪ SIMREL : simrel_thread G' sc' PC T' f_to f_from thread sim_certification ⟫ /\
       ⟪ FIN': fin_exec G' ⟫ /\
       ⟪ FAIR': mem_fair G' ⟫. 
-  Proof using WF T SIMREL S IMMCON FAIRf TLS_FIN Gf_THREADS_BOUND.
+  Proof using WF T SIMREL IMMCON FAIRf TLS_FIN Gf_THREADS_BOUND.
     cdes SIMREL.
     forward eapply (proj1 (simrel_thread_local_equiv sim_normal)); eauto.
     rename LOCAL into LOCAL_. ins. desc. rename H into LOCAL. cdes LOCAL.    
@@ -1647,18 +1702,18 @@ T⦘)
     forward eapply (@receptiveness_impl state state'' new_val); eauto.
     intros RECP. desc. cdes RECP. 
     
-    assert (fin_exec (certG G Gsc T S thread (lab' s'))) as FIN'. 
+    assert (fin_exec (certG G Gsc T thread (lab' s'))) as FIN'. 
     { apply fin_exec_same_events with (G := G); done. }
 
-    exists (certG G Gsc T S thread (lab' s')).
+    exists (certG G Gsc T thread (lab' s')).
     exists Gsc.
-    exists (mkTC ((covered T) ∪₁ ((acts_set G) ∩₁ NTid_ thread)) (issued T)).
-    exists ((issued T) ∪₁ S ∩₁ Tid_ thread).    
+    exists (certT G T thread). 
     
     splits; eauto using WF_CERT. 
     { eapply cert_imm_consistent;
-        eauto using WF_CERT, WF_SC_CERT, FACQREL, SAME_VAL_RF_CERT, SAME_VAL, SAME'. }
-    { unfold certG, acts_set; ins; basic_solver. }
+        eauto using WF_CERT, WF_SC_CERT, FACQREL, SAME_VAL_RF_CERT, SAME_VAL, SAME'.
+      1-3: by eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. }
+    { rewrite covered_certT. basic_solver. }
     { red. splits; eauto using simrel_cert_common, simrel_cert_local. }
     apply fin_exec_fair; eauto using WF_CERT. 
   Qed.
