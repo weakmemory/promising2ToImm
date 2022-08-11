@@ -475,26 +475,26 @@ do 2 (rewrite eqv_rel_mori with (x := _ ∩₁ _); [| intro; apply proj2]).
   (* TODO: move to imm *)
   Lemma step_threads_set s1 s2 t
         (STEP: step t s1 s2):
-    ProgToExecution.G s2 = ProgToExecution.G s1 \/
-    threads_set (ProgToExecution.G s2) ≡₁ threads_set (ProgToExecution.G s1) ∪₁ eq t. 
+    threads_set (ProgToExecution.G s2) ⊆₁ threads_set (ProgToExecution.G s1) ∪₁ eq t /\ 
+    threads_set (ProgToExecution.G s1) ⊆₁ threads_set (ProgToExecution.G s2). 
   Proof using. 
     inv STEP. inv H. red in H0, H1. desc. inv H2.
-    all: rewrite UG; try by vauto. 
-    all: simpl; right; basic_solver.
+    all: rewrite UG; try by vauto.
+    all: simpl; basic_solver.
   Qed.
 
   (* TODO: move to imm *)
   Lemma steps_threads_set s1 s2 t
         (STEP: (step t)^* s1 s2):
-    ProgToExecution.G s2 = ProgToExecution.G s1 \/
-    threads_set (ProgToExecution.G s2) ≡₁ threads_set (ProgToExecution.G s1) ∪₁ eq t.
+    threads_set (ProgToExecution.G s2) ⊆₁ threads_set (ProgToExecution.G s1) ∪₁ eq t /\
+    threads_set (ProgToExecution.G s1) ⊆₁ threads_set (ProgToExecution.G s2). 
   Proof using.
     induction STEP.
     { by apply step_threads_set in H. }
-    { tauto. }
-    des.
-    { left. congruence. }
-    all: right; rewrite IHSTEP2, IHSTEP1; basic_solver. 
+    { basic_solver. }
+    desc. split.
+    { rewrite IHSTEP2, IHSTEP1. basic_solver. }
+    rewrite IHSTEP3, IHSTEP0. basic_solver. 
   Qed.
 
   Lemma STATE''
@@ -564,18 +564,8 @@ do 2 (rewrite eqv_rel_mori with (x := _ ∩₁ _); [| intro; apply proj2]).
     constructor.
     { rewrite CACTS. unfold CT, mkCT, G. 
       rewrite E_E0; eauto. }
-    { 
-      move STEP2 at bottom. move STEP1 at bottom. move STEPS at bottom. 
-      apply steps_threads_set in STEP2; eauto. des.
-      { rewrite <- STEP2. eapply tr_threads_set; eauto. }
-      (* apply steps_threads_set in STEP1; eauto. des. *)
-      (* { apply steps_threads_set in STEPS; eauto. des. *)
-      (*   { rewrite STEP1, <- STEPS. eapply tr_threads_set; eauto. } *)
-
-      erewrite tr_threads_set in STEP2; eauto. rewrite STEP2.
-      symmetry. apply set_union_absorb_r. apply set_subset_eq. 
-      admit. 
-    }
+    { apply steps_threads_set in STEP2 as [_ ->].
+      apply TEH. }
     { ins. unfold G, rstG, restrict; simpls.
       rewrite <- (tr_lab TEH); auto.
       2: { eapply steps_preserve_E.
@@ -622,7 +612,7 @@ do 2 (rewrite eqv_rel_mori with (x := _ ∩₁ _); [| intro; apply proj2]).
                             ⦗Tid_ thread⦘ ⨾ ⦗Tid_ thread⦘ ⨾ ⦗E0 Gf T thread⦘).
     { basic_solver. }
     seq_rewrite <- (tr_rmw_dep TEH). unfold mkCT. basic_solver.
-  Admitted. 
+  Qed. 
 
   Lemma COMP_RPPO:
     dom_rel (⦗is_r (lab G)⦘ ⨾ (data G ∪ rfi G ∪ rmw G)＊ ⨾ rppo G ⨾ ⦗reserved T⦘)
@@ -818,6 +808,7 @@ T⦘)
              (MOD: actid -> Prop) (new_val : actid -> value) :=
     ⟪ STEPS' : (step tid)＊ s_init s' ⟫ /\
     ⟪ RACTS : (acts_set (ProgToExecution.G s)) = (acts_set (ProgToExecution.G s')) ⟫ /\
+    ⟪ RTS: threads_set (ProgToExecution.G s) ≡₁ threads_set (ProgToExecution.G s')⟫ /\
     ⟪ RRMW  : (rmw (ProgToExecution.G s))  ≡ (rmw (ProgToExecution.G s'))  ⟫ /\
     ⟪ RDATA : (data (ProgToExecution.G s)) ≡ (data (ProgToExecution.G s')) ⟫ /\
     ⟪ RADDR : (addr (ProgToExecution.G s)) ≡ (addr (ProgToExecution.G s')) ⟫ /\
@@ -842,7 +833,7 @@ T⦘)
     forward eapply TCOH_rst_certT with (thread := thread) as TCOH'; eauto.
     fold G in *. unfold rst_sc in ICOH'. fold Gsc in ICOH'.
 
-    apply receptiveness_full; eauto.  
+    apply receptiveness_full; eauto. 
     { red. ins. red. apply RMWRES in IN. red in IN. desf. }
     { split; [|basic_solver].
       rewrite TEH''.(tr_acts_set).
@@ -1133,7 +1124,7 @@ T⦘)
       cdes RECP.
       constructor; auto.
       { rewrite cert_E. rewrite <- RACTS. by rewrite TEH''.(tr_acts_set). }
-      { admit. }
+      { rewrite <- RTS. apply TEH''. }
       { ins. unfold lab'. desf. }
       all: unfold certG; simpls.
       { rewrite <- RRMW. apply TEH''.(tr_rmw). }
@@ -1141,7 +1132,7 @@ T⦘)
       { rewrite <- RADDR. apply TEH''.(tr_addr). }
       { rewrite <- RCTRL. apply TEH''.(tr_ctrl). }
       { rewrite <- RFAILRMW. apply TEH''.(tr_rmw_dep). }
-    Admitted. 
+    Qed. 
 
     Lemma NEWRF_SPLIT: delta_rf ≡ new_rfi ∪ new_rfe.
     Proof using WF SIMREL IMMCON.
