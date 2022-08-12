@@ -4,9 +4,10 @@ Require Import Lia.
 
 From imm Require Import Events Execution imm_s.
 From imm Require Import AuxRel2.
-From imm Require Import TraversalConfig.
-From imm Require Import Traversal.
-From imm Require Import FinExecution. 
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency.
+From imm Require Import TraversalOrder. 
+Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtSimTraversal.
@@ -14,6 +15,9 @@ Require Import ExtSimTraversalProperties.
 
 Require Import IndefiniteDescription.
 Require Import SetSize.
+From imm Require Import FinExecution.
+
+Require Import TlsEventSets.
 
 Set Implicit Arguments.
 
@@ -85,77 +89,209 @@ Section ExtTraversalCounting.
   Opaque acts_list.
   (***********)
 
-  Definition trav_steps_left (T : ext_trav_config) :=
-    countP (set_compl (ecovered T)) acts_list +
-    countP (W ∩₁ set_compl (eissued T)) acts_list +
-    countP (W ∩₁ set_compl (reserved T)) acts_list.
+  (* TODO: move*)
+  From imm Require Import ThreadBoundedExecution.
+  Definition threads := map tid acts_list.
+  (* Definition b := max threads.  *)
+  (* Lemma threads_bound_G: *)
+  (*   threads_bound G b.  *)
+
+  (* TODO: move*)
+  Global Add Parametric Morphism : propagated_thread with signature
+         set_equiv ==> eq ==> set_equiv as propagated_thread_more.
+  Proof using. 
+    ins. unfold propagated_thread. rewrite H. auto.
+  Qed. 
+
+  Definition props_left (TS: thread_id -> actid  -> Prop) :=
+    list_sum (map (fun t => countP (TS t) acts_list) threads). 
+
+  Add Parametric Morphism: props_left with signature
+      (eq ==> set_equiv) ==> eq as props_left_more.
+  Proof using. 
+    ins. unfold props_left. f_equal.
+    induction threads; [done| ].
+    simpl. erewrite countP_more; [| rewrite (H a); reflexivity| reflexivity].
+    rewrite IHl. auto.
+  Qed. 
+
+  Definition trav_steps_left (T : trav_label -> Prop) :=
+    countP (set_compl (covered T)) acts_list +
+    countP (W ∩₁ set_compl (issued T)) acts_list +
+    countP (W ∩₁ set_compl (reserved T)) acts_list +
+    props_left (fun t => W ∩₁ set_compl (propagated_thread T t)).
+
+  (* Add Parametric Morphism: trav_steps_left with signature *)
+  (*        set_equiv ==> eq as trav_steps_left_more.  *)
+  (* Proof using.  *)
+  (*   ins. unfold trav_steps_left. rewrite H. *)
+  (*   erewrite props_left_more. *)
+  (*   2: { red. ins. pattern x0. rewrite H0, H. reflexivity.   *)
+  (*   auto. *)
+  (* Qed.  *)
+
+  (* TODO: move*)
+  Lemma emiT {A: Type} {P: Prop} (b1 b2: A) (p: P):
+    (ifP P then b1 else b2) = b1.
+  Proof. by destruct (excluded_middle_informative P). Qed. 
   
-  Lemma trav_steps_left_step_decrease (T T' : ext_trav_config)
-        (ETCCOH : etc_coherent G sc T)
+  Lemma emiF {A: Type} {P: Prop} (b1 b2: A) (np: ~ P):
+    (ifP P then b1 else b2) = b2.
+  Proof. by destruct (excluded_middle_informative P). Qed. 
+  
+  (* TODO: move*)
+  Lemma countP_union_disj S1 S2 l
+        (DISJ: set_disjoint S1 S2):
+    countP S1 l + countP S2 l = countP (S1 ∪₁ S2) l. 
+  Proof using. 
+    unfold countP.
+    induction l.
+    { simpl. lia. }
+    simpl. destruct (excluded_middle_informative (S1 a)), (excluded_middle_informative (S2 a)); ins.
+    { edestruct DISJ; eauto. }
+    1, 2: rewrite emiT; [| by vauto]; simpl; lia.
+    rewrite emiF.
+    2: { unfold set_union. tauto. }
+    lia.
+  Qed. 
+
+  Lemma In_alt {A: Type} (l: list A):
+    0 < length l <-> exists a, In a l. 
+  Proof using. 
+    destruct l.
+    { simpl. split; [lia| ins; desf]. }
+    simpl. split; [| lia]. ins. vauto.
+  Qed.  
+
+  (* Lemma countP_lt S1 S2 l *)
+  (*       (IN: S1 ⊆₁ S2) *)
+  (*       (DIFF: exists e, S2 e /\ ~ S1 e /\ In e l): *)
+  (*   countP S1 l < countP S2 l.  *)
+  (* Proof using.  *)
+  (*   rewrite set_split_complete with (s' := S2) (s := S1). *)
+  (*   rewrite <- countP_union_disj; [| basic_solver]. *)
+  (*   rewrite set_inter_absorb_l; auto. *)
+  (*   rewrite plus_n_O at 1. apply Plus.plus_lt_compat_l. *)
+  (*   unfold countP. apply In_alt. *)
+  (*   desc. exists e. apply in_filterP_iff. splits; vauto.  *)
+  (* Qed.   *)
+  
+  Lemma tls_set_alt_compl T a e:
+    ~ (event ↑₁ (T ∩₁ action ↓₁ eq a)) e <-> ~ T (mkTL a e). 
+  Proof using.
+    apply not_iff_compat, tls_set_alt. 
+  Qed.
+
+  (* TODO: move to tlseventsets*)
+  Lemma propagated_singleton t e
+        (TS: (threads_set G \₁ eq tid_init) t):
+    propagated G (eq (mkTL (ta_propagate t) e)) ≡₁ eq e.
+  Proof using. 
+    unfold propagated. split; try basic_solver. apply set_subset_eq.
+    exists (mkTL (ta_propagate t) e). do 2 split; vauto.
+  Qed.
+
+  (*TODO: move*)
+  From imm Require Import AuxDef. 
+
+  (* TODO: move to tlseventsets *)
+  Lemma prop_in_thread_set T t e
+        (TCOH: tls_coherent G T)
+        (PROP: T (mkTL (ta_propagate t) e)):
+    (threads_set G \₁ eq tid_init) t. 
+  Proof using.
+    destruct TCOH. 
+    unfold init_tls, exec_tls in tls_coh_exec. rewrite !set_pair_alt in tls_coh_exec.
+    eapply tls_coh_exec in PROP. unfolder in PROP. des; ins; try by vauto.
+    all: destruct PROP; desc; congruence. 
+  Qed. 
+
+  Lemma trav_steps_left_step_decrease (T T' : trav_label -> Prop)
+        (* (ETCCOH : etc_coherent G sc T) *)
+        (TCOH: tls_coherent G T)
+        (ICOH: iord_coherent G sc T)
+        (RCOH: reserve_coherent G T)
         (STEP : ext_trav_step G sc T T') :
     trav_steps_left T > trav_steps_left T'.
   Proof using WF.
-    assert (etc_coherent G sc T') as ETCCOH'.
-    { red in STEP. desf. apply STEP. }
-    assert (tc_coherent G sc (etc_TC T')) as TCCOH'.
-    { apply ETCCOH'. }
     assert (forall e,
                countP (W ∩₁ set_compl (reserved T)) acts_list >=
                countP (W ∩₁ set_compl (reserved T ∪₁ eq e)) acts_list) as AA.
     { intros e. red. apply countP_mori; auto.
       basic_solver. }
-    red in STEP. desc.
+    red in STEP. destruct STEP as [[a e] STEP]. 
     assert (~ is_init e) as NINITE.
-    { eapply ext_itrav_step_ninit with (T:=T); eauto. }
-    red in STEP.
-    desf.
-    { clear AA.
-      unfold trav_steps_left.
-      rewrite ISSEQ, RESEQ.
-      assert (countP (set_compl (ecovered T)) acts_list >
-              countP (set_compl (ecovered T')) acts_list) as HH.
-      2: lia.
-      eapply countP_strict_mori with (e:=e); auto.
-      { rewrite COVEQ. basic_solver. }
-      { unfold set_compl. intros HH. apply HH. apply COVEQ. basic_solver. }
-      apply acts_set_findom. 
-      split; auto.
-      apply (coveredE TCCOH'). apply COVEQ. basic_solver. }
-    { unfold trav_steps_left.
-      rewrite COVEQ.
-      assert (reserved T' e) as RESE.
-      { apply RESEQ. basic_solver. }
-      assert (W e) as WE by (by apply (reservedW WF ETCCOH')).
-      assert (countP (W ∩₁ set_compl (reserved T )) acts_list >=
-              countP (W ∩₁ set_compl (reserved T')) acts_list).
-      { apply countP_mori; auto. rewrite RESEQ. basic_solver 10. }
-      assert (countP (W ∩₁ set_compl (eissued T )) acts_list >
-              countP (W ∩₁ set_compl (eissued T')) acts_list).
-      2: lia.
-      apply countP_strict_mori with (e:=e).
-      { rewrite ISSEQ. basic_solver. }
-      { intros BB. apply BB. apply ISSEQ. basic_solver. }
-      { by split. }
-      apply acts_set_findom. split; auto.
-      now apply (etc_S_in_E ETCCOH'). }
-    unfold trav_steps_left.
-    rewrite COVEQ, ISSEQ.
-    assert (countP (W ∩₁ set_compl (reserved T )) acts_list >
-            countP (W ∩₁ set_compl (reserved T')) acts_list).
-    2: lia.
-    assert (reserved T' e) as RESE.
-    { apply RESEQ. basic_solver. }
-    assert (W e) as WE by (by apply (reservedW WF ETCCOH')).
-    apply countP_strict_mori with (e:=e).
-    { rewrite RESEQ. basic_solver. }
-    { intros BB. apply BB. apply RESEQ. basic_solver. }
-    { by split. }
-    apply acts_set_findom. split; auto.
-    now apply (etc_S_in_E ETCCOH').
+    { eapply ext_itrav_step_ninit in STEP; eauto. }
+    eapply ext_itrav_stepE in STEP as Ee; eauto. ins. 
+
+    inversion STEP. 
+    unfold trav_steps_left. 
+    rewrite ets_upd.    
+    simplify_tls_events. unfold gt. 
+
+    Local Ltac sum_gt_l := apply NPeano.Nat.add_lt_le_mono; [| apply countP_mori; basic_solver 10]. 
+    Local Ltac sum_gt_r := apply NPeano.Nat.add_le_lt_mono; [apply countP_mori; basic_solver 10| ]. 
+    apply tls_set_alt_compl in ets_new_ta.
+    assert (T' (a, e)) as T'ae%tls_set_alt by (apply ets_upd; basic_solver). 
+    assert (In e acts_list) as INe by (apply acts_set_findom; split; auto). 
+    
+    (* TODO: move to TlsEventSets*)
+    assert (forall a (NP: forall t, a <> ta_propagate t),
+               set_disjoint (eq (a, e)) (action ↓₁ is_ta_propagate_to_G G)) as NP.
+    { unfold is_ta_propagate_to_G. unfolder. ins. subst. desc. ins. congruence. }
+
+  (*   destruct a; simplify_tls_events. *)
+  (*   (* 1, 2, 4: rewrite propagated_nonpropagated_empty with (S := eq _); [| apply NP; by vauto]; rewrite set_union_empty_r. *) *)
+  (*   { sum_gt_l.  *)
+  (*     do 3 sum_gt_l. apply countP_strict_mori with (e := e); try basic_solver. } *)
+  (*   { do 2 sum_gt_l. sum_gt_r. *)
+  (*     eapply countP_strict_mori with (e := e); try basic_solver. *)
+  (*     { apply or_not_and. right. apply set_compl_compl. by right. } *)
+  (*     split; auto. eapply issuedW; eauto. } *)
+  (*   { sum_gt_l. rewrite <- !Nat.add_assoc. do 2 sum_gt_r. *)
+  (*     eapply countP_strict_mori with (e := e); try basic_solver. *)
+  (*     { apply or_not_and. right. apply set_compl_compl. by right. } *)
+  (*     split; auto. eapply reservedW; eauto. } *)
+  (*   { rewrite <- !Nat.add_assoc. repeat sum_gt_r. *)
+  (*     forward eapply prop_in_thread_set as TS; eauto. *)
+  (*     { apply ets_upd. vauto. } *)
+  (*     arewrite (propagated G (eq (ta_propagate tid, e)) ≡₁ eq e). *)
+  (*     { by apply propagated_singleton. } *)
+  (*     eapply countP_strict_mori with (e := e); try basic_solver. *)
+  (*     2: { split. *)
+  (*          { eapply propagatedW; eauto. red. *)
+  (*            exists (mkTL (ta_propagate tid) e). do 2 split; auto. *)
+  (*            { apply ets_upd. vauto. } *)
+  (*            red. red. exists tid. split; vauto. } *)
+  (*          intros PROP. destruct ets_new_ta. *)
+  (*          destruct PROP, x.  *)
+  (*          exists (mkTL (ta_propagate tid) e). do 2 split; vauto. *)
+  (*          apply tls_set_alt.  *)
+  (*          red. red. exists tid. split; vauto. } *)
+  (*     { apply or_not_and. right. apply set_compl_compl. right. }       *)
+  (* Qed. *)
+  Admitted.
+
+  (* TODO: move*)
+  Lemma ext_trav_step_coh_crt (T T' : trav_label -> Prop)
+        (TCOH: tls_coherent G T)
+        (ICOH: iord_coherent G sc T)
+        (RCOH: reserve_coherent G T)
+        (STEPS: (ext_trav_step G sc)^* T T'):
+    tls_coherent G T' /\ iord_coherent G sc T' /\ reserve_coherent G T'.
+  Proof using. 
+    induction STEPS.
+    { inv H. inv H0. }
+    { auto. }
+    apply IHSTEPS2; apply IHSTEPS1; auto.
   Qed.
 
-  Lemma trav_steps_left_steps_decrease (T T' : ext_trav_config)
-        (ETCCOH : etc_coherent G sc T)
+
+  Lemma trav_steps_left_steps_decrease (T T' : trav_label -> Prop)
+        (* (ETCCOH : etc_coherent G sc T) *)
+        (TCOH: tls_coherent G T)
+        (ICOH: iord_coherent G sc T)
+        (RCOH: reserve_coherent G T)
         (STEPS : (ext_trav_step G sc)⁺ T T') :
     trav_steps_left T > trav_steps_left T'.
   Proof using WF.
@@ -163,74 +299,97 @@ Section ExtTraversalCounting.
     { apply trav_steps_left_step_decrease; auto. }
     red. etransitivity.
     2: now apply IHSTEPS1.
-    apply IHSTEPS2. apply clos_trans_tn1 in STEPS1.
-    inv STEPS1.
-    all: red in H; desf; apply H.
+    apply inclusion_t_rt in STEPS1. 
+    apply IHSTEPS2.
+    all: eapply (@ext_trav_step_coh_crt x y); eauto. 
   Qed.
 
-  Lemma trav_steps_left_decrease_sim (T T' : ext_trav_config)
-        (ETCCOH : etc_coherent G sc T)
+  Lemma trav_steps_left_decrease_sim T T'
+        (TCOH: tls_coherent G T)
+        (ICOH: iord_coherent G sc T)
+        (RCOH: reserve_coherent G T)
         (STEP : ext_sim_trav_step G sc T T') :
     trav_steps_left T > trav_steps_left T'.
   Proof using WF.
     apply trav_steps_left_steps_decrease; auto. by apply ext_sim_trav_step_in_trav_steps.
   Qed.
   
-  Lemma trav_steps_left_null_cov (T : ext_trav_config)
-        (ETCCOH : etc_coherent G sc T)
+  Lemma trav_steps_left_null_cov T
+        (TCOH: tls_coherent G T)
+        (ICOH: iord_coherent G sc T)
+        (RCOH: reserve_coherent G T)
         (NULL : trav_steps_left T = 0) :
-    E ⊆₁ ecovered T.
+    E ⊆₁ covered T.
   Proof using.
     unfold trav_steps_left in *.
-    assert (countP (set_compl (ecovered T)) acts_list = 0) as HH by lia.
+    assert (countP (set_compl (covered T)) acts_list = 0) as HH by lia.
     clear NULL.
     unfold countP in *.
     apply length_zero_iff_nil in HH.
     intros x EX.
-    destruct (classic (ecovered T x)) as [|NN]; auto.
+    destruct (classic (covered T x)) as [|NN]; auto.
     exfalso. 
-    assert (In x (filterP (set_compl (ecovered T)) acts_list)) as UU.
+    assert (In x (filterP (set_compl (covered T)) acts_list)) as UU.
     2: { rewrite HH in UU. inv UU. }
     apply in_filterP_iff. split; [|done].
     apply acts_set_findom. split; auto.
-    intros BB. apply NN. red. eapply init_covered.
-    { apply ETCCOH. }
+    intros BB. apply NN. red. eapply init_covered; eauto.
     split; auto.
   Qed.
 
-  Lemma trav_steps_left_ncov_nnull (T : ext_trav_config) e
-        (ETCCOH : etc_coherent G sc T)
-        (EE : E e) (NCOV : ~ ecovered T e):
+  Lemma trav_steps_left_ncov_nnull T e
+        (TCOH: tls_coherent G T)
+        (ICOH: iord_coherent G sc T)
+        (RCOH: reserve_coherent G T)
+        (EE : E e) (NCOV : ~ covered T e):
     trav_steps_left T <> 0.
   Proof using.
     destruct (classic (trav_steps_left T = 0)) as [EQ|NEQ]; auto.
     exfalso. apply NCOV. apply trav_steps_left_null_cov; auto.
   Qed.
 
-  Lemma trav_steps_left_nnull_ncov (T : ext_trav_config) (ETCCOH : etc_coherent G sc T)
+  Lemma trav_steps_left_nnull_ncov T
+        (TCOH: tls_coherent G T)
+        (ICOH: iord_coherent G sc T)
+        (RCOH: reserve_coherent G T)
         (NNULL : trav_steps_left T > 0):
-    exists e, E e /\ ~ ecovered T e.
+    exists e, E e /\ ~ covered T e.
   Proof using.
-    assert (tc_coherent G sc (etc_TC T)) as TCCOH by apply ETCCOH.
 
-    assert (countP (set_compl (ecovered T)) acts_list >=
-            countP (W ∩₁ set_compl (eissued T)) acts_list) as AA.
+    assert (countP (set_compl (covered T)) acts_list >=
+            countP (W ∩₁ set_compl (issued T)) acts_list) as AA.
     { apply countP_mori; auto.
       intros x [WX NN] COV.
       apply NN. eapply w_covered_issued; eauto. by split. }
 
-    assert (countP (W ∩₁ set_compl (eissued  T)) acts_list >=
+    assert (countP (W ∩₁ set_compl (issued  T)) acts_list >=
             countP (W ∩₁ set_compl (reserved T)) acts_list) as BB.
     { apply countP_mori; auto.
       intros x [WX NN].
-      split; auto. intros CC. apply NN. by apply (etc_I_in_S ETCCOH). }
+      split; auto. intros CC. apply NN. eapply rcoh_I_in_S; eauto. }
+
+    assert (countP (W ∩₁ set_compl (issued  T)) acts_list >=
+            props_left (fun t => W ∩₁ set_compl (propagated_thread T t))) as CC.
+    { red. etransitivity.
+      2: { eapply countP_mori; [| done].
+           apply set_subset_inter; [apply set_subset_refl2| ].
+           apply set_subset_compl. apply rcoh_
+
+      PROP
+                                         
+      apply countP_mori; auto.
+      intros x [WX NN].
+      split; auto. intros CC. apply NN. eapply rcoh_I_in_S; eauto. }
 
     unfold trav_steps_left in *.
-    assert (countP (set_compl (ecovered T)) acts_list > 0 \/
-            countP (W ∩₁ set_compl (eissued T)) acts_list > 0 \/
-            countP (W ∩₁ set_compl (reserved T)) acts_list > 0) as YY by lia.
-    assert (countP (set_compl (ecovered T)) acts_list > 0) as HH.
-    { destruct YY as [|[]]; auto; lia. }
+    assert (countP (set_compl (covered T)) acts_list > 0 \/
+            countP (W ∩₁ set_compl (issued T)) acts_list > 0 \/
+            countP (W ∩₁ set_compl (reserved T)) acts_list > 0 \/
+            props_leaft
+            (fun t => W ∩₁ set_compl (propagated_thread T t)) > 0
+           ) as YY by lia.
+    assert (countP (set_compl (covered T)) acts_list > 0) as HH.
+    { destruct YY as [|[]]; auto; try lia. }
     clear YY.
     unfold countP in HH.
     assert (exists h l, filterP (set_compl (ecovered T)) acts_list = h :: l) as YY.
