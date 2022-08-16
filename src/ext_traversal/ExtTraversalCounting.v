@@ -113,25 +113,27 @@ Section ExtTraversalCounting.
     split; unfolder; ins; desc; subst. 
     by apply INSET.
   Qed.
-    
 
+  (* TODO: move*)
+  Definition tls_ninit_fin T :=
+    set_finite (T ∩₁ event ↓₁ set_compl is_init). 
+    
   Lemma iord_enum_exists' T
         (CONS: imm_consistent G sc)
         (FAIR: mem_fair G)
         (IMM_FAIR: imm_s_fair G sc)
         t (TB: threads_bound G t)
-        dom
+        (TCOH: tls_coherent G T)
         (ICOH: iord_coherent G sc T)
-        (T_FIN: set_finite T)
-        (T_DOM: T ⊆₁ dom)
-        (* (NINIT_DOM: dom ⊆₁ event ↓₁ (set_compl is_init)) *)
+        (T_FIN: tls_ninit_fin T)
     :
     exists (steps: nat -> trav_label),
-      enumerates steps dom /\
-      respects_rel steps (iord G sc)⁺ dom /\
-      (exists i, NOmega.le (NOnum i) (set_size dom) /\ trav_prefix steps i ≡₁ T). 
+      enumerates steps (exec_tls G) /\
+      respects_rel steps (iord G sc)⁺ (exec_tls G) /\
+      (exists i, NOmega.le (NOnum i) (set_size (exec_tls G)) /\ 
+            trav_prefix steps i ∪₁ init_tls G ≡₁ T). 
   Proof using WFSC WF COMP.
-    edestruct countable_ext with (s := dom) (r := ⦗event ↓₁ (set_compl is_init)⦘ ⨾ ((iord G sc)⁺ ∪ (T × (set_compl T) \ (iord G sc)^+)))
+    edestruct countable_ext with (s := exec_tls G) (r := ⦗event ↓₁ (set_compl is_init)⦘ ⨾ ((iord G sc)⁺ ∪ (T × (set_compl T) \ (iord G sc)^+)))
       as [| [steps [ENUM RESP]]].
     { eapply countable_subset; [| by apply set_subset_full_r].
       apply trav_label_countable. }
@@ -158,8 +160,9 @@ Section ExtTraversalCounting.
     }
     { relsf. apply fsupp_union.
       { eapply iord_ct_fsupp; eauto. }
-      rewrite inclusion_seq_eqv_l, inclusion_minus_rel. 
-      apply fsupp_cross; auto. }
+      rewrite inclusion_minus_rel.
+      rewrite <- cross_inter_l. apply fsupp_cross.
+      rewrite set_interC. apply T_FIN. }
     { edestruct H. constructor. econstructor; vauto. }
 
     exists steps. splits; eauto.
@@ -173,29 +176,34 @@ Section ExtTraversalCounting.
     apply enumeratesE' in ENUM as ENUM_. desc. 
     (* forward eapply set_size_finite as [n SIZE]; eauto. *)
     (* exists n.  *)
-    destruct (classic (exists k, (dom \₁ T) (steps k) /\ NOmega.lt_nat_l k (set_size dom))) as [NTk | ALLT].
-    2: { assert (T ≡₁ dom).
-         { split; auto. unfolder. ins.
+    destruct (classic (exists k, ((exec_tls G) \₁ T) (steps k) /\ NOmega.lt_nat_l k (set_size (exec_tls G)))) as [NTk | ALLT].
+    2: { assert (T ≡₁ init_tls G ∪₁ exec_tls G).
+         { split.
+           { apply TCOH. }
+           unfolder. ins.
            destruct (classic (T x)); [done| ]. 
+           destruct H; [by apply TCOH| ]. 
            apply IND in H as INDk. desc. subst.
            destruct ALLT. by vauto. }
-         unfold trav_prefix.
+         unfold trav_prefix. 
          forward eapply set_size_finite as [n SIZE]; eauto. 
-         assert (set_size dom = NOnum n) as EQ_SIZE. 
-         { rewrite <- SIZE. symmetry. by apply set_size_equiv. }
+         assert (set_size (exec_tls G) = NOnum n) as EQ_SIZE. 
+         { rewrite <- SIZE. symmetry. apply set_size_equiv.
+           rewrite H. unfold init_tls, exec_tls.
+           rewrite !AuxDef.set_pair_alt. basic_solver 10. } 
          exists n. split.
          { by rewrite EQ_SIZE. }
-         rewrite H.  
-         erewrite enumerates_set_bunion with (S := dom); eauto.
+         rewrite H. rewrite set_unionC. apply set_equiv_union; [done| ].  
+         erewrite enumerates_set_bunion with (S := exec_tls G); eauto.
          rewrite EQ_SIZE. by vauto. }
 
     apply exists_min in NTk as [m [[NTm DOMm] MINm]].
-    destruct (classic (exists k, T (steps k) /\ m < k /\ NOmega.lt_nat_l k (set_size dom))).
+    destruct (classic (exists k, T (steps k) /\ m < k /\ NOmega.lt_nat_l k (set_size (exec_tls G)))).
     { desc. specialize (RESP k m). specialize_full RESP.
-      { apply T_DOM in H as DOMk. by apply set_lt_size. }
+      { by apply set_lt_size. }
       { apply set_lt_size. eapply NOmega.lt_lt_nat; eauto. }
       { apply seq_eqv_l. split. 
-        { by apply NINIT_DOM, T_DOM. }
+        { eapply exec_tls_ENI. eapply step_event_dom; eauto. }
         destruct (classic ((iord G sc)⁺ (steps k) (steps m))) as [IORD | NIORD].
         { vauto. }
         right. split; auto. 
@@ -203,16 +211,31 @@ Section ExtTraversalCounting.
       lia. }
 
     exists m. unfold trav_prefix. split.
-    { destruct (set_size dom); [by vauto| ]. ins. lia. }
+    { destruct (set_size (exec_tls G)); [by vauto| ]. ins. lia. }
+    arewrite (T ≡₁ T ∩₁ event ↓₁ set_compl is_init ∪₁ init_tls G).
+    { rewrite set_split_complete with (s' := T) (s := event ↓₁ is_init) at 1.
+      rewrite set_unionC. apply set_equiv_union; [basic_solver| ].
+      destruct TCOH. 
+      split.
+      2: { relsf. split; auto. rewrite init_tls_EI. basic_solver. }
+      rewrite tls_coh_exec.
+      unfold init_tls, exec_tls. rewrite !AuxDef.set_pair_alt. basic_solver 10. }
+    apply set_equiv_union; [| done]. 
     split; unfolder; ins; desc.
     { apply MINm in H0 as MIN'. AuxDef.contra NTx. destruct MIN'.
       split.
-      2: { eapply NOmega.lt_lt_nat; eauto. } 
+      2: { eapply NOmega.lt_lt_nat; eauto. }
+      apply not_and_or in NTx. destruct NTx as [NTx | Ix]. 
+      2: { apply NNPP in Ix.
+           specialize (INSET y). specialize_full INSET.
+           { eapply NOmega.lt_lt_nat; eauto. }
+           apply exec_tls_ENI, proj2 in INSET. vauto. }  
       split; try congruence.
       apply INSET.
       eapply NOmega.lt_lt_nat; eauto. }
     specialize (IND x). specialize_full IND.
-    { by apply T_DOM. }
+    { apply TCOH in H0 as [Ix | ?]; [| done].
+      apply init_tls_EI in Ix. destruct H1. apply Ix. }
     desc. eexists. splits; eauto.
     AuxDef.contra GE. apply Compare_dec.not_lt in GE. red in GE.
     apply Lt.le_lt_or_eq in GE. destruct GE as [LT | ->].
@@ -231,49 +254,41 @@ Section ExtTraversalCounting.
         (IMM_FAIR: imm_s_fair G sc)
         (CONS: imm_consistent G sc)
         t (TB: threads_bound G t)
-        (dom: trav_label -> Prop)
-        (* (T_DOM: T ⊆₁ dom) *)
-        (T_FIN: set_finite T)
-        (ICOH: iord_coherent G sc T)
-        (IORD_DOM: iord G sc ⊆ dom × dom)
-        (DOM_EXEC: dom ⊆₁ exec_tls G)
-        (DOM_COVERS: eq ta_cover <*> (E \₁ is_init) ⊆₁ dom)
-        (DOM_SIM_CLOSURE: forall (S: trav_label -> Prop) (S_DOM: S ⊆₁ dom),
-            (@sim_clos G S) ⊆₁ dom):
+        (T_FIN: tls_ninit_fin T)
+        (TCOH: tls_coherent G T)
+        (ICOH: iord_coherent G sc T):
     exists (sim_enum: nat -> (trav_label -> Prop)),
       ⟪INIT: sim_enum 0 ≡₁ init_tls G ⟫ /\
-      ⟪COH: forall i (DOMi: NOmega.le (NOnum i) (set_size dom)),
+      ⟪COH: forall i (DOMi: NOmega.le (NOnum i) (set_size (exec_tls G))),
           tls_coherent G (sim_enum i)⟫ /\
-      ⟪STEPS: forall i (DOMi: NOmega.lt_nat_l i (set_size dom)),
+      ⟪STEPS: forall i (DOMi: NOmega.lt_nat_l i (set_size (exec_tls G))),
           (sim_clos_step G sc)^* (sim_enum i) (sim_enum (1 + i)) ⟫ /\
       ⟪ENUM: forall e (Ee: (E \₁ is_init) e), exists i,
-           NOmega.le (NOnum i) (set_size dom) /\
+           NOmega.le (NOnum i) (set_size (exec_tls G)) /\
              (sim_enum i) (mkTL ta_cover e)⟫ /\
-      ⟪DOM: forall i (DOMi: NOmega.le (NOnum i) (set_size dom)),
-          sim_enum i ⊆₁ init_tls G ∪₁ dom⟫ /\
-      ⟪CLOS_T: exists i, NOmega.le (NOnum i) (set_size dom) /\
-                    sim_enum i = sim_clos G T ∪₁ init_tls G⟫. 
+      ⟪CLOS_T: exists i, NOmega.le (NOnum i) (set_size (exec_tls G)) /\
+                    sim_enum i ≡₁ sim_clos G T ∪₁ init_tls G⟫. 
   Proof using WFSC WF COMP.
     edestruct iord_enum_exists' with (T := T) as [steps_enum [ENUM [RESP T_I]]]; eauto.
-    { rewrite DOM_EXEC. rewrite exec_tls_ENI. basic_solver. }
     exists (tc_enum G steps_enum). splits.
     { unfold tc_enum. rewrite trav_prefix_init.
       rewrite sim_clos_empty. basic_solver. }
     { apply tc_enum_tls_coherent; eauto. }
-    { apply sim_traversal_next; auto. }
+    { apply sim_traversal_next; auto.
+      rewrite iord_exec_tls. basic_solver. }
     { intros e Ee.
       pose proof ENUM as ENUM'. apply enumeratesE' in ENUM. desc.
       specialize (IND (mkTL ta_cover e)). specialize_full IND.
-      { apply DOM_COVERS. vauto. }
+      { red. left. vauto. }
       desc. exists (S i0). split; [by vauto| ]. 
       eapply set_equiv_exp.
       { unfold tc_enum. rewrite trav_prefix_ext; eauto. }
       rewrite IND0. unfold sim_clos. basic_solver 10.  }
-    { ins. unfold tc_enum. rewrite set_unionC. apply set_subset_union; [done| ].
-      rewrite <- DOM_SIM_CLOSURE; [reflexivity| ].
-      eapply trav_prefix_in_dom; eauto. }
     desc. exists i. split; auto. 
-    unfold tc_enum. by rewrite T_I0.
+    unfold tc_enum.
+    rewrite <- set_unionK with (s := init_tls G)at 1. rewrite <- set_unionA.
+    forward eapply init_tls_sim_coh as INIT;eauto. red in INIT. rewrite INIT at 1.
+    rewrite <- sim_clos_dist. by rewrite T_I0.
   Qed.
 
   (* TODO: move*)
@@ -335,6 +350,44 @@ Section ExtTraversalCounting.
     etransitivity; eauto.
   Qed. 
     
+  Hypothesis FINDOM: fin_exec G.
+  (* TODO: move to FinExecution *)
+  Definition acts_list: list actid :=
+    filterP (acts_set G \₁ is_init)
+            (proj1_sig (@constructive_indefinite_description _ _ FINDOM)).
+  Lemma acts_set_findom: acts_set G \₁ is_init ≡₁ (fun e => In e acts_list).
+  Proof.
+    unfold acts_list. destruct constructive_indefinite_description. simpl.
+    apply AuxRel.set_equiv_exp_equiv. intros e.
+    rewrite in_filterP_iff. intuition. 
+  Qed.
+  Opaque acts_list.
+  (***********)
+
+  (* TODO: move*)
+  Import ListNotations. 
+  (* TODO: move*)
+  Lemma fin_exec_exec_tls t (BOUND: threads_bound G t):
+    set_finite (exec_tls G).
+  Proof using FINDOM.
+    unfold exec_tls.
+    destruct FINDOM as [acts ACTS]. 
+    forward eapply (BinPos_lt_fin t) as [threads THREADS].
+    set (threads' := filterP (threads_set G \₁ eq tid_init) threads).
+    (* set (threads' := filterP (fun t => exists e, tid e = t /\ E e) threads). *)
+    arewrite ((E \₁ is_init) ∩₁ W ⊆₁ E\₁is_init) by basic_solver.
+    rewrite !set_pair_alt. rewrite <- set_inter_union_l.
+    exists (flat_map (fun e => map (fun a => mkTL a e) [ta_cover; ta_issue; ta_reserve]
+                       ++ map (fun t => mkTL (ta_propagate t) e) threads') acts).
+    unfolder. ins. apply in_flat_map.
+    exists (event x). split.
+    { apply ACTS, IN. }
+    destruct x; des; ins; subst; try by tauto. 
+    repeat right. apply in_map_iff.
+    do 2 red in IN. desc. eexists. splits; vauto.
+    subst threads'. apply in_filterP_iff. split; auto.
+    (* TODO: make threads_bound a requirement of fin_exec *)
+  Admitted.
 
   (* TODO: move *)
   Lemma sim_traversal_inf'_fin T
@@ -342,16 +395,9 @@ Section ExtTraversalCounting.
         (IMM_FAIR: imm_s_fair G sc)
         (CONS: imm_consistent G sc)
         t (TB: threads_bound G t)
-        (dom: trav_label -> Prop)
-        (FIN: set_finite dom)
-        (* (T_DOM: T ⊆₁ dom) *)
-        (T_FIN: set_finite T)
-        (ICOH: iord_coherent G sc T)
-        (IORD_DOM: iord G sc ⊆ dom × dom)
-        (DOM_EXEC: dom ⊆₁ exec_tls G)
-        (DOM_COVERS: eq ta_cover <*> (E \₁ is_init) ⊆₁ dom)
-        (DOM_SIM_CLOSURE: forall (S: trav_label -> Prop) (S_DOM: S ⊆₁ dom),
-            (@sim_clos G S) ⊆₁ dom):
+        (T_FIN: tls_ninit_fin T)
+        (TCOH: tls_coherent G T)
+        (ICOH: iord_coherent G sc T):
     exists T',
       let Tclos := sim_clos G T ∪₁ init_tls G in 
       (* ⟪INIT: sim_enum 0 ≡₁ init_tls G ⟫ /\ *)
@@ -359,9 +405,10 @@ Section ExtTraversalCounting.
       ⟪STEPS1: (sim_clos_step G sc)^* (init_tls G) Tclos⟫ /\
       ⟪STEPS2: (sim_clos_step G sc)^* Tclos T'⟫ /\
       ⟪COV: acts_set G ⊆₁ covered T'⟫. 
-  Proof using WFSC WF COMP. 
+  Proof using WFSC WF COMP FINDOM. 
     forward eapply sim_traversal_inf' with (T := T) as TRAV; eauto. desc.
-    forward eapply set_size_finite as [n SIZE]; [apply FIN| ].
+    forward eapply set_size_finite as [n SIZE].
+    { eapply fin_exec_exec_tls; eauto. }
     exists (sim_enum n). simpl. splits.
     { apply COH. rewrite SIZE. simpl. lia. }
     { apply rt_of_rt.
@@ -391,46 +438,6 @@ Section ExtTraversalCounting.
     by rewrite SIZE in H.
   Qed.
 
-  Hypothesis FINDOM: fin_exec G.
-  (* TODO: move to FinExecution *)
-  Definition acts_list: list actid :=
-    filterP (acts_set G \₁ is_init)
-            (proj1_sig (@constructive_indefinite_description _ _ FINDOM)).
-  Lemma acts_set_findom: acts_set G \₁ is_init ≡₁ (fun e => In e acts_list).
-  Proof.
-    unfold acts_list. destruct constructive_indefinite_description. simpl.
-    apply AuxRel.set_equiv_exp_equiv. intros e.
-    rewrite in_filterP_iff. intuition. 
-  Qed.
-  Opaque acts_list.
-  (***********)
-
-  (* TODO: move*)
-  Import ListNotations. 
-
-  (* TODO: move*)
-  Lemma fin_exec_exec_tls t (BOUND: threads_bound G t):
-    set_finite (exec_tls G).
-  Proof using FINDOM.
-    unfold exec_tls.
-    destruct FINDOM as [acts ACTS]. 
-    forward eapply (BinPos_lt_fin t) as [threads THREADS].
-    set (threads' := filterP (threads_set G \₁ eq tid_init) threads).
-    (* set (threads' := filterP (fun t => exists e, tid e = t /\ E e) threads). *)
-    arewrite ((E \₁ is_init) ∩₁ W ⊆₁ E\₁is_init) by basic_solver.
-    rewrite !set_pair_alt. rewrite <- set_inter_union_l.
-    exists (flat_map (fun e => map (fun a => mkTL a e) [ta_cover; ta_issue; ta_reserve]
-                       ++ map (fun t => mkTL (ta_propagate t) e) threads') acts).
-    unfolder. ins. apply in_flat_map.
-    exists (event x). split.
-    { apply ACTS, IN. }
-    destruct x; des; ins; subst; try by tauto. 
-    repeat right. apply in_map_iff.
-    do 2 red in IN. desc. eexists. splits; vauto.
-    subst threads'. apply in_filterP_iff. split; auto.
-    (* TODO: make threads_bound a requirement of fin_exec *)
-  Admitted.
-
 
   Lemma sim_step_cov_full_traversal T thread t
         (IMMCON : imm_consistent G sc)
@@ -440,7 +447,7 @@ Section ExtTraversalCounting.
         (TCOH: tls_coherent G T)
         (ICOH: iord_coherent G sc T)
         (* (T_EXEC: T ⊆₁ exec_tls G) *)
-        (T_FIN: set_finite T)
+        (T_FIN: tls_ninit_fin T)
         (* (RCOH: reserve_coherent G T) *)
         (* (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T) *)
         (* (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T) *)
@@ -448,14 +455,11 @@ Section ExtTraversalCounting.
         :
     exists T', (ext_isim_trav_step G sc thread)＊ T T' /\ ((acts_set G) ⊆₁ covered T').
   Proof using WF WFSC FINDOM COMP.
-    forward eapply sim_traversal_inf'_fin with (dom := exec_tls G) (T := T); eauto.
-    { eapply fin_exec_exec_tls; eauto. }
-    { rewrite iord_exec_tls. basic_solver. }
-    { unfold exec_tls. basic_solver. }
-    { ins. apply sim_clos_exec_tls; auto. }
-
+    forward eapply sim_traversal_inf'_fin with (T := T); eauto.
     ins. desc. eexists. splits; eauto. 
- 
+    (* TODO: how to infer that transitions happen only with the given thread? *)
+    foobar.
+  Abort.
     
     
 
