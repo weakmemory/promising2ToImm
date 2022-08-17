@@ -16,7 +16,7 @@ From imm Require Import RMWinstrProps.
 From imm Require Import AuxRel2.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
-From imm Require Import ThreadBoundedExecution. 
+Require Import ThreadsSetFin.
 
 Require Import SimulationRel.
 Require Import PlainStepBasic.
@@ -28,8 +28,6 @@ Require Import PromiseOutcome.
 Require Import CertGraphInit.
 Require Import MemoryAux.
 Require Import PromiseLTS.
-From imm Require Import Traversal.
-From imm Require Import TraversalConfig.
 Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
 Require Import ExtTraversalConfig.
@@ -43,15 +41,19 @@ From imm Require Import ImmFair.
 Require Import Coq.Program.Basics.
 Require Import FinTravConfigs.
 Require Import ChoiceFacts.
+Require Import AuxRel. 
 From hahn Require Import Hahn.
 
 From imm Require Import SimTraversal.
 From imm Require Import SimTraversalProperties.
 (* From imm Require Import SimTravClosure. *)
 From imm Require Import TraversalConfigAlt.
-
 From imm Require Import SetSize.
-(* Require Import IordTraversal. *)
+
+From imm Require Import TLSCoherency.
+From imm Require Import IordCoherency. 
+Require Import TlsEventSets.
+From imm Require Import AuxDef.
 
 Set Implicit Arguments.
 
@@ -81,16 +83,13 @@ Notation "'Tid_' t"  := (fun x => tid x =  t) (at level 1).
 Lemma cert_sim_step G sc thread PC T T' f_to f_from smode
       (WF : Wf G) (IMMCON : imm_consistent G sc)
       (STEP : ext_isim_trav_step G sc thread T T')
-      (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
-      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ ecovered T)
+      (SIMREL : simrel_thread G sc PC T f_to f_from thread smode)
+      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T)
       (FAIR: mem_fair G):
     exists PC' f_to' f_from',
       ⟪ PSTEP : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
-      ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread smode ⟫.
+      ⟪ SIMREL : simrel_thread G sc PC' T' f_to' f_from' thread smode ⟫.
 Proof using.
-  destruct T as [T S].
-  destruct T' as [T' S'].
-  unfold ecovered in *. simpls.
   eapply plain_sim_step in STEP; eauto.
   desf. eexists. eexists. eexists. splits; eauto.
 Qed.
@@ -98,12 +97,12 @@ Qed.
 Lemma cert_sim_steps G sc thread PC T T' f_to f_from smode
       (WF : Wf G) (IMMCON : imm_consistent G sc)
       (STEPS : (ext_isim_trav_step G sc thread)⁺ T T')
-      (SIMREL : simrel_thread G sc PC (etc_TC T) (reserved T) f_to f_from thread smode)
-      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ ecovered T)
+      (SIMREL : simrel_thread G sc PC T f_to f_from thread smode)
+      (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T)
       (FAIR: mem_fair G):
     exists PC' f_to' f_from',
       ⟪ PSTEP : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
-      ⟪ SIMREL : simrel_thread G sc PC' (etc_TC T') (reserved T') f_to' f_from' thread  smode ⟫.
+      ⟪ SIMREL : simrel_thread G sc PC' T' f_to' f_from' thread  smode ⟫.
 Proof using.
   generalize dependent f_from.
   generalize dependent f_to.
@@ -127,29 +126,27 @@ Proof using.
   basic_solver.
 Qed.
 
-Lemma cert_simulation G sc thread PC T S f_to f_from
+Lemma cert_simulation G sc thread PC T f_to f_from
       (WF : Wf G) (IMMCON : imm_consistent G sc)
-      (SIMREL : simrel_thread G sc PC T S f_to f_from thread sim_certification)
+      (SIMREL : simrel_thread G sc PC T f_to f_from thread sim_certification)
       (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T)
       (FIN: fin_exec G)
+      (FIN_THREADS: fin_threads G)
       (FAIR: mem_fair G)
       (IMM_FAIR: imm_s_fair G sc):
-  exists T' S' PC' f_to' f_from',
+  exists T' PC' f_to' f_from',
     ⟪ FINALT : (acts_set G) ⊆₁ covered T' ⟫ /\
     ⟪ PSTEP  : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
-    ⟪ SIMREL : simrel_thread G sc PC' T' S' f_to' f_from' thread sim_certification⟫.
+    ⟪ SIMREL : simrel_thread G sc PC' T' f_to' f_from' thread sim_certification⟫.
 Proof using.
-  assert (etc_coherent G sc (mkETC T S)) as ETCCOH.
-  { apply SIMREL. }
   assert (complete G) as CG by apply IMMCON.
   assert (wf_sc G sc) as WFSC by apply IMMCON.  
-
-  generalize (sim_step_cov_full_traversal WF WFSC CG FIN IMMCON ETCCOH NCOV); intros H.
-  destruct H as [T'].
-  1,2: by apply SIMREL.
-  desc.
-  destruct T' as [T' S'].
-  exists T', S'. apply rtE in H.
+ 
+  forward eapply sim_step_cov_full_traversal as H; eauto.
+  all: try by apply SIMREL. 
+    
+  destruct H as [T']. desc.
+  exists T'. apply rtE in H.
   destruct H as [H|H].
   { red in H. desf.
     eexists. eexists. eexists.
@@ -160,7 +157,7 @@ Proof using.
   desf. eexists. eexists. eexists. splits; eauto.
 Qed.
 
-Lemma simrel_thread_bigger_sc_memory G sc T S thread f_to f_from threads memory
+Lemma simrel_thread_bigger_sc_memory G sc T thread f_to f_from threads memory
       sc_view memory' sc_view'
       lang state local
       (WF : Wf G) (IMMCON : imm_consistent G sc)
@@ -170,8 +167,8 @@ Lemma simrel_thread_bigger_sc_memory G sc T S thread f_to f_from threads memory
       (MEM_LE : Memory.le memory memory')
       (SС_CLOSED  : Memory.closed_timemap sc_view' memory')
       (SIMREL : simrel_thread G sc (Configuration.mk threads sc_view memory )
-                              T S f_to f_from thread  sim_certification) :
-  simrel_thread G sc (Configuration.mk threads sc_view' memory') T S f_to f_from
+                              T f_to f_from thread  sim_certification) :
+  simrel_thread G sc (Configuration.mk threads sc_view' memory') T f_to f_from
                 thread sim_certification.
 Proof using.
   cdes SIMREL. cdes COMMON. cdes LOCAL.
@@ -217,7 +214,7 @@ Hypothesis WF : Wf G.
 Variable sc : relation actid.
 Hypothesis IMMCON : imm_consistent G sc.
 Variable (tb: thread_id).
-Hypothesis (THREADS_BOUND : threads_bound G tb).
+Hypothesis (FIN_THREADS : fin_threads G).
 
 Lemma conf_steps_preserve_thread tid PC PC'
       (STEPS : (plain_step MachineEvent.silent tid)＊ PC PC') :
@@ -344,20 +341,23 @@ Qed.
 
 Lemma simrel_init :
   simrel G sc (conf_init prog)
-         (init_trav G) (is_init ∩₁ acts_set G)
+         (init_tls G) 
          (fun _ => tid_init) (fun _ => tid_init).
 Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
+  assert (covered (init_tls G) ≡₁ acts_set G ∩₁ is_init /\
+            issued (init_tls G) ≡₁ acts_set G ∩₁ is_init /\
+          reserved (init_tls G) ≡₁ acts_set G ∩₁ is_init )
+    as (COVI & ISSI & RESI).
+  { unfold init_tls. rewrite !set_pair_union_l.
+    simplify_tls_events. basic_solver. }
+
   red; splits; red; splits; auto.
-  { by apply ext_init_trav_coherent. }
-  { simpls. basic_solver. }
-  { ins. split; intros [INIT GG]; exfalso.
-    { apply (init_w WF) in INIT.
-      apply (dom_l (wf_rmwD WF)) in RMW.
-      apply seq_eqv_l in RMW.
-      type_solver. }
-    apply (rmw_in_sb WF) in RMW.
-    apply no_sb_to_init in RMW.
-    apply seq_eqv_r in RMW. desf. }
+  { apply init_tls_tls_coherent. }
+  { apply init_tls_iord_coherent. }
+  { by apply init_tls_reserve_coherent. }
+  { rewrite ISSI, COVI. basic_solver. }
+  { intros r w (NIr & RMW & NIw)%rmw_non_init_lr%seq_eqv_lr; auto.
+    split; by intros COV%COVI%proj2. }  
   { ins.
     unfold Threads.init.
     rewrite IdentMap.Facts.map_o.
@@ -382,11 +382,11 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
     assert (Execution_eco.sc_per_loc G) as ESC.
     { apply imm_s_hb.coherence_sc_per_loc. apply IMMCON. }
     red. splits; simpls.
-    { ins. destruct H. desf. }
+    { ins. apply RESI, proj2 in H. vauto. }
     all: ins; exfalso.
     apply Execution_eco.no_co_to_init in H1; auto.
     apply seq_eqv_r in H1.
-    destruct H0. desf. }
+    apply RESI, proj2 in H0. by desc. }
   { ins. }
   { ins.
     unfold LocFun.find, TimeMap.bot.
@@ -397,19 +397,18 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
     apply seq_eqv_l in HH. destruct HH as [_ HH].
     destruct HH as [z [_ HH]].
     destruct HH as [w [_ HH]].
-    apply seq_eqv_r in HH. destruct HH as [HH [AA BB]].
-    red in HH. destruct HH as [CC [HH _]]. subst.
-    apply (init_w WF) in AA.
+    apply id_inter in HH as [-> [[F _] C]].
+    apply COVI, proj2 in C. 
+    apply (init_w WF) in C.
     type_solver. }
   { apply dom_rmw_in_R_ex. }
   { red. splits; ins.
     3: { match goal with
          | H : co _ _ _ |- _ => rename H into CO
          end.
-         apply Execution_eco.no_co_to_init in CO; auto.
-         2: { apply imm_s_hb.coherence_sc_per_loc.
-              apply IMMCON. }
-         unfolder in *. desf. }
+         apply Execution_eco.no_co_to_init in CO as [CO NI]%seq_eqv_r; auto.
+         2: { apply imm_s_hb.coherence_sc_per_loc. apply IMMCON. }
+         apply RESI, proj2 in H0. vauto. }
     2: { red. ins. apply memory_init_o in MSG. desf. }
     red; ins. unfold Memory.init in MSG.
     unfold Memory.get in MSG.
@@ -454,20 +453,21 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
     exists None. splits; ins.
     { unfold Message.elt.
       assert (v = 0); [|by desf].
-      destruct ISSB as [II _].
-      destruct b.
-      2: by inv II.
+      apply ISSI, proj2 in ISSB.
+      destruct b; [| by vauto]. 
       unfold val in VAL.
       rewrite (wf_init_lab WF) in VAL.
       inv VAL. }
     { red. splits; auto.
-      { right. splits; auto. apply ISSB. }
+      { right. splits; auto. by apply ISSI. }
       red. ins. unfold LocFun.find, TimeMap.bot.
       apply max_value_bot_f. }
-    red. unfold View.unwrap, View.bot, TimeMap.bot. simpls.
-    ins. eexists. eexists. eexists.
-    unfold Memory.get, Cell.get. simpls. }
-  { red; simpls. }
+    { red. unfold View.unwrap, View.bot, TimeMap.bot. simpls.
+      ins. eexists. eexists. eexists.
+      unfold Memory.get, Cell.get. simpls. }
+    destruct H0. by apply COVI, ISSI. }
+  { red; simpls. ins.
+    destruct NISSB. by apply ISSI, RESI. }
   { unfold Local.init. simpls.
     unfold TView.bot. red; simpls.
     unfold View.bot.
@@ -482,7 +482,7 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
     all: red; ins. }
   red. splits.
   { ins. split; ins; [|lia].
-    destruct H as [H _]. simpls. }
+    apply COVI, proj2 in H. vauto. }
   unfold sim_state_helper.
   red in PROG_EX. destruct PROG_EX as [HH YY].
   symmetry in UU. apply YY in UU.
@@ -497,12 +497,12 @@ Definition thread_is_terminal ths tid :=
     ⟪ NOTS : Language.is_terminal lang st ⟫ /\
     ⟪ NOPROM : Local.is_terminal lc ⟫.
 
-Lemma sim_thread_covered_exists_terminal PC thread T S f_to f_from
+Lemma sim_thread_covered_exists_terminal PC thread T f_to f_from
       (FINALT : Tid_ thread ∩₁ acts_set G ⊆₁ covered T)
-      (SIMREL : simrel G sc PC T S f_to f_from) :
+      (SIMREL : simrel G sc PC T f_to f_from) :
   exists PC',
     ⟪ STEP : (conf_step)^? PC PC' ⟫ /\
-    ⟪ SIMREL : simrel G sc PC' T S f_to f_from ⟫ /\
+    ⟪ SIMREL : simrel G sc PC' T f_to f_from ⟫ /\
     ⟪ SAMENUM : Permutation (map fst (IdentMap.elements (Configuration.threads PC))) 
                             (map fst (IdentMap.elements (Configuration.threads PC'))) ⟫ /\ 
     ⟪ TERMINAL  : thread_is_terminal PC'.(Configuration.threads) thread ⟫ /\
@@ -542,10 +542,10 @@ Proof using All.
     eapply SIM_RPROM in H; eauto. desc.
     exfalso.
     apply NOISS. eapply w_covered_issued.
-    { apply COMMON. }
+    1, 2: by apply COMMON.
     split.
     { eapply reservedW; auto.
-      { apply COMMON. }
+      1, 2: by apply COMMON.
       done. }
     apply FINALT. by split. }
   assert (Local.is_terminal local) as LCTR by (constructor; auto).
@@ -618,7 +618,7 @@ Proof using All.
     { done. }
     red. ins. splits; eauto.
     unfold sflib.NW. eauto. }
-  2: { ins; clear - QQ.
+  2: { ins; clear - QQ. 
        apply NoDup_Permutation; eauto using NoDup_map_NoDupA, IdentMap.elements_3w.
        ins; rewrite !in_map_iff; split; intros ([i v] & <- & IN); ins;
          apply IdentMap.elements_complete in IN;
@@ -667,12 +667,12 @@ Proof using All.
   eapply PROM_DISJOINT0; eauto.
 Qed. 
 
-Lemma sim_covered_exists_terminal T S PC f_to f_from
+Lemma sim_covered_exists_terminal T PC f_to f_from
       (FINALT : acts_set G ⊆₁ covered T)
-      (SIMREL : simrel G sc PC T S f_to f_from) :
+      (SIMREL : simrel G sc PC T f_to f_from) :
   exists PC',
     ⟪ STEPS : conf_step＊ PC PC' ⟫ /\
-    ⟪ SIMREL : simrel G sc PC' T S f_to f_from ⟫ /\
+    ⟪ SIMREL : simrel G sc PC' T f_to f_from ⟫ /\
     ⟪ TERMINAL : Configuration.is_terminal PC' ⟫.
 Proof using All.
   assert
@@ -712,14 +712,14 @@ Proof using All.
   auto using Lt.le_lt_n_Sm.
 Qed.
 
-Lemma same_final_memory T S PC f_to f_from
+Lemma same_final_memory T PC f_to f_from
       (FINALT : acts_set G ⊆₁ covered T)
-      (SIMREL : simrel G sc PC T S f_to f_from) :
+      (SIMREL : simrel G sc PC T f_to f_from) :
   forall l,
     final_memory_state (Configuration.memory PC) l = Some (final_memory l).
 Proof using All.
-  assert (etc_coherent G sc (mkETC T S)) as ETCCOH by apply SIMREL.
-  assert (tc_coherent G sc T) as TCCOH by apply ETCCOH.
+  (* assert (etc_coherent G sc (mkETC T S)) as ETCCOH by apply SIMREL. *)
+  (* assert (tc_coherent G sc T) as TCCOH by apply ETCCOH. *)
   ins. unfold final_memory_state.
   cdes SIMREL. cdes COMMON.
   edestruct (Memory.max_ts_spec l) as [AA _].
@@ -731,8 +731,8 @@ Proof using All.
        exfalso.
        apply NOISS. eapply w_covered_issued; eauto.
        split.
-       { by apply (reservedW WF ETCCOH). }
-         by apply FINALT. }
+       { eapply reservedW; eauto. }
+       by apply FINALT. }
   assert (val = final_memory l); [|by subst].
   desc. red in MEM.
   set (BB := AA).
@@ -749,8 +749,8 @@ Proof using All.
     assert (issued T w) as WISS.
     { eapply w_covered_issued; eauto.
       split; auto. }
-    assert (S w) as WS.
-    { by apply (etc_I_in_S ETCCOH). }
+    assert (reserved T w) as WS.
+    { eapply rcoh_I_in_S; eauto. }
     destruct (classic (is_init w)) as [|NINIT]; auto.
     exfalso.
     destruct (THREAD w) as [langst TT]; auto.
@@ -781,7 +781,7 @@ Proof using All.
     destruct (classic (b = w)) as [|NEQ]; subst.
     2: { edestruct (wf_co_total WF) as [CO|CO]; eauto.
          1,2: split; [split|]; auto.
-         { apply TCCOH in ISS. apply ISS. }
+         { eapply issuedW; eauto. }
          { by rewrite LOC. }
          { exfalso. apply Execution_eco.no_co_to_init in CO; auto.
            2: { apply imm_s_hb.coherence_sc_per_loc. apply IMMCON. }
@@ -806,14 +806,14 @@ Proof using All.
   { rewrite <- TO in *. rewrite INMEM in AA. inv AA. }
   edestruct (wf_co_total WF) as [CO|CO]; eauto.
   1,2: split; [split|]; auto.
-  { apply TCCOH in ISS. apply ISS. }
+  { eapply issuedW; eauto. }
   { by rewrite LOC. }
   2: { exfalso. apply LAST. eauto. }
-  assert (S b) as BS.
-  { by apply (etc_I_in_S ETCCOH). }
-  assert (S w) as WS.
-  { by apply (etc_I_in_S ETCCOH). }
-  eapply f_to_co_mon with (I:=S) in CO; eauto.
+  assert (reserved T b) as BS.
+  { eapply rcoh_I_in_S; eauto. }
+  assert (reserved T w) as WS.
+  { eapply rcoh_I_in_S; eauto. }
+  eapply f_to_co_mon with (I:=reserved T) in CO; eauto.
   apply Memory.max_ts_spec in INMEM.
   destruct INMEM as [_ CC].
   rewrite <- TO in CC.
@@ -821,8 +821,8 @@ Proof using All.
   eapply TimeFacts.lt_le_lt; eauto.
 Qed.
 
-Lemma sim_step PC T S T' S' f_to f_from
-      (STEP : ext_sim_trav_step G sc (mkETC T S) (mkETC T' S'))
+Lemma sim_step PC T T' f_to f_from
+      (STEP : ext_sim_trav_step G sc T T')
       (ETC_FIN: etc_fin (mkETC T S))
       (SIMREL : simrel G sc PC T S f_to f_from)
       (FAIR: mem_fair G) :
