@@ -19,6 +19,7 @@ Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
 Import ListNotations.
 Require Import IndefiniteDescription.
+Require Import ThreadsSetFin. 
 
 Set Implicit Arguments. 
 
@@ -171,5 +172,40 @@ Section FinTravConfigs.
     eapply isim_step_preserves_fin; eauto.
   Qed.
 
+  (* TODO: move*)
+  Lemma fin_exec_exec_tls
+        (FIN: fin_exec G)
+        (FIN_THREADS: fin_threads G):
+    set_finite (exec_tls G).
+  Proof using.
+    unfold exec_tls.
+    destruct FIN as [acts ACTS]. destruct FIN_THREADS as [threads THREADS].
+    arewrite ((acts_set G \₁ is_init) ∩₁ is_w (lab G) ⊆₁ acts_set G \₁is_init) by basic_solver.
+    rewrite !set_pair_alt. rewrite <- set_inter_union_l.
+    exists (flat_map (fun e => map (fun a => mkTL a e) [ta_cover; ta_issue; ta_reserve]
+                       ++ map (fun t => mkTL (ta_propagate t) e) threads) acts).
+    unfolder. ins. apply in_flat_map.
+    exists (event x). split.
+    { apply ACTS, IN. }
+    destruct x; des; ins; subst; try by tauto. 
+    repeat right. apply in_map_iff.
+    do 2 red in IN. desc. eexists. splits; vauto.
+    apply THREADS, IN. 
+  Qed. 
+
+  Lemma fin_exec_tls_fin T
+        (FIN: fin_exec G)
+        (FIN_THREADS: fin_threads G)
+        (TCOH: tls_coherent G T):
+    tls_fin T.
+  Proof using. 
+    destruct TCOH. red. rewrite tls_coh_exec.
+    rewrite set_inter_union_l. apply set_finite_union. split.
+    { rewrite init_tls_EI. vauto. exists []. basic_solver. }
+    eapply set_finite_mori.
+    2: { apply fin_exec_exec_tls; eauto. }
+    red. basic_solver.
+  Qed.
+  
 End FinTravConfigs. 
 

@@ -16,6 +16,7 @@ Require Import IndefiniteDescription.
 Require Import SetSize.
 From imm Require Import FinExecution.
 Require Import ThreadsSetFin. 
+Require Import FinTravConfigs. 
 
 Require Import TlsEventSets.
 
@@ -114,10 +115,6 @@ Section ExtTraversalCounting.
     by apply INSET.
   Qed.
 
-  (* TODO: move*)
-  Definition tls_ninit_fin T :=
-    set_finite (T ∩₁ event ↓₁ set_compl is_init).
-
   (* TODO: temporary hack to fall back to old threads_bound definition *)
   From imm Require Import ThreadBoundedExecution.
   Lemma fin_threads2threads_bound:
@@ -131,7 +128,7 @@ Section ExtTraversalCounting.
         (FIN_THREADS: fin_threads G)
         (TCOH: tls_coherent G T)
         (ICOH: iord_coherent G sc T)
-        (T_FIN: tls_ninit_fin T)
+        (T_FIN: tls_fin T)
     :
     exists (steps: nat -> trav_label),
       enumerates steps (exec_tls G) /\
@@ -261,7 +258,7 @@ Section ExtTraversalCounting.
         (IMM_FAIR: imm_s_fair G sc)
         (CONS: imm_consistent G sc)
         (FIN_THREADS: fin_threads G)
-        (T_FIN: tls_ninit_fin T)
+        (T_FIN: tls_fin T)
         (TCOH: tls_coherent G T)
         (ICOH: iord_coherent G sc T):
     exists (sim_enum: nat -> (trav_label -> Prop)),
@@ -371,41 +368,6 @@ Section ExtTraversalCounting.
   Opaque acts_list.
   (***********)
 
-  (* TODO: move*)
-  Import ListNotations. 
-  (* TODO: move*)
-  Lemma fin_exec_exec_tls (FIN_THREADS: fin_threads G):
-    set_finite (exec_tls G).
-  Proof using FINDOM.
-    unfold exec_tls.
-    destruct FINDOM as [acts ACTS]. destruct FIN_THREADS as [threads THREADS].
-    arewrite ((E \₁ is_init) ∩₁ W ⊆₁ E\₁is_init) by basic_solver.
-    rewrite !set_pair_alt. rewrite <- set_inter_union_l.
-    exists (flat_map (fun e => map (fun a => mkTL a e) [ta_cover; ta_issue; ta_reserve]
-                       ++ map (fun t => mkTL (ta_propagate t) e) threads) acts).
-    unfolder. ins. apply in_flat_map.
-    exists (event x). split.
-    { apply ACTS, IN. }
-    destruct x; des; ins; subst; try by tauto. 
-    repeat right. apply in_map_iff.
-    do 2 red in IN. desc. eexists. splits; vauto.
-    apply THREADS, IN. 
-  Qed. 
-
-  (* TODO: move along with the definition of tls_ninit_fin *)
-  Lemma fin_exec_tls_ninit_fin T
-        (FIN_THREADS: fin_threads G)
-        (TCOH: tls_coherent G T):
-    tls_ninit_fin T.
-  Proof using FINDOM. 
-    destruct TCOH. red. rewrite tls_coh_exec.
-    rewrite set_inter_union_l. apply set_finite_union. split.
-    { rewrite init_tls_EI. vauto. exists []. basic_solver. }
-    eapply set_finite_mori.
-    2: { apply fin_exec_exec_tls; eauto. }
-    red. basic_solver.
-  Qed.
-  
   (* TODO: move *)
   Lemma sim_traversal_inf'_fin T
         (FAIR: mem_fair G)
@@ -423,7 +385,7 @@ Section ExtTraversalCounting.
       ⟪COV: acts_set G ⊆₁ covered T'⟫. 
   Proof using WFSC WF COMP FINDOM. 
     forward eapply sim_traversal_inf' with (T := T) as TRAV; eauto.
-    { by apply fin_exec_tls_ninit_fin. }
+    { eapply fin_exec_tls_fin; eauto. }
     desc.
     forward eapply set_size_finite as [n SIZE].
     { eapply fin_exec_exec_tls; eauto. }
