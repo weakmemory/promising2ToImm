@@ -430,6 +430,7 @@ Section ExtTraversalCounting.
     :
     (ext_isim_trav_step G sc thread) T1 T2.
   Proof using.
+    (* TODO: use SimClosure from imm *)
     destruct STEP. desc. red in H.
     repeat (destr; try done).
     { destruct H as ([NT1e T2_EQ]%seq_eqv_l & ICOH1 & ICOH2).
@@ -493,7 +494,6 @@ Section ExtTraversalCounting.
     eapply issuedW in H1; eauto.
   Qed.
 
-
   Lemma sim_step_cov_full_traversal T thread
         (IMMCON : imm_consistent G sc)
         (FAIR: mem_fair G)
@@ -518,7 +518,7 @@ Section ExtTraversalCounting.
     apply sim_clos_step2ext_isim_trav_step_crt; eauto.
     { apply set_extensionality in T_ALT as T_ALT'. by rewrite T_ALT'. }
     (* TODO: show that reserve_coherent is preserved by sim_clos_step *)
-    admit.     
+    admit.
   Admitted. 
       
 End ExtTraversalCounting.
