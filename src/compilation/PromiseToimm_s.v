@@ -823,29 +823,37 @@ Qed.
 
 Lemma sim_step PC T T' f_to f_from
       (STEP : ext_sim_trav_step G sc T T')
-      (ETC_FIN: etc_fin (mkETC T S))
-      (SIMREL : simrel G sc PC T S f_to f_from)
+      (T_FIN: tls_fin T)
+      (SIMREL : simrel G sc PC T f_to f_from)
       (FAIR: mem_fair G) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : (conf_step)^? PC PC' ⟫ /\
-      ⟪ SIMREL : simrel G sc PC' T' S' f_to' f_from' ⟫.
+      ⟪ SIMREL : simrel G sc PC' T' f_to' f_from' ⟫.
 Proof using All.
   destruct STEP as [thread STEP].
-  forward eapply isim_step_preserves_fin as FIN'; eauto. 
+  forward eapply isim_step_preserves_fin with (t := thread) as FIN'; eauto. 
   cdes SIMREL. cdes COMMON.
   eapply plain_sim_step in STEP; eauto.
   2: { split; eauto. apply THREADS.
        assert (exists e, thread = tid e /\ acts_set G e /\ ~ is_init e) as [e].
-       { apply ext_sim_trav_step_to_step in STEP.
-         desc. exists e.
+       { move STEP at bottom.
+         apply ext_sim_trav_step_to_step in STEP. desc. 
+         destruct lbl as [a e]. exists e.
          assert (acts_set G e) as EE.
-         { eapply ext_itrav_stepE; eauto. }
-         splits; auto.
-         eapply ext_itrav_step_ninit; eauto. }
+         { eapply ext_itrav_stepE in STEP; eauto. }
+         splits; auto. 
+         2: { eapply ext_itrav_step_ninit in STEP; eauto. }
+         (* TODO: see comment in ext_sim_trav_step_to_step *)
+         (* Possible solutions: *)
+         (* 1) Exclude propagations for empty threads *)
+         (* 2) Add hypothesis in simrel similar to THREAD but for propagations *)
+         admit.
+       }
+       desc. 
        cdes COMMON. subst.
        destruct (THREAD e); auto.
        apply IdentMap.Facts.in_find_iff.
-         by rewrite H. }
+       by rewrite H. }
   desf. exists PC'. exists f_to'. exists f_from'. splits.
   2: { apply SIMREL0; eauto. }
 
@@ -866,7 +874,7 @@ Proof using All.
                                   (Configuration.threads c1))
                                sc1 mem1)).
 
-  edestruct (@cert_simulation G' sc'' tid PC T'' S'' f_to' f_from') as [T''' HH].
+  edestruct (@cert_simulation G' sc'' tid PC T'' f_to' f_from') as [T''' HH].
   all: try by desf; eauto.
   { unfold PC. eapply simrel_thread_bigger_sc_memory; eauto.
     { rewrite IdentMap.gss; eauto. }
@@ -875,7 +883,7 @@ Proof using All.
       apply SIMREL_THREAD. }
     { eapply Memory.cap_closed; eauto. apply SIMREL_THREAD. }
     { apply CAP. }
-      by apply Memory.max_full_timemap_closed. }
+      by apply Memory.max_full_timemap_closed. }  
   { apply fin_exec_imm_s_fair; auto. apply IMMCON0. }
   desc.
 
@@ -900,12 +908,12 @@ Proof using All.
     eapply SIM_RPROM in HH; eauto.
     desc.
     apply NOISS. eapply w_covered_issued.
-    { apply COMMON0. }
+    1, 2: by apply COMMON0.    
     split.
     { eapply reservedW; auto.
-      { apply COMMON0. }
+      1, 2: by apply COMMON0.
       done. }
-    apply FINALT. eapply etc_S_in_E.
+    apply FINALT. eapply rcoh_S_in_E.
     { apply COMMON0. }
     done. }
 
@@ -921,24 +929,22 @@ Proof using All.
   eexists. splits.
   { apply PSTEP. }
   simpls.
-Qed. 
+Admitted. 
   
 Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)^* TS TS')
-      (ETC_FIN: etc_fin TS)
-      (SIMREL  : simrel G sc PC (etc_TC TS) (reserved TS) f_to f_from)
+      (T_FIN: tls_fin TS)
+      (SIMREL  : simrel G sc PC TS f_to f_from)
       (FAIR: mem_fair G) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : conf_step＊ PC PC' ⟫ /\
-      ⟪ SIMREL : simrel G sc PC' (etc_TC TS') (reserved TS') f_to' f_from' ⟫.
+      ⟪ SIMREL : simrel G sc PC' TS' f_to' f_from' ⟫.
 Proof using All.
   generalize dependent f_from.
   generalize dependent f_to.
   generalize dependent PC.
   induction TCSTEPS.
   { ins. desf.
-    destruct x as [T S].
-    destruct y as [T' S'].
     eapply sim_step in H; eauto. desf.
     do 3 eexists. splits; eauto. by eapply inclusion_r_rt; eauto. }
   { ins. exists PC, f_to, f_from. splits; eauto. apply rt_refl. }
@@ -952,19 +958,45 @@ Proof using All.
   eapply rt_trans; eauto. 
 Qed.
   
+(* TODO: remove? *)
+Lemma unused_thread:
+  exists thread', acts_set G ∩₁ Tid_ thread' ≡₁ ∅. 
+Proof using WF FIN_THREADS. 
+  destruct FIN_THREADS as [threads THREADS].
+  exists (BinPos.Pos.of_nat (list_max (map BinPos.Pos.to_nat threads) + 1)).
+  split; [| basic_solver].
+  unfolder. ins. desc. apply wf_threads, THREADS in H; auto.
+  apply (@f_equal _ _ BinPos.Pos.to_nat) in H0.
+  rewrite Pnat.Nat2Pos.id in H0; [| lia].
+  forward eapply In_gt_list_max with (l := map BinPos.Pos.to_nat threads)
+                                     (n := BinPos.Pos.to_nat (tid x)) as NIN.
+  { lia. }
+  destruct NIN. eapply in_map_iff; eauto.
+Qed. 
+
 Lemma simulation 
       (FAIR: mem_fair G)
       (FIN: fin_exec G) :
-  exists T S PC f_to f_from,
+  exists T PC f_to f_from,
     ⟪ FINALT : (acts_set G) ⊆₁ covered T ⟫ /\
     ⟪ PSTEP  : conf_step＊ (conf_init prog) PC ⟫ /\
-    ⟪ SIMREL : simrel G sc PC T S f_to f_from ⟫.
+    ⟪ SIMREL : simrel G sc PC T f_to f_from ⟫.
 Proof using All.
       (*  *)
       (* (IMM_FAIR: imm_fair G sc): *)
   assert (complete G) as CG by apply IMMCON.
   assert (wf_sc G sc) as WFSC by apply IMMCON.
-  generalize (sim_traversal WF WFSC CG FIN IMMCON); ins; desc.
+  (* generalize (sim_traversal WF WFSC CG FIN IMMCON); ins; desc. *)
+    
+    
+  forward eapply simrel_init as SI.
+  foobar.
+  (* TODO: write a version sim_step_cov_full_traversal for general traversal
+     (without thread argument) *)
+  forward eapply sim_step_cov_full_traversal with (T := init_tls G) as H; eauto.
+  all: try by apply SI. 
+  foobar. 
+
   destruct T as [T S].
   exists T, S.
   apply rtE in H.
