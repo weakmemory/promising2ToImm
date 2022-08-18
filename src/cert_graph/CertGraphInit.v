@@ -19,7 +19,8 @@ From imm Require Import Receptiveness.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
 From imm Require Import SubExecution. 
-From imm Require Import ThreadBoundedExecution.
+(* From imm Require Import ThreadBoundedExecution. *)
+Require Import ThreadsSetFin. 
 
 From imm Require Import RMWinstrProps.
 Require Import promise_basics.PromiseLTS.
@@ -103,7 +104,6 @@ Section CertGraphInit.
   Variable (PC: Configuration.Configuration.t). 
   Variable (f_to f_from: actid -> Time.Time.t). 
   Variable (thread: thread_id).
-  Variable (b: thread_id). 
 
   Hypothesis (WF: Wf Gf).
   Hypothesis (FAIRf: mem_fair Gf).
@@ -112,7 +112,7 @@ Section CertGraphInit.
 
   Hypothesis (TLS_FIN: tls_fin T).
 
-  Hypothesis (Gf_THREADS_BOUND: threads_bound Gf b).
+  Hypothesis (Gf_FIN_THREADS: fin_threads Gf).
 
   Definition G := rstG Gf T thread.
   Definition Gsc := ⦗E0 Gf T thread⦘ ⨾ sc ⨾ ⦗E0 Gf T thread⦘.
@@ -158,16 +158,37 @@ do 2 (rewrite eqv_rel_mori with (x := _ ∩₁ _); [| intro; apply proj2]).
     rewrite <- seqA. apply fin_dom_rel_fsupp.
     { rewrite set_map_union. relsf. split; by apply tls_fin_event_set. }
     by apply fsupp_sb.
-  Qed. 
+  Qed.  
      
-  Lemma G_threads_bound: threads_bound G b.
-  Proof using Gf_THREADS_BOUND. by apply restrict_threads_bound. Qed. 
-  
+  Lemma G_fin_threads: fin_threads G.
+  Proof using Gf_FIN_THREADS.
+    by vauto.
+  Qed.
+
+  Lemma G_Gf_same_threads_set: threads_set G ≡₁ threads_set Gf.
+  Proof using. vauto. Qed. 
+
+  (* TODO: move*)
+  Lemma fin_exec_fin_threads_restrict
+        (* (FIN_THREADS: fin_threads G) *)
+        (FIN_B: forall t (LTB: threads_set G t), fin_exec (restrict G (Tid_ t))):
+    fin_exec G. 
+  Proof using WF Gf_FIN_THREADS.
+    red. rewrite events_separation, <- set_bunion_minus_compat_r.
+    rewrite set_full_split with (S := threads_set G).
+    rewrite set_bunion_union_l. apply set_finite_union. split.
+    2: { exists nil. unfold restrict. simpl. unfolder. ins. desc.
+         destruct IN. subst. eapply wf_threads; eauto. }
+    rewrite G_Gf_same_threads_set. 
+    apply set_finite_bunion; vauto. 
+  Qed.  
+
   Lemma G_fin: fin_exec G.
-  Proof using WF Gf_THREADS_BOUND TLS_FIN.
+  Proof using WF TLS_FIN Gf_FIN_THREADS.
     unfold G, certG, rstG.
-    eapply fin_exec_bounded_threads; eauto.
-    { apply G_threads_bound. }
+    (* eapply fin_exec_bounded_threads; eauto. *)
+    (* { apply G_threads_bound. } *)
+    eapply fin_exec_fin_threads_restrict; eauto.
     ins. unfold restrict, fin_exec. simpl.
     eapply set_finite_mori.
     2: { by apply CT_fin with (t1 := thread) (t2 := t). }
@@ -966,7 +987,7 @@ T⦘)
 
   Lemma RFRMW_IST_IN:
     (cert_rf G Gsc T thread ⨾ rmw G) ⨾ ⦗issued T ∪₁ reserved T ∩₁ Tid_ thread⦘ ⊆ rf Gf ⨾ rmw Gf.
-  Proof using WF SIMREL IMMCON Gf_THREADS_BOUND TLS_FIN.
+  Proof using WF SIMREL IMMCON Gf_FIN_THREADS TLS_FIN.
     rewrite IST_in_S. rewrite seqA.    
     rewrite cert_rmw_S_in_rf_rmw_S; eauto using COMP_RMW_S; cycle 1.
     all: eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. 
@@ -976,7 +997,7 @@ T⦘)
   Qed. 
 
   Lemma RFRMW_IN: (cert_rf G Gsc T thread ⨾ rmw G) ⨾ ⦗issued T⦘ ⊆ rf Gf ⨾ rmw Gf.
-  Proof using WF IMMCON SIMREL Gf_THREADS_BOUND TLS_FIN.
+  Proof using WF IMMCON SIMREL Gf_FIN_THREADS TLS_FIN.
     arewrite (issued T ⊆₁ issued T ∪₁ reserved T ∩₁ Tid_ thread).
     rewrite <- seqA. apply RFRMW_IST_IN. 
   Qed. 
@@ -1361,7 +1382,7 @@ T⦘)
                     (* (issued T ∪₁ S ∩₁ Tid_ thread) *)
                     (certT G T thread)
                     f_to f_from sim_certification.
-    Proof using WF TEH'' SIMREL RECP NV IMMCON FAIRf Gf_THREADS_BOUND TLS_FIN.
+    Proof using WF TEH'' SIMREL RECP NV IMMCON FAIRf Gf_FIN_THREADS TLS_FIN.
       cdes SIMREL. cdes COMMON. cdes RECP.
       (* TODO: eauto doesn't use hints? *)
       red. splits; eauto; simpls; try by apply SIMREL.
@@ -1463,7 +1484,7 @@ T⦘)
                           (certT G T thread)
 
                           f_to f_from thread sim_certification. 
-    Proof using WF TEH'' STATE0 SIMREL SAME RECP NV IMMCON FAIRf Gf_THREADS_BOUND TLS_FIN.
+    Proof using WF TEH'' STATE0 SIMREL SAME RECP NV IMMCON FAIRf Gf_FIN_THREADS TLS_FIN.
       cdes STATE0.
       red. splits.
       assert (same_lab_u2v (lab' s') (lab Gf)) as SAME_.      
@@ -1471,7 +1492,7 @@ T⦘)
       eexists. eexists. splits; eauto.
       all: eauto.
       { red. ins. eapply SIM_PROM in PROM. (* sim_prom *)
-        desc. exists b0. splits; auto.
+        desc. exists b. splits; auto.
         { unfold certG. unfold acts_set. simpls.
           unfold G. unfold rstG, restrict. simpls. split; auto.
           red. left. left. by right. }
@@ -1487,7 +1508,7 @@ T⦘)
         split; (intros x [AA|AA]; [left|right]).
         4: { erewrite <- same_lab_u2v_loc in AA; eauto. }
         2: { erewrite same_lab_u2v_loc in AA; eauto. }
-        { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
+        { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b) as XX.
           2: { apply seq_eqv_r in XX. desf. }
           eapply msg_rel_I; eauto.
           eapply cert_msg_rel with (lab':= (lab' s')); eauto.
@@ -1496,7 +1517,7 @@ T⦘)
           4: by apply seq_eqv_r; split; eauto.
           all: eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. }
           
-        assert ((msg_rel (certG G Gsc T thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
+        assert ((msg_rel (certG G Gsc T thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b) as XX.
         2: { apply seq_eqv_r in XX. desf. }
         unfold G. simpl. 
         eapply cert_msg_rel; eauto.
@@ -1507,22 +1528,22 @@ T⦘)
       { red. ins. (* sim_res_prom *)
         eapply SIM_RPROM in RES.
         desc.
-        assert (acts_set Gf b0) as FEB.
+        assert (acts_set Gf b) as FEB.
         { eapply rcoh_S_in_E; eauto. }
-        assert (acts_set G b0) as EB.
+        assert (acts_set G b) as EB.
         { subst. eapply ST_in_E; eauto. by split. }
 
         (* Some commented out code removed from there. 
            See ad483e9 commit *)
         
-        exists b0. splits; auto.
+        exists b. splits; auto.
         { apply reserved_certT. vauto. } 
         { intros ISS. eapply NOISS, issued_certT; eauto. }
         erewrite same_lab_u2v_loc in LOC; eauto.
         rewrite <- lab_G_eq_lab_Gf; eauto.
           by apply same_lab_u2v_comm. }
       { red. ins. (* sim_mem *)
-        edestruct SIM_MEM with (b:=b0) as [rel_opt]; eauto.
+        edestruct SIM_MEM with (b:=b) as [rel_opt]; eauto.
         { erewrite same_lab_u2v_loc in LOC; eauto.
           eapply issued_certT; eauto. }
         { erewrite same_lab_u2v_loc; eauto. eapply same_lab_u2v_comm; eauto. }
@@ -1536,14 +1557,14 @@ T⦘)
           split; (intros x [AA|AA]; [left|right]).
           4: { erewrite <- same_lab_u2v_loc in AA; eauto. }
           2: { erewrite same_lab_u2v_loc in AA; eauto. }
-          { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
+          { assert ((msg_rel Gf sc ll ⨾ ⦗ issued T ⦘) x b) as XX.
             2: { apply seq_eqv_r in XX. desf. }
             eapply msg_rel_I; eauto.
             eapply cert_msg_rel with (lab':=(lab' s')); eauto.
             1-3: by eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. 
             apply seq_eqv_r. split; auto.
             eapply issued_certT; eauto. }
-          assert ((msg_rel (certG G Gsc T thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b0) as XX.
+          assert ((msg_rel (certG G Gsc T thread (lab' s')) Gsc ll ⨾ ⦗ issued T ⦘) x b) as XX.
           2: { apply seq_eqv_r in XX. desf. }
           unfold G.          
           eapply cert_msg_rel; eauto.
@@ -1570,17 +1591,17 @@ T⦘)
         { eapply issued_certT; eauto. }
         { destruct INRMW as [z [RF RMW]].
           assert ((E0 Gf T thread) z).
-          { unfold E0; left; right; exists b0.
+          { unfold E0; left; right; exists b.
             apply seq_eqv_r. split.
             2: { split; auto.
                  eapply rcoh_I_in_S, issued_certT; eauto. }
             generalize (rmw_in_sb WF); basic_solver 12. }
-          assert ((E0 Gf T thread) b0).
+          assert ((E0 Gf T thread) b).
           { unfold E0; left; left; right.
             eapply issued_certT; eauto. }
           assert ((E0 Gf T thread) p).
           { unfold E0; left; left; right; basic_solver 12. }
-          assert ((rmw G) z b0).
+          assert ((rmw G) z b).
           { apply rmw_G_rmw_Gf; basic_solver 12. }
           exists z; splits; [|done].
           cut ((cert_rf G Gsc T thread ⨾ ⦗D G T thread⦘) p z).
@@ -1590,12 +1611,12 @@ T⦘)
              apply seq_eqv_lr. splits; auto. }
           eapply dom_rmw_D; eauto.
           1-2: by eauto using TCOH_rst_certT, ICOH_rst_certT. 
-          exists b0. apply seq_eqv_r. split; auto.
+          exists b. apply seq_eqv_r. split; auto.
           eapply I_in_D; eauto. eapply issued_certT; eauto. }
         exists p_v. splits; eauto.
         erewrite ISS_OLD; eauto. }
       { red. ins.
-        assert (loc (lab Gf) b0 = Some l) as AA.
+        assert (loc (lab Gf) b = Some l) as AA.
         { rewrite <- LOC. symmetry.
           erewrite same_lab_u2v_loc; eauto.
           (* by rewrite <- lab_G_eq_lab_Gf. *)
@@ -1669,8 +1690,9 @@ T⦘)
       ⟪ NTID  : NTid_ thread ∩₁ G'.(acts_set) ⊆₁ covered T' ⟫ /\
       ⟪ SIMREL : simrel_thread G' sc' PC T' f_to f_from thread sim_certification ⟫ /\
       ⟪ FIN': fin_exec G' ⟫ /\
-      ⟪ FAIR': mem_fair G' ⟫. 
-  Proof using WF T SIMREL IMMCON FAIRf TLS_FIN Gf_THREADS_BOUND.
+      ⟪ FAIR': mem_fair G' ⟫ /\
+      ⟪ FIN_THREADS': fin_threads G' ⟫. 
+  Proof using WF T SIMREL IMMCON FAIRf TLS_FIN Gf_FIN_THREADS.
     cdes SIMREL.
     forward eapply (proj1 (simrel_thread_local_equiv sim_normal)); eauto.
     rename LOCAL into LOCAL_. ins. desc. rename H into LOCAL. cdes LOCAL.    
@@ -1706,7 +1728,7 @@ T⦘)
       1-3: by eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. }
     { rewrite covered_certT. basic_solver. }
     { red. splits; eauto using simrel_cert_common, simrel_cert_local. }
-    apply fin_exec_fair; eauto using WF_CERT. 
+    apply fin_exec_fair; eauto using WF_CERT.     
   Qed.
 
 End CertGraphInit.
