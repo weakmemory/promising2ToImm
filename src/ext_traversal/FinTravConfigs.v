@@ -8,6 +8,7 @@ From imm Require Import RMWinstrProps.
 From imm Require Import AuxRel2.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
+From imm Require Import FinThreads.
 From imm Require Import AuxDef. 
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
@@ -19,7 +20,6 @@ Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
 Import ListNotations.
 Require Import IndefiniteDescription.
-Require Import ThreadsSetFin. 
 
 Set Implicit Arguments. 
 

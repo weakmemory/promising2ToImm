@@ -19,8 +19,8 @@ From imm Require Import Receptiveness.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
 From imm Require Import SubExecution. 
+From imm Require Import FinThreads.
 (* From imm Require Import ThreadBoundedExecution. *)
-Require Import ThreadsSetFin. 
 
 From imm Require Import RMWinstrProps.
 Require Import promise_basics.PromiseLTS.

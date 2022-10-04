@@ -12,11 +12,11 @@ From imm Require Import IordCoherency.
 From imm Require Import TraversalOrder. 
 From imm Require Import EnumPrefix. 
 From imm Require Import FinExecution.
-From imm Require Import ThreadBoundedExecution.
+From imm Require Import FinThreads.
 From imm Require Import AuxDef.
+From imm Require Import SetSize.
 From imm Require Import SimClosure.
-(* TODO: move EnumProperties section from Hardwarefairness to lib and refactor it*)
-From imm Require Import HardwareFairness.
+From imm Require Import EnumProperties.
 
 Require Import Basics.
 Require Import TlsEventSets.
@@ -25,8 +25,6 @@ Require Import ExtTraversal.
 Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
 Require Import IndefiniteDescription.
-Require Import SetSize.
-Require Import ThreadsSetFin. 
 Require Import FinTravConfigs. 
 
 Require Import TlsEventSets.
@@ -90,34 +88,6 @@ Section ExtTraversalCounting.
   Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
   Notation "'Tid_' t"  := (fun x => tid x =  t) (at level 1).
 
-  (* TODO: move*)
-  Lemma iord_coherent_crt T
-        (ICOH: iord_coherent G sc T):
-    dom_rel ((iord G sc)^* ⨾ ⦗T⦘) ⊆₁ T.
-  Proof using.
-  Admitted.
-
-  (* TODO: move*)
-  Lemma set_size_finite {A: Type} (S: A -> Prop)
-    (FIN: set_finite S):
-    exists n, set_size S = NOnum n.
-  Proof using.
-    unfold set_size. destruct (excluded_middle_informative _); by vauto.
-  Qed.
-
-  Lemma enumerates_set_bunion {A: Type} (steps: nat -> A) (S: A -> Prop)
-        (ENUM: enumerates steps S):
-    S ≡₁ ⋃₁ i ∈ flip NOmega.lt_nat_l (set_size S), eq (steps i).
-  Proof using. 
-    apply enumeratesE' in ENUM. desc.
-    split; unfolder; ins; desc; subst. 
-    by apply INSET.
-  Qed.
-
-  Lemma fin_threads2threads_bound:
-    fin_threads G -> exists t, threads_bound G t.
-  Proof using. Admitted.
-    
   Lemma iord_enum_exists' T
         (CONS: imm_consistent G sc)
         (FAIR: mem_fair G)
@@ -159,8 +129,7 @@ Section ExtTraversalCounting.
       { generalize H2, H1. basic_solver. }
     }
     { relsf. apply fsupp_union.
-      { apply fin_threads2threads_bound in FIN_THREADS. desc. 
-        eapply iord_ct_fsupp; eauto. }
+      { eapply iord_ct_fsupp; eauto. }
       rewrite inclusion_minus_rel.
       rewrite <- cross_inter_l. apply fsupp_cross.
       rewrite set_interC. apply T_FIN. }
@@ -187,14 +156,14 @@ Section ExtTraversalCounting.
            apply IND in H as INDk. desc. subst.
            destruct ALLT. by vauto. }
          unfold trav_prefix. 
-         forward eapply set_size_finite as [n SIZE]; eauto. 
-         assert (set_size (exec_tls G) = NOnum n) as EQ_SIZE. 
+         forward eapply set_size_finite as [n SIZE]; eauto.
+         assert (set_size (exec_tls G) = NOnum n) as EQ_SIZE.
          { rewrite <- SIZE. symmetry. apply set_size_equiv.
            rewrite H. unfold init_tls, exec_tls.
-           rewrite !AuxDef.set_pair_alt. basic_solver 10. } 
+           rewrite !AuxDef.set_pair_alt. basic_solver 10. }
          exists n. split.
          { by rewrite EQ_SIZE. }
-         rewrite H. rewrite set_unionC. apply set_equiv_union; [done| ].  
+         rewrite H. rewrite set_unionC. apply set_equiv_union; [done| ].
          erewrite enumerates_set_bunion with (S := exec_tls G); eauto.
          rewrite EQ_SIZE. by vauto. }
 
@@ -345,7 +314,7 @@ Section ExtTraversalCounting.
   Qed. 
     
   Hypothesis FINDOM: fin_exec G.
-  (* TODO: move to FinExecution *)
+  (* TODO: move to imm/FinExecution *)
   Definition acts_list: list actid :=
     filterP (acts_set G \₁ is_init)
             (proj1_sig (@constructive_indefinite_description _ _ FINDOM)).
@@ -411,13 +380,9 @@ Section ExtTraversalCounting.
   Lemma sim_clos_step2ext_isim_trav_step thread T1 T2
         (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T1)
         (STEP: (sim_clos_step G sc) T1 T2)
-
         (RCOH: reserve_coherent G T1)
-
         (TCOH2: tls_coherent G T2)
-        (RCOH2: reserve_coherent G T2)
-
-    :
+        (RCOH2: reserve_coherent G T2) :
     (ext_isim_trav_step G sc thread) T1 T2.
   Proof using.
     (* TODO: use SimClosure from imm *)

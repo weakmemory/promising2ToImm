@@ -16,7 +16,7 @@ From imm Require Import RMWinstrProps.
 From imm Require Import AuxRel2.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
-Require Import ThreadsSetFin.
+From imm Require Import FinThreads.
 
 Require Import SimulationRel.
 Require Import PlainStepBasic.
@@ -978,7 +978,7 @@ Lemma simulation
       (FAIR: mem_fair G)
       (FIN: fin_exec G) :
   exists T PC f_to f_from,
-    ⟪ FINALT : (acts_set G) ⊆₁ covered T ⟫ /\
+    ⟪ FINALT : acts_set G ⊆₁ covered T ⟫ /\
     ⟪ PSTEP  : conf_step＊ (conf_init prog) PC ⟫ /\
     ⟪ SIMREL : simrel G sc PC T f_to f_from ⟫.
 Proof using All.
@@ -988,14 +988,13 @@ Proof using All.
   assert (wf_sc G sc) as WFSC by apply IMMCON.
   (* generalize (sim_traversal WF WFSC CG FIN IMMCON); ins; desc. *)
     
-    
   forward eapply simrel_init as SI.
-  foobar.
   (* TODO: write a version sim_step_cov_full_traversal for general traversal
      (without thread argument) *)
-  forward eapply sim_step_cov_full_traversal with (T := init_tls G) as H; eauto.
+  forward eapply sim_step_cov_full_traversal with (T := init_tls G) as T; eauto.
   all: try by apply SI. 
-  foobar. 
+  { apply fin_exec_imm_s_fair; auto. }
+  { admit. }
 
   destruct T as [T S].
   exists T, S.
