@@ -6,20 +6,20 @@ Require Import Arith.
 Definition list_sum l := fold_right plus 0 l.
 
 Lemma list_sum_app l1 l2: list_sum (l1 ++ l2) = list_sum l1 + list_sum l2.
-Proof. 
+Proof using. 
   induction l1; [done| ]. 
   ins. rewrite IHl1. lia.
 Qed.
 
 Lemma list_sum_inc_inside a l1 l2:
   list_sum (l1 ++ S a :: l2) = S (list_sum (l1 ++ a :: l2)).
-Proof. 
+Proof using. 
   ins. rewrite !list_sum_app. simpl. lia.
 Qed. 
 
 Lemma list_sum_bound l k (BOUND: forall x (INx: In x l), x <= k):
   list_sum l <= k * length l.
-Proof. 
+Proof using. 
   ins. induction l. 
   { simpl. lia. }
   simpl. specialize_full IHl.
@@ -31,18 +31,18 @@ Qed.
 
 Lemma emiT {A: Type} {P: Prop} (b1 b2: A) (p: P):
   (ifP P then b1 else b2) = b1.
-Proof. by destruct (excluded_middle_informative P). Qed. 
+Proof using. by destruct (excluded_middle_informative P). Qed. 
 
 Lemma emiF {A: Type} {P: Prop} (b1 b2: A) (np: ~ P):
   (ifP P then b1 else b2) = b2.
-Proof. by destruct (excluded_middle_informative P). Qed.
+Proof using. by destruct (excluded_middle_informative P). Qed.
 
 Lemma list_sum_separation {A B: Type} (tid_: A -> B) (l: list A) (domB: list B)
       (ND : NoDup l)
       (NDB: NoDup domB)
       (INCL: forall x, In x l -> In (tid_ x) domB):
   length l = list_sum (map (fun tn => length (filterP (fun e => nth_error domB tn = Some (tid_ e)) l)) (List.seq 0 (length domB))).
-Proof.
+Proof using.
   remember (length domB) as n.
   generalize dependent l. induction l.
   { ins. (* clear BOUNDED_THREADS0. *) clear Heqn. 

@@ -348,7 +348,7 @@ Definition msg_preserved_trans memory memory' memory''
            (PRES  : msg_preserved memory  memory')
            (PRES' : msg_preserved memory' memory'') :
   msg_preserved memory memory''.
-Proof.
+Proof using.
   red. ins.
   apply PRES  in INMEM. desf.
   apply PRES' in INMEM. desf.

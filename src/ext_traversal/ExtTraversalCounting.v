@@ -360,7 +360,7 @@ Section ExtTraversalCounting.
     filterP (acts_set G \₁ is_init)
             (proj1_sig (@constructive_indefinite_description _ _ FINDOM)).
   Lemma acts_set_findom: acts_set G \₁ is_init ≡₁ (fun e => In e acts_list).
-  Proof.
+  Proof using.
     unfold acts_list. destruct constructive_indefinite_description. simpl.
     apply AuxRel.set_equiv_exp_equiv. intros e.
     rewrite in_filterP_iff. intuition. 

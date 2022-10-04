@@ -266,7 +266,7 @@ Notation "'CSc'" := (fun a => is_true (is_sc Clab a)).
 (******************************************************************************)
 
 Lemma dom_rf_D_helper: Grf ⨾ ⦗D⦘ ≡ ⦗D⦘ ⨾ Grf ⨾ ⦗D⦘.
-Proof.
+Proof using All.
 forward (eapply dom_rf_D with (T:=T) (thread:=thread)); try edone.
 basic_solver 12.
 Qed.
@@ -333,7 +333,7 @@ Proof using All.
 Qed.
 
 (*Lemma rt_rf_rmw : (rf ⨾ rmw)＊ ⊆ (rfi ⨾ rmw)＊ ⨾ (rfe ⨾ rmw ⨾ (rfi ⨾ rmw)＊)＊.
-Proof.
+Proof using.
 eapply rt_ind_left with (P:=fun r=> r); eauto with hahn.
 basic_solver 12.
 intros k H.
