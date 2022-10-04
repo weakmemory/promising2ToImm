@@ -412,17 +412,27 @@ Section ExtTraversalCounting.
   Lemma sim_clos_step2ext_isim_trav_step_crt thread T1 T2
         (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T1)
         (STEP: (sim_clos_step G sc)^* T1 T2)
-        (RCOH: reserve_coherent G T1)
+        (TCOH1: tls_coherent G T1)
         (TCOH2: tls_coherent G T2)
+        (RCOH: reserve_coherent G T1)
         (RCOH2: reserve_coherent G T2):
     (ext_isim_trav_step G sc thread)^* T1 T2.
   Proof using. 
     induction STEP.
     { apply rt_step, sim_clos_step2ext_isim_trav_step; auto. }
     { apply rt_refl. }
+    assert (x ⊆₁ y) as XY by now apply sim_clos_step_crt_incl.
+    assert (y ⊆₁ z) as YZ by now apply sim_clos_step_crt_incl.
+    assert (tls_coherent G y) as TLSY.
+    { constructor.
+      { transitivity x; auto. apply TCOH1. }
+      transitivity z; auto. apply TCOH2. }
+    assert (reserve_coherent G y) as RCOHY.
+    { clear IHSTEP1 IHSTEP2.
+      admit. }
     eapply rt_trans; [apply IHSTEP1 | apply IHSTEP2]; eauto.
-    (* TODO: show that needed premises are preserved by sim_clos_step *)
-    all: admit.
+    etransitivity; eauto.
+    now apply covered_mori.
   Admitted. 
 
 
