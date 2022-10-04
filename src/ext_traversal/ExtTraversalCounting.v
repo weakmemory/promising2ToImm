@@ -2,11 +2,23 @@ Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 Require Import Lia.
 
+From imm Require Import SimIordTraversal.
+From imm Require Import FairExecution. 
+From imm Require Import ImmFair. 
 From imm Require Import Events Execution imm_s.
 From imm Require Import AuxRel2.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import TraversalOrder. 
+From imm Require Import EnumPrefix. 
+From imm Require Import FinExecution.
+From imm Require Import ThreadBoundedExecution.
+From imm Require Import AuxDef.
+From imm Require Import SimClosure.
+(* TODO: move EnumProperties section from Hardwarefairness to lib and refactor it*)
+From imm Require Import HardwareFairness.
+
+Require Import Basics.
 Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
@@ -14,7 +26,6 @@ Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
 Require Import IndefiniteDescription.
 Require Import SetSize.
-From imm Require Import FinExecution.
 Require Import ThreadsSetFin. 
 Require Import FinTravConfigs. 
 
@@ -62,13 +73,6 @@ Proof using.
     by apply IHl with (e:=e).
 Qed.
 
-(* TODO: move *)
-From imm Require Import SimIordTraversal.
-From imm Require Import FairExecution. 
-From imm Require Import ImmFair. 
-(* From imm Require Import ThreadBoundedExecution.  *)
-
-
 Section ExtTraversalCounting.
   Variable G : execution.
   Variable sc : relation actid.
@@ -87,9 +91,6 @@ Section ExtTraversalCounting.
   Notation "'Tid_' t"  := (fun x => tid x =  t) (at level 1).
 
   (* TODO: move*)
-  From imm Require Import EnumPrefix. 
-
-  (* TODO: move*)
   Lemma iord_coherent_crt T
         (ICOH: iord_coherent G sc T):
     dom_rel ((iord G sc)^* ⨾ ⦗T⦘) ⊆₁ T.
@@ -104,8 +105,6 @@ Section ExtTraversalCounting.
     unfold set_size. destruct (excluded_middle_informative _); by vauto.
   Qed.
 
-  (* (TODO: move) *)
-  Require Import Basics.
   Lemma enumerates_set_bunion {A: Type} (steps: nat -> A) (S: A -> Prop)
         (ENUM: enumerates steps S):
     S ≡₁ ⋃₁ i ∈ flip NOmega.lt_nat_l (set_size S), eq (steps i).
@@ -115,8 +114,6 @@ Section ExtTraversalCounting.
     by apply INSET.
   Qed.
 
-  (* TODO: temporary hack to fall back to old threads_bound definition *)
-  From imm Require Import ThreadBoundedExecution.
   Lemma fin_threads2threads_bound:
     fin_threads G -> exists t, threads_bound G t.
   Proof using. Admitted.
@@ -249,10 +246,6 @@ Section ExtTraversalCounting.
 
   
   (* TODO: move *)
-  From imm Require Import AuxDef.
-  From imm Require Import SimClosure.
-
-  (* TODO: move *)
   Lemma sim_traversal_inf' T
         (FAIR: mem_fair G)
         (IMM_FAIR: imm_s_fair G sc)
@@ -308,9 +301,6 @@ Section ExtTraversalCounting.
     { rewrite H0. by right. }
     auto.
   Qed.
-
-  (* TODO: move EnumProperties section from Hardwarefairness to lib and refactor it*)
-  From imm Require Import HardwareFairness.
 
   (* TODO: move*)
   Lemma enum_steps_crt {A: Type} (r: relation A) (f: nat -> A) (b: nat_omega)
