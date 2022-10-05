@@ -14,6 +14,7 @@ From imm Require Import AuxDef.
 From imm Require Import FairExecution.
 
 From imm Require Import AuxRel2.
+Require Import AuxRel.
 Require Import SimulationRel.
 Require Import SimState.
 Require Import MemoryAux.
@@ -597,7 +598,7 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW PLN_RLX_EQ INHAB MEM_CLOSE TCOH RCOH
          rewrite <- FOR_SPLIT.
          hahn_frame.
          clear. apply eqv_rel_mori.
-         apply AuxRel.set_compl_mori. red.
+         apply set_compl_mori. red.
          clear. simplify_tls_events. basic_solver 10. }
 
     assert (f_to wprev <> f_from wconext) as FFNEQ.

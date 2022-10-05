@@ -13,6 +13,7 @@ From imm Require Import CombRelations.
 From imm Require Import AuxDef.
 
 From imm Require Import AuxRel2.
+Require Import AuxRel.
 Require Import SimulationRel.
 Require Import SimState.
 Require Import MemoryAux.
@@ -1023,7 +1024,7 @@ Proof using WF IMMCON FCOH RESERVED_TIME.
        rewrite <- FOR_SPLIT.
        hahn_frame.
        clear -TMSG. apply eqv_rel_mori.
-       apply AuxRel.set_compl_mori. red.
+       apply set_compl_mori. red.
        caseT' TMSG; basic_solver 10. }
 
   (* TODO: Extract to a separate lemma. *)
@@ -1187,7 +1188,7 @@ Proof using WF IMMCON FCOH RESERVED_TIME SIM_RES_MEM SIM_MEM TCOH RCOH.
        rewrite <- FOR_SPLIT.
        hahn_frame.
        clear -TMSG. apply eqv_rel_mori.
-       apply AuxRel.set_compl_mori. red.
+       apply set_compl_mori. red.
        caseT' TMSG; basic_solver 10. }
 
   (* TODO: Extract to a separate lemma. *)

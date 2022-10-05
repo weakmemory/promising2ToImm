@@ -891,7 +891,7 @@ basic_solver 12.
     { apply dom_rel_helper.
       eapply dom_data_Crfi_rmw_D_in_D. }
     rewrite <- !seqA.
-    do 4 rewrite AuxRel.dom_seq.
+    do 4 rewrite dom_seq.
     apply dom_cert_detour_rfe_D. }
   { rewrite IST_in_S.
     rewrite (dom_rel_helper COMP_RMW_S).

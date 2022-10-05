@@ -13,6 +13,7 @@ From imm Require Import CombRelations.
 From imm Require Import AuxDef.
 From imm Require Import AuxRel2.
 
+Require Import AuxRel.
 Require Import SimulationRel.
 Require Import SimState.
 Require Import MemoryAux.
@@ -856,7 +857,7 @@ Proof using WF IMMCON RELCOV FCOH SIM_TVIEW SIM_RES_MEM SIM_MEM INHAB PLN_RLX_EQ
          rewrite <- FOR_SPLIT.
          hahn_frame.
          clear. apply eqv_rel_mori.
-         apply AuxRel.set_compl_mori. red.
+         apply set_compl_mori. red.
          simplify_tls_events. basic_solver 10. }
     splits.
     3: { intros x y SX SY CO; subst.
