@@ -1619,9 +1619,9 @@ Proof using WF TCOH RCOH ICOH.
     rewrite set_inter_union_r.
     unionL.
     { rewrite init_tls_eq_rstG. clear. basic_solver 10. }
-    transitivity (event ⋄₁ Init ∩₁ exec_tls Gf).
+    transitivity (event ↓₁ Init ∩₁ exec_tls Gf).
     { clear. basic_solver 10. }
-    arewrite (event ⋄₁ Init ∩₁ exec_tls Gf ⊆₁ ∅).
+    arewrite (event ↓₁ Init ∩₁ exec_tls Gf ⊆₁ ∅).
     { rewrite exec_tls_ENI. clear. basic_solver 10. }
     clear; basic_solver. }
   (* unfold certT. *)
@@ -1634,12 +1634,12 @@ Proof using WF TCOH RCOH ICOH.
   rewrite !set_unionA.
   rewrite !set_pair_union_l.
   unionL.
-  { arewrite (T ∩₁ action ⋄₁ eq ta_cover ⊆₁ eq ta_cover <*> (event □₁ (T ∩₁ action ⋄₁ eq ta_cover))).
+  { arewrite (T ∩₁ action ↓₁ eq ta_cover ⊆₁ eq ta_cover <*> (event ↑₁ (T ∩₁ action ↓₁ eq ta_cover))).
     { clear. unfold set_pair. basic_solver 10. }
     rewrite C_in_E.
     clear. unfold set_pair. unfolder. ins. do 2 desf. eauto. }
   { unionR right -> left.
-    arewrite (T ∩₁ action ⋄₁ eq ta_issue ⊆₁ eq ta_issue <*> (event □₁ (T ∩₁ action ⋄₁ eq ta_issue))).
+    arewrite (T ∩₁ action ↓₁ eq ta_issue ⊆₁ eq ta_issue <*> (event ↑₁ (T ∩₁ action ↓₁ eq ta_issue))).
     { clear. unfold set_pair. basic_solver 10. }
     rewrite IEW.
     clear. unfold set_pair. unfolder. ins. do 2 desf. }

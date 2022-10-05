@@ -89,16 +89,16 @@ Section SimplificationsCIRP.
 
 
 Lemma tls_set_inter_helper T1 T2 (a: trav_action):
-  event □₁ ((T1 ∩₁ T2) ∩₁ action ⋄₁ eq a) ≡₁
-  event □₁ (T1 ∩₁ action ⋄₁ eq a) ∩₁ event □₁ (T2 ∩₁ action ⋄₁ eq a).
+  event ↑₁ ((T1 ∩₁ T2) ∩₁ action ↓₁ eq a) ≡₁
+  event ↑₁ (T1 ∩₁ action ↓₁ eq a) ∩₁ event ↑₁ (T2 ∩₁ action ↓₁ eq a).
 Proof using. 
   split; try basic_solver 10.
   unfolder. ins. desc. destruct y, y0; ins; subst. eauto. 
 Qed.  
 
 Lemma tls_set_minus_helper T1 T2 (a: trav_action):
-  event □₁ ((T1 \₁ T2) ∩₁ action ⋄₁ eq a) ≡₁
-  event □₁ (T1 ∩₁ action ⋄₁ eq a) \₁ event □₁ (T2 ∩₁ action ⋄₁ eq a).
+  event ↑₁ ((T1 \₁ T2) ∩₁ action ↓₁ eq a) ≡₁
+  event ↑₁ (T1 ∩₁ action ↓₁ eq a) \₁ event ↑₁ (T2 ∩₁ action ↓₁ eq a).
 Proof using.
   split; try basic_solver 10.
   unfolder. ins. desc. destruct y; ins; subst. 
@@ -381,7 +381,7 @@ Section WfSets.
   Qed.
 
   Lemma init_propagated_thread t (Gt: (threads_set G \₁ eq tid_init) t):
-    is_init ∩₁ E ⊆₁ event □₁ (T ∩₁ action ⋄₁ eq (ta_propagate t)). 
+    is_init ∩₁ E ⊆₁ event ↑₁ (T ∩₁ action ↓₁ eq (ta_propagate t)). 
   Proof using TLSCOH. 
     unfolder; ins; desf.
     exists (mkTL (ta_propagate t) x). repeat split; auto. 

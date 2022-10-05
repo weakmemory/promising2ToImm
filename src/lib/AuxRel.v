@@ -44,10 +44,6 @@ Notation "⊤₂" := (fun _ _ => True).
 
 Notation "a ⁼" := (clos_refl_sym a) (at level 1, format "a ⁼").
 Notation "a ^=" := (clos_refl_sym a) (at level 1, only parsing).
-Notation "f ⋄₁ s"  := (set_map f s) (at level 39).
-Notation "f □₁ s" := (set_collect f s) (at level 39).
-Notation "f ⋄ r"  := (map_rel f r) (at level 45).
-Notation "f □ r"  := (collect_rel f r) (at level 45).
 
 Global
 Hint Unfold 
@@ -152,7 +148,7 @@ Qed.
 (******************************************************************************)
 
 Lemma set_collect_eq_dom (f g : A -> B) (EQ : eq_dom s f g) :
-  f □₁ s ≡₁ g □₁ s.
+  f ↑₁ s ≡₁ g ↑₁ s.
 Proof using. 
   unfolder in *. 
   split. 
@@ -163,11 +159,11 @@ Proof using.
 Qed.
 
 Lemma set_collect_eq_opt (f : A -> B) (a : option A) : 
-  f □₁ eq_opt a ≡₁ eq_opt (option_map f a).
+  f ↑₁ eq_opt a ≡₁ eq_opt (option_map f a).
 Proof using. unfold eq_opt, option_map. basic_solver. Qed.
 
 Lemma set_collect_updo (f : A -> B) (a : A) (b : B) (NC : ~ s a) : 
-  (upd f a b) □₁ s ≡₁ f □₁ s.
+  (upd f a b) ↑₁ s ≡₁ f ↑₁ s.
 Proof using.
   assert (forall x: A, s x -> x <> a). 
   { ins. intros HH. by subst. }
@@ -178,7 +174,7 @@ Proof using.
 Qed.
 
 Lemma set_collect_restr_fun (f g : A -> B) : 
-  s' ⊆₁ s -> (restr_fun s f g) □₁ s' ≡₁ f □₁ s'.
+  s' ⊆₁ s -> (restr_fun s f g) ↑₁ s' ≡₁ f ↑₁ s'.
 Proof using. 
   clear.
   unfolder. ins. split. 
@@ -193,7 +189,7 @@ Lemma set_collect_if_then (ft fe: A -> B) (HH : s ⊆₁ s') :
   (fun e : A =>
      if excluded_middle_informative (s' e)
      then ft e
-     else fe e) □₁ s ≡₁ ft □₁ s.
+     else fe e) ↑₁ s ≡₁ ft ↑₁ s.
 Proof using.
   unfolder. split; ins; desf; eauto.
   2: eexists; splits; eauto; desf.
@@ -204,7 +200,7 @@ Lemma set_collect_if_else (ft fe: A -> B) (HH : s ∩₁ s' ⊆₁ ∅) :
   (fun e : A =>
      if excluded_middle_informative (s' e)
      then ft e
-     else fe e) □₁ s ≡₁ fe □₁ s.
+     else fe e) ↑₁ s ≡₁ fe ↑₁ s.
 Proof using.
   unfolder. split; ins; desf; eauto.
   2: eexists; splits; eauto; desf.
@@ -217,7 +213,7 @@ Qed.
 
 (* Lemma collect_rel_eq_dom : *)
 (*   forall (s s': A -> Prop) (EQs: eq_dom s f g) (EQs': eq_dom s' f g), *)
-(*   f □ (⦗ s ⦘ ⨾ r ⨾ ⦗ s' ⦘) ≡ g □ (⦗ s ⦘ ⨾ r ⨾ ⦗ s' ⦘). *)
+(*   f ↑ (⦗ s ⦘ ⨾ r ⨾ ⦗ s' ⦘) ≡ g ↑ (⦗ s ⦘ ⨾ r ⨾ ⦗ s' ⦘). *)
 (* Proof using. *)
 (*   ins. *)
 (*   unfolder. *)
@@ -227,7 +223,7 @@ Qed.
 (* Qed. *)
 
 Lemma collect_rel_restr_eq_dom (f g : A -> B) (EQ : eq_dom s f g) :
-  f □ (restr_rel s r) ≡ g □ (restr_rel s r).
+  f ↑ (restr_rel s r) ≡ g ↑ (restr_rel s r).
 Proof using. 
   unfolder. split.
   { ins; desf; repeat eexists; eauto; 
@@ -237,15 +233,15 @@ Proof using.
 Qed.
 
 Lemma collect_rel_interi (f : A -> B) : 
-  f □ (r ∩ r') ⊆ (f □ r) ∩ (f □ r').
+  f ↑ (r ∩ r') ⊆ (f ↑ r) ∩ (f ↑ r').
 Proof using. basic_solver 10. Qed.
 
 Lemma collect_rel_seqi (f : A -> B) : 
-  f □ (r ⨾ r') ⊆ (f □ r) ⨾ (f □ r').
+  f ↑ (r ⨾ r') ⊆ (f ↑ r) ⨾ (f ↑ r').
 Proof using. basic_solver 30. Qed.
 
 Lemma collect_rel_fixset (f : A -> A) (FIX : fixset s f) :
-  f □ restr_rel s r ≡ restr_rel s r.
+  f ↑ restr_rel s r ≡ restr_rel s r.
 Proof using.
   unfolder in *.
   split; ins; desf.
@@ -262,7 +258,7 @@ Lemma collect_rel_if_then
   (fun e : A =>
      if excluded_middle_informative (s e)
      then ft e
-     else fe e) □ r ≡ ft □ r.
+     else fe e) ↑ r ≡ ft ↑ r.
 Proof using.
   unfolder. split; ins; desf; eauto.
   4: do 2 eexists; splits; eauto; desf.
@@ -277,7 +273,7 @@ Lemma collect_rel_if_else
   (fun e : A =>
      if excluded_middle_informative (s e)
      then ft e
-     else fe e) □ r ≡ fe □ r.
+     else fe e) ↑ r ≡ fe ↑ r.
 Proof using.
   unfolder. split; ins; desf; eauto.
   4: do 2 eexists; splits; eauto; desf.
@@ -290,11 +286,11 @@ Qed.
 (******************************************************************************)
 
 Lemma collect_map_in_set (f : A -> B) : 
-  f □₁ (f ⋄₁ p) ⊆₁ p.
+  f ↑₁ (f ↓₁ p) ⊆₁ p.
 Proof using. basic_solver. Qed.
 
 Lemma set_in_map_collect (f : A -> B) : 
-  s ⊆₁ f ⋄₁ (f □₁ s).
+  s ⊆₁ f ↓₁ (f ↑₁ s).
 Proof using. basic_solver. Qed.
 
 (******************************************************************************)
@@ -305,7 +301,7 @@ Lemma inj_dom_union
       (f : A -> B)
       (INJ : inj_dom s f) 
       (INJ' : inj_dom s' f) 
-      (DISJ : set_disjoint (f □₁ s) (f □₁ s')) :
+      (DISJ : set_disjoint (f ↑₁ s) (f ↑₁ s')) :
   inj_dom (s ∪₁ s') f. 
 Proof using. 
   unfolder in *. 
@@ -342,7 +338,7 @@ Proof using.
 Qed.
 
 Lemma fixset_set_fixpoint (f : A -> A) : 
-  fixset s f -> s ≡₁ f □₁ s.
+  fixset s f -> s ≡₁ f ↑₁ s.
 Proof using. 
   autounfold with unfolderDb; unfold set_subset.
   intros FIX.
@@ -355,7 +351,7 @@ Proof using.
 Qed.
 
 Lemma fixset_swap (f' : A -> B) (g' : B -> A) : 
-  fixset s (g' ∘ f') -> fixset (f' □₁ s) (f' ∘ g').
+  fixset s (g' ∘ f') -> fixset (f' ↑₁ s) (f' ∘ g').
 Proof using.
   unfolder.
   intros FIX x [y [DOM Fy]].
@@ -459,7 +455,7 @@ Lemma seq_eqv_inter_rr :
 Proof using. basic_solver. Qed.
 
 Lemma map_collect_id (f : A -> B) :
-  r ⊆ f ⋄ (f □ r).
+  r ⊆ f ↓ (f ↑ r).
 Proof using. basic_solver 10. Qed.
 
 Lemma set_subset_inter_l (LL : s ⊆₁ s'' \/ s' ⊆₁ s'') :

@@ -148,7 +148,7 @@ Lemma init_tls_reserve_coherent :
   reserve_coherent (init_tls G). 
 Proof using WF.
   assert (forall a (NP: forall t, a <> ta_propagate t),
-             event □₁ (init_tls G ∩₁ action ↓₁ eq a) ≡₁ acts_set G ∩₁ is_init) as INIT. 
+             event ↑₁ (init_tls G ∩₁ action ↓₁ eq a) ≡₁ acts_set G ∩₁ is_init) as INIT. 
   { ins. unfold init_tls. rewrite set_pair_alt.
     split; try basic_solver 10.
     red. intros e [Ee Ie]. exists (mkTL a e). unfolder. splits; vauto.

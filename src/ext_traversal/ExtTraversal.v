@@ -566,7 +566,7 @@ Proof using.
 Qed.
 
 (* Lemma ext_trav_step_in_trav_step : *)
-(*   ext_trav_step ⊆ etc_TC ⋄ (same_trav_config ∪ trav_step G sc). *)
+(*   ext_trav_step ⊆ etc_TC ↓ (same_trav_config ∪ trav_step G sc). *)
 (* Proof using WF IMMCON. *)
 (*   unfold ext_trav_step, ext_itrav_step, map_rel. *)
 (*   intros T T'. ins. desf. *)

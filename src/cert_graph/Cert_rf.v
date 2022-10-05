@@ -495,7 +495,7 @@ Qed.
 
 Lemma tls_events_empty_helper T' TLS
       (DISJ: TLS ∩₁ T' ⊆₁ ∅):
-  event □₁ (TLS ∩₁ T') ≡₁ ∅. 
+  event ↑₁ (TLS ∩₁ T') ≡₁ ∅. 
 Proof using. split; [| basic_solver]. rewrite DISJ. basic_solver. Qed. 
 
 Lemma cert_co_sb_irr':
