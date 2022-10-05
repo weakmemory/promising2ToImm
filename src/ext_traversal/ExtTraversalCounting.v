@@ -31,46 +31,6 @@ Require Import TlsEventSets.
 
 Set Implicit Arguments.
 
-Definition countP (f: actid -> Prop) l :=
-  length (filterP f l).
-
-Add Parametric Morphism : countP with signature
-    set_subset ==> eq ==> le as countP_mori.
-Proof using.
-  ins. unfold countP.
-  induction y0.
-  { simpls. }
-  ins. desf; simpls.
-  1,3: lia.
-  exfalso. apply n. by apply H.
-Qed.
-
-Add Parametric Morphism : countP with signature
-    set_equiv ==> eq ==> eq as countP_more.
-Proof using.
-  ins. unfold countP.
-  erewrite filterP_set_equiv; eauto.
-Qed.
-
-Lemma countP_strict_mori e l P P'
-      (IN : P ⊆₁ P')
-      (INP  : ~ P e)
-      (INP' :  P' e)
-      (INL  : In e l) :
-  countP P l < countP P' l.
-Proof using.
-  generalize dependent e.
-  induction l; simpls.
-  ins. desf.
-  { unfold countP; simpls. desf. simpls.
-    apply Lt.le_lt_n_Sm. by apply countP_mori. }
-  unfold countP; simpls. desf; simpls.
-  { apply Lt.lt_n_S. eapply IHl; eauto. }
-  { exfalso. apply n. by apply IN. }
-  { apply Lt.le_lt_n_Sm. by apply countP_mori. }
-    by apply IHl with (e:=e).
-Qed.
-
 Section ExtTraversalCounting.
   Variable G : execution.
   Variable sc : relation actid.
@@ -78,6 +38,7 @@ Section ExtTraversalCounting.
   Variable WFSC : wf_sc G sc.
   
   Hypothesis COMP: complete G. 
+  Hypothesis FINDOM: fin_exec G.
                     
   Notation "'E'" := (acts_set G).
   Notation "'lab'" := (lab G).
@@ -95,13 +56,12 @@ Section ExtTraversalCounting.
         (FIN_THREADS: fin_threads G)
         (TCOH: tls_coherent G T)
         (ICOH: iord_coherent G sc T)
-        (T_FIN: tls_fin T)
-    :
+        (T_FIN: tls_fin T) :
     exists (steps: nat -> trav_label),
-      enumerates steps (exec_tls G) /\
-      respects_rel steps (iord G sc)⁺ (exec_tls G) /\
-      (exists i, NOmega.le (NOnum i) (set_size (exec_tls G)) /\ 
-            trav_prefix steps i ∪₁ init_tls G ≡₁ T). 
+      << ENUM : enumerates steps (exec_tls G) >> /\
+      << RESP : respects_rel steps (iord G sc)⁺ (exec_tls G) >> /\
+      << T_I  : exists i, NOmega.le (NOnum i) (set_size (exec_tls G)) /\ 
+                            trav_prefix steps i ∪₁ init_tls G ≡₁ T >>. 
   Proof using WFSC WF COMP.
     edestruct countable_ext with (s := exec_tls G) (r := ⦗event ↓₁ (set_compl is_init)⦘ ⨾ ((iord G sc)⁺ ∪ (T × (set_compl T) \ (iord G sc)^+)))
       as [| [steps [ENUM RESP]]].
@@ -235,7 +195,7 @@ Section ExtTraversalCounting.
       ⟪CLOS_T: exists i, NOmega.le (NOnum i) (set_size (exec_tls G)) /\
                     sim_enum i ≡₁ sim_clos G T ∪₁ init_tls G⟫. 
   Proof using WFSC WF COMP.
-    edestruct iord_enum_exists' with (T := T) as [steps_enum [ENUM [RESP T_I]]]; eauto.
+    edestruct iord_enum_exists' with (T := T) as [steps_enum HH]; desf; eauto.
     exists (tc_enum G steps_enum). splits.
     { unfold tc_enum. rewrite trav_prefix_init.
       rewrite sim_clos_empty. basic_solver. }
@@ -256,31 +216,6 @@ Section ExtTraversalCounting.
     forward eapply init_tls_sim_coh as INIT;eauto. red in INIT. rewrite INIT at 1.
     rewrite <- sim_clos_dist. by rewrite T_I0.
   Qed.
-
-  (* TODO: move*)
-  Lemma list_max_In (l: list nat) (NNIL: l <> nil):
-    In (list_max l) l. 
-  Proof using.
-    generalize dependent NNIL. induction l; [by vauto| ].
-    ins. 
-    destruct l eqn:LL.
-    { ins. lia. }
-    specialize_full IHl; [done| ]. rewrite <- LL in *. clear LL.  
-    destruct (Nat.max_spec_le a (list_max l)); desc.
-    { rewrite H0. by right. }
-    auto.
-  Qed.
-
-  (* TODO: move*)
-  Lemma enum_steps_crt {A: Type} (r: relation A) (f: nat -> A) (b: nat_omega)
-        (STEPS: forall i (DOM: NOmega.lt_nat_l i b), r (f i) (f (i + 1))):
-    forall i j (LE: i <= j) (DOM: NOmega.le (NOnum j) b), r^* (f i) (f j).
-  Proof using.
-  (*   ins. apply Lt.le_lt_or_eq in LE as [LT | ->]. *)
-  (*   { apply inclusion_t_rt. apply enum_steps; auto. } *)
-  (*   apply rt_refl.  *)
-  (* Qed. *)
-  Admitted.
 
   Lemma iiord_step_incl T1 T2 l
         (STEP: (iiord_step G sc) l T1 T2):
@@ -313,8 +248,6 @@ Section ExtTraversalCounting.
     etransitivity; eauto.
   Qed. 
     
-  Hypothesis FINDOM: fin_exec G.
-
   (* TODO: move *)
   Lemma sim_traversal_inf'_fin T
         (FAIR: mem_fair G)
