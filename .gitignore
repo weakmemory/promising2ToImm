@@ -1,5 +1,7 @@
 _CoqProject
 Makefile.coq
+.Makefile.coq.d
+Makefile.coq.conf
 
 *~
 *.aux
