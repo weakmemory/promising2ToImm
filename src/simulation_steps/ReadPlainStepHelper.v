@@ -118,8 +118,7 @@ Lemma read_step_helper PC T f_to f_from r w locr valr rel smode
 
   ⟪ RELCOV : W ∩₁ Rel ∩₁ issued T' ⊆₁ covered T' ⟫ /\
 
-  ⟪ THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
-      exists langst, IdentMap.find (tid e) threads' = Some langst ⟫ /\
+  ⟪ THREAD : forall t (IN : (threads_set G \₁ eq tid_init) t), IdentMap.In t threads'⟫ /\
 
   ⟪ PROM_IN_MEM :
       forall thread' langst local
@@ -203,10 +202,8 @@ Proof using WF CON.
   { apply reserve_coherent_add_cover; auto. }
   { clear -RELCOV. simplify_tls_events. rewrite RELCOV. basic_solver. }
   { intros e' EE. 
-    destruct (Ident.eq_dec (tid e') (tid r)) as [EQ|NEQ].
-    { rewrite EQ. eexists.
-      rewrite IdentMap.gss; eauto. }
-    rewrite IdentMap.gso; auto. }
+    apply IdentMap.Facts.add_in_iff.
+    destruct (Ident.eq_dec e' (tid r)) as [|NEQ]; subst; auto. }
   { ins.
     destruct (Ident.eq_dec thread' (tid r)) as [EQ|NEQ].
     { subst. rewrite IdentMap.gss in TID.

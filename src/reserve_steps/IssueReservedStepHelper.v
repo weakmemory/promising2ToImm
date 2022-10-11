@@ -92,8 +92,7 @@ Variable f_to f_from : actid -> Time.t.
 Variable FCOH : f_to_coherent G S f_to f_from.
 
 Variable PC : Configuration.t.
-Hypothesis THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
-    exists langst, IdentMap.find (tid e) (Configuration.threads PC) = Some langst.
+Hypothesis THREAD : forall t (IN : (threads_set G \₁ eq tid_init) t), IdentMap.In t (Configuration.threads PC).
 
 Variable smode : sim_mode.
 Hypothesis SC_REQ :
@@ -223,8 +222,7 @@ Lemma issue_reserved_step_helper_no_next r w valw locw ordw langst
                          (langst, local')
                          (Configuration.threads PC) in
 
-        ⟪ THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
-            exists langst, IdentMap.find (tid e) threads' = Some langst ⟫ /\
+        ⟪ THREAD : forall t (IN : (threads_set G \₁ eq tid_init) t), IdentMap.In t threads' ⟫ /\
 
         ⟪ SC_REQ : smode = sim_normal -> 
                    forall (l : Loc.t),
@@ -472,11 +470,9 @@ Proof using All.
   exists promises'. splits; eauto.
   { eapply reserved_time_same_issued_reserved; eauto.
     all: clear; simplify_tls_events; basic_solver. }    
-  { ins.
-    destruct (Ident.eq_dec (tid e) (tid w)) as [EQ|NEQ].
-    { rewrite EQ. rewrite IdentMap.gss.
-      eexists. eauto. }
-    rewrite IdentMap.gso; auto. }
+  { intros e' EE. 
+    apply IdentMap.Facts.add_in_iff.
+    destruct (Ident.eq_dec e' (tid w)) as [|NEQ]; subst; auto. }
   { ins. eapply sc_view_f_issued with (f_to:=f_to); eauto. }
   { apply Memory.promise_add; auto; ins.
     erewrite Memory.remove_o in GET; eauto.
@@ -823,8 +819,7 @@ Lemma issue_reserved_step_helper_with_next r w valw locw ordw langst wnext
                          (langst, local')
                          (Configuration.threads PC) in
 
-        ⟪ THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
-            exists langst, IdentMap.find (tid e) threads' = Some langst ⟫ /\
+        ⟪ THREAD : forall t (IN : (threads_set G \₁ eq tid_init) t), IdentMap.In t threads' ⟫ /\
 
         ⟪ SC_REQ : smode = sim_normal -> 
                    forall (l : Loc.t),
@@ -1022,11 +1017,9 @@ Proof using All.
   { eapply reserved_time_same_issued_reserved; [apply RESERVED_TIME0| ..]. 
     all: clear; simplify_tls_events; basic_solver. }
   eexists. splits; eauto.
-  { ins.
-    destruct (Ident.eq_dec (tid e) (tid w)) as [EQ|NEQ].
-    { rewrite EQ. rewrite IdentMap.gss.
-      eexists. eauto. }
-    rewrite IdentMap.gso; auto. }
+  { intros e' EE. 
+    apply IdentMap.Facts.add_in_iff.
+    destruct (Ident.eq_dec e' (tid w)) as [|NEQ]; subst; auto. }
   { ins. apply max_value_new_f with (f:=f_to); auto.
     ins. apply ISSEQ_TO. eapply S_tm_covered; eauto. }
   { ins.

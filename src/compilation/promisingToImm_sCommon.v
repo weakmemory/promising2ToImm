@@ -217,7 +217,10 @@ Hypothesis WF : Wf G.
 Variable sc : relation actid.
 Hypothesis IMMCON : imm_consistent G sc.
 Variable (tb: thread_id).
+
+(* TODO: doesn't it follow from PROG_EX? *)
 Hypothesis (FIN_THREADS : fin_threads G).
+Hypothesis (GTHREADSPROG : forall t (IN : threads_set G t), IdentMap.In t prog).
 
 Lemma conf_steps_preserve_thread tid PC PC'
       (STEPS : (plain_step MachineEvent.silent tid)＊ PC PC') :
@@ -838,20 +841,36 @@ Proof using All.
   cdes SIMREL. cdes COMMON.
   eapply plain_sim_step in STEP; eauto.
   2: { split; eauto. apply THREADS.
+       cdes COMMON. subst.
+
+       (* enough (threads_set G thread ) as DD. *)
+       (* { eapply GTHREADSPROG. *)
        assert (exists e, thread = tid e /\ acts_set G e /\ ~ is_init e) as [e].
        { move STEP at bottom.
          apply ext_sim_trav_step_to_step in STEP. desc. 
-         destruct lbl as [a e]. exists e.
+         destruct lbl as [a e].
          assert (acts_set G e) as EE.
          { eapply ext_itrav_stepE in STEP; eauto. }
-         splits; auto. 
-         2: { eapply ext_itrav_step_ninit in STEP; eauto. }
-         (* TODO: see comment in ext_sim_trav_step_to_step *)
-         (* Possible solutions: *)
-         (* 1) Exclude propagations for empty threads *)
-         (* 2) Add hypothesis in simrel similar to THREAD but for propagations *)
-         admit.
-       }
+         destruct a.
+
+         (* propagation step *)
+         3: { destruct STEP. subst.
+              rename ets_tls_coh into AA.
+              rewrite ets_upd in AA.
+              apply tls_coh_exec in AA.
+              assert (eq (ta_propagate thread, e) ⊆₁ init_tls G ∪₁ exec_tls G) as BB.
+              { rewrite <- AA. clear. basic_solver. }
+              rewrite set_subset_single_l in BB. destruct BB as [BB|BB].
+              { exfalso. apply ets_new_ta. eapply tls_coh_init; eauto. }
+              destruct BB as [BB|BB]; [red in BB; desf| ].
+              destruct BB as [BB _].
+              destruct BB as [BB|BB]; [red in BB; desf| ].
+              do 2 red in BB. desf. destruct BB as [BB CC]. red in BB.
+              admit. }
+         all: exists e.
+         all: splits; auto. 
+         all: eapply ext_itrav_step_ninit in STEP; eauto.
+
        desc. 
        cdes COMMON. subst.
        destruct (THREAD e); auto.

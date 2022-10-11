@@ -400,7 +400,8 @@ Proof using WF CON.
     2: { symmetry. apply IdentMap.Facts.add_in_iff. }
     split; [by ins; eauto|].
     intros [|HH]; subst; auto.
-    apply SIMREL_THREAD; auto. }
+    apply SIMREL_THREAD; auto.
+    split; auto. now apply WF. }
   { apply IdentMap.Facts.add_in_iff in TP. desf. }
   { eapply sim_prom_f_issued; eauto. }
   { (* TODO: generalize to a lemma? *)

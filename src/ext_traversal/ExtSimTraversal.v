@@ -1015,10 +1015,12 @@ End SimTravStepExistence.
 
 Lemma ext_sim_trav_step_to_step T T' thread
       (TS : ext_isim_trav_step thread T T') :
-  exists lbl T'', ext_itrav_step G sc lbl T T''
-             (* TODO: not true for propagations *)
-             (* /\ tid (event lbl) = thread. *)
-.
+  exists (lbl : trav_label) T'',
+    ext_itrav_step G sc lbl T T''
+    /\ match lbl with
+       | (ta_propagate t, _) => t
+       | (_, e) => tid e
+       end = thread.
 Proof using.
   destruct TS; eauto.
 Qed.

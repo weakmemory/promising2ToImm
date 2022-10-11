@@ -94,8 +94,7 @@ Variable f_to f_from : actid -> Time.t.
 Variable FCOH : f_to_coherent G S f_to f_from.
 
 Variable PC : Configuration.t.
-Hypothesis THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
-    exists langst, IdentMap.find (tid e) (Configuration.threads PC) = Some langst.
+Hypothesis THREAD : forall t (IN : (threads_set G \₁ eq tid_init) t), IdentMap.In t (Configuration.threads PC).
 
 Variable smode : sim_mode.
 Hypothesis SC_REQ :
@@ -245,8 +244,7 @@ Lemma issue_step_helper_next w wnext valw locw ordw langst
                               (langst, local')
                               (Configuration.threads PC) in
 
-             ⟪ THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
-                 exists langst, IdentMap.find (tid e) threads' = Some langst ⟫ /\
+             ⟪ THREAD : forall t (IN : (threads_set G \₁ eq tid_init) t), IdentMap.In t threads' ⟫ /\
 
              ⟪ SC_REQ : smode = sim_normal -> 
                         forall (l : Loc.t),
@@ -473,11 +471,9 @@ Proof using All.
     apply Time.le_lteq. eauto. }
   { rewrite FWWNEXTEQ.
     erewrite Memory.add_o; eauto. rewrite loc_ts_eq_dec_eq. eauto. }
-  { ins.
-    destruct (Ident.eq_dec (tid e) (tid w)) as [EQ|NEQ].
-    { rewrite EQ. rewrite IdentMap.gss.
-      eexists. eauto. }
-    rewrite IdentMap.gso; auto. }
+  { intros e' EE. 
+    apply IdentMap.Facts.add_in_iff.
+    destruct (Ident.eq_dec e' (tid w)) as [|NEQ]; subst; auto. }
   { intros QQ l.
     assert (max_value f_to' (S_tm G l (covered T)) (LocFun.find l (Configuration.sc PC))) as BB.
     { eapply sc_view_f_issued; eauto. }

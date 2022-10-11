@@ -229,10 +229,8 @@ Proof using WF CON.
       all: intros [? | ->%covered_singleton]%covered_union; [| type_solver];
         apply covered_union; left; by apply RMWCOV. }
     { intros e' EE. 
-      destruct (Ident.eq_dec (tid e') (tid f)) as [EQ|NEQ].
-      { rewrite EQ. eexists.
-        rewrite IdentMap.gss; eauto. }
-      rewrite IdentMap.gso; auto. }
+      apply IdentMap.Facts.add_in_iff.
+      destruct (Ident.eq_dec e' (tid f)) as [|NEQ]; subst; auto. }
     { ins.
       destruct (Ident.eq_dec thread' (tid f)) as [EQ|NEQ].
       { subst. rewrite IdentMap.gss in TID.

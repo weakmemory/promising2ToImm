@@ -499,10 +499,8 @@ Proof using WF CON.
       subst. left; right.
       eapply wf_rmw_invf; eauto. }
     { intros e' EE. 
-      destruct (Ident.eq_dec (tid e') (tid r)) as [EQ|NEQ].
-      { rewrite EQ. eexists.
-        rewrite IdentMap.gss; eauto. }
-      rewrite IdentMap.gso; auto. }
+      apply IdentMap.Facts.add_in_iff.
+      destruct (Ident.eq_dec e' (tid r)) as [|NEQ]; subst; auto. }
     { ins.
       destruct (Ident.eq_dec thread' (tid r)) as [EQ|NEQ].
       { subst. rewrite IdentMap.gss in TID.

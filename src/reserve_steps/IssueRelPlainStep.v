@@ -277,10 +277,8 @@ Proof using WF CON.
       all: apply set_equiv_inter_singleton; clear -NEQ NEQ' RMW; 
         simplify_tls_events; basic_solver. }
     { intros e' EE. 
-      destruct (Ident.eq_dec (tid e') (tid w)) as [EQ|NEQ].
-      { rewrite EQ. eexists.
-        rewrite IdentMap.gss; eauto. }
-      rewrite IdentMap.gso; auto. }
+      apply IdentMap.Facts.add_in_iff.
+      destruct (Ident.eq_dec e' (tid w)) as [|NEQ]; subst; auto. }
     { ins.
       destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
       { subst. rewrite IdentMap.gss in TID.
@@ -428,7 +426,8 @@ Proof using WF CON.
     split.
     { ins; eauto. }
     intros [|HH]; subst; auto.
-    apply SIMREL_THREAD; auto. }
+    apply SIMREL_THREAD; auto.
+    split; auto. now apply WF. }
   { apply IdentMap.Facts.add_in_iff in TP. destruct TP as [HH|]; auto; subst.
     clear -TNEQ. desf. }
   { eapply sim_prom_f_issued; eauto. }

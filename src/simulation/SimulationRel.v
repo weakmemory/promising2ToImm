@@ -189,8 +189,7 @@ Definition simrel_common
   ⟪ RELCOV  : W ∩₁ Rel ∩₁ I ⊆₁ C ⟫ /\
   ⟪ RMWCOV  : forall r w (RMW : rmw r w), C r <-> C w ⟫ /\
 
-  ⟪ THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
-    exists langst, IdentMap.find (tid e) threads = Some langst ⟫ /\
+  ⟪ THREAD : forall t (IN : (threads_set G \₁ eq tid_init) t), IdentMap.In t threads ⟫ /\
 
   ⟪ PROM_IN_MEM :
      forall thread' langst local

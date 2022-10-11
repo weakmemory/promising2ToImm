@@ -299,7 +299,8 @@ Proof using WF CON.
     split.
     { ins; eauto. }
     intros [|HH]; subst; auto.
-    apply SIMREL_THREAD; auto. }
+    apply SIMREL_THREAD; auto.
+    split; auto. now apply WF. }
   { apply IdentMap.Facts.add_in_iff in TP. destruct TP as [HH|]; auto; subst.
     clear -TNEQ. desf. }
   { eapply sim_prom_f_issued; eauto. }

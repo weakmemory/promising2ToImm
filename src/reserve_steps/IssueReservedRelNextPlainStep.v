@@ -554,10 +554,8 @@ Proof using WF CON.
       { clear -WW RREAD. type_solver. }
       apply COV'. left. right. eapply wf_rmw_invf; eauto. }
     { intros e' EE. 
-      destruct (Ident.eq_dec (tid e') (tid w)) as [EQ|NEQ].
-      { rewrite EQ. eexists.
-        rewrite IdentMap.gss. eauto. }
-      do 2 (rewrite IdentMap.gso; auto). }
+      apply IdentMap.Facts.add_in_iff.
+      destruct (Ident.eq_dec e' (tid w)) as [|NEQ]; subst; auto. }
     { ins. destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
       { subst. rewrite IdentMap.gss in TID.
         inversion TID. simpls. }
@@ -755,7 +753,8 @@ Proof using WF CON.
     split.
     { ins; eauto. }
     intros [|HH]; subst; auto.
-    apply SIMREL_THREAD; auto. }
+    apply SIMREL_THREAD; auto.
+    split; auto. now apply WF. }
   { apply IdentMap.Facts.add_in_iff in TP. destruct TP as [HH|]; auto; subst.
     clear -TNEQ. desf. }
   { eapply sim_prom_f_issued; [..| apply SIM_PROM2]; eauto.

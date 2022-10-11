@@ -91,8 +91,7 @@ Variable f_to f_from : actid -> Time.t.
 Variable FCOH : f_to_coherent G S f_to f_from.
 
 Variable PC : Configuration.t.
-Hypothesis THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
-    exists langst, IdentMap.find (tid e) (Configuration.threads PC) = Some langst.
+Hypothesis THREAD : forall t (IN : (threads_set G \₁ eq tid_init) t), IdentMap.In t (Configuration.threads PC).
 
 Variable smode : sim_mode.
 Hypothesis SC_REQ :
@@ -165,8 +164,7 @@ Lemma reserve_step_helper w locw langst
     ⟪ FCOH : f_to_coherent G (S ∪₁ eq w) f_to' f_from' ⟫ /\
     ⟪ RESERVED_TIME :
         reserved_time G (T ∪₁ eq (mkTL ta_reserve w)) f_to' f_from' smode memory' ⟫ /\
-    ⟪ THREAD : forall e (ACT : E e) (NINIT : ~ is_init e),
-        exists langst, IdentMap.find (tid e) threads' = Some langst ⟫ /\
+    ⟪ THREAD : forall t (IN : (threads_set G \₁ eq tid_init) t), IdentMap.In t threads' ⟫ /\
 
     ⟪ SC_REQ : smode = sim_normal -> 
                forall (l : Loc.t),
@@ -258,11 +256,9 @@ Proof using All.
 
   eexists f_to', f_from', promises', memory'.
   splits; eauto; unfold threads'.
-  { ins.
-    destruct (Ident.eq_dec (tid e) (tid w)) as [EQ|NEQ].
-    { rewrite EQ. rewrite IdentMap.gss.
-      eexists. eauto. }
-    rewrite IdentMap.gso; auto. }
+  { intros e' EE. 
+    apply IdentMap.Facts.add_in_iff.
+    destruct (Ident.eq_dec e' (tid w)) as [|NEQ]; subst; auto. }
   { ins. eapply sc_view_f_issued with (f_to:=f_to); eauto. }
   { eapply Memory.add_closed_timemap; eauto. }
   { apply Memory.promise_add; eauto; ins.

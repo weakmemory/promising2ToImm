@@ -281,10 +281,8 @@ Proof using WF CON.
       unfolder. split; auto. intros [? | ->]; auto.
       destruct NWEX. red. eexists. eauto. }
     { intros e' EE. 
-      destruct (Ident.eq_dec (tid e') (tid w)) as [EQ|NEQ].
-      { rewrite EQ. eexists.
-        rewrite IdentMap.gss; eauto. }
-      rewrite IdentMap.gso; auto. }
+      apply IdentMap.Facts.add_in_iff.
+      destruct (Ident.eq_dec e' (tid w)) as [|NEQ]; subst; auto. }
     { ins.
       destruct (Ident.eq_dec thread' (tid w)) as [EQ|NEQ].
       { subst. rewrite IdentMap.gss in TID.
