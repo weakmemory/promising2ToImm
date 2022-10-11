@@ -216,11 +216,14 @@ Hypothesis RMWREX  : forall thread linstr
 Hypothesis WF : Wf G.
 Variable sc : relation actid.
 Hypothesis IMMCON : imm_consistent G sc.
-Variable (tb: thread_id).
 
 (* TODO: doesn't it follow from PROG_EX? *)
-Hypothesis (FIN_THREADS : fin_threads G).
-Hypothesis (GTHREADSPROG : forall t (IN : threads_set G t), IdentMap.In t prog).
+Hypothesis FIN_THREADS : fin_threads G.
+Hypothesis GTHREADSPROG : forall t (IN : (threads_set G \₁ eq tid_init) t), IdentMap.In t prog.
+Hypothesis THREADS_EXACT : forall t, threads_set G t <-> exists e, << ET : acts_set G e >> /\
+                                                                   << TT : t = tid e >>.
+Hypothesis EVENTS_NINIT : forall e (IN : acts_set G e) (TINIT : tid e = tid_init),
+    is_init e.
 
 Lemma conf_steps_preserve_thread tid PC PC'
       (STEPS : (plain_step MachineEvent.silent tid)＊ PC PC') :
@@ -349,7 +352,7 @@ Lemma simrel_init :
   simrel G sc (conf_init prog)
          (init_tls G) 
          (fun _ => tid_init) (fun _ => tid_init).
-Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
+Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX THREADS_EXACT.
   assert (covered (init_tls G) ≡₁ acts_set G ∩₁ is_init /\
             issued (init_tls G) ≡₁ acts_set G ∩₁ is_init /\
           reserved (init_tls G) ≡₁ acts_set G ∩₁ is_init )
@@ -366,17 +369,13 @@ Proof using ALLRLX IMMCON PROG_EX TNONULL WF FRELACQ RMWREX.
     split; by intros COV%COVI%proj2. }  
   { ins.
     unfold Threads.init.
-    rewrite IdentMap.Facts.map_o.
+    apply IdentMap.Facts.map_in_iff.
     unfold init_threads.
-    rewrite IdentMap.gmapi.
-    assert (IdentMap.In (tid e) prog) as INE.
-    { by apply event_to_prog_thread. }
-    assert (exists linstr, IdentMap.find (tid e) prog = Some linstr)
-      as [linstr LI].
-    { apply IdentMap.Facts.in_find_iff in INE.
-      destruct (IdentMap.find (tid e) prog) eqn: H; desf.
-      eauto. }
-    rewrite LI. simpls. eauto. }
+    apply IdentMap.Facts.mapi_in_iff.
+    destruct IN as [IN NINIT].
+    apply THREADS_EXACT in IN. desf.
+    apply event_to_prog_thread; auto.
+    intros HH. apply is_init_tid in HH. congruence. }
   { ins. unfold init_threads, Threads.init in *.
     rewrite IdentMap.Facts.map_o in TID.
     rewrite IdentMap.gmapi in TID.
@@ -638,9 +637,8 @@ Proof using All.
        rewrite IdentMap.gso in *; auto. }
   cdes COMMON. simpls.
   red. splits; red; splits; auto.
-  { ins. destruct (classic (thread = tid e)); subst.
-    2: by rewrite IdentMap.gso; auto.
-    rewrite IdentMap.gss. eauto. }
+  { ins. apply IdentMap.Facts.add_in_iff.
+    destruct (classic (thread = t)); subst; auto. }
   { ins. destruct (classic (thread' = thread)); subst.
     { rewrite IdentMap.gss in *. inv TID.
       eapply PROM_IN_MEM; eauto. }
@@ -757,14 +755,11 @@ Proof using All.
       split; auto. }
     assert (reserved T w) as WS.
     { eapply rcoh_I_in_S; eauto. }
-    destruct (classic (is_init w)) as [|NINIT]; auto.
-    exfalso.
-    destruct (THREAD w) as [langst TT]; auto.
-    assert (IdentMap.In (tid w) (Configuration.threads PC)) as NN.
-    { destruct (THREAD w); auto.
-      apply IdentMap.Facts.in_find_iff.
-        by rewrite H. }
-    apply THREADS in NN. cdes NN.
+    apply NNPP. intros NINIT.
+    set (NN := THREAD (tid w)).
+    apply THREADS in NN.
+    2: { split; auto. now apply WF. }
+    cdes NN.
     assert (SS := SIM_MEM).
     edestruct SS as [rel_opt]; eauto.
     simpls. desc.
@@ -799,9 +794,7 @@ Proof using All.
     unfold val in VAL. rewrite (wf_init_lab WF) in VAL.
     inv VAL. }
   assert (IdentMap.In (tid w) (Configuration.threads PC)) as NN.
-  { destruct (THREAD w); auto.
-    apply IdentMap.Facts.in_find_iff.
-      by rewrite H. }
+  { apply THREAD. split; auto. now apply WF. }
   apply THREADS in NN. cdes NN.
   assert (SS := SIM_MEM).
   assert (issued T w) as IIW.
@@ -843,39 +836,37 @@ Proof using All.
   2: { split; eauto. apply THREADS.
        cdes COMMON. subst.
 
-       (* enough (threads_set G thread ) as DD. *)
-       (* { eapply GTHREADSPROG. *)
-       assert (exists e, thread = tid e /\ acts_set G e /\ ~ is_init e) as [e].
-       { move STEP at bottom.
-         apply ext_sim_trav_step_to_step in STEP. desc. 
-         destruct lbl as [a e].
-         assert (acts_set G e) as EE.
-         { eapply ext_itrav_stepE in STEP; eauto. }
-         destruct a.
+       apply THREAD0.
+       enough (exists e, thread = tid e /\ acts_set G e /\ ~ is_init e) as [e [TT [AA BB]]].
+       { desf. split; [now apply WF| ].
+         intros HH. apply BB. now apply EVENTS_NINIT. }
+       move STEP at bottom.
+       apply ext_sim_trav_step_to_step in STEP. desc. 
+       destruct lbl as [a e].
+       assert (acts_set G e) as EE.
+       { eapply ext_itrav_stepE in STEP; eauto. }
+       destruct a.
 
-         (* propagation step *)
-         3: { destruct STEP. subst.
-              rename ets_tls_coh into AA.
-              rewrite ets_upd in AA.
-              apply tls_coh_exec in AA.
-              assert (eq (ta_propagate thread, e) ⊆₁ init_tls G ∪₁ exec_tls G) as BB.
-              { rewrite <- AA. clear. basic_solver. }
-              rewrite set_subset_single_l in BB. destruct BB as [BB|BB].
-              { exfalso. apply ets_new_ta. eapply tls_coh_init; eauto. }
-              destruct BB as [BB|BB]; [red in BB; desf| ].
-              destruct BB as [BB _].
-              destruct BB as [BB|BB]; [red in BB; desf| ].
-              do 2 red in BB. desf. destruct BB as [BB CC]. red in BB.
-              admit. }
-         all: exists e.
-         all: splits; auto. 
-         all: eapply ext_itrav_step_ninit in STEP; eauto.
+       (* propagation step *)
+       3: { destruct STEP. subst.
+            rename ets_tls_coh into AA.
+            rewrite ets_upd in AA.
+            apply tls_coh_exec in AA.
+            assert (eq (ta_propagate thread, e) ⊆₁ init_tls G ∪₁ exec_tls G) as BB.
+            { rewrite <- AA. clear. basic_solver. }
+            rewrite set_subset_single_l in BB. destruct BB as [BB|BB].
+            { exfalso. apply ets_new_ta. eapply tls_coh_init; eauto. }
+            destruct BB as [BB|BB]; [red in BB; desf| ].
+            destruct BB as [BB _].
+            destruct BB as [BB|BB]; [red in BB; desf| ].
+            do 2 red in BB. desf. destruct BB as [BB CC].
+            apply THREADS_EXACT in BB. desf.
+            eexists. splits; eauto. intros HH. apply CC.
+            now apply is_init_tid in HH. }
+       all: exists e.
+       all: splits; auto. 
+       all: eapply ext_itrav_step_ninit in STEP; eauto. }
 
-       desc. 
-       cdes COMMON. subst.
-       destruct (THREAD e); auto.
-       apply IdentMap.Facts.in_find_iff.
-       by rewrite H. }
   desf. exists PC'. exists f_to'. exists f_from'. splits.
   2: { apply SIMREL0; eauto. }
 
@@ -951,7 +942,7 @@ Proof using All.
   eexists. splits.
   { apply PSTEP. }
   simpls.
-Admitted. 
+Qed. 
   
 Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)^* TS TS')
