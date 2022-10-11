@@ -9,6 +9,7 @@ Require Export ExtTravRelations.
 Require Import TlsEventSets.
 From imm Require Import TraversalOrder. 
 From imm Require Import TLSCoherency. 
+Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
 
@@ -208,6 +209,17 @@ Proof using RCOH.
   split; unfold dom_sb_S_rfrmw; rewrite ?COV', ?ISS', ?RES'; auto.
   rewrite rcoh_F_sb_S; auto. basic_solver. 
 Qed. 
+
+Lemma dom_sb_S_rfrmw_issuable r' S'
+  (RES_ISS': reserved T ⊆₁ issuable G sc T)
+  (w_ex_is_xacq : W_ex ⊆₁ W_ex ∩₁ is_xacq lab):
+  dom_sb_S_rfrmw T r' S' ⊆₁ issued T.
+Proof using WF TCOH.
+  unfold dom_sb_S_rfrmw.
+  rewrite rmw_W_ex, w_ex_is_xacq. repeat rewrite codom_seq.
+  rewrite codom_eqv, set_interC. rewrite <- dom_eqv1.
+  simpl. rewrite RES_ISS'. apply dom_wex_sb_issuable; auto.
+Qed.
 
 End Props.
 End ExtTraversalConfig.
