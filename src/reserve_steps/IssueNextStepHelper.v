@@ -13,6 +13,7 @@ From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import AuxDef.
 From imm Require Import FairExecution.
+From imm Require Import SimClosure.
 
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.

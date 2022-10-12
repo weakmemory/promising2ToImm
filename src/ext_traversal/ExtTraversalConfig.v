@@ -6,6 +6,7 @@ From imm Require Import AuxDef Events Execution Execution_eco
 Require Import AuxRel.
 Require Export ExtTravRelations.
 (* From imm Require Import TraversalProperties. *)
+From imm Require Import SimClosure.
 Require Import TlsEventSets.
 From imm Require Import TraversalOrder. 
 From imm Require Import TLSCoherency. 

@@ -11,6 +11,7 @@ From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
+From imm Require Import SimClosure.
 
 Require Import AuxRel.
 From imm Require Import AuxRel2.

@@ -12,6 +12,7 @@ From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import AuxDef.
 From imm Require Import FairExecution.
+From imm Require Import SimClosure.
 
 From imm Require Import AuxRel2.
 From imm Require Import TraversalOrder.

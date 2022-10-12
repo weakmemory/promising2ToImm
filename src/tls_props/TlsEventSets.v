@@ -7,10 +7,7 @@ From imm Require Import Execution.
 Require Import AuxRel.
 From imm Require Import AuxDef.
 From imm Require Import imm_s.
-
-Definition covered  TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_cover)).
-Definition issued   TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_issue)).
-Definition reserved TLS := event ↑₁ (TLS ∩₁ action ↓₁ (eq ta_reserve)).
+From imm Require Import SimClosure.
 
 Definition propagated G TLS :=
   event ↑₁ (TLS ∩₁ (action ↓₁ is_ta_propagate_to_G G)). 

@@ -487,11 +487,11 @@ Section SimTravStepExistence.
   (* TODO: move*)
   Lemma tls_coherent_ext_union T1 T2
         (TCOH1: tls_coherent G T1)
-        (EXEC2: T2 ⊆₁ exec_tls G):
+        (EXEC2: T2 ⊆₁ init_tls G ∪₁ exec_tls G):
     tls_coherent G (T1 ∪₁ T2).
   Proof using. 
     destruct TCOH1. split; try basic_solver.
-    apply set_subset_union_l. split; auto. basic_solver.
+    apply set_subset_union_l; auto.
   Qed.         
 
   Lemma exists_ext_sim_trav_step_cover e
@@ -760,6 +760,7 @@ Section SimTravStepExistence.
              do 3 unionR left. by apply coverable_iord_dom_cond. }
         { subst T'' T''_.
           rewrite !set_unionA. apply tls_coherent_ext_union; auto.
+          unionR right.
           repeat (apply set_subset_union_l; split).
           { apply set_subset_single_l. red. right. split; basic_solver. } 
           { unfold exec_tls. unionR right. apply set_pair_mori; [basic_solver| ].

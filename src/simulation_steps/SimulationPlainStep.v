@@ -14,6 +14,7 @@ From imm Require Import CombRelations CombRelationsMore.
 From imm Require Import Prog.
 From imm Require Import ProgToExecution.
 From imm Require Import FairExecution.
+From imm Require Import SimClosure.
 
 Require Import AuxRel.
 From imm Require Import AuxRel2.

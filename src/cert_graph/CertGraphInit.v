@@ -20,6 +20,7 @@ From imm Require Import FairExecution.
 From imm Require Import FinExecution.
 From imm Require Import SubExecution. 
 From imm Require Import FinThreads.
+From imm Require Import SimClosure.
 (* From imm Require Import ThreadBoundedExecution. *)
 
 From imm Require Import RMWinstrProps.

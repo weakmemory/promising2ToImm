@@ -10,6 +10,7 @@ From imm Require Import CombRelations.
 From imm Require Import ProgToExecution.
 From imm Require Import ProgToExecutionProperties.
 From imm Require Import RMWinstrProps.
+From imm Require Import SimClosure.
 
 Require Import MaxValue.
 Require Import ViewRel.

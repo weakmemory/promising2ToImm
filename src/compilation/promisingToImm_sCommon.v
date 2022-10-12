@@ -1064,7 +1064,7 @@ Proof using All.
       { ins. simpl in STEPS. destruct STEPS as [-> _]. apply rt_refl. }
       intros etc'' [etc' [STEPS' STEP]].
       eapply rt_trans; [by apply IHn; eauto | ].
-
+      
       (* cdes STEP. unfolder in STEP0. desc. *)
       (* eapply sim_clos_step2ext_isim_trav_step in STEP. *)
 
