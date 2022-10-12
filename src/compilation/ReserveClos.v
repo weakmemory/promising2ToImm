@@ -60,7 +60,7 @@ Require Import EventsTraversalOrder.
 Set Implicit Arguments.
 
 Section ReserveClos.
-Definition reserve_clos tc := tc ∪₁ eq ta_reserve <*> (tl_issued tc).
+Definition reserve_clos tc := tc ∪₁ eq ta_reserve <*> (issued tc).
 
 Global Add Parametric Morphism : reserve_clos with signature
     set_subset ==> set_subset as reserve_clos_mori.
@@ -78,15 +78,15 @@ Proof using.
 Qed. 
 
 (* TODO: move *)
-Lemma tl_issued_union s s' :
-  tl_issued (s ∪₁ s') ≡₁ tl_issued s ∪₁ tl_issued s'.
-Proof using. unfold tl_issued. clear. basic_solver 10. Qed.
+Lemma issued_union s s' :
+  issued (s ∪₁ s') ≡₁ issued s ∪₁ issued s'.
+Proof using. unfold issued. clear. basic_solver 10. Qed.
 
 Lemma reserve_clos_union s s' :
   reserve_clos (s ∪₁ s') ≡₁ reserve_clos s ∪₁ reserve_clos s'.
 Proof using.
   unfold reserve_clos.
-  rewrite !tl_issued_union.
+  rewrite !issued_union.
   rewrite set_pair_union_r.
   clear. basic_solver 10.
 Qed.
@@ -99,10 +99,10 @@ Notation "'E'" := (acts_set G).
 Notation "'W'" := (fun x => is_true (is_w (lab G) x)).
 
 (* TODO: move *)
-Lemma tl_issued_EW tc (COH : tls_coherent G tc) :
-  tl_issued tc ⊆₁ E ∩₁ W.
+Lemma issued_EW tc (COH : tls_coherent G tc) :
+  issued tc ⊆₁ E ∩₁ W.
 Proof using WF.
-  unfold tl_issued.
+  unfold issued.
   apply set_subset_inter_r. split.
   { apply issuedE; auto. }
   apply issuedW; auto.
@@ -115,9 +115,9 @@ Proof using WF.
   unfold reserve_clos.
   apply tls_coherent_ext_union; auto.
   unfold exec_tls.
-  arewrite (tl_issued tc ≡₁ tl_issued tc ∩₁ (is_init ∪₁ set_compl is_init)).
+  arewrite (issued tc ≡₁ issued tc ∩₁ (is_init ∪₁ set_compl is_init)).
   { now rewrite <- set_full_split, set_inter_full_r. }
-  rewrite tl_issued_EW; auto.
+  rewrite issued_EW; auto.
   rewrite !set_inter_union_r, set_pair_union_r.
   unionL.
   { transitivity (init_tls G); eauto with hahn.
@@ -162,13 +162,22 @@ Proof using.
   destruct y; ins. desf.
 Qed.
 
+(* TODO: move *)
+Lemma covered_ta_reserve s :
+  covered (eq ta_reserve <*> s) ≡₁ ∅.
+Proof using.
+  unfold covered.
+  unfolder; split; ins; desf.
+  destruct y; ins. desf.
+Qed.
+
 Local
-Hint Rewrite issued_union reserved_union
-  issued_ta_reserve reserved_ta_reserve : tc_simpl.
+Hint Rewrite issued_union reserved_union covered_union
+  issued_ta_reserve reserved_ta_reserve covered_ta_reserve : tc_simpl.
 
 Lemma reserve_clos_reserve_coherent tc
   (TCOH : tls_coherent G tc)
-  (NORES : reserved tc ⊆₁ ∅) :
+  (NORES : reserved tc ≡₁ ∅) :
   reserve_coherent G (reserve_clos tc).
 Proof using.
   unfold reserve_clos.
@@ -176,14 +185,17 @@ Proof using.
   all: repeat rewrite NORES.
   all: repeat rewrite set_union_empty_l.
   all: repeat rewrite set_union_empty_r.
-  { rewrite reserved_union.
-    rewrite NORES.
-    rewrite issuedE; eauto.
-    rewrite reserved_ta_reserve.
-    clear. basic_solver. }
-  { rewrite issued_union, reserved_union.
-    rewrite issued_ta_reserve.
-
+  { now apply issuedE. }
+  { eauto with hahn. }
+  { unfolder. ins. desf. }
+  { admit. }
+  { admit. }
+  { admit. }
+  { admit. }
+  { admit. }
+  { admit. }
+  admit.
+Admitted.
 
 End ReserveClos.
 
@@ -237,6 +249,16 @@ Proof.
   { apply reserve_clos_tls_coherent; auto. }
   assert (iord_coherent G sc (reserve_clos tc1)) as ICOHTC1.
   { apply reserve_clos_iord_coherent; auto. }
+  assert (tls_coherent G tc2) as TLSCOHTC2.
+  { admit. }
+  assert (reserved tc2 ≡₁ ∅) as RESEMPTC2.
+  { admit. }
+  assert (iord_coherent G sc tc2) as ICOHTC2.
+  { admit. }
+  assert (iord_coherent G sc (reserve_clos tc2)) as RCICOHTC2.
+  { apply reserve_clos_iord_coherent; auto. }
+  assert (reserve_coherent G (reserve_clos tc2)) as RCRCOHTC2.
+  { apply reserve_clos_reserve_coherent; auto. }
 
   (* forward eapply sim_trav_step_coherence as COH2; eauto. *)
   red in STEP; desf; subst.
@@ -249,23 +271,34 @@ Proof.
       unfold reserve_clos.
       split.
       2: { clear. eauto with hahn. }
-      arewrite (tl_issued (eq (ta_cover, a)) ⊆₁ ∅).
-      { unfold tl_issued. basic_solver 10. }
+      arewrite (issued (eq (ta_cover, a)) ⊆₁ ∅).
+      { unfold issued. basic_solver 10. }
       unfold set_pair. clear. unfolder. ins. do 2 desf. }
     assert ((acts_set G \₁ is_init) a) as ENINIT.
     { admit. }
     assert (tls_coherent G (reserve_clos tc2)) as TLSCOHN.
     { rewrite TC2ALT. apply tls_coherent_ext; auto.
       red. left. red. splits; auto. }
-    destruct (lab G a) eqn:HH.
-    { apply ext_read_trav_step.
-      { type_solver. }
-      { admit. }
-      constructor; auto.
-      { apply reserve_clos_iord_coherent; auto. }
-
-
-
+    assert (~ reserve_clos tc1 (mkTL ta_cover a)) as NRCLS.
+    { unfold reserve_clos. intros [QQ|QQ]; auto.
+      red in QQ. do 2 desf. }
+    assert (reserve_clos tc2 ≡₁
+            reserve_clos tc1 ∪₁ eq (mkTL ta_cover a)
+            ∪₁ eq ta_reserve <*> ∅) as ALT.
+    { rewrite TC2ALT.
+      rewrite set_pair_empty_l.
+      now rewrite set_union_empty_r. }
+    destruct (lab G a) eqn:HH;
+      [apply ext_read_trav_step |
+       apply ext_rlx_write_cover_step |
+       apply ext_fence_trav_step ].
+    all: try now (unfold is_r, is_w, is_f; rewrite HH; type_solver).
+    all: try now constructor; auto; ins.
+    { admit. }
+    { admit. }
+    { admit. }
+    apply issued_union. left.
+    admit. }
 
   { apply rt_step. 
 
