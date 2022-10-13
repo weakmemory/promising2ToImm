@@ -6,6 +6,7 @@ From imm Require Import ProgToExecution.
 From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import imm_s.
+From imm Require Import imm_s_ppo.
 From imm Require Import CombRelations.
 From imm Require Import ProgToExecutionProperties.
 From imm Require Import RMWinstrProps.
@@ -27,6 +28,7 @@ Require Import PromiseLTS.
 Require Import ExtSimTraversal.
 Require Import ExtSimTraversalProperties.
 Require Import ExtTraversalConfig.
+Require Import ExtTraversalProperties.
 Require Import ExtTraversal.
 Require Import ExtTraversalCounting.
 Require Import SimulationPlainStepAux.
@@ -176,29 +178,132 @@ Hint Rewrite issued_union reserved_union covered_union
   issued_ta_reserve reserved_ta_reserve covered_ta_reserve : tc_simpl.
 
 Lemma reserve_clos_reserve_coherent tc
+  (IMMCONS : imm_consistent G sc)
   (TCOH : tls_coherent G tc)
+  (ICOH : iord_coherent G sc tc)
   (NORES : reserved tc ≡₁ ∅) :
   reserve_coherent G (reserve_clos tc).
 Proof using.
+  assert (dom_rel (iord_simpl G sc ⨾ ⦗tc⦘) ⊆₁ tc) as ACOH.
+  { apply iord_coh_implies_iord_simpl_coh; auto. }
+  assert (⦗issued tc⦘ ⊆ ⦗W⦘ ;; ⦗issued tc⦘) as ISSW.
+  { generalize (issuedW WF TCOH). clear. basic_solver. }
   unfold reserve_clos.
-  constructor; autorewrite with tc_simpl.
+  constructor; unfold dom_sb_S_rfrmw; autorewrite with tc_simpl.
   all: repeat rewrite NORES.
   all: repeat rewrite set_union_empty_l.
   all: repeat rewrite set_union_empty_r.
   { now apply issuedE. }
   { eauto with hahn. }
   { unfolder. ins. desf. }
+  { rewrite ISSW. 
+    unfold issued, covered.
+    rewrite <- !seqA.
+    apply dom_rel_collect_event with (b:=ta_cover).
+    rewrite set_interC with (s:=tc). rewrite id_inter with (s':=tc).
+    apply set_subset_inter_r. split.
+    2: { clear. basic_solver. }
+    etransitivity; [|now apply ACOH].
+    apply dom_rel_mori.
+    hahn_frame.
+    unfold iord_simpl.
+    transitivity (FWBOB G); eauto with hahn.
+    unfold FWBOB. hahn_frame.
+    apply map_rel_mori; auto. hahn_frame.
+    unfold imm_bob.fwbob. eauto with hahn. }
+  (* { etransitivity. *)
+  (*   2: eapply dom_detour_rfe_rmw_rfi_rmw_rt_I_in_I; eauto. *)
+  (*   unfold issued. *)
+  (*   rewrite <- !seqA. *)
+  (*   apply dom_rel_collect_event with (b:=ta_issue). *)
+  (*   rewrite set_interC with (s:=tc). rewrite id_inter with (s':=tc). *)
+  (*   apply set_subset_inter_r. split. *)
+  (*   { clear. basic_solver. } *)
+  (*   etransitivity; [|now apply ACOH]. *)
+  (*   apply dom_rel_mori. hahn_frame. *)
+  (*   unfold iord_simpl. *)
+  (*   transitivity (AR G sc); eauto with hahn. *)
+  (*   unfold AR. hahn_frame. *)
+  (*   apply map_rel_mori; auto. *)
+  (*   rewrite (wf_detourD WF), (wf_rfeD WF). *)
+  (*   rewrite <- !seq_union_r,  <- !seq_union_l. *)
+  (*   arewrite (sb G ⨾ ⦗W⦘ ⊆ sb G ⨾ ⦗W⦘ ⨾ ⦗W⦘). *)
+  (*   { clear. basic_solver. } *)
+  (*   hahn_frame. *)
+  (*   rewrite data_rfi_rmw_rppo_in_ppo. *)
+  (*   rewrite detour_in_ar, rfe_in_ar, ppo_in_ar at 1. *)
+  (*   rewrite unionK. *)
+  (*   rewrite <- ct_unit, <- ct_step. *)
+  (*   apply seq_mori; eauto with hahn. } *)
   { admit. }
+  { rewrite ISSW. 
+    unfold issued.
+    rewrite <- !seqA.
+    apply dom_rel_collect_event with (b:=ta_issue).
+    rewrite set_interC with (s:=tc). rewrite id_inter with (s':=tc).
+    apply set_subset_inter_r. split.
+    { clear. basic_solver. }
+    etransitivity; [|now apply ACOH].
+    apply dom_rel_mori. hahn_frame.
+    unfold iord_simpl.
+    transitivity (AR G sc); eauto with hahn.
+    unfold AR. hahn_frame.
+    apply map_rel_mori; auto.
+    match goal with
+    | |- ?X ⊆ _ => arewrite (X ⊆ ⦗W⦘ ⨾ X ⨾ ⦗W⦘)
+    end.
+    { generalize (W_ex_in_W WF). clear. basic_solver. }
+    sin_rewrite w_ex_acq_sb_w_in_ar.
+    hahn_frame. rewrite <- ct_step. eauto with hahn. }
   { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  { admit. }
-  admit.
+  { rewrite ISSW. 
+    unfold issued.
+    rewrite <- !seqA.
+    apply dom_rel_collect_event with (b:=ta_issue).
+    rewrite set_interC. rewrite id_inter.
+    apply set_subset_inter_r. split.
+    { clear. basic_solver. }
+    etransitivity; [|now apply ACOH].
+    apply dom_rel_mori. hahn_frame.
+    unfold iord_simpl.
+    transitivity (AR G sc); eauto with hahn.
+    unfold AR. hahn_frame.
+    apply map_rel_mori; auto.
+    rewrite (wf_detourD WF), (wf_rfeD WF).
+    rewrite <- !seq_union_r,  <- !seq_union_l.
+    hahn_frame.
+    rewrite data_rfi_rmw_rppo_in_ppo.
+    rewrite detour_in_ar, rfe_in_ar, ppo_in_ar at 1.
+    rewrite unionK.
+    rewrite <- ct_unit, <- ct_step.
+    apply seq_mori; eauto with hahn. }
+  { unfold issued.
+    rewrite <- !seqA.
+    apply dom_rel_collect_event with (b:=ta_issue).
+    rewrite set_interC. rewrite id_inter.
+    apply set_subset_inter_r. split.
+    { clear. basic_solver. }
+    etransitivity; [|now apply ACOH].
+    apply dom_rel_mori. hahn_frame.
+    unfold iord_simpl.
+    transitivity (AR G sc); eauto with hahn.
+    unfold AR. hahn_frame.
+    apply map_rel_mori; auto.
+    rewrite (dom_l (wf_detourD WF)), (dom_r (wf_rmwD WF)).
+    hahn_frame.
+    rewrite detour_in_ar, imm_s_ppo.rmw_in_ar_int, ar_int_in_ar; eauto.
+    rewrite <- ct_unit, <- ct_step. apply seq_mori; basic_solver 10. }
+  unfolder. intros w [ISS [r RMW]].
+  apply (dom_l (wf_rmwD WF)) in RMW. apply seq_eqv_l in RMW. destruct RMW as [RR RMW].
+  apply (dom_l (wf_rmwE WF)) in RMW. apply seq_eqv_l in RMW. destruct RMW as [RE RMW].
+  assert (codom_rel (rf G) r) as [w' RF].
+  { apply IMMCONS. split; auto. }
+  exists w'. splits; eauto.
+  eapply rfrmw_I_in_I; eauto.
+  basic_solver 10.
 Admitted.
 
 End ReserveClos.
-
   
 Section ReserveClosSteps.
 
@@ -258,10 +363,10 @@ Proof.
   assert (iord_coherent G sc (reserve_clos tc2)) as RCICOHTC2.
   { apply reserve_clos_iord_coherent; auto. }
   assert (reserve_coherent G (reserve_clos tc2)) as RCRCOHTC2.
-  { apply reserve_clos_reserve_coherent; auto. }
+  { eapply reserve_clos_reserve_coherent; eauto. }
 
   (* forward eapply sim_trav_step_coherence as COH2; eauto. *)
-  red in STEP; desf; subst.
+  red in STEP; desf; subst; ins.
   { do 2 red in STEP. desf.
     apply seq_eqv_l in STEP. destruct STEP as [STEPA STEPRES].
     ins. apply rt_step.

@@ -9,6 +9,8 @@ From imm Require Import AuxDef.
 From imm Require Import imm_s.
 From imm Require Import SimClosure.
 
+Set Implicit Arguments.
+
 Definition propagated G TLS :=
   event ↑₁ (TLS ∩₁ (action ↓₁ is_ta_propagate_to_G G)). 
 Definition propagated_thread TLS t := 
