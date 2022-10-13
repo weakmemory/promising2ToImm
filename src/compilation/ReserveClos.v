@@ -97,6 +97,7 @@ Qed.
 Variable G : execution.
 Variable sc : relation actid.
 Hypothesis WF : Wf G.
+Hypothesis WFSC : wf_sc G sc.
 Notation "'E'" := (acts_set G).
 Notation "'W'" := (fun x => is_true (is_w (lab G) x)).
 
@@ -184,7 +185,7 @@ Lemma reserve_clos_reserve_coherent tc
   (ICOH : iord_coherent G sc tc)
   (NORES : reserved tc ≡₁ ∅) :
   reserve_coherent G (reserve_clos tc).
-Proof using.
+Proof using WF WFSC.
   assert (dom_rel (iord_simpl G sc ⨾ ⦗tc⦘) ⊆₁ tc) as ACOH.
   { apply iord_coh_implies_iord_simpl_coh; auto. }
   assert (⦗issued tc⦘ ⊆ ⦗W⦘ ;; ⦗issued tc⦘) as ISSW.
@@ -198,117 +199,52 @@ Proof using.
   { eauto with hahn. }
   { unfolder. ins. desf. }
   { rewrite ISSW. 
-    unfold issued, covered.
     rewrite <- !seqA.
-    apply dom_rel_collect_event with (b:=ta_cover).
-    rewrite set_interC with (s:=tc). rewrite id_inter with (s':=tc).
-    apply set_subset_inter_r. split.
-    2: { clear. basic_solver. }
-    etransitivity; [|now apply ACOH].
-    apply dom_rel_mori.
-    hahn_frame.
-    unfold iord_simpl.
-    transitivity (FWBOB G); eauto with hahn.
-    unfold FWBOB. hahn_frame.
-    apply map_rel_mori; auto. hahn_frame.
-    unfold imm_bob.fwbob. eauto with hahn. }
-  (* { etransitivity. *)
-  (*   2: eapply dom_detour_rfe_rmw_rfi_rmw_rt_I_in_I; eauto. *)
-  (*   unfold issued. *)
-  (*   rewrite <- !seqA. *)
-  (*   apply dom_rel_collect_event with (b:=ta_issue). *)
-  (*   rewrite set_interC with (s:=tc). rewrite id_inter with (s':=tc). *)
-  (*   apply set_subset_inter_r. split. *)
-  (*   { clear. basic_solver. } *)
-  (*   etransitivity; [|now apply ACOH]. *)
-  (*   apply dom_rel_mori. hahn_frame. *)
-  (*   unfold iord_simpl. *)
-  (*   transitivity (AR G sc); eauto with hahn. *)
-  (*   unfold AR. hahn_frame. *)
-  (*   apply map_rel_mori; auto. *)
-  (*   rewrite (wf_detourD WF), (wf_rfeD WF). *)
-  (*   rewrite <- !seq_union_r,  <- !seq_union_l. *)
-  (*   arewrite (sb G ⨾ ⦗W⦘ ⊆ sb G ⨾ ⦗W⦘ ⨾ ⦗W⦘). *)
-  (*   { clear. basic_solver. } *)
-  (*   hahn_frame. *)
-  (*   rewrite data_rfi_rmw_rppo_in_ppo. *)
-  (*   rewrite detour_in_ar, rfe_in_ar, ppo_in_ar at 1. *)
-  (*   rewrite unionK. *)
-  (*   rewrite <- ct_unit, <- ct_step. *)
-  (*   apply seq_mori; eauto with hahn. } *)
-  { admit. }
-  { rewrite ISSW. 
-    unfold issued.
-    rewrite <- !seqA.
-    apply dom_rel_collect_event with (b:=ta_issue).
-    rewrite set_interC with (s:=tc). rewrite id_inter with (s':=tc).
-    apply set_subset_inter_r. split.
-    { clear. basic_solver. }
-    etransitivity; [|now apply ACOH].
-    apply dom_rel_mori. hahn_frame.
-    unfold iord_simpl.
-    transitivity (AR G sc); eauto with hahn.
-    unfold AR. hahn_frame.
-    apply map_rel_mori; auto.
     match goal with
-    | |- ?X ⊆ _ => arewrite (X ⊆ ⦗W⦘ ⨾ X ⨾ ⦗W⦘)
+    | |- dom_rel (?r ;; ⦗ _ ⦘) ⊆₁ _ => arewrite (r ⊆ imm_bob.fwbob G)
     end.
-    { generalize (W_ex_in_W WF). clear. basic_solver. }
-    sin_rewrite w_ex_acq_sb_w_in_ar.
-    hahn_frame. rewrite <- ct_step. eauto with hahn. }
-  { unfolder. intros x [[w [SB WISS]] [y [YISS [z AA]]]].
-    destruct AA as [RF [p [[QQ UU] PP]]]; subst.
-    eapply dom_wex_sb_issued; eauto.
-    assert (W_ex G x) as WEXX.
-    { eexists; eauto. }
-    unfolder. do 2 eexists. splits; eauto.
-    now eapply W_EX_IS_XACQ. }
-  { rewrite ISSW. 
-    unfold issued.
-    rewrite <- !seqA.
-    apply dom_rel_collect_event with (b:=ta_issue).
-    rewrite set_interC. rewrite id_inter.
-    apply set_subset_inter_r. split.
-    { clear. basic_solver. }
-    etransitivity; [|now apply ACOH].
-    apply dom_rel_mori. hahn_frame.
-    unfold iord_simpl.
-    transitivity (AR G sc); eauto with hahn.
-    unfold AR. hahn_frame.
-    apply map_rel_mori; auto.
-    rewrite (wf_detourD WF), (wf_rfeD WF).
-    rewrite <- !seq_union_r,  <- !seq_union_l.
+    eapply fwbob_I_in_C; eauto. }
+  { eapply dom_detour_rmwrfi_rfe_acq_sb_issued; eauto. }
+  5: { unfolder. intros w [ISS [r RMW]].
+       apply (dom_l (wf_rmwD WF)) in RMW. apply seq_eqv_l in RMW. destruct RMW as [RR RMW].
+       apply (dom_l (wf_rmwE WF)) in RMW. apply seq_eqv_l in RMW. destruct RMW as [RE RMW].
+       assert (codom_rel (rf G) r) as [w' RF].
+       { apply IMMCONS. split; auto. }
+       exists w'. splits; eauto.
+       eapply rfrmw_I_in_I; eauto.
+       basic_solver 10. }
+  2: { unfolder. intros x [[w [SB WISS]] [y [YISS [z AA]]]].
+       destruct AA as [RF [p [[QQ UU] PP]]]; subst.
+       eapply dom_wex_sb_issued; eauto.
+       assert (W_ex G x) as WEXX.
+       { eexists; eauto. }
+       unfolder. do 2 eexists. splits; eauto.
+       now eapply W_EX_IS_XACQ. }
+  all: rewrite <- !seqA.
+  all: match goal with
+       | |- dom_rel (?r ;; ⦗ issued _ ⦘) ⊆₁ issued _ =>
+           rewrite ISSW;
+           arewrite (r ⨾ ⦗W⦘ ⊆ ⦗W⦘ ⨾ (ar G sc)⁺); eauto using ar_ct_I_in_I
+       end.
+  { rewrite <- w_ex_acq_sb_w_in_ar, <- ct_step.
+    generalize (W_ex_in_W WF). clear. basic_solver. }
+  { rewrite (dom_l (wf_detourD WF)), (dom_l (wf_rfeD WF)).
+    rewrite <- seq_union_r.
     hahn_frame.
-    rewrite data_rfi_rmw_rppo_in_ppo.
+    rewrite (dom_r (wf_detourD WF)), (dom_r (wf_rfeD WF)).
+    rewrite <- !seq_union_l.
+    hahn_frame.
+    sin_rewrite data_rfi_rmw_rppo_in_ppo.
+    arewrite_id ⦗W⦘. rewrite seq_id_r.
     rewrite detour_in_ar, rfe_in_ar, ppo_in_ar at 1.
-    rewrite unionK.
     rewrite <- ct_unit, <- ct_step.
     apply seq_mori; eauto with hahn. }
-  { unfold issued.
-    rewrite <- !seqA.
-    apply dom_rel_collect_event with (b:=ta_issue).
-    rewrite set_interC. rewrite id_inter.
-    apply set_subset_inter_r. split.
-    { clear. basic_solver. }
-    etransitivity; [|now apply ACOH].
-    apply dom_rel_mori. hahn_frame.
-    unfold iord_simpl.
-    transitivity (AR G sc); eauto with hahn.
-    unfold AR. hahn_frame.
-    apply map_rel_mori; auto.
-    rewrite (dom_l (wf_detourD WF)), (dom_r (wf_rmwD WF)).
-    hahn_frame.
-    rewrite detour_in_ar, imm_s_ppo.rmw_in_ar_int, ar_int_in_ar; eauto.
-    rewrite <- ct_unit, <- ct_step. apply seq_mori; basic_solver 10. }
-  unfolder. intros w [ISS [r RMW]].
-  apply (dom_l (wf_rmwD WF)) in RMW. apply seq_eqv_l in RMW. destruct RMW as [RR RMW].
-  apply (dom_l (wf_rmwE WF)) in RMW. apply seq_eqv_l in RMW. destruct RMW as [RE RMW].
-  assert (codom_rel (rf G) r) as [w' RF].
-  { apply IMMCONS. split; auto. }
-  exists w'. splits; eauto.
-  eapply rfrmw_I_in_I; eauto.
-  basic_solver 10.
-Admitted.
+  arewrite_id ⦗W⦘ at 1. rewrite seq_id_r.
+  rewrite (dom_l (wf_detourD WF)).
+  rewrite detour_in_ar, rmw_in_ar_int; auto.
+  rewrite <- ct_unit, <- ct_step.
+  hahn_frame; eauto with hahn.
+Qed.
 
 End ReserveClos.
   
@@ -329,6 +265,7 @@ Hypothesis RMWREX  : forall thread linstr
     rmw_is_rex_instrs linstr.
 Hypothesis WF : Wf G.
 Variable sc : relation actid.
+Hypothesis WFSC : wf_sc G sc.
 Hypothesis IMMCON : imm_consistent G sc.
 
 (* TODO: doesn't it follow from PROG_EX? *)
