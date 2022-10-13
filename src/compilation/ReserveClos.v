@@ -178,6 +178,7 @@ Hint Rewrite issued_union reserved_union covered_union
   issued_ta_reserve reserved_ta_reserve covered_ta_reserve : tc_simpl.
 
 Lemma reserve_clos_reserve_coherent tc
+  (W_EX_IS_XACQ : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G))
   (IMMCONS : imm_consistent G sc)
   (TCOH : tls_coherent G tc)
   (ICOH : iord_coherent G sc tc)
@@ -255,7 +256,13 @@ Proof using.
     { generalize (W_ex_in_W WF). clear. basic_solver. }
     sin_rewrite w_ex_acq_sb_w_in_ar.
     hahn_frame. rewrite <- ct_step. eauto with hahn. }
-  { admit. }
+  { unfolder. intros x [[w [SB WISS]] [y [YISS [z AA]]]].
+    destruct AA as [RF [p [[QQ UU] PP]]]; subst.
+    eapply dom_wex_sb_issued; eauto.
+    assert (W_ex G x) as WEXX.
+    { eexists; eauto. }
+    unfolder. do 2 eexists. splits; eauto.
+    now eapply W_EX_IS_XACQ. }
   { rewrite ISSW. 
     unfold issued.
     rewrite <- !seqA.
