@@ -93,6 +93,14 @@ Proof using.
   clear. basic_solver 10.
 Qed.
 
+(* TODO: move*)
+Lemma covered_rel_clos G tc : covered (rel_clos G tc) ≡₁ (is_rel (lab G)) ∩₁ issued tc.
+Proof using.
+  unfold rel_clos.
+  unfold covered, set_pair. split; unfolder; ins; do 2 desf.
+  eexists (_, _); eauto.
+Qed.
+
 
 Variable G : execution.
 Variable sc : relation actid.
@@ -441,13 +449,21 @@ Proof using.
   now rewrite set_pair_exact.
 Qed.
 
+(* TODO: move *)
+Lemma reserve_clos_eq_ta_reserve w : reserve_clos (eq (ta_reserve, w)) ≡₁ eq (ta_reserve, w).
+Proof using.
+  ins. unfold reserve_clos. rewrite issued_eq_ta_reserve.
+  now rewrite set_pair_empty_l, set_union_empty_r.
+Qed.
+
 #[local]
 Hint Rewrite issued_eq_ta_cover issued_eq_ta_reserve issued_singleton
              covered_eq_ta_issue covered_eq_ta_reserve covered_singleton
              reserved_eq_ta_issue reserved_eq_ta_cover reserved_singleton
              covered_union issued_union reserved_union
-             set_union_empty_r
-             reserve_clos_eq_ta_cover reserve_clos_eq_ta_issue
+             set_pair_empty_l set_pair_empty_r
+             set_union_empty_l set_union_empty_r
+             reserve_clos_eq_ta_cover reserve_clos_eq_ta_issue reserve_clos_eq_ta_reserve
              : cir_simplify.
 
 Lemma isim_clos_step2ext_isim_trav_step tc1 tc2 thread tl
@@ -625,10 +641,20 @@ Proof using.
     rewrite TC'ALT in TC''ALT.
     rewrite TC''ALT in TC2ALT.
 
+    assert (~ covered tc1 r) as NCOVR.
+    { intros HH. apply NCOVTC1. red in HH. unfolder in HH. do 2 desf. destruct y; ins; desf. }
     assert (~ issued tc1 w) as NISS.
-    { admit. }
-    (* { intros AA. apply NCOVTC1. unfold issued in AA. *)
-    (*   clear -AA. unfolder in AA. do 2 desf. destruct y; ins; desf. } *)
+    { intros AA.
+      assert (covered tc1 w) as BB.
+      { apply set_subset_single_l. red in SCOH1. rewrite SCOH1.
+        unfold sim_clos. rewrite covered_union. unionR right.
+        rewrite covered_rel_clos.
+        generalize REL AA. clear. basic_solver. }
+      apply NCOVR.
+      eapply dom_sb_covered; eauto. exists w.
+      apply seq_eqv_r. split; auto. apply rmw_in_sb; auto. }
+    assert (~ issued (reserve_clos tc1) w) as NISSRS.
+    { intros HH. apply NISS. now apply issued_reserve_clos. }
     assert (issued tc2 ≡₁ issued tc1 ∪₁ eq w) as YY.
     { rewrite TC2ALT. now autorewrite with cir_simplify. }
     assert (covered tc2 ≡₁ covered tc1 ∪₁ eq r ∪₁ eq w) as YYC.
@@ -641,8 +667,8 @@ Proof using.
     assert (issued (reserve_clos tc2) w) as ISS2A.
     { apply issued_union. left.
       apply YY. now right. }
-    assert (is_w (lab G) w) as WW.
-    { eapply issuedW; eauto. }
+    assert (is_r (lab G) r /\ is_w (lab G) w) as (RR & WW).
+    { apply wf_rmwD in RMW; auto. generalize RMW. clear. basic_solver. }
     assert (acts_set G w) as EW.
     { eapply issuedE; eauto. }
     assert (~ is_init w) as NINIT.
@@ -652,7 +678,7 @@ Proof using.
     { eapply coveredE; eauto. apply covered_reserve_clos.
       apply YYC. clear. basic_solver. }
     assert (~ is_init r) as NINITR.
-    { admit. }
+    { intros HH. eapply init_w in HH; eauto. type_solver 10. }
     assert (~ issued (reserve_clos tc1) w) as NISSW.
     { unfold reserve_clos. intros AA. apply issued_union in AA.
       destruct AA as [AA|AA]; auto.
@@ -666,8 +692,6 @@ Proof using.
     (* assert (~ covered tc1 w) as NCOVW. *)
     (* { intros HH. apply NISS. eapply w_covered_issued; eauto. *)
     (*   split; auto. } *)
-    (* assert (~ codom_rel (rmw G) w) as NWEX. *)
-    (* { eapply sim_clos_cover_no_codom_rmw; eauto. } *)
     (* TODO: make a lemma? *)
     assert (dom_sb_S_rfrmw G (reserve_clos tc1) (rfi G) (eq w) ⊆₁ issued tc1) as RCLOSISS.
     { unfold dom_sb_S_rfrmw.
@@ -687,58 +711,113 @@ Proof using.
       red. right. split.
       { clear. basic_solver. }
       repeat (split; auto). }
+    assert (exec_tls G (ta_reserve, w)) as ETLS.
+    { red. right. split.
+      { clear. basic_solver. }
+      repeat (split; auto). }
+    assert (tls_coherent G (tc' ∪₁ eq (ta_reserve, w))) as TCCOH''A.
+    { apply tls_coherent_ext; auto. }
+    assert (iord_coherent G sc (tc' ∪₁ eq (ta_reserve, w))) as ICOH''A.
+    { eapply iord_coherent_equiv_wo_reserved with (T1:=tc'); auto.
+      clear. basic_solver. }
+    
+    assert (~ issued (reserve_clos tc1 ∪₁ eq (ta_reserve, w)) w) as NISSTC1'.
+    { intros HH. apply issued_union in HH. destruct HH as [HH|HH]; auto.
+      apply issued_eq_ta_reserve in HH. apply HH. }
+    
+    assert (W_ex G w)  as WEXW.
+    { now exists r. }
+    assert (reserve_coherent G (reserve_clos tc1 ∪₁ eq (ta_reserve, w))) as RCOH1.
+    { constructor; auto; ins.
+      { rewrite reserved_union. autorewrite with cir_simplify.
+        apply set_subset_union_l; split; eauto 10 with hahn.
+        2: now apply set_subset_single_l.
+        apply RCRCOHTC1. }
+      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
+        unionR left. apply RCRCOHTC1. }
+      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
+        rewrite set_minus_union_l. unionL; try now apply RCRCOHTC1.
+        generalize WEXW. clear. basic_solver 10. }
+      { rewrite reserved_union, covered_union. autorewrite with cir_simplify.
+        rewrite id_union, !seq_union_r, dom_union. unionL; try now apply RCRCOHTC1.
+        rewrite covered_reserve_clos.
+        admit. }
+      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
+        rewrite id_union, !seq_union_r, dom_union. unionL; try now apply RCRCOHTC1.
+        rewrite issued_reserve_clos.
+        admit. }
+      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
+        rewrite id_union, !seq_union_r, dom_union. unionL; try now apply RCRCOHTC1.
+        rewrite issued_reserve_clos.
+        admit. }
+      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
+        admit. }
+      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
+        rewrite id_union, !seq_union_r, dom_union. unionL; try now apply RCRCOHTC1.
+        rewrite issued_reserve_clos.
+        admit. }
+      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
+        rewrite id_union, !seq_union_r, dom_union. unionL; try now apply RCRCOHTC1.
+        rewrite issued_reserve_clos.
+        admit. }
+      rewrite reserved_union, issued_union. autorewrite with cir_simplify.
+      rewrite set_inter_union_l. unionL; try now apply RCRCOHTC1.
+      rewrite issued_reserve_clos.
+      admit. }
+    assert (reserve_coherent G (reserve_clos (tc' ∪₁ eq (ta_reserve, w)))) as RCOHAA.
+    { rewrite TC'ALT. rewrite !reserve_clos_union. autorewrite with cir_simplify.
+      eapply reserve_coherent_more.
+      { reflexivity. }
+      2: { eapply reserve_coherent_add_cover.
+           now apply RCOH1. }
+      clear. basic_solver 10. }
 
-    apply rt_step.
-    eapply ext_rel_rmw_step with (T':=reserve_clos tc') (T'':=reserve_clos tc''); eauto.
-    all: constructor; auto; ins.
-    all: try now apply reserve_clos_tls_coherent; auto.
-    all: try now apply reserve_clos_iord_coherent; auto.
-    all: try now eapply reserve_clos_reserve_coherent; eauto.
-    6: { rewrite set_pair_empty_l, set_union_empty_r.
-         rewrite TC2ALT, TC''ALT.
-         rewrite !reserve_clos_union.
-         apply set_union_more; try easy.
-         unfold reserve_clos. rewrite issued_eq_ta_cover.
-         now rewrite set_pair_empty_l, set_union_empty_r. }
-    5: { rewrite TC'ALT, TC''ALT.
+    eapply rt_trans with (y:=reserve_clos tc1 ∪₁ eq (ta_reserve, w)).
+    all: apply rt_step.
+    2: { eapply ext_rel_rmw_step with (T':=reserve_clos (tc' ∪₁ eq (ta_reserve, w)))
+                                      (T'':=reserve_clos tc''); eauto.
+         all: constructor; auto; ins.
+         all: try now apply reserve_clos_tls_coherent; auto.
+         all: try now apply reserve_clos_iord_coherent; auto.
+         all: try now eapply reserve_clos_reserve_coherent; eauto.
+         all: try now intros [AA|AA]; eauto; red in AA; do 2 desf.
+         { intros [AA|AA].
+           { destruct AA as [AA|AA]; eauto; red in AA; do 2 desf. }
+           inv AA. }
+         { rewrite TC'ALT. rewrite !reserve_clos_union.
+           autorewrite with cir_simplify.
+           clear. basic_solver. }
+         { unfold reserve_clos. clear. basic_solver 10. }
+         2: { rewrite TC2ALT, TC''ALT.
+              rewrite !reserve_clos_union.
+              now autorewrite with cir_simplify. }
+         rewrite TC'ALT, TC''ALT.
          rewrite !reserve_clos_union.
          autorewrite with cir_simplify.
          rewrite !set_pair_union_r, set_pair_exact.
          split.
-         all: repeat (apply set_subset_union_l; split; eauto with hahn).
-         transitivity (reserve_clos tc1); eauto with hahn.
-         unfold reserve_clos at 2.
-         transitivity (eq ta_reserve <*> issued tc1); eauto with hahn.
+         all: repeat (apply set_subset_union_l; split; eauto 10 with hahn).
+         transitivity (eq ta_reserve <*> issued tc1).
+         2: { unfold reserve_clos. eauto 10 with hahn. }
          apply set_pair_mori; eauto with hahn.
-         unfold dom_sb_S_rfrmw. rewrite reserved_union.
-         now autorewrite with cir_simplify. }
-    (* eapply ext_rel_write_step with (T':=reserve_clos tc'); eauto. *)
-    (* 2: { constructor; auto; ins. *)
-    (*      rewrite set_pair_empty_l, set_union_empty_r. *)
-    (*      rewrite TC2ALT, TC'ALT. *)
-    (*      rewrite !reserve_clos_union. *)
-    (*      apply set_union_more; try easy. *)
-    (*      unfold reserve_clos. rewrite issued_eq_ta_cover. *)
-    (*      now rewrite set_pair_empty_l, set_union_empty_r. } *)
-    (* assert (tls_coherent G tc') as TLSCOHTC'. *)
-    (* { rewrite TC'ALT. apply tls_coherent_ext; auto. *)
-    (*   red. right. red. split. *)
-    (*   { basic_solver. } *)
-    (*   repeat (split; auto). } *)
-    (* constructor; auto; ins. *)
-
-    (* { intros [AA|AA]; eauto. *)
-    (*   red in AA. do 2 desf. } *)
-    (* rewrite TC'ALT. rewrite reserve_clos_union. *)
-    (* unfold reserve_clos at 2. *)
-    (* rewrite issued_singleton. rewrite set_pair_union_r. *)
-    (* split. *)
-    (* all: repeat (apply set_subset_union_l; split; eauto with hahn). *)
-    (* transitivity (reserve_clos tc1); eauto with hahn. *)
-    (* unfold reserve_clos. *)
-    (* transitivity (eq ta_reserve <*> issued tc1); eauto with hahn. *)
-    (* apply set_pair_mori; eauto with hahn. } *)
-    all: admit. }
+         rewrite !dom_sb_S_rfrmw_union_P.
+         unionL; auto.
+         { unfold dom_sb_S_rfrmw. autorewrite with cir_simplify. clear. basic_solver 10. }
+         unfold dom_sb_S_rfrmw. autorewrite with cir_simplify.
+         rewrite rmw_in_sb, rfi_in_sb; auto. rewrite sb_sb.
+         unfolder. ins. desf. exfalso.
+         eapply (@sb_irr G). eapply sb_sb. eexists; eauto. }
+    arewrite (tid r = tid w).
+    { eapply wf_rmwt; eauto. }
+    eapply ext_reserve_trav_step.
+    constructor; auto; ins.
+    { apply tls_coherent_ext; auto. }
+    { eapply iord_coherent_equiv_wo_reserved with (T1:=reserve_clos tc1); auto.
+      clear. basic_solver. }
+    { intros [AA|AA]; eauto.
+      { eapply  RESEMPTC1. red. unfolder. exists (ta_reserve, w). eauto. }
+      destruct AA as [_ BB]; auto. }
+    now autorewrite with cir_simplify. }
   { destruct STEP as [STEPA [IA IB]].
     apply seq_eqv_l in STEPA. destruct STEPA as [NCOVTC1 TCALT].
     assert (issued tc2 ≡₁ issued tc1 ∪₁ eq a) as YY.
