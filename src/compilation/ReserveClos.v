@@ -850,8 +850,19 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
     { now exists r. }
     assert (reserve_coherent G (reserve_clos tc1 ∪₁ eq (ta_reserve, w))) as RCOH1.
     { eapply reserve_coherent_ext_reserve with (tc':=tc2); eauto.
-      admit. }
-      (* rewrite <- YYC. rewrite AISS. eapply dom_F_sb_I_in_C; eauto. } *)
+      match goal with
+      | |- ?X ⊆₁ _ => assert (X ⊆₁ covered tc1 ∪₁ eq r ∪₁ eq w) as AA
+      end.
+      { rewrite <- YYC.
+        arewrite (eq w ⊆₁ issued tc2).
+        { rewrite YY. clear. basic_solver. }
+        eapply dom_F_sb_I_in_C; eauto. }
+      intros x HH. destruct HH as [y HH].
+      assert ((covered tc1 ∪₁ eq r ∪₁ eq w) x) as [[BB | BB] | BB]; auto; subst.
+      { apply AA. eexists; eauto. }
+      all: exfalso.
+      all: apply seq_eqv_l in HH; desf.
+      all: type_solver. }
     assert (reserve_coherent G (reserve_clos (tc' ∪₁ eq (ta_reserve, w)))) as RCOHAA.
     { rewrite TC'ALT. rewrite !reserve_clos_union. autorewrite with cir_simplify.
       eapply reserve_coherent_more.
