@@ -101,6 +101,15 @@ Proof using.
   eexists (_, _); eauto.
 Qed.
 
+(* TODO: rename and make a lemma *)
+Lemma AABBCC {A} p s (e : A) (IRR : irreflexive p) (DOM : dom_rel (p ;; <|eq e|>) ⊆₁ s ∪₁ eq e) :
+  dom_rel (p ;; <|eq e|>) ⊆₁ s.
+Proof using.
+  ins. intros b [c HH]. apply seq_eqv_r in HH. desf.
+  specialize (DOM b). destruct DOM; auto.
+  { basic_solver 10. }
+  desf. now apply IRR in HH.
+Qed.
 
 Variable G : execution.
 Variable sc : relation actid.
@@ -466,6 +475,118 @@ Hint Rewrite issued_eq_ta_cover issued_eq_ta_reserve issued_singleton
              reserve_clos_eq_ta_cover reserve_clos_eq_ta_issue reserve_clos_eq_ta_reserve
              : cir_simplify.
 
+(* TODO: move *)
+Lemma reserve_coherent_ext_reserve tc tc' r w
+  (RCRCOHTC1 : reserve_coherent G (reserve_clos tc))
+  (RESEMPTC1 : reserved tc ≡₁ ∅)
+  (EW : acts_set G w)
+  (RMW : rmw G r w)
+  (TCOH : tls_coherent G tc')
+  (ISS' : issued tc' ≡₁ issued tc ∪₁ eq w)
+  (IORD' : iord_coherent G sc tc')
+  (RCOH' : reserve_coherent G (reserve_clos tc'))
+  (DOMFRA : dom_rel (⦗is_f (lab G) ∩₁ is_ra (lab G)⦘ ⨾ sb G ⨾ ⦗eq w⦘) ⊆₁ covered tc)
+  : reserve_coherent G (reserve_clos tc ∪₁ eq (ta_reserve, w)).
+Proof using w_ex_is_xacq WFSC WF IMMCON.
+  assert (COMP : complete G) by apply IMMCON.
+  assert (WEX : W_ex G w) by (now exists r).
+  assert (WW : is_w (lab G) w).
+  { now apply W_ex_in_W. }
+  assert (⦗eq w⦘ ⊆ ⦗is_w (lab G)⦘ ;; ⦗eq w⦘) as AW.
+  { generalize WW. clear. basic_solver 10. }
+  assert (dom_rel (⦗is_w (lab G)⦘ ⨾ (ar G sc ∪ rf G ⨾ ppo G ∩ same_loc (lab G))⁺ ⨾ ⦗eq w⦘) ⊆₁
+            issued tc ∪₁ eq w) as IAW.
+  { arewrite (eq w ⊆₁ issued tc ∪₁ eq w) at 1.
+    rewrite <- ISS'. eapply ar_rf_ppo_loc_ct_I_in_I; auto. }
+  assert (issued tc' w) as ISSW.
+  { apply ISS'. by right. }
+  constructor; autorewrite with cir_simplify; auto.
+  { apply set_subset_union_l; split; try now apply RCRCOHTC1.
+    now apply set_subset_single_l. }
+  { unionR left. now apply RCRCOHTC1. }
+  { rewrite set_minus_union_l.
+    unionL; try now apply RCRCOHTC1.
+    generalize WEX. clear. basic_solver 10. }
+  all: try (rewrite id_union, !seq_union_r, dom_union;
+            apply set_subset_union_l; split; [now apply RCRCOHTC1| ];
+            rewrite ?issued_reserve_clos, ?covered_reserve_clos).
+  { auto. }
+  6: { rewrite set_inter_union_l.
+       apply set_subset_union_l; split; try now apply RCRCOHTC1.
+       rewrite issued_reserve_clos.
+       apply (dom_l (wf_rmwD WF)) in RMW. apply seq_eqv_l in RMW. destruct RMW as [RR RMW].
+       apply (dom_l (wf_rmwE WF)) in RMW. apply seq_eqv_l in RMW. destruct RMW as [ER RMW].
+       set (AA:=COMP). edestruct AA as [q RF].
+       { split; eauto. }
+       intros x [BB _]; subst. exists q.
+       unfolder. split; eauto.
+       enough (issued tc' q) as BB.
+       { apply ISS' in BB. destruct BB as [BB|BB]; auto; subst.
+         exfalso. eapply wf_rfrmw_irr; eauto. eexists; eauto. }
+       eapply rfrmw_I_in_I; eauto. exists x. unfolder. eexists. splits; eauto. }
+  3: { unionR left. 
+       rewrite dom_sb_S_rfrmw_union_P.
+       unionL; try now apply RCRCOHTC1.
+       unfold dom_sb_S_rfrmw. autorewrite with cir_simplify.
+       rewrite issued_reserve_clos, reserved_reserve_clos.
+       rewrite RESEMPTC1. rewrite set_union_empty_l.
+       transitivity (dom_rel (<|W_ex G|> ;; sb G ⨾ ⦗eq w⦘)).
+       { clear. rewrite rmw_W_ex. basic_solver 10. }
+       rewrite <- !seqA. apply AABBCC.
+       { arewrite_id ⦗W_ex G⦘. rewrite seq_id_l. apply sb_irr. }
+       arewrite (eq w ⊆₁ issued tc ∪₁ eq w) at 1.
+       rewrite <- ISS'. rewrite w_ex_is_xacq. eapply dom_wex_sb_issued; eauto. }
+  { rewrite <- !seqA. apply AABBCC.
+    2: { arewrite (eq w ⊆₁ issued tc ∪₁ eq w) at 1.
+         rewrite <- ISS'.
+         arewrite (issued tc' ⊆₁ reserved (reserve_clos tc')) at 1.
+         { unfold reserve_clos. rewrite reserved_union.
+           rewrite reserved_ta_reserve. eauto with hahn. }
+         etransitivity.
+         { apply rcoh_dr_R_acq_I; auto. }
+         apply issued_reserve_clos. }
+    arewrite_id ⦗(fun x : actid => is_r (lab G) x) ∩₁ (fun x : actid => is_acq (lab G) x)⦘.
+    rewrite seq_id_l.
+    rewrite rfi_in_sb, rmw_in_sb, detour_in_sb, sb_sb; auto.
+    rewrite (rt_of_trans (@sb_trans G)).
+    rewrite (rewrite_trans_seq_cr_l (@sb_trans G)).
+    rewrite seq_union_l, sb_sb.
+    apply irreflexive_union. split; [now apply sb_irr|].
+    assert (imm_s_hb.coherence G) as AA by apply IMMCON.
+    apply irreflexive_seqC.
+    rewrite imm_s_hb.sb_in_hb, Execution_eco.rfe_in_eco.
+    eapply irreflexive_mori; try by apply AA.
+    red. eauto with hahn. }
+  all: rewrite AW.
+  all: rewrite <- !seqA.
+  all: match goal with
+       | |- dom_rel (?r ;; <| _ |>) ⊆₁ _ =>
+           arewrite (r ⊆ <|is_w (lab G)|> ;; (ar G sc ∪ rf G ⨾ ppo G ∩ same_loc (lab G))⁺);
+           [ | rewrite <- !seqA; apply AABBCC]
+       end. 
+  all: try now (rewrite inclusion_eqv_rel_true, seq_id_l;
+                apply imm_s_rfppo.ar_rf_ppo_loc_acyclic; auto).
+  all: try rewrite !seqA.
+  all: auto.
+  { arewrite (⦗W_ex G ∩₁ (fun a0 : actid => is_xacq (lab G) a0)⦘ ⊆
+                <|is_w (lab G)|> ;; ⦗W_ex G ∩₁ (fun a0 : actid => is_xacq (lab G) a0)⦘).
+    { generalize (W_ex_in_W WF). clear. basic_solver 10. }
+    rewrite w_ex_acq_sb_w_in_ar. hahn_frame_l.
+    rewrite <- ct_step. eauto with hahn. }
+  all: arewrite_id ⦗fun a0 : actid => is_w (lab G) a0⦘ at 1; rewrite seq_id_r.
+  { rewrite (dom_l (wf_detourD WF)), (dom_l (wf_rfeD WF)).
+    rewrite <- seq_union_r. hahn_frame_l.
+    rewrite detour_rfe_data_rfi_rmw_rppo_in_detour_rfe_ppo; auto.
+    rewrite detour_in_ar, rfe_in_ar.
+    rewrite ppo_in_ar at 1.
+    rewrite <- ct_ct. rewrite <- !ct_step.
+    eauto with hahn. }
+  rewrite (dom_l (wf_detourD WF)). hahn_frame_l.
+  rewrite detour_in_ar. rewrite rmw_in_ar_int, ar_int_in_ar; auto.
+  rewrite <- ct_ct. rewrite <- !ct_step.
+  eauto with hahn.
+Qed.
+
 Lemma isim_clos_step2ext_isim_trav_step tc1 tc2 thread tl
   (TCOH1 : tls_coherent  G tc1)
   (TCOH2 : tls_coherent  G tc2)
@@ -481,7 +602,7 @@ Lemma isim_clos_step2ext_isim_trav_step tc1 tc2 thread tl
                 | a :: tl => thread = ta_label2thread a
                 end) :
   (ext_isim_trav_step G sc thread)^* (reserve_clos tc1) (reserve_clos tc2).
-Proof using.
+Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
   assert (COMP : complete G) by apply IMMCON.
   assert (tls_coherent G (reserve_clos tc1)) as TLSCOHTC1.
   { apply reserve_clos_tls_coherent; auto. }
@@ -728,42 +849,9 @@ Proof using.
     assert (W_ex G w)  as WEXW.
     { now exists r. }
     assert (reserve_coherent G (reserve_clos tc1 ∪₁ eq (ta_reserve, w))) as RCOH1.
-    { constructor; auto; ins.
-      { rewrite reserved_union. autorewrite with cir_simplify.
-        apply set_subset_union_l; split; eauto 10 with hahn.
-        2: now apply set_subset_single_l.
-        apply RCRCOHTC1. }
-      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
-        unionR left. apply RCRCOHTC1. }
-      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
-        rewrite set_minus_union_l. unionL; try now apply RCRCOHTC1.
-        generalize WEXW. clear. basic_solver 10. }
-      { rewrite reserved_union, covered_union. autorewrite with cir_simplify.
-        rewrite id_union, !seq_union_r, dom_union. unionL; try now apply RCRCOHTC1.
-        rewrite covered_reserve_clos.
-        admit. }
-      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
-        rewrite id_union, !seq_union_r, dom_union. unionL; try now apply RCRCOHTC1.
-        rewrite issued_reserve_clos.
-        admit. }
-      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
-        rewrite id_union, !seq_union_r, dom_union. unionL; try now apply RCRCOHTC1.
-        rewrite issued_reserve_clos.
-        admit. }
-      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
-        admit. }
-      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
-        rewrite id_union, !seq_union_r, dom_union. unionL; try now apply RCRCOHTC1.
-        rewrite issued_reserve_clos.
-        admit. }
-      { rewrite reserved_union, issued_union. autorewrite with cir_simplify.
-        rewrite id_union, !seq_union_r, dom_union. unionL; try now apply RCRCOHTC1.
-        rewrite issued_reserve_clos.
-        admit. }
-      rewrite reserved_union, issued_union. autorewrite with cir_simplify.
-      rewrite set_inter_union_l. unionL; try now apply RCRCOHTC1.
-      rewrite issued_reserve_clos.
+    { eapply reserve_coherent_ext_reserve with (tc':=tc2); eauto.
       admit. }
+      (* rewrite <- YYC. rewrite AISS. eapply dom_F_sb_I_in_C; eauto. } *)
     assert (reserve_coherent G (reserve_clos (tc' ∪₁ eq (ta_reserve, w)))) as RCOHAA.
     { rewrite TC'ALT. rewrite !reserve_clos_union. autorewrite with cir_simplify.
       eapply reserve_coherent_more.
@@ -923,107 +1011,11 @@ Proof using.
     assert (eq a ⊆₁ issued tc2) as AISS.
     { rewrite YY. clear. basic_solver. }
     
-    (* TODO: make a lemma *)
-    assert (forall {A} p s (e : A) (IRR : irreflexive p) (DOM : dom_rel (p ;; <|eq e|>) ⊆₁ s ∪₁ eq e),
-               dom_rel (p ;; <|eq e|>) ⊆₁ s) as AABBCC.
-    { clear. ins. intros b [c HH]. apply seq_eqv_r in HH. desf.
-      specialize (DOM b). destruct DOM; auto.
-      { basic_solver 10. }
-      desf. now apply IRR in HH. }
-
-    Local Ltac in_ar AABBCC :=
-      rewrite <- !seqA;
-      match goal with
-      | |- dom_rel (?r ;; <| _ |>) ⊆₁ _ =>
-          arewrite (r ⊆ <|is_w (lab G)|> ;; (ar G sc ∪ rf G ⨾ ppo G ∩ same_loc (lab G))⁺);
-          [ | rewrite <- !seqA; apply AABBCC];
-          try now (rewrite inclusion_eqv_rel_true, seq_id_l;
-                   apply imm_s_rfppo.ar_rf_ppo_loc_acyclic; auto)
-      end. 
-
     assert (⦗eq a⦘ ⊆ ⦗is_w (lab G)⦘ ;; ⦗eq a⦘) as AW.
     { generalize WW. clear. basic_solver 10. }
     assert (reserve_coherent G (reserve_clos tc1 ∪₁ eq (mkTL ta_reserve a))) as RCOHNEW.
-    { (* TODO: deduce it from w_ex_is_xacq and RCRCOHTC2? *)
-      constructor; autorewrite with cir_simplify.
-      { apply set_subset_union_l; split; try now apply RCRCOHTC1.
-        now apply set_subset_single_l. }
-      { unionR left. now apply RCRCOHTC1. }
-      { rewrite set_minus_union_l.
-        unionL; try now apply RCRCOHTC1.
-        generalize WEX. clear. basic_solver 10. }
-      all: try (rewrite id_union, !seq_union_r, dom_union;
-                apply set_subset_union_l; split; [now apply RCRCOHTC1| ];
-                rewrite ?issued_reserve_clos, ?covered_reserve_clos).
-      { rewrite <- YYC. rewrite AISS. eapply dom_F_sb_I_in_C; eauto. }
-      6: { rewrite set_inter_union_l.
-           apply set_subset_union_l; split; try now apply RCRCOHTC1.
-           rewrite issued_reserve_clos.
-           apply (dom_l (wf_rmwD WF)) in RMW. apply seq_eqv_l in RMW. destruct RMW as [RR RMW].
-           apply (dom_l (wf_rmwE WF)) in RMW. apply seq_eqv_l in RMW. destruct RMW as [ER RMW].
-           set (AA:=COMP). edestruct AA as [w RF].
-           { split; eauto. }
-           intros x [BB _]; subst. exists w.
-           unfolder. split; eauto.
-           enough (issued tc2 w) as BB.
-           { apply YY in BB. destruct BB as [BB|BB]; auto; subst.
-             exfalso. eapply wf_rfrmw_irr; eauto. eexists; eauto. }
-           eapply rfrmw_I_in_I; eauto. exists x. unfolder. eexists. splits; eauto. }
-      3: { unionR left. 
-           rewrite dom_sb_S_rfrmw_union_P.
-           unionL; try now apply RCRCOHTC1.
-           unfold dom_sb_S_rfrmw. autorewrite with cir_simplify.
-           rewrite issued_reserve_clos, reserved_reserve_clos.
-           rewrite RESEMPTC1. rewrite set_union_empty_l.
-           transitivity (dom_rel (<|W_ex G|> ;; sb G ⨾ ⦗eq a⦘)).
-           { clear. rewrite rmw_W_ex. basic_solver 10. }
-           rewrite <- !seqA. apply AABBCC.
-           { arewrite_id ⦗W_ex G⦘. rewrite seq_id_l. apply sb_irr. }
-           rewrite <- YY. rewrite AISS. rewrite !seqA.
-           rewrite <- issued_reserve_clos.
-           rewrite w_ex_is_xacq. eapply dom_wex_sb_issued; eauto. }
-      { rewrite <- !seqA. apply AABBCC.
-        2: { rewrite !seqA. rewrite AISS at 1. rewrite <- YY.
-             arewrite (issued tc2 ⊆₁ reserved (reserve_clos tc2)) at 1.
-             { unfold reserve_clos. rewrite reserved_union.
-               rewrite reserved_ta_reserve. eauto with hahn. }
-             etransitivity.
-             { apply rcoh_dr_R_acq_I; auto. }
-             apply issued_reserve_clos. }
-        arewrite_id ⦗(fun x : actid => is_r (lab G) x) ∩₁ (fun x : actid => is_acq (lab G) x)⦘.
-        rewrite seq_id_l.
-        rewrite rfi_in_sb, rmw_in_sb, detour_in_sb, sb_sb; auto.
-        rewrite (rt_of_trans (@sb_trans G)).
-        rewrite (rewrite_trans_seq_cr_l (@sb_trans G)).
-        rewrite seq_union_l, sb_sb.
-        apply irreflexive_union. split; [now apply sb_irr|].
-        assert (imm_s_hb.coherence G) as AA by apply IMMCON.
-        apply irreflexive_seqC.
-        rewrite imm_s_hb.sb_in_hb, Execution_eco.rfe_in_eco.
-        eapply irreflexive_mori; try by apply AA.
-        red. eauto with hahn. }
-      all: rewrite AW.
-      all: in_ar AABBCC.
-      all: try now rewrite <- YY; rewrite AISS; rewrite !seqA;
-        eapply ar_rf_ppo_loc_ct_I_in_I; auto.
-      all: try rewrite !seqA.
-      { arewrite (⦗W_ex G ∩₁ (fun a0 : actid => is_xacq (lab G) a0)⦘ ⊆
-                  <|is_w (lab G)|> ;; ⦗W_ex G ∩₁ (fun a0 : actid => is_xacq (lab G) a0)⦘).
-        { generalize (W_ex_in_W WF). clear. basic_solver 10. }
-        rewrite w_ex_acq_sb_w_in_ar. hahn_frame_l.
-        rewrite <- ct_step. eauto with hahn. }
-      all: arewrite_id ⦗fun a0 : actid => is_w (lab G) a0⦘ at 1; rewrite seq_id_r.
-      { rewrite (dom_l (wf_detourD WF)), (dom_l (wf_rfeD WF)).
-        rewrite <- seq_union_r. hahn_frame_l.
-        rewrite detour_rfe_data_rfi_rmw_rppo_in_detour_rfe_ppo; auto.
-        rewrite detour_in_ar, rfe_in_ar.
-        rewrite ppo_in_ar at 1.
-        rewrite <- ct_ct. rewrite <- !ct_step.
-        eauto with hahn. }
-      rewrite (dom_l (wf_detourD WF)). hahn_frame_l.
-      rewrite detour_in_ar. rewrite rmw_in_ar_int, ar_int_in_ar; auto.
-      rewrite <- ct_ct. rewrite <- !ct_step.
-      eauto with hahn. }
+    { eapply reserve_coherent_ext_reserve with (tc':=tc2); eauto.
+      rewrite <- YYC. rewrite AISS. eapply dom_F_sb_I_in_C; eauto. }
     constructor; ins.
     { apply tls_coherent_ext; auto.
       red. right. red; ins. split.
@@ -1139,7 +1131,7 @@ Proof using.
   rewrite TCALT in RESEMPTC2.
   eapply RESEMPTC2. apply reserved_union.
   right. red. clear. basic_solver.
-Admitted.
+Qed.
 
 (* TODO: get rid of FRELACQ *)
 Lemma sim_clos_step2ext_sim_trav_step tc1 tc2
