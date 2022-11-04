@@ -2,7 +2,7 @@ Require Import Setoid.
 From hahn Require Import Hahn.
 From imm Require Import Events Execution Execution_eco
      imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxDef AuxRel2.
-Require Import AuxRel.
+From imm Require Import AuxRel.
 (* From imm Require Import TraversalConfig Traversal. *)
 From imm Require Import FairExecution.
 Require Import ExtTraversalConfig.
@@ -10,9 +10,9 @@ From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure. 
-Require Import TlsEventSets.
-Require Import Next. 
-Require Import EventsTraversalOrder.
+From imm Require Import TlsEventSets.
+From imm Require Import Next. 
+From imm Require Import EventsTraversalOrder.
 
 
 Set Implicit Arguments.

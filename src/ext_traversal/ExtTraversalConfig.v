@@ -3,14 +3,14 @@ From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution Execution_eco
      imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxRel2.
 (* From imm Require Import TraversalConfig Traversal. *)
-Require Import AuxRel.
+From imm Require Import AuxRel.
 Require Export ExtTravRelations.
 (* From imm Require Import TraversalProperties. *)
 From imm Require Import SimClosure.
-Require Import TlsEventSets.
+From imm Require Import TlsEventSets.
 From imm Require Import TraversalOrder. 
 From imm Require Import TLSCoherency. 
-Require Import EventsTraversalOrder.
+From imm Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
 

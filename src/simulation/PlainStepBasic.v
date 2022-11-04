@@ -22,13 +22,13 @@ Require Import SimulationRel.
 Require Import MemoryAux.
 Require Import SimState.
 Require Import SimulationPlainStepAux.
-Require Import ViewRelHelpers.
+From imm Require Import TlsViewRelHelpers.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsEventSets.
-Require Import EventsTraversalOrder.
-Require Import Next.
+From imm Require Import TlsEventSets.
+From imm Require Import EventsTraversalOrder.
+From imm Require Import Next.
 
 Set Implicit Arguments.
 

@@ -2,7 +2,7 @@ Require Import Setoid.
 From hahn Require Import Hahn.
 From imm Require Import AuxDef Events Execution Execution_eco
      imm_bob imm_s_ppo imm_s imm_s_hb CombRelations SubExecution AuxRel2.
-Require Import AuxRel.
+From imm Require Import AuxRel.
 
 Set Implicit Arguments.
 

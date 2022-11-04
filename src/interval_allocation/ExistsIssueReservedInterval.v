@@ -14,7 +14,7 @@ From imm Require Import AuxDef.
 From imm Require Import AuxRel2.
 From imm Require Import SimClosure.
 
-Require Import AuxRel.
+From imm Require Import AuxRel.
 Require Import SimulationRel.
 Require Import SimState.
 Require Import MemoryAux.
@@ -23,8 +23,8 @@ Require Import ViewRel.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsEventSets.
-Require Import ViewRelHelpers.
+From imm Require Import TlsEventSets.
+From imm Require Import TlsViewRelHelpers.
 Require Import Event_imm_promise.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.

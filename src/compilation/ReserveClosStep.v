@@ -14,6 +14,7 @@ From imm Require Import AuxRel2.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
 From imm Require Import FinThreads.
+From imm Require Import ReserveClos.
 
 Require Import SimulationRel.
 Require Import PlainStepBasic.
@@ -39,7 +40,7 @@ From imm Require Import ImmFair.
 Require Import Coq.Program.Basics.
 Require Import FinTravConfigs.
 Require Import ChoiceFacts.
-Require Import AuxRel. 
+From imm Require Import AuxRel. 
 Require Import ImmProperties. 
 From hahn Require Import Hahn.
 
@@ -52,54 +53,16 @@ From imm Require Import SimClosure.
 
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency. 
-Require Import TlsEventSets.
+From imm Require Import TlsEventSets.
 From imm Require Import AuxDef.
 From imm Require Import TraversalOrder.
-Require Import TlsAux2.
+From imm Require Import TlsAux2.
 From imm Require Import SimIordTraversal.
-Require Import EventsTraversalOrder.
+From imm Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
 
 Section ReserveClos.
-Definition reserve_clos tc := tc ∪₁ eq ta_reserve <*> (issued tc).
-
-Global Add Parametric Morphism : reserve_clos with signature
-    set_subset ==> set_subset as reserve_clos_mori.
-Proof using.
-  intros x y HH. unfold reserve_clos. rewrite HH.
-  clear. basic_solver.
-Qed. 
-
-Global Add Parametric Morphism : reserve_clos with signature
-    set_equiv ==> set_equiv as reserve_clos_more.
-Proof using.
-  intros x y [HH AA]. split.
-  { now rewrite HH. }
-  now rewrite AA.
-Qed. 
-
-(* TODO: move *)
-Lemma issued_union s s' :
-  issued (s ∪₁ s') ≡₁ issued s ∪₁ issued s'.
-Proof using. unfold issued. clear. basic_solver 10. Qed.
-
-Lemma reserve_clos_union s s' :
-  reserve_clos (s ∪₁ s') ≡₁ reserve_clos s ∪₁ reserve_clos s'.
-Proof using.
-  unfold reserve_clos.
-  rewrite !issued_union.
-  rewrite set_pair_union_r.
-  clear. basic_solver 10.
-Qed.
-
-(* TODO: move*)
-Lemma covered_rel_clos G tc : covered (rel_clos G tc) ≡₁ (is_rel (lab G)) ∩₁ issued tc.
-Proof using.
-  unfold rel_clos.
-  unfold covered, set_pair. split; unfolder; ins; do 2 desf.
-  eexists (_, _); eauto.
-Qed.
 
 (* TODO: rename and make a lemma *)
 Lemma AABBCC {A} p s (e : A) (IRR : irreflexive p) (DOM : dom_rel (p ;; <|eq e|>) ⊆₁ s ∪₁ eq e) :
@@ -118,107 +81,6 @@ Hypothesis WFSC : wf_sc G sc.
 Notation "'E'" := (acts_set G).
 Notation "'W'" := (fun x => is_true (is_w (lab G) x)).
 
-(* TODO: move *)
-Lemma issued_EW tc (COH : tls_coherent G tc) :
-  issued tc ⊆₁ E ∩₁ W.
-Proof using WF.
-  unfold issued.
-  apply set_subset_inter_r. split.
-  { apply issuedE; auto. }
-  apply issuedW; auto.
-Qed.
-
-(* TODO: move to imm/SimClosure.v *)
-Lemma sim_clos_cover_no_dom_rmw r tc
-  (NCOV : ~ covered tc r)
-  (TCOH  : tls_coherent G tc)
-  (ICOH  : iord_coherent G sc tc)
-  (SCOH1 : sim_coherent G tc)
-  (SCOH2 : sim_coherent G (tc ∪₁ eq (ta_cover, r))) :
-  ~ dom_rel (rmw G) r.
-Proof using WF.
-  intros [w RMW].
-  assert (~ covered tc w) as WNCOV.
-  { intros AA. apply NCOV. eapply dom_sb_covered; eauto.
-    apply (rmw_in_sb WF) in RMW. clear -RMW AA. basic_solver 10. }
-  red in SCOH1. red in SCOH2.
-  rewrite sim_clos_union in SCOH2.
-  rewrite <- SCOH1 in SCOH2.
-  unfold sim_clos in SCOH2.
-  assert (rmw_clos G (eq (ta_cover, r)) ⊆₁ tc ∪₁ eq (ta_cover, r)) as RMWC.
-  { rewrite SCOH2. eauto 10 with hahn. }
-  unfold rmw_clos in RMWC. rewrite covered_single in RMWC.
-  specialize (RMWC (ta_cover, w)).
-  destruct RMWC as [AA|AA].
-  { red. split.
-    all: clear -RMW; basic_solver 10. }
-  { apply WNCOV. red. clear -AA. basic_solver 10. }
-  inv AA. apply (wf_rmwD WF) in RMW.
-  generalize RMW. clear. type_solver.
-Qed.
-
-(* TODO: move to imm/SimClosure.v *)
-Lemma sim_clos_cover_no_codom_rmw w tc tc'
-  (NCOV : ~ covered tc w)
-  (COVEQ : covered tc' ≡₁ covered tc ∪₁ eq w)
-  (TCOH  : tls_coherent G tc')
-  (ICOH  : iord_coherent G sc tc)
-  (ICOH2 : iord_coherent G sc tc')
-  (SCOH1 : sim_coherent G tc) :
-  ~ codom_rel (rmw G) w.
-Proof using WF.
-  intros [r RMW].
-  assert (covered tc' r) as AA.
-  { eapply dom_sb_covered; eauto.
-    apply (rmw_in_sb WF) in RMW. exists w.
-    apply seq_eqv_r. split; auto.
-    apply COVEQ. now right. }
-  apply COVEQ in AA.
-  enough (~ covered tc r) as RNCOV.
-  { destruct AA as [AA|AA]; auto; desf.
-    apply (wf_rmwD WF) in RMW.
-    generalize RMW. clear. type_solver. }
-  clear AA.
-  intros RCOV.
-  enough (covered (sim_clos G tc) w) as AA.
-  { red in SCOH1. generalize SCOH1 AA NCOV.
-    unfold covered. clear. basic_solver 10. }
-  red. red. eexists (_, _); ins. splits; eauto.
-  red. splits.
-  2: { clear. basic_solver. }
-  enough (rmw_clos G tc (ta_cover, w)) as AA.
-  { red. clear -AA. basic_solver 10. }
-  red. split.
-  { clear. basic_solver. }
-  clear -RCOV RMW. basic_solver 10.
-Qed.
-
-(* TODO: move to imm/SimClosure.v *)
-Lemma sim_clos_cover_no_rel w tc tc'
-  (WW    : is_w (lab G) w)
-  (NCOV : ~ covered tc w)
-  (COVS : covered tc ∪₁ eq w ⊆₁ covered tc')
-  (ISSS : issued tc ≡₁ issued tc')
-  (TCOH  : tls_coherent G tc')
-  (SCOH1 : sim_coherent G tc)
-  (ICOH2 : iord_coherent G sc tc')
-  (SCOH2 : sim_coherent G tc') :
-  ~ is_rel (lab G) w.
-Proof using.
-  intros REL.
-  assert (issued tc' w) as ISSN.
-  { eapply w_covered_issued; eauto. split; auto.
-    apply COVS. clear. basic_solver. }
-  assert (issued tc w) as ISS by now apply ISSS.
-  apply NCOV.
-  assert (covered (sim_clos G tc) w) as HH.
-  { unfold sim_clos. apply covered_union.
-    right. unfold rel_clos. red.
-    unfolder. eexists (_, _); ins. }
-  generalize SCOH1 HH. unfold covered, sim_coherent.
-  clear. basic_solver 10.
-Qed.
-
 Lemma reserve_clos_tls_coherent tc
   (COH : tls_coherent G tc) :
   tls_coherent G (reserve_clos tc).
@@ -228,7 +90,7 @@ Proof using WF.
   unfold exec_tls.
   arewrite (issued tc ≡₁ issued tc ∩₁ (is_init ∪₁ set_compl is_init)).
   { now rewrite <- set_full_split, set_inter_full_r. }
-  rewrite issued_EW; auto.
+  rewrite issued_EW; eauto.
   rewrite !set_inter_union_r, set_pair_union_r.
   unionL.
   { transitivity (init_tls G); eauto with hahn.
@@ -252,34 +114,6 @@ Proof using.
   rewrite iord_no_reserve.
   unfold set_pair.
   unfolder. ins. do 2 desf.
-Qed.
-
-(* TODO: move *)
-Lemma reserved_ta_reserve s :
-  reserved (eq ta_reserve <*> s) ≡₁ s.
-Proof using.
-  unfold reserved.
-  unfolder; split; ins; desf.
-  { destruct y; ins. desf. }
-  eexists (_, _). splits; ins; eauto.
-Qed.
-
-(* TODO: move *)
-Lemma issued_ta_reserve s :
-  issued (eq ta_reserve <*> s) ≡₁ ∅.
-Proof using.
-  unfold issued.
-  unfolder; split; ins; desf.
-  destruct y; ins. desf.
-Qed.
-
-(* TODO: move *)
-Lemma covered_ta_reserve s :
-  covered (eq ta_reserve <*> s) ≡₁ ∅.
-Proof using.
-  unfold covered.
-  unfolder; split; ins; desf.
-  destruct y; ins. desf.
 Qed.
 
 Local
@@ -392,78 +226,6 @@ Definition ta_label2thread (a : trav_label) : thread_id :=
   | (ta_propagate t, _) => t
   | (_, e) => tid e
   end.
-
-(* TODO: move *)
-Lemma issued_eq_ta_cover w : issued (eq (ta_cover, w)) ≡₁ ∅.
-Proof using.
-  unfold issued. clear. basic_solver 10.
-Qed.
-(* TODO: move *)
-Lemma covered_eq_ta_issue w : covered (eq (ta_issue, w)) ≡₁ ∅.
-Proof using.
-  unfold covered. clear. basic_solver 10.
-Qed.
-(* TODO: move *)
-Lemma covered_eq_ta_reserve w : covered (eq (ta_reserve, w)) ≡₁ ∅.
-Proof using.
-  unfold covered. clear. basic_solver 10.
-Qed.
-
-(* TODO: move *)
-Lemma issued_eq_ta_reserve w : issued (eq (ta_reserve, w)) ≡₁ ∅.
-Proof using.
-  unfold issued. clear. basic_solver 10.
-Qed.
-(* TODO: move *)
-Lemma reserved_eq_ta_issue w : reserved (eq (ta_issue, w)) ≡₁ ∅.
-Proof using.
-  unfold reserved. clear. basic_solver 10.
-Qed.
-(* TODO: move *)
-Lemma reserved_eq_ta_cover w : reserved (eq (ta_cover, w)) ≡₁ ∅.
-Proof using.
-  unfold reserved. clear. basic_solver 10.
-Qed.
-(* TODO: move *)
-Lemma covered_reserve_clos tc : covered (reserve_clos tc) ≡₁ covered tc.
-Proof using.
-  ins. unfold reserve_clos. rewrite covered_union, covered_ta_reserve.
-  now rewrite set_union_empty_r.
-Qed.
-(* TODO: move *)
-Lemma issued_reserve_clos tc : issued (reserve_clos tc) ≡₁ issued tc.
-Proof using.
-  ins. unfold reserve_clos. rewrite issued_union, issued_ta_reserve.
-  now rewrite set_union_empty_r.
-Qed.
-(* TODO: move *)
-Lemma reserved_reserve_clos tc : reserved (reserve_clos tc) ≡₁ reserved tc ∪₁ issued tc.
-Proof using.
-  ins. unfold reserve_clos.
-  now rewrite reserved_union, reserved_ta_reserve.
-Qed.
-
-(* TODO: move *)
-Lemma reserve_clos_eq_ta_cover w : reserve_clos (eq (ta_cover, w)) ≡₁ eq (ta_cover, w).
-Proof using.
-  ins. unfold reserve_clos. rewrite issued_eq_ta_cover.
-  now rewrite set_pair_empty_l, set_union_empty_r.
-Qed.
-
-(* TODO: move *)
-Lemma reserve_clos_eq_ta_issue w : reserve_clos (eq (ta_issue, w)) ≡₁ eq (ta_issue, w) ∪₁ eq (ta_reserve, w).
-Proof using.
-  ins. unfold reserve_clos. rewrite issued_singleton.
-  apply set_union_more; eauto with hahn.
-  now rewrite set_pair_exact.
-Qed.
-
-(* TODO: move *)
-Lemma reserve_clos_eq_ta_reserve w : reserve_clos (eq (ta_reserve, w)) ≡₁ eq (ta_reserve, w).
-Proof using.
-  ins. unfold reserve_clos. rewrite issued_eq_ta_reserve.
-  now rewrite set_pair_empty_l, set_union_empty_r.
-Qed.
 
 #[local]
 Hint Rewrite issued_eq_ta_cover issued_eq_ta_reserve issued_singleton

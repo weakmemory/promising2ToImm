@@ -19,7 +19,7 @@ From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure. 
 From imm Require Import AuxDef. 
-From imm Require Import ViewRelHelpers.
+From imm Require Import TlsViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimState.
 Require Import MemoryAux.
@@ -33,8 +33,8 @@ Require Import FtoCoherent.
 Require Import SimulationRelProperties.
 Require Import IntervalHelper.
 Require Import ExistsIssueInterval.
-Require Import TlsEventSets.
-Require Import EventsTraversalOrder.
+From imm Require Import TlsEventSets.
+From imm Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
 

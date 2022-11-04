@@ -19,7 +19,7 @@ From imm Require Import SimClosure.
 From imm Require Import EnumProperties.
 
 Require Import Basics.
-Require Import TlsEventSets.
+From imm Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtSimTraversal.
@@ -27,7 +27,7 @@ Require Import ExtSimTraversalProperties.
 Require Import IndefiniteDescription.
 Require Import FinTravConfigs. 
 
-Require Import TlsEventSets.
+From imm Require Import TlsEventSets.
 
 Set Implicit Arguments.
 

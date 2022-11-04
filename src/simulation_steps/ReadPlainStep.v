@@ -15,15 +15,15 @@ From imm Require Import Prog.
 From imm Require Import ProgToExecution.
 From imm Require Import SimClosure.
 
-Require Import AuxRel.
+From imm Require Import AuxRel.
 From imm Require Import AuxRel2.
 From imm Require Import TraversalOrder. 
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsEventSets.
+From imm Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
-Require Import ViewRelHelpers.
+From imm Require Import TlsViewRelHelpers.
 Require Import PlainStepBasic.
 Require Import MemoryAux.
 Require Import SimulationRel.
@@ -35,8 +35,8 @@ Require Import ViewRel.
 Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
 Require Import ReadPlainStepHelper.
-Require Import Next.
-Require Import EventsTraversalOrder.
+From imm Require Import Next.
+From imm Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
 

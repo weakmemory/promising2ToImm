@@ -41,7 +41,7 @@ From imm Require Import ImmFair.
 Require Import Coq.Program.Basics.
 Require Import FinTravConfigs.
 Require Import ChoiceFacts.
-Require Import AuxRel. 
+From imm Require Import AuxRel. 
 Require Import ImmProperties. 
 From hahn Require Import Hahn.
 
@@ -54,7 +54,7 @@ From imm Require Import SimClosure.
 
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency. 
-Require Import TlsEventSets.
+From imm Require Import TlsEventSets.
 From imm Require Import AuxDef.
 From imm Require Import TraversalOrder.
 

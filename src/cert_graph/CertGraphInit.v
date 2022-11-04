@@ -51,9 +51,9 @@ From Promising2 Require Import Configuration Local.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import TraversalOrder. 
-Require Import TlsEventSets.
-Require Import AuxRel. 
-Require Import EventsTraversalOrder.
+From imm Require Import TlsEventSets.
+From imm Require Import AuxRel. 
+From imm Require Import EventsTraversalOrder.
 
 (* TODO: move*)
 Global Add Parametric Morphism : iord_coherent with signature

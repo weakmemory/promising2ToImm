@@ -30,7 +30,7 @@ Require Import IntervalHelper.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-Require Import TlsEventSets.
+From imm Require Import TlsEventSets.
 
 Set Implicit Arguments.
 

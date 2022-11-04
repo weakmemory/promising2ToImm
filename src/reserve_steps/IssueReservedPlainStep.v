@@ -17,12 +17,12 @@ From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import AuxDef.
-Require Import TlsEventSets.
+From imm Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import MaxValue.
 Require Import ViewRel.
-Require Import ViewRelHelpers.
+From imm Require Import TlsViewRelHelpers.
 Require Import SimulationRel.
 Require Import SimulationPlainStepAux.
 Require Import PlainStepBasic.

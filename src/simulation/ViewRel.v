@@ -12,7 +12,7 @@ From imm Require Import CombRelations.
 From imm Require Import CombRelationsMore.
     From imm Require Import Prog. 
 
-Require Import ViewRelHelpers.
+From imm Require Import TlsViewRelHelpers.
 (* From imm Require Import TraversalConfig. *)
 Require Import MaxValue.
 Require Import Event_imm_promise.
@@ -20,9 +20,9 @@ From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure.
-Require Import TlsEventSets.
-Require Import Next.
-Require Import EventsTraversalOrder.
+From imm Require Import TlsEventSets.
+From imm Require Import Next.
+From imm Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
 

@@ -16,7 +16,7 @@ From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure. 
-Require Import TlsEventSets.
+From imm Require Import TlsEventSets.
 Require Import ExtTraversalConfig ExtTraversalProperties.
 From imm Require Import FinExecution. 
 Require Import ExtTraversalConfig.
