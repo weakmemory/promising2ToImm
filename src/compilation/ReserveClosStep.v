@@ -64,16 +64,6 @@ Set Implicit Arguments.
 
 Section ReserveClos.
 
-(* TODO: rename and make a lemma *)
-Lemma AABBCC {A} p s (e : A) (IRR : irreflexive p) (DOM : dom_rel (p ;; <|eq e|>) ⊆₁ s ∪₁ eq e) :
-  dom_rel (p ;; <|eq e|>) ⊆₁ s.
-Proof using.
-  ins. intros b [c HH]. apply seq_eqv_r in HH. desf.
-  specialize (DOM b). destruct DOM; auto.
-  { basic_solver 10. }
-  desf. now apply IRR in HH.
-Qed.
-
 Variable G : execution.
 Variable sc : relation actid.
 Hypothesis WF : Wf G.
@@ -114,6 +104,43 @@ Proof using.
   rewrite iord_no_reserve.
   unfold set_pair.
   unfolder. ins. do 2 desf.
+Qed.
+
+(* TODO: move *)
+Lemma dom_sb_S_rfrmw_eq_reserved_issued r s tc
+  (W_EX_IS_XACQ : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G))
+  (TCOH : tls_coherent G tc)
+  (ICOH : iord_coherent G sc tc)
+  (RESEMPTC : reserved tc ≡₁ issued tc) :
+  dom_sb_S_rfrmw G tc r s ⊆₁ issued tc.
+Proof using WF.
+  unfold dom_sb_S_rfrmw.
+  rewrite RESEMPTC.
+  transitivity (dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued tc⦘)).
+  2: { rewrite W_EX_IS_XACQ.
+       eapply dom_wex_sb_issued; eauto. }
+  rewrite rmw_W_ex.
+  clear. basic_solver.
+Qed.
+
+(* TODO: move to coq-imm/ReserveClos.v *)
+Lemma dom_sb_S_rfrmw_reserve_clos r s tc
+  (W_EX_IS_XACQ : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G))
+  (TCOH : tls_coherent G tc)
+  (ICOH : iord_coherent G sc tc)
+  (RESEMPTC : reserved tc ≡₁ ∅) :
+  dom_sb_S_rfrmw G (reserve_clos tc) r s ⊆₁ issued tc.
+Proof using WF.
+  etransitivity.
+  apply dom_sb_S_rfrmw_eq_reserved_issued; eauto.
+  all: try now rewrite issued_reserve_clos.
+  { now apply reserve_clos_tls_coherent. }
+  { now apply reserve_clos_iord_coherent. }
+  unfold reserve_clos. rewrite reserved_union.
+  rewrite RESEMPTC. rewrite set_union_empty_l.
+  rewrite reserved_ta_reserve.
+  rewrite issued_union. rewrite issued_ta_reserve.
+  now rewrite set_union_empty_r.
 Qed.
 
 Local
@@ -294,11 +321,11 @@ Proof using w_ex_is_xacq WFSC WF IMMCON.
        rewrite RESEMPTC1. rewrite set_union_empty_l.
        transitivity (dom_rel (<|W_ex G|> ;; sb G ⨾ ⦗eq w⦘)).
        { clear. rewrite rmw_W_ex. basic_solver 10. }
-       rewrite <- !seqA. apply AABBCC.
+       rewrite <- !seqA. apply dom_rel_irr_seq_eq_no_eq.
        { arewrite_id ⦗W_ex G⦘. rewrite seq_id_l. apply sb_irr. }
        arewrite (eq w ⊆₁ issued tc ∪₁ eq w) at 1.
        rewrite <- ISS'. rewrite w_ex_is_xacq. eapply dom_wex_sb_issued; eauto. }
-  { rewrite <- !seqA. apply AABBCC.
+  { rewrite <- !seqA. apply dom_rel_irr_seq_eq_no_eq.
     2: { arewrite (eq w ⊆₁ issued tc ∪₁ eq w) at 1.
          rewrite <- ISS'.
          arewrite (issued tc' ⊆₁ reserved (reserve_clos tc')) at 1.
@@ -324,7 +351,7 @@ Proof using w_ex_is_xacq WFSC WF IMMCON.
   all: match goal with
        | |- dom_rel (?r ;; <| _ |>) ⊆₁ _ =>
            arewrite (r ⊆ <|is_w (lab G)|> ;; (ar G sc ∪ rf G ⨾ ppo G ∩ same_loc (lab G))⁺);
-           [ | rewrite <- !seqA; apply AABBCC]
+           [ | rewrite <- !seqA; apply dom_rel_irr_seq_eq_no_eq]
        end. 
   all: try now (rewrite inclusion_eqv_rel_true, seq_id_l;
                 apply imm_s_rfppo.ar_rf_ppo_loc_acyclic; auto).
@@ -576,16 +603,6 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
     (* { intros HH. apply NISS. eapply w_covered_issued; eauto. *)
     (*   split; auto. } *)
     (* TODO: make a lemma? *)
-    assert (dom_sb_S_rfrmw G (reserve_clos tc1) (rfi G) (eq w) ⊆₁ issued tc1) as RCLOSISS.
-    { unfold dom_sb_S_rfrmw.
-      unfold reserve_clos. rewrite reserved_union.
-      rewrite RESEMPTC1. rewrite set_union_empty_l.
-      rewrite reserved_ta_reserve.
-      transitivity (dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued tc1⦘)).
-      2: { rewrite w_ex_is_xacq.
-           eapply dom_wex_sb_issued; eauto. }
-      rewrite rmw_W_ex.
-      clear. basic_solver. }
     assert (tls_coherent G tc' ) as TCOH'.
     { rewrite TC'ALT. apply tls_coherent_ext; auto.
       red. left. repeat (split; auto). }
@@ -662,7 +679,7 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
          2: { unfold reserve_clos. eauto 10 with hahn. }
          apply set_pair_mori; eauto with hahn.
          rewrite !dom_sb_S_rfrmw_union_P.
-         unionL; auto.
+         unionL; eauto 10 using dom_sb_S_rfrmw_reserve_clos.
          { unfold dom_sb_S_rfrmw. autorewrite with cir_simplify. clear. basic_solver 10. }
          unfold dom_sb_S_rfrmw. autorewrite with cir_simplify.
          rewrite rmw_in_sb, rfi_in_sb; auto. rewrite sb_sb.
@@ -723,16 +740,6 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
     { intros [AA|AA]; auto.
       clear -AA. red in AA. do 2 desf. }
     (* TODO: make a lemma? *)
-    assert (dom_sb_S_rfrmw G (reserve_clos tc1) (rfi G) (eq a) ⊆₁ issued tc1) as RCLOSISS.
-    { unfold dom_sb_S_rfrmw.
-      unfold reserve_clos. rewrite reserved_union.
-      rewrite RESEMPTC1. rewrite set_union_empty_l.
-      rewrite reserved_ta_reserve.
-      transitivity (dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued tc1⦘)).
-      2: { rewrite w_ex_is_xacq.
-           eapply dom_wex_sb_issued; eauto. }
-      rewrite rmw_W_ex.
-      clear. basic_solver. }
     destruct (classic (W_ex G a)) as [WEX|NWEX].
     2: { apply rt_step.
          eapply ext_rlx_write_promise_step; auto.
@@ -747,7 +754,7 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
          transitivity (reserve_clos tc1); eauto with hahn.
          unfold reserve_clos at 2.
          unionR right.
-         apply set_pair_mori; eauto with hahn. }
+         apply set_pair_mori; eauto using dom_sb_S_rfrmw_reserve_clos with hahn. }
     set (QQ:=WEX). destruct QQ as [r RMW].
     eapply rt_trans with (y := reserve_clos tc1 ∪₁ eq (mkTL ta_reserve a)).
     all: apply rt_step.
@@ -772,7 +779,7 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
          rewrite set_pair_union_r. rewrite AA.
          apply set_subset_union_l; split; eauto 10 with hahn.
          rewrite dom_sb_S_rfrmw_union_P.
-         rewrite RCLOSISS.
+         rewrite dom_sb_S_rfrmw_reserve_clos; eauto.
          rewrite set_pair_union_r.
          apply set_subset_union_l; split; eauto 10 with hahn.
          unfold dom_sb_S_rfrmw. rewrite reserved_singleton.
@@ -847,17 +854,6 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
       split; auto. }
     assert (~ codom_rel (rmw G) w) as NWEX.
     { eapply sim_clos_cover_no_codom_rmw; eauto. }
-    (* TODO: make a lemma? *)
-    assert (dom_sb_S_rfrmw G (reserve_clos tc1) (rfi G) (eq w) ⊆₁ issued tc1) as RCLOSISS.
-    { unfold dom_sb_S_rfrmw.
-      unfold reserve_clos. rewrite reserved_union.
-      rewrite RESEMPTC1. rewrite set_union_empty_l.
-      rewrite reserved_ta_reserve.
-      transitivity (dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued tc1⦘)).
-      2: { rewrite w_ex_is_xacq.
-           eapply dom_wex_sb_issued; eauto. }
-      rewrite rmw_W_ex.
-      clear. basic_solver. }
     apply rt_step.
     eapply ext_rel_write_step with (T':=reserve_clos tc'); eauto.
     2: { constructor; auto; ins.
@@ -886,7 +882,8 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
     transitivity (reserve_clos tc1); eauto with hahn.
     unfold reserve_clos.
     transitivity (eq ta_reserve <*> issued tc1); eauto with hahn.
-    apply set_pair_mori; eauto with hahn. }
+    apply set_pair_mori; eauto with hahn.
+    eapply dom_sb_S_rfrmw_reserve_clos; eauto. }
   { destruct STEP as [STEPA [IA IB]].
     apply seq_eqv_l in STEPA. destruct STEPA as [NCOVTC1 TCALT].
     apply rt_step.
