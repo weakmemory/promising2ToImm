@@ -25,6 +25,7 @@ From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import TlsEventSets.
 From imm Require Import EventsTraversalOrder.
+From imm Require Import AuxEE.
 Require Import CertT.
 
 Require Import ExtTraversalConfig.
