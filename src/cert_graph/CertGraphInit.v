@@ -459,7 +459,7 @@ do 2 (rewrite eqv_rel_mori with (x := _ ∩₁ _); [| intro; apply proj2]).
     exists (1 + mindex). splits.
     { ins. apply CTALT in CTMAX.
       apply CTALT. split; auto.
-      apply le_lt_or_eq in LT. destruct LT as [LT|LT].
+      apply NPeano.Nat.lt_eq_cases in LT. destruct LT as [LT|LT].
       2: { inv LT. apply CTMAX. }
       assert ((ProgToExecution.G state').(acts_set) (ThreadEvent thread mindex)) as PP.
       { apply (tr_acts_set TEH). by split. }
@@ -472,7 +472,7 @@ do 2 (rewrite eqv_rel_mori with (x := _ ∩₁ _); [| intro; apply proj2]).
         apply seq_eqv_r. split; auto.
         red. split; auto. lia. }
       destruct CTMAX as [[[AA|AA]|[z AA]] _].
-      { do 2 left. eapply dom_sb_covered; basic_solver 10. }
+      { do 2 left. eapply dom_sb_covered; eauto.  basic_solver 10. }
       { right. exists (ThreadEvent thread mindex).
         apply seq_eqv_r. split; auto.
         split; auto. eapply rcoh_I_in_S; eauto. }
@@ -485,8 +485,7 @@ do 2 (rewrite eqv_rel_mori with (x := _ ∩₁ _); [| intro; apply proj2]).
     ins. set (CTE' := CTE).
     apply CREP_weak in CTE'. desc.
     eexists. splits; eauto.
-    destruct (le_gt_dec index mindex) as [LL|LL].
-    { by apply le_lt_n_Sm. }
+    destruct (le_gt_dec index mindex) as [|LL]; [lia|].
     exfalso.
     eapply MM2. apply seq_eqv_r. split; [|by apply CTE].
     red.

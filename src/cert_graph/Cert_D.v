@@ -444,7 +444,7 @@ Proof using WF TCOH_rst_new_T ICOH_rst_new_T.
     rewrite sb_tid_init' at 1; relsf; unionL; split.
     { unionR left -> left -> left -> left.
       unionR left -> right.
-      unfold same_tid; unfolder; ins; desf; intuition. }
+      unfold same_tid; unfolder; ins; desf; intuition auto with *. }
     arewrite (⦗E⦘ ⨾ ⦗fun a : actid => is_init a⦘ ⊆ ⦗D⦘).
     { generalize D_init. clear. basic_solver. }
     arewrite (dom_rel (⦗D⦘ ⨾ Gsb ⨾ ⦗E ∩₁ NTid_ thread⦘) ⊆₁ D) by basic_solver. }

@@ -58,6 +58,8 @@ From imm Require Import TlsEventSets.
 From imm Require Import AuxDef.
 From imm Require Import TraversalOrder.
 
+Require Import ReserveClosStep.
+
 Set Implicit Arguments.
 
 Lemma istep_nil_eq_silent thread :
@@ -711,9 +713,9 @@ Proof using All.
   rewrite SAMENUM.
   apply in_split_perm in IN; desc; rewrite IN in SAMENUM; ins; rewrite <- SAMENUM; ins. 
   desf; ins. 
-  2: by destruct v as ((lang,st),lc); destruct Y; apply NNPP in n0; apply n0 in FIND; ins.
-  clear Y.
-  auto using Lt.le_lt_n_Sm.
+  { clear -L.  specialize (L (map fst l')). lia. }
+  destruct v as ((lang,st),lc).
+  apply NNPP in n0. apply n0 in FIND; ins.
 Qed.
 
 Lemma same_final_memory T PC f_to f_from
@@ -1155,7 +1157,7 @@ Proof using All.
     { apply TCSTEP.
       destruct len; ins. destruct n0.
       { lia. }
-      apply EqNat.beq_nat_false in NLST. lia. }
+      apply NPeano.Nat.eqb_neq in NLST. lia. }
     desc.
     enough (exists y : ntc_type, proj1_sig y = (S n, conf')) as [y NTCy].
     { exists y. ins. rewrite NTCy. splits; ins.
@@ -1166,7 +1168,7 @@ Proof using All.
     red. splits; eauto. ins.
     destruct len; ins. destruct n0.
     { lia. }
-    apply EqNat.beq_nat_false in NLST. lia. }
+    apply NPeano.Nat.eqb_neq in NLST. lia. }
   desf; ins.
   assert (forall n, NOmega.lt_nat_l n len -> fst (proj1_sig (TR n)) = n) as NNTR.
   { clear -AA0 STNTC. induction n.

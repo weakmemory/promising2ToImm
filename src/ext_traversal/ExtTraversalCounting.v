@@ -168,7 +168,7 @@ Section ExtTraversalCounting.
       apply init_tls_EI in Ix. destruct H1. apply Ix. }
     desc. eexists. splits; eauto.
     AuxDef.contra GE. apply Compare_dec.not_lt in GE. red in GE.
-    apply Lt.le_lt_or_eq in GE. destruct GE as [LT | ->].
+    apply NPeano.Nat.lt_eq_cases in GE. destruct GE as [LT | ->].
     2: { apply proj2 in NTm. destruct NTm. congruence. }
     destruct H. exists i. splits; eauto. congruence.
   Qed. 

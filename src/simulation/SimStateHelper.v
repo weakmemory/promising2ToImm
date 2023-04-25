@@ -391,10 +391,9 @@ Proof using.
     2: by inv HH.
     etransitivity; [by apply PCOV|].
     done. }
-  intros II. apply Lt.lt_n_Sm_le in II. apply Lt.le_lt_or_eq in II.
-  destruct II as [II|II].
-  { left. by apply PCOV. }
-  right. by subst.
+  intros II.  apply NPeano.Nat.lt_eq_cases in II.  destruct II as [II|II].
+  { left. apply PCOV. lia. }
+  right. rewrite <- REPR at 1. inv II.
 Qed.
 
 Lemma sim_state_cover_rmw_events C e e' index'
@@ -410,15 +409,12 @@ Proof using.
     2-3: inv HH; lia.
     etransitivity; [by apply PCOV|].
     lia. }
-  intros II.
-  apply Lt.lt_n_Sm_le in II. apply Lt.le_lt_or_eq in II.
-  destruct II as [II|II].
-  2: by right; subst.
+  intros II.  apply NPeano.Nat.lt_eq_cases in II.  destruct II as [II|II].
+  2: { right; subst. inv II. }
   left.
-  apply Lt.lt_n_Sm_le in II. apply Lt.le_lt_or_eq in II.
-  destruct II as [II|II].
-  { left. by apply PCOV. }
-  right. by subst.
+   apply NPeano.Nat.lt_eq_cases in II.  destruct II as [II|II].
+  { left. apply PCOV. lia. }
+  right. rewrite <- REPR1 at 1. inv II.
 Qed.
 
 End SimStateHelper.
