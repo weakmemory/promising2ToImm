@@ -217,6 +217,7 @@ Section ExtTraversalCounting.
     rewrite <- sim_clos_dist. by rewrite T_I0.
   Qed.
 
+  (* TODO: move *)
   Lemma iiord_step_incl T1 T2 l
         (STEP: (iiord_step G sc) l T1 T2):
     T1 ⊆₁ T2.
@@ -224,6 +225,7 @@ Section ExtTraversalCounting.
     do 2 red in STEP. desc. generalize STEP. basic_solver.
   Qed. 
 
+  (* TODO: move *)
   Lemma sim_clos_step_incl T1 T2
         (STEP: (sim_clos_step G sc) T1 T2):
     T1 ⊆₁ T2.
@@ -240,6 +242,7 @@ Section ExtTraversalCounting.
     etransitivity; [etransitivity| ]; eapply iiord_step_incl; eauto. 
   Qed. 
 
+  (* TODO: move *)
   Lemma sim_clos_step_crt_incl T1 T2
         (STEP: (sim_clos_step G sc)^* T1 T2):
     T1 ⊆₁ T2.

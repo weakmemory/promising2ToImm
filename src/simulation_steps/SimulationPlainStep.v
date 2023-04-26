@@ -341,12 +341,10 @@ Proof using WF CON.
     all: eauto. 
     rewrite ets_upd1. basic_solver 10. }
 
-  { (* Propagation *)
-    inversion TS. simpl in ets_upd.
-    rewrite set_pair_alt, set_inter_empty_r, set_union_empty_r in ets_upd.
-    admit. 
-    
-  } 
+  (* Propagation *)
+  inversion TS. simpl in ets_upd.
+  rewrite set_pair_alt, set_inter_empty_r, set_union_empty_r in ets_upd.
+  admit. 
 
 Admitted. 
 

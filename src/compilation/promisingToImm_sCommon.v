@@ -57,6 +57,7 @@ From imm Require Import IordCoherency.
 From imm Require Import TlsEventSets.
 From imm Require Import AuxDef.
 From imm Require Import TraversalOrder.
+From imm Require Import ReserveClos.
 
 Require Import ReserveClosStep.
 
@@ -1020,7 +1021,7 @@ Proof using All.
   assert (exists (len : nat_omega)
                  (TCtr : nat -> (trav_label -> Prop)),
              << LENP : NOmega.lt_nat_l 0 len >> /\
-             << TCINIT : TCtr 0 = init_tls G >> /\
+             << TCINIT : TCtr 0 ≡₁ init_tls G >> /\
              << TCSTEP : forall n, NOmega.lt_nat_l (1 + n) len ->
                                    (ext_sim_trav_step G sc)^* (TCtr n) (TCtr (1 + n)) >> /\
              ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
@@ -1049,54 +1050,54 @@ Proof using All.
     intros. desc.
     remember (NOmega.add (set_size (exec_tls G)) (NOnum 1)) as len.
     exists len.
-    exists sim_enum. (* TODO: composition of reserve_clos and sim_enum? *)
+    exists (fun i => reserve_clos (sim_enum i)).
     (* exists (fun i => let (C, I) := sim_enum i in [C # I # I]). *)
     rename i into iq.
 
     assert (NOmega.lt_nat_l 0 len) as LENn0.
     { subst len. liaW (set_size (exec_tls G)). }
     splits; auto.
-    { now rewrite INIT. }
-    { intros i DOMi.
-      specialize (STEPS i). specialize_full STEPS.
-      { subst len. liaW (set_size (exec_tls G)). }
-      remember (sim_enum (1 + i)) as etc'. clear Heqetc'.
+    { rewrite INIT. apply reserve_clos_init_tls. }
+    2: { split.
+         2: { apply set_subset_bunion_l. intros.
+              specialize (COH x). specialize_full COH.
+              { red in COND.
+                subst len. liaW (set_size (exec_tls G)). }
+              rewrite covered_reserve_clos.
+              apply coveredE in COH; auto. }
+         rewrite AuxRel.set_split_comlete
+           with (s' := acts_set G) (s := is_init).
+         apply set_subset_union_l. split.
+         { red. ins. exists 0. split; auto.
+           red. unfolder. eexists (mkTL _ _); ins. splits; eauto.
+           apply reserve_clos_mon.
+           apply INIT. do 2 red; ins. split; auto.
+           basic_solver. }
+         intros e ENIe. specialize (ENUM e). specialize_full ENUM.
+         { generalize ENIe. basic_solver. }
+         desc. exists i. splits.
+         { red. subst len. liaW (set_size (exec_tls G)). }
+         apply covered_reserve_clos.
+         red. unfolder. eauto. }
+    intros i DOMi.
+    specialize (STEPS i). specialize_full STEPS.
+    { subst len. liaW (set_size (exec_tls G)). }
+    eapply sim_clos_step_rt2ext_sim_trav_step_rt in STEPS; eauto.
+    1,2: now apply COH; subst len; liaW (set_size (exec_tls G)).
+    (* remember (sim_enum (1 + i)) as etc'.
+      (* clear Heqetc'. *)
       apply rtEE in STEPS as [n [_ STEPS]].
       generalize dependent etc'. induction n.
       { ins. simpl in STEPS. destruct STEPS as [-> _]. apply rt_refl. }
       intros etc'' [etc' [STEPS' STEP]].
-      eapply rt_trans; [by apply IHn; eauto | ].
-      
-      (* cdes STEP. unfolder in STEP0. desc. *)
-      (* eapply sim_clos_step2ext_isim_trav_step in STEP. *)
+      eapply rt_trans; [by apply IHn; eauto | ]. *)
 
-      (* TODO: OLD PROOF *)
-      (* =============== *)
-      (* forward eapply (@sim_trav_step2ext_sim_trav_step etc' etc'') *)
-      (*   as EXT_STEPS; eauto. *)
-      (* 2: { by destruct etc', etc''. } *)
-      (* eapply sim_trav_steps_coherence; [by eapply pow_rt; eauto| ]. *)
-      (* apply COH. *)
-      (* subst len. liaW (set_size (graph_steps G)). } *)
-
-      admit. }
-    split.
-    2: { apply set_subset_bunion_l. intros.
-         specialize (COH x). specialize_full COH.
-         { red in COND.
-           subst len. liaW (set_size (exec_tls G)). }
-         apply coveredE in COH; auto. }
-    rewrite AuxRel.set_split_comlete with (s' := acts_set G) (s := is_init).
-    apply set_subset_union_l. split.
-    { red. ins. exists 0. split; auto.
-      red. unfolder. eexists (mkTL _ _); ins. splits; eauto.
-      apply INIT. do 2 red; ins. split; auto.
-      basic_solver. }
-    intros e ENIe. specialize (ENUM e). specialize_full ENUM.
-    { generalize ENIe. basic_solver. }
-    desc. exists i. splits.
-    { red. subst len. liaW (set_size (exec_tls G)). }
-    red. unfolder. eauto. }
+    (* TODO: OLD PROOF *)
+    (* =============== *)
+    (* forward eapply (@sim_trav_step2ext_sim_trav_step etc' etc'') *)
+    (*   as EXT_STEPS; eauto. *)
+    (* 2: { by destruct etc', etc''. } *)
+    admit. }
       
   exists len, TCtr. splits; auto.
 
