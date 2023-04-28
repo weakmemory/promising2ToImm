@@ -48,21 +48,6 @@ Proof using.
   unfold tls_fin. eapply set_finite_mori; eauto. red. basic_solver 10. 
 Qed. 
 
-(* TODO: move to IMM*)
-Lemma set_pair_empty_l (A B: Type) (S: A -> Prop):
-  S <*> (∅: B -> Prop) ≡₁ ∅.
-Proof using. rewrite set_pair_alt. basic_solver. Qed. 
-
-(* TODO: move to IMM*)
-Lemma set_pair_empty_r (A B: Type) (S: B -> Prop):
-  (∅: A -> Prop) <*> S ≡₁ ∅.
-Proof using. rewrite set_pair_alt. basic_solver. Qed. 
-
-
-(* TODO: move to TlsEventsets*)
-Global Hint Rewrite set_pair_empty_l set_pair_empty_r: set_simpl_db. 
-
-
 Section FinTravConfigs.
   Variable (G: execution).
   Variable (sc: relation actid).
