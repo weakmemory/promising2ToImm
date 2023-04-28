@@ -25,18 +25,15 @@ Require Import PromiseOutcome.
 Require Import MemoryAux.
 Require Import PromiseLTS.
 Require Import ExtSimTraversal.
-Require Import ExtSimTraversalProperties.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversalProperties.
 Require Import ExtTraversal.
-Require Import ExtTraversalCounting.
 Require Import SimulationPlainStepAux.
 Require Import FtoCoherent.
 Require Import AuxTime.
 Require Import IndefiniteDescription.
 From imm Require Import ImmFair. 
 Require Import Coq.Program.Basics.
-Require Import FinTravConfigs.
 Require Import ChoiceFacts.
 From imm Require Import AuxRel. 
 Require Import ImmProperties. 
@@ -44,7 +41,6 @@ From hahn Require Import Hahn.
 
 From imm Require Import SimTraversal.
 From imm Require Import SimTraversalProperties.
-(* From imm Require Import SimTravClosure. *)
 From imm Require Import TraversalConfigAlt.
 From imm Require Import SetSize.
 From imm Require Import SimClosure.
@@ -341,12 +337,71 @@ Proof using w_ex_is_xacq WFSC WF IMMCON.
   eauto with hahn.
 Qed.
 
+(* TODO: move *)
+Lemma iiord_no_reserve_step_minus_reserved
+  tl tc1 tc2
+  (NORES : action tl <> ta_reserve)
+  (STEP  : iiord_step G sc tl tc1 tc2) :
+  iiord_step G sc tl (tc1 \₁ action ↓₁ (eq ta_reserve))
+                     (tc2 \₁ action ↓₁ (eq ta_reserve)).
+Proof using.
+  clear -STEP NORES.
+  destruct tl as [ta a]. destruct ta.
+  4: { exfalso. apply NORES. desf. }
+  all: destruct STEP as [STEP [AA BB]].
+  all: split; splits.
+  all: try now (eapply iord_coherent_equiv_wo_reserved; [|apply BB]; basic_solver).
+  all: try now (eapply iord_coherent_equiv_wo_reserved; [|apply AA]; basic_solver).
+  all: apply seq_eqv_l in STEP; destruct STEP as [TT STEP].
+  all: apply seq_eqv_l; split.
+  all: try now (generalize TT; unfolder; ins; desf; tauto). 
+  all: rewrite STEP.
+  all: split; unfolder; ins; desf; ins; splits; auto.
+  all: intros HH; inv HH.
+Qed.
+
+(* TODO: move *)
+Lemma iiord_step_minus_reserved tl tc1 tc2
+  (STEP : iiord_step G sc tl tc1 tc2) :
+  (iiord_step G sc tl)^? (tc1 \₁ action ↓₁ (eq ta_reserve))
+                         (tc2 \₁ action ↓₁ (eq ta_reserve)).
+Proof using.
+  clear -STEP.
+  destruct tl as [ta a]. destruct ta.
+  4: { left. apply set_extensionality.
+       erewrite iiord_step_incl with (tc1:=tc1) (tc2:=tc2); eauto.
+       rewrite set_minus_union_l. split; [basic_solver|].
+       unionL; clear; basic_solver. }
+  all: right.
+  all: apply iiord_no_reserve_step_minus_reserved; auto.
+  all: intros HH; inv HH.
+Qed.
+
+(* TODO: move *)
+Lemma isim_clos_step_minus_reserved tl tc1 tc2
+  (STEP : isim_clos_step G sc tl tc1 tc2) :
+  (isim_clos_step G sc tl)^? (tc1 \₁ action ↓₁ (eq ta_reserve))
+                             (tc2 \₁ action ↓₁ (eq ta_reserve)).
+Proof using.
+  clear -STEP.
+  unfold isim_clos_step in *. desf.
+  all: try now (apply iiord_step_minus_reserved; auto).
+  all: right.
+  all: destruct STEP as [AA [y [STEP0 STEP1]]].
+  all: split; auto.
+  all: eexists; split.
+  all: try now eapply iiord_no_reserve_step_minus_reserved; eauto.
+  destruct STEP1 as [z [STEP1 STEP2]].
+  eexists; split.
+  all: try now eapply iiord_no_reserve_step_minus_reserved; eauto.
+Qed.
+
 Lemma isim_clos_step2ext_isim_trav_step_rt tc1 tc2 thread tl
   (INIT1 : init_tls G ⊆₁ tc1)
   (TCOH2 : tls_coherent G tc2)
   (SCOH1 : sim_coherent G tc1)
   (SCOH2 : sim_coherent G tc2)
-  (RESEMPTC2 : reserved tc2 ⊆₁ ∅)
+  (RESEMPTC2 : reserved tc2 ⊆₁ acts_set G ∩₁ is_init)
   (STEP : isim_clos_step G sc tl tc1 tc2)
   (TLTOTHREAD : match tl with
                 | [] => False
@@ -364,12 +419,17 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
     red in STEP. desf.
     all: unfold iiord_step in STEP.
     all: try now red in STEP; unfolder in STEP; desf. }
-  assert (RESEMPTC1 : reserved tc1 ⊆₁ ∅).
+  assert (RESEMPTC1 : reserved tc1 ⊆₁ acts_set G ∩₁ is_init).
   { erewrite isim_clos_step_mon; eauto. }
   assert (RESISS1 : reserved tc1 ⊆₁ issued tc1).
-  { rewrite RESEMPTC1. clear. basic_solver. }
+  { rewrite RESEMPTC1. rewrite <- INIT1. unfold init_tls.
+    rewrite !set_pair_union_l; autorewrite with cir_simplify.
+    clear. basic_solver. }
+  assert (INIT2 : init_tls G ⊆₁ tc2) by apply TCOH2.
   assert (RESISS2 : reserved tc2 ⊆₁ issued tc2).
-  { rewrite RESEMPTC2. clear. basic_solver. }
+  { rewrite RESEMPTC2. rewrite <- INIT2. unfold init_tls.
+    rewrite !set_pair_union_l; autorewrite with cir_simplify.
+    clear. basic_solver. }
   assert (TCOH1 : tls_coherent G tc1).
   { constructor; auto.
     erewrite isim_clos_step_mon with (tc2:=tc2); eauto.
@@ -482,10 +542,10 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
       red. left. red. split.
       { basic_solver. }
       now split. }
-    assert (reserved tc' ⊆₁ ∅) as RESEMPTC'.
-    { rewrite TC'ALT. autorewrite with cir_simplify; auto. }
+    (* assert (reserved tc' ⊆₁ ∅) as RESEMPTC'. *)
+    (* { rewrite TC'ALT. autorewrite with cir_simplify; auto. } *)
     assert (reserved tc' ⊆₁ issued tc') as RESISS'.
-    { rewrite RESEMPTC'. clear. basic_solver. }
+    { rewrite TC'ALT. autorewrite with cir_simplify; auto. }
     assert (~ covered tc1 w) as NCOVW.
     { intros HH. apply NCOVTC'. apply TC'ALT. left. 
       red in HH. unfolder in HH. desf. destruct y; ins. desf. }
@@ -545,12 +605,13 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
     { rewrite TC2ALT. now autorewrite with cir_simplify. }
     assert (covered tc2 ≡₁ covered tc1 ∪₁ eq r ∪₁ eq w) as YYC.
     { rewrite TC2ALT. now autorewrite with cir_simplify. }
-    assert (reserved tc' ≡₁ ∅) as RESEMPTC'.
-    { rewrite TC'ALT. now autorewrite with cir_simplify. }
-    assert (reserved tc'' ≡₁ ∅) as RESEMPTC''.
-    { rewrite TC''ALT. now autorewrite with cir_simplify. }
+    (* assert (reserved tc' ≡₁ ∅) as RESEMPTC'. *)
+    (* { rewrite TC'ALT. now autorewrite with cir_simplify. } *)
+    (* assert (reserved tc'' ≡₁ ∅) as RESEMPTC''. *)
+    (* { rewrite TC''ALT. now autorewrite with cir_simplify. } *)
     assert (reserved tc'' ⊆₁ issued tc'') as RESISS''.
-    { rewrite RESEMPTC''. clear. basic_solver. }
+    { rewrite TC''ALT. autorewrite with cir_simplify.
+      rewrite RESISS1. clear. basic_solver. }
 
     assert (issued (reserve_clos tc2) w) as ISS2A.
     { apply issued_union. left.
@@ -670,10 +731,11 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
     { apply tls_coherent_ext; auto. }
     { eapply iord_coherent_equiv_wo_reserved with (T1:=reserve_clos tc1); auto.
       clear. basic_solver. }
-    { intros [AA|AA]; eauto.
-      { eapply  RESEMPTC1. red. unfolder. exists (ta_reserve, w). eauto. }
-      destruct AA as [_ BB]; auto. }
-    now autorewrite with cir_simplify. }
+    2: now autorewrite with cir_simplify.
+    intros [AA|AA]; eauto.
+    2: { destruct AA as [_ BB]; auto. }
+    apply NISS. apply RESISS1. red. generalize AA.
+    clear. basic_solver. }
   { destruct STEP as [STEPA [IA IB]].
     apply seq_eqv_l in STEPA. destruct STEPA as [NCOVTC1 TCALT].
     assert (issued tc2 ≡₁ issued tc1 ∪₁ eq a) as YY.
@@ -785,7 +847,8 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
       rewrite iord_no_reserve.
       clear. basic_solver 10. }
     { unfold reserve_clos. intros [AA|[AA BB]]; auto.
-      eapply RESEMPTC1. red. unfolder; ins; eauto. }
+      apply NISST. apply RESISS1.
+      red. generalize AA. clear. basic_solver. }
     rewrite set_pair_empty_l.
     now rewrite set_union_empty_r. }
   { rename a0 into w.
@@ -806,11 +869,12 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
     assert (covered tc2 ≡₁ covered tc1 ∪₁ eq w) as YYC.
     { rewrite TC2ALT. rewrite !covered_union, covered_singleton.
       rewrite covered_eq_ta_issue. now rewrite set_union_empty_r. }
-    assert (reserved tc' ≡₁ ∅) as RESEMPTC'.
-    { split; [|clear; basic_solver].
-      rewrite TC'ALT. autorewrite with cir_simplify; auto. }
+    (* assert (reserved tc' ≡₁ ∅) as RESEMPTC'. *)
+    (* { split; [|clear; basic_solver]. *)
+    (*   rewrite TC'ALT. autorewrite with cir_simplify; auto. } *)
     assert (reserved tc' ⊆₁ issued tc') as RESISS'.
-    { rewrite RESEMPTC'. clear. basic_solver. }
+    { rewrite TC'ALT. autorewrite with cir_simplify.
+      rewrite RESISS1. clear. basic_solver. }
     assert (issued (reserve_clos tc2) w) as ISS2A.
     { apply set_subset_single_l. unfold reserve_clos.
       autorewrite with cir_simplify. rewrite YY.
@@ -878,6 +942,8 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
   exfalso.
   destruct STEP as [STEPA [IA IB]].
   apply seq_eqv_l in STEPA. destruct STEPA as [NCOVTC1 TCALT].
+  apply NCOVTC1. apply INIT1. red. split.
+  { clear. basic_solver. }
   rewrite TCALT in RESEMPTC2.
   eapply RESEMPTC2. apply reserved_union.
   right. red. clear. basic_solver.
@@ -886,7 +952,7 @@ Qed.
 Lemma sim_clos_step2ext_sim_trav_step_rt tc1 tc2
   (INIT1 : init_tls G ⊆₁ tc1)
   (TCOH2 : tls_coherent G tc2)
-  (RESEMPTC2 : reserved tc2 ⊆₁ ∅)
+  (RESEMPTC2 : reserved tc2 ⊆₁ acts_set G ∩₁ is_init)
   (STEP : sim_clos_step G sc tc1 tc2) :
   (ext_sim_trav_step G sc)^* (reserve_clos tc1) (reserve_clos tc2).
 Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
@@ -903,7 +969,7 @@ Qed.
 Lemma sim_clos_step_rt2ext_sim_trav_step_rt tc1 tc2
   (INIT1 : init_tls G ⊆₁ tc1)
   (TCOH2 : tls_coherent G tc2)
-  (RESEMPTC2 : reserved tc2 ⊆₁ ∅)
+  (RESEMPTC2 : reserved tc2 ⊆₁ acts_set G ∩₁ is_init)
   (STEPS : (sim_clos_step G sc)^* tc1 tc2) :
   (ext_sim_trav_step G sc)^* (reserve_clos tc1) (reserve_clos tc2).
 Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
@@ -912,7 +978,7 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
   enough ((<| fun tc => init_tls G ⊆₁ tc |> ;;
            sim_clos_step G sc ;;
            <| fun tc =>
-               tls_coherent G tc /\ reserved tc ⊆₁ ∅ |>)^+ tc1 tc2)
+               tls_coherent G tc /\ reserved tc ⊆₁ acts_set G ∩₁ is_init |>)^+ tc1 tc2)
     as ST.
   { clear -w_ex_is_xacq WFSC WF IMMCON FRELACQ ST.
     apply clos_trans_tn1 in ST.
@@ -925,7 +991,7 @@ Proof using w_ex_is_xacq WFSC WF IMMCON FRELACQ.
     desf. apply sim_clos_step2ext_sim_trav_step_rt; auto. }
   enough ((sim_clos_step G sc ;;
            <| fun tc =>
-               tls_coherent G tc /\ reserved tc ⊆₁ ∅ |>)^+ tc1 tc2)
+               tls_coherent G tc /\ reserved tc ⊆₁ acts_set G ∩₁ is_init |>)^+ tc1 tc2)
     as ST.
   { clear -INIT1 ST. 
     apply clos_trans_tn1 in ST.
