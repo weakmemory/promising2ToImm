@@ -1050,54 +1050,58 @@ Proof using All.
     intros. desc.
     remember (NOmega.add (set_size (exec_tls G)) (NOnum 1)) as len.
     exists len.
-    exists (fun i => reserve_clos (sim_enum i)).
+    exists (fun i => reserve_clos (reserve_init_clos G (sim_enum i))).
     (* exists (fun i => let (C, I) := sim_enum i in [C # I # I]). *)
     rename i into iq.
 
     assert (NOmega.lt_nat_l 0 len) as LENn0.
     { subst len. liaW (set_size (exec_tls G)). }
     splits; auto.
-    { rewrite INIT. apply reserve_clos_init_tls. }
+    { rewrite reserve_clos_more.
+      2: rewrite reserve_init_clos_more; [|apply INIT].
+      2: reflexivity.
+      rewrite reserve_init_clos_init_tls. apply reserve_clos_init_tls. }
     2: { split.
          2: { apply set_subset_bunion_l. intros.
               specialize (COH x). specialize_full COH.
               { red in COND.
                 subst len. liaW (set_size (exec_tls G)). }
               rewrite covered_reserve_clos.
-              apply coveredE in COH; auto. }
+              unfold reserve_init_clos. autorewrite with cir_simplify.
+              rewrite coveredE with (T:=sim_enum x); eauto. }
          rewrite AuxRel.set_split_comlete
            with (s' := acts_set G) (s := is_init).
          apply set_subset_union_l. split.
          { red. ins. exists 0. split; auto.
            red. unfolder. eexists (mkTL _ _); ins. splits; eauto.
            apply reserve_clos_mon.
+           left. split.
+           2: { intros HH. inv HH. }
            apply INIT. do 2 red; ins. split; auto.
            basic_solver. }
          intros e ENIe. specialize (ENUM e). specialize_full ENUM.
          { generalize ENIe. basic_solver. }
          desc. exists i. splits.
          { red. subst len. liaW (set_size (exec_tls G)). }
+         apply set_subset_single_l. unfold reserve_init_clos.
+         autorewrite with cir_simplify.
+         apply set_subset_eq.
          apply covered_reserve_clos.
-         red. unfolder. eauto. }
+         unfold reserve_init_clos. apply covered_union.
+         left. red. unfolder. eauto. }
     intros i DOMi.
     specialize (STEPS i). specialize_full STEPS.
     { subst len. liaW (set_size (exec_tls G)). }
+    apply reserve_init_clos_sim_clos_steps_rt in STEPS.
     eapply sim_clos_step_rt2ext_sim_trav_step_rt in STEPS; eauto.
-    1,2: now apply COH; subst len; liaW (set_size (exec_tls G)).
-    (* remember (sim_enum (1 + i)) as etc'.
-      (* clear Heqetc'. *)
-      apply rtEE in STEPS as [n [_ STEPS]].
-      generalize dependent etc'. induction n.
-      { ins. simpl in STEPS. destruct STEPS as [-> _]. apply rt_refl. }
-      intros etc'' [etc' [STEPS' STEP]].
-      eapply rt_trans; [by apply IHn; eauto | ]. *)
-
-    (* TODO: OLD PROOF *)
-    (* =============== *)
-    (* forward eapply (@sim_trav_step2ext_sim_trav_step etc' etc'') *)
-    (*   as EXT_STEPS; eauto. *)
-    (* 2: { by destruct etc', etc''. } *)
-    admit. }
+    { rewrite <- reserve_init_clos_init_tls.
+      apply reserve_init_clos_mori.
+      now apply COH; subst len; liaW (set_size (exec_tls G)). }
+    { apply reserve_init_clos_tls_coherent.
+      now apply COH; subst len; liaW (set_size (exec_tls G)). }
+    unfold reserve_init_clos. autorewrite with cir_simplify.
+    apply set_subset_union_l; split; eauto with hahn.
+    clear. unfold reserved. basic_solver. }
       
   exists len, TCtr. splits; auto.
 
