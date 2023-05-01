@@ -14,7 +14,8 @@ From imm Require Import SubExecution.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 From imm Require Import Prog.
-From imm Require Import ProgToExecution ProgToExecutionProperties.
+From imm Require Import ProgToExecution.
+From imm Require Import ProgToExecutionProperties.
 From imm Require Import Receptiveness.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
@@ -55,16 +56,6 @@ From imm Require Import TlsEventSets.
 From imm Require Import AuxRel. 
 From imm Require Import EventsTraversalOrder.
 
-(* TODO: move*)
-Global Add Parametric Morphism : iord_coherent with signature
-       eq ==> Basics.flip inclusion ==> set_equiv ==> Basics.impl as iord_coherent_mori.
-Proof using.
-  intros G sc sc' EQ s s' EQS.
-  unfold iord_coherent. red. 
-  intros HH.
-  by rewrite EQ, <- EQS. 
-Qed.
-
 Set Implicit Arguments.
 
 Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
@@ -74,31 +65,11 @@ Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
 Definition mkCT (G: execution) (T: trav_label -> Prop) (t1 t2: thread_id) :=
   E0 G T t1 ∩₁ Tid_ t2.
 
-
 Lemma rstG_fair G T thread (FAIR: mem_fair G):
   mem_fair (rstG G T thread).
 Proof using.
   unfold rstG. by apply restrict_fair.
 Qed.
-
-
-Lemma tid_is_init_fin_helper (S: actid -> Prop) thread
-      (NT: thread <> tid_init)
-      (FIN: set_finite (S \₁ is_init)):
-  set_finite (S ∩₁ Tid_ thread).
-Proof using. 
-  rewrite AuxRel.set_split_comlete with (s := is_init).
-  apply set_finite_union. split.
-  { eapply set_finite_mori; [| by apply set_finite_empty].
-    red. unfolder. ins. desc. vauto. by destruct x. }
-  eapply set_finite_mori; [| by apply FIN].
-  red. basic_solver.
-Qed. 
-
-
-Lemma codom_seq_eqv_r {A: Type} (r: relation A) (S: A -> Prop):
-  codom_rel (r ⨾ ⦗S⦘) ⊆₁ S. 
-Proof using. basic_solver. Qed.
 
 Section CertGraphInit.
   Variable (Gf: execution) (sc: relation actid) (T: trav_label -> Prop).
@@ -121,12 +92,6 @@ Section CertGraphInit.
   Lemma thread_ninit: thread <> tid_init.
   Proof using SIMREL. cdes SIMREL. cdes LOCAL. auto. Qed.
   
-  (* TODO: move to lib *)
-  Lemma fin_dom_rel_cr_fsupp {A: Type} (r: relation A) (S: A -> Prop)
-        (FIN: set_finite S) (FS: fsupp r):
-    set_finite (dom_rel (r^? ⨾ ⦗S⦘)). 
-  Proof using. rewrite crE. relsf. split; auto. by apply fin_dom_rel_fsupp. Qed. 
-
   Lemma CT_fin t1 t2:
     set_finite (mkCT Gf T t1 t2 \₁ is_init).
   Proof using WF TLS_FIN.
@@ -139,8 +104,7 @@ Section CertGraphInit.
       all: red; basic_solver 10. }
     eapply set_finite_mori with (x := dom_rel (⦗set_compl is_init⦘ ⨾ (sb Gf)^? ⨾ ⦗(event ↑₁ (T ∩₁ action ↓₁ (eq ta_reserve ∪₁ eq ta_issue))) \₁ is_init⦘)).
     { red.
-      
-do 2 (rewrite eqv_rel_mori with (x := _ ∩₁ _); [| intro; apply proj2]).
+      do 2 (rewrite eqv_rel_mori with (x := _ ∩₁ _); [| intro; apply proj2]).
       do 2 (rewrite set_minus_mori with (x := _ ∩₁ _); [| intro; apply proj1| red; apply set_subset_refl2]).
       do 2 (rewrite set_minusE, set_interC, <- dom_eqv1).
       rewrite <- dom_union. apply dom_rel_mori.
@@ -169,27 +133,13 @@ do 2 (rewrite eqv_rel_mori with (x := _ ∩₁ _); [| intro; apply proj2]).
   Lemma G_Gf_same_threads_set: threads_set G ≡₁ threads_set Gf.
   Proof using. vauto. Qed. 
 
-  (* TODO: move*)
-  Lemma fin_exec_fin_threads_restrict
-        (* (FIN_THREADS: fin_threads G) *)
-        (FIN_B: forall t (LTB: threads_set G t), fin_exec (restrict G (Tid_ t))):
-    fin_exec G. 
-  Proof using WF Gf_FIN_THREADS.
-    red. rewrite events_separation, <- set_bunion_minus_compat_r.
-    rewrite set_full_split with (S := threads_set G).
-    rewrite set_bunion_union_l. apply set_finite_union. split.
-    2: { exists nil. unfold restrict. simpl. unfolder. ins. desc.
-         destruct IN. subst. eapply wf_threads; eauto. }
-    rewrite G_Gf_same_threads_set. 
-    apply set_finite_bunion; vauto. 
-  Qed.  
-
   Lemma G_fin: fin_exec G.
   Proof using WF TLS_FIN Gf_FIN_THREADS.
     unfold G, certG, rstG.
     (* eapply fin_exec_bounded_threads; eauto. *)
     (* { apply G_threads_bound. } *)
     eapply fin_exec_fin_threads_restrict; eauto.
+    { intros e HH. apply WF. apply HH. }
     ins. unfold restrict, fin_exec. simpl.
     eapply set_finite_mori.
     2: { by apply CT_fin with (t1 := thread) (t2 := t). }
@@ -491,31 +441,6 @@ do 2 (rewrite eqv_rel_mori with (x := _ ∩₁ _); [| intro; apply proj2]).
     red.
     apply seq_eqv_l. split; auto.
     apply seq_eqv_r. split; [vauto| by apply CTEE].
-  Qed.
-
-  (* TODO: move to imm *)
-  Lemma step_threads_set s1 s2 t
-        (STEP: step t s1 s2):
-    threads_set (ProgToExecution.G s2) ⊆₁ threads_set (ProgToExecution.G s1) ∪₁ eq t /\ 
-    threads_set (ProgToExecution.G s1) ⊆₁ threads_set (ProgToExecution.G s2). 
-  Proof using. 
-    inv STEP. inv H. red in H0, H1. desc. inv H2.
-    all: rewrite UG; try by vauto.
-    all: simpl; basic_solver.
-  Qed.
-
-  (* TODO: move to imm *)
-  Lemma steps_threads_set s1 s2 t
-        (STEP: (step t)^* s1 s2):
-    threads_set (ProgToExecution.G s2) ⊆₁ threads_set (ProgToExecution.G s1) ∪₁ eq t /\
-    threads_set (ProgToExecution.G s1) ⊆₁ threads_set (ProgToExecution.G s2). 
-  Proof using.
-    induction STEP.
-    { by apply step_threads_set in H. }
-    { basic_solver. }
-    desc. split.
-    { rewrite IHSTEP2, IHSTEP1. basic_solver. }
-    rewrite IHSTEP3, IHSTEP0. basic_solver. 
   Qed.
 
   Lemma STATE''

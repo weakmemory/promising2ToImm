@@ -508,67 +508,6 @@ Proof using All.
   eapply rf_ppo_loc_I_in_I; eauto.
 Qed.
 
-(* TODO: move, replace original lemma *)
-Lemma no_co_to_init:
-  co G ≡ co G ⨾ ⦗set_compl is_init⦘. 
-Proof using WF COH.
-  split; [| basic_solver].
-  apply no_co_to_init; auto.
-  by apply coherence_sc_per_loc. 
-Qed. 
-
-(* TODO: move*)
-Lemma PROP_to_ninit:
-  PROP G sc ≡ PROP G sc ⨾ ⦗event ↓₁ set_compl is_init⦘. 
-Proof using WF_SC WF COH.
-  split; [| basic_solver]. apply domb_helper. 
-  unfold PROP.
-  rewrite furr_to_ninit; auto. relsf. rewrite map_rel_union.
-  rewrite inter_union_l. repeat case_union _ _.
-  apply union_domb. 
-  { rewrite no_co_to_init. basic_solver 10. }
-  rewrite crE, no_co_to_init.
-  unfold is_ta_propagate_to_G. unfolder.
-  ins; desf; subst; destruct x, y, t0; ins; subst; splits; try by vauto.
-  destruct a0; vauto. 
-Qed. 
-
-(* TODO: move *)
-Lemma PROP_E_end G_ (WF_: Wf G_) (WFSC_: wf_sc G_ sc): 
-  PROP G_ sc ⨾ ⦗event ↓₁ acts_set G_⦘ ≡ ⦗event ↓₁ acts_set G_⦘ ⨾ PROP G_ sc ⨾ ⦗event ↓₁ acts_set G_⦘.
-Proof using.
-  clear -WF_ WFSC_.  
-  split; [| basic_solver]. apply doma_helper.
-  unfold PROP. rewrite furr_E_ENI_cr, !crE; auto. 
-  relsf. rewrite !map_rel_union.
-  rewrite !inter_union_l. repeat case_union _ _.
-  repeat apply union_doma.
-  2, 4: rewrite wf_coE; eauto; basic_solver.
-  2: { basic_solver 10. }
-  unfold is_ta_propagate_to_G. unfolder. ins. desf; subst.
-  destruct x, y; ins; subst; ins.
-Qed.  
-
-(* TODO: move *)
-Lemma dom_rel_iord_ext_parts_tl (r: relation trav_label)
-      (tc: trav_label -> Prop)
-      (R_IORD: r ⊆ iord_simpl G sc)
-      (R_E_ENI: r ⊆ (event ↓₁ E) × (event ↓₁ (E \₁ is_init)))
-      (INIT: event ↓₁ is_init ∩₁ dom_rel r ⊆₁ tc)
-      (ICOH': iord_coherent G sc tc):
-  dom_rel (r ⨾ ⦗tc⦘) ⊆₁ tc.
-Proof using.
-  rewrite AuxRel2.set_split_complete with (s' := dom_rel _) (s := event ↓₁ is_init).
-  apply dom_helper_3 in R_E_ENI. 
-  apply set_subset_union_l. split.
-  { rewrite set_interC, <- dom_eqv1.
-    generalize INIT. basic_solver. }
-  rewrite set_interC, <- dom_eqv1, <- seqA.
-  rewrite R_E_ENI.
-  red in ICOH'. rewrite <- ICOH' at 2. apply dom_rel_mori.
-  hahn_frame_r. rewrite iord_alt, R_IORD. basic_solver. 
-Qed. 
-        
 Lemma dom_prop_cert:
   dom_rel (PROP certG sc ⨾ ⦗certT⦘) ⊆₁ certT. 
 Proof using All.
@@ -634,10 +573,12 @@ Proof using All.
        (*   do 2 rewrite set_interC with (s := action ↓₁ _).  *)
        (*   apply T_propagations_certT. } *)
        rewrite <- seq_eqvK, <- seqA.
-       apply dom_rel_iord_ext_parts_tl; auto.
+       eapply dom_rel_iord_ext_parts_tl; eauto.
        { unfold iord_simpl. basic_solver. }
        { rewrite tlsc_E, PROP_E_end; eauto.
-         rewrite PROP_to_ninit. basic_solver. }
+         rewrite PROP_to_ninit; auto.
+         { basic_solver. }
+         apply coherence_sc_per_loc; auto. }
        rewrite tlsc_E with (tc := certT) at 1; [..| apply TCOH_rst_new_T]; auto. 
        rewrite PROP_E_end at 1; eauto.
        unfold PROP. rewrite <- !seqA, <- id_inter. rewrite !dom_seq, dom_eqv.  
@@ -728,7 +669,7 @@ Proof using All.
       unfold IPROP. unfolder. ins. desc.
       destruct x, y; ins; subst. basic_solver. }
     rewrite set_interC, <- dom_eqv1. rewrite <- seq_eqvK with (dom := certT), <- !seqA.
-    apply dom_rel_iord_ext_parts_tl; auto.
+    eapply dom_rel_iord_ext_parts_tl; eauto.
     { unfold iord_simpl. basic_solver. }
     { unfold IPROP. rewrite tlsc_E with (tc := certT) (G := G); eauto.
       unfolder. ins. desc. destruct x, y; ins; subst. vauto. }

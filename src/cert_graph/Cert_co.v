@@ -431,7 +431,7 @@ Lemma fsupp_cert_co (FAIR: mem_fair G):
   fsupp cert_co.
 Proof using WF S_in_W ST_in_E RELCOV IT_new_co FIN.
   rewrite (dom_l wf_cert_coE).
-  rewrite set_split_comlete with (s := is_init) at 1.
+  rewrite set_split_complete with (s := is_init) at 1.
   rewrite id_union, seq_union_l. apply fsupp_union.
   2: { apply fsupp_fin_dom. by rewrite <- set_minusE. }
 

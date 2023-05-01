@@ -59,7 +59,7 @@ Section TrimEvents.
     fin_exec_full (trim_exec G).
   Proof using WF.
     red. unfold trim_exec, trim_events. simpl.
-    rewrite AuxRel.set_split_comlete with (s := is_init) at 1.
+    rewrite set_split_complete with (s := is_init) at 1.
 
     edestruct trim_fin_exec_locs as [locs FIN_LOCS]; eauto. 
     red in FIN'.

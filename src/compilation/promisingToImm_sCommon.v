@@ -58,6 +58,7 @@ From imm Require Import TlsEventSets.
 From imm Require Import AuxDef.
 From imm Require Import TraversalOrder.
 From imm Require Import ReserveClos.
+From imm Require Import ReserveInitClos.
 
 Require Import ReserveClosStep.
 
@@ -1069,7 +1070,7 @@ Proof using All.
               rewrite covered_reserve_clos.
               unfold reserve_init_clos. autorewrite with cir_simplify.
               rewrite coveredE with (T:=sim_enum x); eauto. }
-         rewrite AuxRel.set_split_comlete
+         rewrite set_split_complete
            with (s' := acts_set G) (s := is_init).
          apply set_subset_union_l. split.
          { red. ins. exists 0. split; auto.
