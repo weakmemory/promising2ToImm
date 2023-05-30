@@ -184,6 +184,26 @@ Proof using.
   ins. rewrite EQUIV. eauto.
 Qed.
   
+(* TODO: move to imm/TlsEventSet.v *)
+Lemma issued_eq_ta_propagate tid e :
+  issued (eq (mkTL (ta_propagate tid) e)) ≡₁ ∅.
+Proof using.
+  unfold issued.
+  unfolder; split; ins; desf.
+Qed.
+
+(* TODO: move to imm/TlsEventSet.v *)
+Lemma covered_eq_ta_propagate tid e :
+  covered (eq (mkTL (ta_propagate tid) e)) ≡₁ ∅.
+Proof using.
+  unfold covered.
+  unfolder; split; ins; desf.
+Qed.
+
+(* TODO: move to imm/TlsEventSet.v *)
+Hint Rewrite issued_eq_ta_propagate
+             covered_eq_ta_propagate
+  : cir_simplify.
 
 Lemma plain_sim_step thread PC T f_to f_from T' smode
       (TCSTEP : ext_isim_trav_step G sc thread T T')
@@ -298,38 +318,39 @@ Proof using WF CON.
     all: eauto. 
     rewrite ets_upd0, ets_upd. basic_solver. }
 
-  (* Release RMW covering *)
-  inversion TS1. simpl in ets_upd.
-  inversion TS2. simpl in ets_upd0. 
-  inversion TS3. simpl in ets_upd1. 
-  rewrite set_pair_alt, set_inter_empty_r, set_union_empty_r in ets_upd1, ets_upd.
-  assert (reserved T w) as SW.
-  { apply tls_set_alt.
-    specialize_full ets_issue_W_ex0; try by vauto.
-    simpl in ets_issue_W_ex0. apply ets_upd in ets_issue_W_ex0.
-    destruct ets_issue_W_ex0; vauto. }
+  { (* Release RMW covering *)
+    inversion TS1. simpl in ets_upd.
+    inversion TS2. simpl in ets_upd0. 
+    inversion TS3. simpl in ets_upd1. 
+    rewrite set_pair_alt, set_inter_empty_r, set_union_empty_r in ets_upd1, ets_upd.
+    assert (reserved T w) as SW.
+    { apply tls_set_alt.
+      specialize_full ets_issue_W_ex0; try by vauto.
+      simpl in ets_issue_W_ex0. apply ets_upd in ets_issue_W_ex0.
+      destruct ets_issue_W_ex0; vauto. }
 
-  (* pose proof (set_equiv_refl2 T'') as T''_.  *)
-  rewrite ets_upd in ets_upd0.  eapply set_equiv_trans in ets_upd0. specialize_full ets_upd0.
-  { clear. rewrite dom_sb_S_rfrmw_union_P.
-    unfold dom_sb_S_rfrmw at 2. simplify_tls_events.
-    rewrite seq_false_r, dom_empty, set_inter_empty_l, set_union_empty_r.
-    reflexivity. }
-  rewrite ets_upd0 in ets_upd1.
-  
-  destruct (classic (exists wnext, dom_sb_S_rfrmw G T rfi (eq w) wnext)) as [NEMP|EMP].
-  2: { edestruct issue_rel_reserved_step_no_next; eauto.
-       { generalize EMP. clear. basic_solver. }
-       { eapply ext_itrav_step_more; [..| apply TS1]; eauto. by symmetry. }  
-       { eapply ext_itrav_step_more; [..| apply TS2]; eauto; by symmetry. }
-       { eapply ext_itrav_step_more; [..| apply TS3]; eauto; try by symmetry.
+    (* pose proof (set_equiv_refl2 T'') as T''_.  *)
+    rewrite ets_upd in ets_upd0.  eapply set_equiv_trans in ets_upd0. specialize_full ets_upd0.
+    { clear. rewrite dom_sb_S_rfrmw_union_P.
+      unfold dom_sb_S_rfrmw at 2. simplify_tls_events.
+      rewrite seq_false_r, dom_empty, set_inter_empty_l, set_union_empty_r.
+      reflexivity. }
+    rewrite ets_upd0 in ets_upd1.
+    
+    destruct (classic (exists wnext, dom_sb_S_rfrmw G T rfi (eq w) wnext)) as [NEMP|EMP].
+    2: { edestruct issue_rel_reserved_step_no_next; eauto.
+         { generalize EMP. clear. basic_solver. }
+         { eapply ext_itrav_step_more; [..| apply TS1]; eauto. by symmetry. }  
+         { eapply ext_itrav_step_more; [..| apply TS2]; eauto; by symmetry. }
+         { eapply ext_itrav_step_more; [..| apply TS3]; eauto;
+             try by symmetry.
+           rewrite ets_upd1. basic_solver 10. }
+         desc. edestruct step_end_helper with (T' := T').
+         3: by apply SIMREL_THREAD0.
+         all: eauto. 
          rewrite ets_upd1. basic_solver 10. }
-       desc. edestruct step_end_helper with (T' := T').
-       3: by apply SIMREL_THREAD0.
-       all: eauto. 
-       rewrite ets_upd1. basic_solver 10. }
 
-  { desc. edestruct issue_rel_reserved_step_with_next; eauto.
+    desc. edestruct issue_rel_reserved_step_with_next; eauto.
     { eapply ext_itrav_step_more; [..| apply TS1]; eauto. by symmetry. }  
     { eapply ext_itrav_step_more; [..| apply TS2]; eauto; by symmetry. }
     { eapply ext_itrav_step_more; [..| apply TS3]; eauto.
@@ -344,6 +365,29 @@ Proof using WF CON.
   (* Propagation *)
   inversion TS. simpl in ets_upd.
   rewrite set_pair_alt, set_inter_empty_r, set_union_empty_r in ets_upd.
+
+  exists PC, f_to, f_from.
+  splits; eauto using rt_refl.
+  { (* TODO: make a lemma *)
+    red. splits.
+    { red. splits; try easy.
+      all: try now ins;
+        rewrite ets_upd; autorewrite with cir_simplify; eauto.
+      { ins.
+        assert (covered T r <-> covered T w) as AA by auto.
+        split; intros HH.
+        all: apply set_subset_single_l.
+        all: apply set_subset_single_l in HH.
+        all: revert HH.
+        all: rewrite ets_upd.
+        all: autorewrite with cir_simplify.
+        all: generalize AA; clear; basic_solver. }
+      (* TODO: make a lemma *)
+      red. desf.
+      2: { splits.
+           all: rewrite ets_upd; autorewrite with cir_simplify;
+             apply COMMON. }
+      admit. }
   admit. 
 
 Admitted. 
