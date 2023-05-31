@@ -256,6 +256,46 @@ Proof using.
   all: rewrite ?COV, ?ISS, ?RES.
   all: generalize AA; clear; basic_solver.
 Qed.
+
+Lemma simrel_thread_local_ta_propagate_irrelevance
+  thread PC T f_to f_from smode T'
+  (LOCAL : simrel_thread_local G sc PC T f_to f_from thread smode)
+  (COV : covered T' ≡₁ covered T)
+  (ISS : issued T' ≡₁ issued T)
+  (RES : reserved T' ≡₁ reserved T) :
+  simrel_thread_local G sc PC T' f_to f_from thread smode.
+Proof using.
+  red in LOCAL. desf.
+  red. do 2 eexists; splits; eauto.
+  all: try rewrite COV; auto.
+  5: { eapply sim_state_more; eauto. }
+  { red. ins. apply SIM_PROM in PROM. desf.
+    eexists. splits; eauto.
+    { now apply ISS. }
+    intros HH. apply NCOV. now apply COV. }
+  { red. ins. eapply SIM_RPROM in RES0. desf.
+    eexists. splits; eauto.
+    { now apply RES. }
+    intros HH. apply NOISS. now apply ISS. }
+  { red. ins. eapply SIM_MEM in VAL; eauto.
+    2: now apply ISS.
+    desf. destruct VAL as [AA BB]. desf. unnw.
+    eexists. splits; eauto.
+    intros CC DD. eapply BB0 in CC.
+    2: { intros HH. apply DD. now apply COV. }
+    desc. splits; auto.
+    eexists. splits; eauto.
+    destruct CC1 as [CC1|CC1]; [left|right].
+    { desc. splits; eauto.
+      intros HH. apply CC1.
+      apply set_subset_single_l. rewrite <- ISS.
+      generalize HH. clear. basic_solver. }
+    desf. exists p. splits; eauto.
+    now apply ISS. }
+  red. ins. apply SIM_RES_MEM; auto.
+  { now apply RES. }
+  intros HH. apply NISSB. now apply ISS.
+Qed.
   
 Lemma plain_sim_step thread PC T f_to f_from T' smode
       (TCSTEP : ext_isim_trav_step G sc thread T T')
@@ -430,47 +470,12 @@ Proof using WF CON.
 
   splits; eauto using rt_refl.
   { red. splits; auto.
-    (* TODO: make a lemma and reuse below *)
-    red in LOCAL. desf.
-    red. do 2 eexists; splits; eauto.
-    6: { eapply sim_state_more.
-         3: rewrite ets_upd; autorewrite with cir_simplify.
-         all: easy. }
-    5: { now rewrite ets_upd; autorewrite with cir_simplify. }
-    { red. ins. apply SIM_PROM0 in PROM. desf.
-      eexists. splits; eauto.
-      { now apply ISS. }
-      intros HH. apply NCOV. now apply COV. }
-    { red. ins. eapply SIM_RPROM0 in RES0. desf.
-      eexists. splits; eauto.
-      { now apply RES. }
-      intros HH. apply NOISS. now apply ISS. }
-    { red. ins. eapply SIM_MEM in VAL; eauto.
-      2: now apply ISS.
-      desf. destruct VAL as [AA BB]. desf. unnw.
-      eexists. splits; eauto.
-      intros CC DD. eapply BB0 in CC.
-      2: { intros HH. apply DD. now apply COV. }
-      desc. splits; auto.
-      eexists. splits; eauto.
-      destruct CC1 as [CC1|CC1]; [left|right].
-      { desc. splits; eauto.
-        intros HH. apply CC1.
-        apply set_subset_single_l. rewrite <- ISS.
-        generalize HH. clear. basic_solver. }
-      desf. exists p. splits; eauto.
-      now apply ISS. }
-    red. ins. apply SIM_RES_MEM0; auto.
-    { now apply RES. }
-    intros HH. apply NISSB. now apply ISS. }
+    eapply simrel_thread_local_ta_propagate_irrelevance; eauto. }
+  (* TODO: make a lemma *)
   intros ? HH; subst.
   red. splits; auto.
   ins. red in HH. desf.
-  (* TODO: make a lemma *)
-  red. apply THREADS in TP. red in TP. desf.
-  do 2 eexists. splits; eauto.
-  (* TODO: reuse from above *)
-  admit.
-Admitted. 
+  eapply simrel_thread_local_ta_propagate_irrelevance; eauto.
+Qed. 
 
 End PlainStep.
