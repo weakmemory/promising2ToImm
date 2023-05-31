@@ -183,28 +183,80 @@ Proof using.
   { rewrite EQUIV. eauto. }
   ins. rewrite EQUIV. eauto.
 Qed.
+
+Lemma half_message_to_event_ta_propagate_irrelevance
+  memory T f_to f_from T'
+  (ISS : issued   T' ≡₁ issued   T)
+  (RES : reserved T' ≡₁ reserved T)
+  (HMTE : half_message_to_event G T f_to f_from memory) : 
+  half_message_to_event G T' f_to f_from memory.
+Proof using.
+  red; ins. red in HMTE.
+  apply HMTE in MSG.
+  desf; auto.
+  exists b. splits; auto.
+  { now apply RES. }
+  intros AA. apply NOISS.
+  now apply ISS.
+Qed.
+
+Lemma message_to_event_ta_propagate_irrelevance
+  memory T f_to f_from T'
+  (ISS : issued   T' ≡₁ issued   T)
+  (MTE : message_to_event G T f_to f_from memory) : 
+  message_to_event G T' f_to f_from memory.
+Proof using.
+  red; ins. red in MTE.
+  apply MTE in MSG.
+  desf; auto.
+  right. exists b. splits; auto.
+  now apply ISS.
+Qed.
+
+Lemma reserved_time_ta_propagate_irrelevance
+  memory T f_to f_from smode T'
+  (RTIME : reserved_time G T f_to f_from smode memory)
+  (ISS : issued   T' ≡₁ issued   T)
+  (RES : reserved T' ≡₁ reserved T) :
+  reserved_time G T' f_to f_from smode memory.
+Proof using.
+  red. red in RTIME. do 2 desf.
+  2: { splits; rewrite RES; auto. }
+  splits.
+  all: eauto using message_to_event_ta_propagate_irrelevance,
+                   half_message_to_event_ta_propagate_irrelevance.
+  intros x y XX YY.
+  apply RES in XX.
+  apply RES in YY.
+  intuition.
+Qed.
+
+Lemma simrel_common_ta_propagate_irrelevance
+  PC T f_to f_from smode T'
+  (COMMON : simrel_common G sc PC T f_to f_from smode)
+  (TCOH : tls_coherent G T')
+  (ICOH : iord_coherent G sc T')
+  (RCOH : reserve_coherent G T')
+  (COV : covered  T' ≡₁ covered  T)
+  (ISS : issued   T' ≡₁ issued   T)
+  (RES : reserved T' ≡₁ reserved T) :
+  simrel_common G sc PC T' f_to f_from smode.
+Proof using.
+  red. splits; auto.
+  all: rewrite ?COV, ?ISS, ?RES; try apply COMMON.
+  3: { eapply reserved_time_ta_propagate_irrelevance; eauto.
+       apply COMMON. }
+  2: { ins. rewrite COV. now apply COMMON. }
+  ins.
+  assert (covered T r <-> covered T w) as AA by now apply COMMON.
+  split; intros HH.
+  all: apply set_subset_single_l.
+  all: apply set_subset_single_l in HH.
+  all: revert HH.
+  all: rewrite ?COV, ?ISS, ?RES.
+  all: generalize AA; clear; basic_solver.
+Qed.
   
-(* TODO: move to imm/TlsEventSet.v *)
-Lemma issued_eq_ta_propagate tid e :
-  issued (eq (mkTL (ta_propagate tid) e)) ≡₁ ∅.
-Proof using.
-  unfold issued.
-  unfolder; split; ins; desf.
-Qed.
-
-(* TODO: move to imm/TlsEventSet.v *)
-Lemma covered_eq_ta_propagate tid e :
-  covered (eq (mkTL (ta_propagate tid) e)) ≡₁ ∅.
-Proof using.
-  unfold covered.
-  unfolder; split; ins; desf.
-Qed.
-
-(* TODO: move to imm/TlsEventSet.v *)
-Hint Rewrite issued_eq_ta_propagate
-             covered_eq_ta_propagate
-  : cir_simplify.
-
 Lemma plain_sim_step thread PC T f_to f_from T' smode
       (TCSTEP : ext_isim_trav_step G sc thread T T')
       (SIMREL_THREAD : simrel_thread G sc PC T f_to f_from thread smode)
@@ -367,29 +419,18 @@ Proof using WF CON.
   rewrite set_pair_alt, set_inter_empty_r, set_union_empty_r in ets_upd.
 
   exists PC, f_to, f_from.
+  assert (simrel_common G sc PC T' f_to f_from smode) as COMMON'.
+  { eapply simrel_common_ta_propagate_irrelevance; eauto.
+    all: rewrite ets_upd.
+    all: now autorewrite with cir_simplify. }
   splits; eauto using rt_refl.
   { (* TODO: make a lemma *)
-    red. splits.
-    { red. splits; try easy.
-      all: try now ins;
-        rewrite ets_upd; autorewrite with cir_simplify; eauto.
-      { ins.
-        assert (covered T r <-> covered T w) as AA by auto.
-        split; intros HH.
-        all: apply set_subset_single_l.
-        all: apply set_subset_single_l in HH.
-        all: revert HH.
-        all: rewrite ets_upd.
-        all: autorewrite with cir_simplify.
-        all: generalize AA; clear; basic_solver. }
-      (* TODO: make a lemma *)
-      red. desf.
-      2: { splits.
-           all: rewrite ets_upd; autorewrite with cir_simplify;
-             apply COMMON. }
-      admit. }
-  admit. 
-
+    red. splits; auto.
+    admit. }
+  intros ? HH; subst.
+  red. splits; auto.
+  ins.
+  admit.
 Admitted. 
 
 End PlainStep.
