@@ -44,9 +44,9 @@
     coqPackages.coq.override.version = "8.17";
     coqPackages.hahn.override.version = "master";
     coqPackages.sflib.override.version = "master";
-    coqPackages.promising2.override.version = "master";
+    coqPackages.promising2.override.version = "8.17";
     coqPackages.promising-lib.override.version = "master";
-    coqPackages.imm.override.version = "master";
+    coqPackages.imm.override.version = "1.5";
 
     ## In some cases, light overrides are not available/enough
     ## in which case you can use either
