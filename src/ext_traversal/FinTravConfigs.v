@@ -83,7 +83,7 @@ Section FinTravConfigs.
     rewrite set_interC. by apply tls_fin_event_set. 
   Qed. 
 
-  (* TODO: move*)
+  (* TODO: move *)
   Lemma tls_set_fin_events_fin (a: trav_action) (M: actid -> Prop)
         (EFIN: set_finite M):
     set_finite (eq a <*> M). 

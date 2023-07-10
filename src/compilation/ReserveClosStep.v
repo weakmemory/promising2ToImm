@@ -56,6 +56,7 @@ From imm Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
 
+(* TODO: move? *)
 Section ReserveClos.
 
 Variable G : execution.
