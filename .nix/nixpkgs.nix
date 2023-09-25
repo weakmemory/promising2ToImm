@@ -1,4 +1,4 @@
 fetchTarball {
-         url = https://github.com/weakmemory/nixpkgs/archive/fe5a27bdc5d80b63e61972f343318ca542545543.tar.gz;
-         sha256 = "1vzwdpm3d086igiwqg0bjg40hxgn8cws1flhvhbsaz9i6fxcns85";
+         url = https://github.com/weakmemory/nixpkgs/archive/f470428f07add83ce788be5269df871867fd3518.tar.gz;
+         sha256 = "0dv8yikkqdf0cm6q1sfxy9nbf4wggpqsxvkz38zc10bsy8j43zd5";
        }
