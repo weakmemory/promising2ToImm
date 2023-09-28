@@ -13,8 +13,8 @@ From imm Require Import CombRelationsMore.
 From imm Require Import ProgToExecution.
 From imm Require Import SimClosure.
 
-From imm Require Import AuxRel.
-From imm Require Import AuxRel2.
+From hahnExt Require Import HahnExt.
+From hahnExt Require Import HahnExt.
 From imm Require Import TraversalOrder. 
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
@@ -32,11 +32,11 @@ Require Import SimStateHelper.
 Require Import PromiseLTS.
 Require Import MemoryAux.
 Require Import FtoCoherent.
-From imm Require Import AuxRel2.
+From hahnExt Require Import HahnExt.
 Require Import ReadPlainStepHelper.
 From imm Require Import Next.
 From imm Require Import EventsTraversalOrder.
-From imm Require Import AuxDef.
+From hahnExt Require Import HahnExt.
 
 Set Implicit Arguments.
 

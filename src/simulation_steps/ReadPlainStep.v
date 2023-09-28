@@ -15,8 +15,8 @@ From imm Require Import Prog.
 From imm Require Import ProgToExecution.
 From imm Require Import SimClosure.
 
-From imm Require Import AuxRel.
-From imm Require Import AuxRel2.
+From hahnExt Require Import HahnExt.
+From hahnExt Require Import HahnExt.
 From imm Require Import TraversalOrder. 
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.

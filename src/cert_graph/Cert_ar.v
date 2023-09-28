@@ -1,4 +1,5 @@
 From hahn Require Import Hahn.
+From hahnExt Require Import HahnExt. 
 
 From imm Require Import Events.
 From imm Require Import Execution.
@@ -10,8 +11,6 @@ From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 
-From imm Require Import AuxRel2.
-From imm Require Import AuxDef. 
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
@@ -453,7 +452,7 @@ basic_solver 21. }
 
 rewrite (dom_r (wf_rfiE WF)).
 rewrite (dom_r (@wf_sbE G)).
-rewrite AuxRel.seq_eqv_inter_rr.
+rewrite seq_eqv_inter_rr.
 rewrite !seqA.
 arewrite (⦗E⦘ ⨾ (Grmw ⨾ Grfi ⨾ ⦗E⦘)＊ ⊆(Grmw ⨾ Grfi)＊  ⨾ ⦗E⦘).
 { rewrite rtE. 

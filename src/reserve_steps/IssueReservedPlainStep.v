@@ -16,7 +16,7 @@ From imm Require Import SimClosure.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-From imm Require Import AuxDef.
+From hahnExt Require Import HahnExt.
 From imm Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
@@ -31,7 +31,7 @@ Require Import SimStateHelper.
 Require Import PromiseLTS.
 Require Import MemoryAux.
 Require Import FtoCoherent.
-From imm Require Import AuxRel2.
+From hahnExt Require Import HahnExt.
 Require Import ExistsIssueReservedInterval.
 Require Import IssueReservedStepHelper.
 Require Import MemoryClosedness.

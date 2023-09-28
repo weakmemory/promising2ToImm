@@ -3,7 +3,7 @@ From imm Require Import Prog.
 From imm Require Import ProgToExecution.
 From imm Require Import Events.
 From imm Require Import Execution.
-From imm Require Import AuxRel2.
+From hahnExt Require Import HahnExt.
 
 Section ImmProperties.
 

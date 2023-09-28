@@ -2,8 +2,8 @@ From hahn Require Import Hahn.
 
 From imm Require Import Events.
 From imm Require Import Execution.
-From imm Require Import AuxRel2.
-From imm Require Import AuxDef.
+From hahnExt Require Import HahnExt.
+From hahnExt Require Import HahnExt.
 
 (* From imm Require Import TraversalConfig. *)
 (* From imm Require Import TraversalConfigAlt. *)
@@ -12,7 +12,7 @@ From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import SimClosure.
 From imm Require Import TlsEventSets.
-From imm Require Import AuxRel.
+From hahnExt Require Import HahnExt.
 
 Set Implicit Arguments.
 

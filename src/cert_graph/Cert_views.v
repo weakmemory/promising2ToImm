@@ -10,7 +10,7 @@ From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 
-From imm Require Import AuxDef.
+From hahnExt Require Import HahnExt.
 Require Import ExtTraversalConfig.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.

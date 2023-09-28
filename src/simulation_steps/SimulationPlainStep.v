@@ -16,9 +16,9 @@ From imm Require Import ProgToExecution.
 From imm Require Import FairExecution.
 From imm Require Import SimClosure.
 
-From imm Require Import AuxRel.
-From imm Require Import AuxRel2.
-From imm Require Import AuxDef. 
+From hahnExt Require Import HahnExt.
+From hahnExt Require Import HahnExt.
+From hahnExt Require Import HahnExt. 
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
 Require Import ExtSimTraversal.

@@ -13,7 +13,7 @@ From imm Require Import imm_s.
 From imm Require Import CombRelations.
 From imm Require Import ProgToExecutionProperties.
 From imm Require Import RMWinstrProps.
-From imm Require Import AuxRel2.
+From hahnExt Require Import HahnExt.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
 From imm Require Import FinThreads.
@@ -41,7 +41,7 @@ From imm Require Import ImmFair.
 Require Import Coq.Program.Basics.
 Require Import FinTravConfigs.
 Require Import ChoiceFacts.
-From imm Require Import AuxRel. 
+From hahnExt Require Import HahnExt. 
 Require Import ImmProperties. 
 From hahn Require Import Hahn.
 
@@ -49,13 +49,13 @@ From imm Require Import SimTraversal.
 From imm Require Import SimTraversalProperties.
 (* From imm Require Import SimTravClosure. *)
 From imm Require Import TraversalConfigAlt.
-From imm Require Import SetSize.
+From hahnExt Require Import HahnExt.
 From imm Require Import SimClosure.
 
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency. 
 From imm Require Import TlsEventSets.
-From imm Require Import AuxDef.
+From hahnExt Require Import HahnExt.
 From imm Require Import TraversalOrder.
 From imm Require Import ReserveClos.
 From imm Require Import ReserveInitClos.

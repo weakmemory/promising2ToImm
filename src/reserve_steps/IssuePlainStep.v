@@ -17,7 +17,7 @@ From imm Require Import SimClosure.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
-From imm Require Import AuxDef.
+From hahnExt Require Import HahnExt.
 From imm Require Import TlsEventSets.
 Require Import ExtTraversalConfig.
 Require Import ExtTraversal.
@@ -32,7 +32,7 @@ Require Import SimStateHelper.
 Require Import PromiseLTS.
 Require Import MemoryAux.
 Require Import FtoCoherent.
-From imm Require Import AuxRel2.
+From hahnExt Require Import HahnExt.
 Require Import MemoryClosedness.
 Require Import SimulationRelProperties.
 Require Import ExistsIssueInterval.
@@ -41,10 +41,10 @@ Require Import IssueStepHelper.
 (* TODO: Neither of versions works with the intended set usage *)
 (* Global Add Parametric Morphism A: (fun (S: A -> Prop) s => S s) with signature *)
 (*        (@set_equiv A) ==> eq ==> iff as set_apply_more. *)
-(* Proof using. ins. by apply AuxRel.set_equiv_exp_equiv. Qed. *)
+(* Proof using. ins. by apply set_equiv_exp_equiv. Qed. *)
 (* Global Add Parametric Morphism A: (@Basics.apply A Prop) with signature *)
 (*        (@set_equiv A) ==> eq ==> iff as apply_more. *)
-(* Proof using. ins. by apply AuxRel.set_equiv_exp_equiv. Qed.  *)
+(* Proof using. ins. by apply set_equiv_exp_equiv. Qed.  *)
 
 Set Implicit Arguments.
 

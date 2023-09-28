@@ -11,7 +11,7 @@ From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 From imm Require Import FairExecution.
 
-From imm Require Import AuxDef.
+From hahnExt Require Import HahnExt.
 Require Import ExtTraversalConfig.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
@@ -564,7 +564,7 @@ Proof using All.
           ∩ (fun ta1 ta2 : trav_label => tid (event ta1) = ta_propagate_tid (action ta2))
           ⨾ ⦗action ↓₁ is_ta_propagate_to_G G⦘ ⨾ ⦗certT⦘) ∩₁ event ↓₁ Tid_ thread).
   2: { rewrite rfe_in_rf.
-       rewrite AuxRel.set_subset_inter_l; try reflexivity. left. 
+       rewrite set_subset_inter_l; try reflexivity. left. 
        transitivity (dom_rel (PROP G sc ⨾ ⦗certT⦘)).
        { unfold PROP. now rewrite furr_alt, !seqA. }
        (* arewrite (PROP G sc ⨾ ⦗T⦘ ⊆ PROP G sc ⨾ ⦗certT⦘). *)
@@ -662,7 +662,7 @@ Proof using All.
   { apply TICOH_cert_old. }
   { arewrite (IPROP certG ≡ IPROP G).
     { unfold IPROP. erewrite certG_same_props, cert_W; eauto. }
-    rewrite AuxRel2.set_split_complete with (s' := dom_rel _) (s := event ↓₁ is_init).
+    rewrite set_split_complete with (s' := dom_rel _) (s := event ↓₁ is_init).
     unionL.
     { destruct TCOH_rst_new_T. rewrite <- tls_coh_init at 2. unfold init_tls.
       rewrite tlsc_E with (tc := certT) (G := G); eauto.

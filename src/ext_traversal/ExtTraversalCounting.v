@@ -1,22 +1,18 @@
 Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
+From hahnExt Require Import HahnExt.
 Require Import Lia.
 
 From imm Require Import SimIordTraversal.
 From imm Require Import FairExecution. 
 From imm Require Import ImmFair. 
 From imm Require Import Events Execution imm_s.
-From imm Require Import AuxRel2.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import TraversalOrder. 
-From imm Require Import EnumPrefix. 
 From imm Require Import FinExecution.
 From imm Require Import FinThreads.
-From imm Require Import AuxDef.
-From imm Require Import SetSize.
 From imm Require Import SimClosure.
-From imm Require Import EnumProperties.
 
 Require Import Basics.
 From imm Require Import TlsEventSets.
@@ -120,7 +116,7 @@ Section ExtTraversalCounting.
          assert (set_size (exec_tls G) = NOnum n) as EQ_SIZE.
          { rewrite <- SIZE. symmetry. apply set_size_equiv.
            rewrite H. unfold init_tls, exec_tls.
-           rewrite !AuxDef.set_pair_alt. basic_solver 10. }
+           rewrite !set_pair_alt. basic_solver 10. }
          exists n. split.
          { by rewrite EQ_SIZE. }
          rewrite H. rewrite set_unionC. apply set_equiv_union; [done| ].
@@ -149,10 +145,10 @@ Section ExtTraversalCounting.
       split.
       2: { relsf. split; auto. rewrite init_tls_EI. basic_solver. }
       rewrite tls_coh_exec.
-      unfold init_tls, exec_tls. rewrite !AuxDef.set_pair_alt. basic_solver 10. }
+      unfold init_tls, exec_tls. rewrite !set_pair_alt. basic_solver 10. }
     apply set_equiv_union; [| done]. 
     split; unfolder; ins; desc.
-    { apply MINm in H0 as MIN'. AuxDef.contra NTx. destruct MIN'.
+    { apply MINm in H0 as MIN'. contra NTx. destruct MIN'.
       split.
       2: { eapply NOmega.lt_lt_nat; eauto. }
       apply not_and_or in NTx. destruct NTx as [NTx | Ix]. 
@@ -167,7 +163,7 @@ Section ExtTraversalCounting.
     { apply TCOH in H0 as [Ix | ?]; [| done].
       apply init_tls_EI in Ix. destruct H1. apply Ix. }
     desc. eexists. splits; eauto.
-    AuxDef.contra GE. apply Compare_dec.not_lt in GE. red in GE.
+    contra GE. apply Compare_dec.not_lt in GE. red in GE.
     apply NPeano.Nat.lt_eq_cases in GE. destruct GE as [LT | ->].
     2: { apply proj2 in NTm. destruct NTm. congruence. }
     destruct H. exists i. splits; eauto. congruence.

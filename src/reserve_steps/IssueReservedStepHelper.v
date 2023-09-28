@@ -10,7 +10,7 @@ From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 From imm Require Import imm_bob imm_s_ppo.
 From imm Require Import CombRelations.
-From imm Require Import AuxDef.
+From hahnExt Require Import HahnExt.
 From imm Require Import SimClosure.
 
 From imm Require Import TraversalOrder.

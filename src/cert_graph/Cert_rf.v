@@ -1,4 +1,5 @@
 From hahn Require Import Hahn.
+From hahnExt Require Import HahnExt.
 
 From imm Require Import Events.
 From imm Require Import Execution.
@@ -10,7 +11,6 @@ From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 
-From imm Require Import AuxRel2.
 (* From imm Require Import TraversalConfig. *)
 (* From imm Require Import TraversalConfigAlt. *)
 (* From imm Require Import TraversalConfigAltOld. *)
@@ -22,8 +22,6 @@ From imm Require Import SimClosure.
 From imm Require Import TlsEventSets.
 From imm Require Import EventsTraversalOrder.
 Require Import ExtTraversalConfig ExtTraversalProperties.
-From imm Require Import AuxRel.
-From imm Require Import AuxDef.
 Require Import Cert_co.
 Require Import Cert_D.
 Require Import CertT.
@@ -404,7 +402,7 @@ Qed.
 Lemma Grfi_nD_in_new_rf : Grfi ⨾ ⦗set_compl D⦘ ⊆ new_rf.
 Proof using All.
   unfold new_rf.
-  rewrite AuxRel.minus_inter_compl.
+  rewrite minus_inter_compl.
   apply inclusion_inter_r.
   { rewrite furr_alt; [|done].
     arewrite (Grfi ⊆ Grf).
@@ -464,10 +462,10 @@ Proof using WF S_in_W ST_in_E IT_new_co.
   unfold cert_rf.
   rewrite (wf_new_rfl), (wf_rfl WF).
   rewrite (wf_rmwl WF) at 2. 
-  rewrite AuxRel.immediate_in.
+  rewrite immediate_in.
   rewrite wf_cert_col; eauto.
   generalize (@same_loc_trans _ Glab).
-  rewrite AuxRel.transp_sym_equiv; [|by apply same_loc_sym].
+  rewrite transp_sym_equiv; [|by apply same_loc_sym].
   clear. basic_solver 10.
 Qed.
 
@@ -546,7 +544,7 @@ Proof using WF_SC WF S_in_W S_I_in_W_ex
   rewrite <- !seqA. rewrite minus_eqv_r.
   rewrite !seqA.
   apply dom_rel_helper.
-  rewrite AuxRel.immediate_in.
+  rewrite immediate_in.
   rewrite (dom_l (wf_rmwE WF)) at 1; try edone.
   rewrite transp_seq, transp_eqv_rel.
   rewrite <- seqA, minus_eqv_r, !seqA.
@@ -835,7 +833,7 @@ Proof using All.
     exfalso; eapply (co_irr WF); eapply (co_trans WF); eauto. }
   rewrite (dom_l (wf_coE WF)) at 1.
   rewrite transp_seq; rels.
-  rewrite AuxRel.seq_eqv_inter_rr, !seqA.
+  rewrite seq_eqv_inter_rr, !seqA.
   seq_rewrite <- seq_eqv_inter_lr.
   rewrite !seqA.
   arewrite (⦗E⦘ ⨾ ⦗set_compl I⦘ ⨾ cert_rf ⨾ ⦗set_compl D⦘ ⊆ ⦗set_compl I⦘ ⨾ Gsb).
@@ -853,7 +851,7 @@ Proof using All.
   arewrite (Gcoi ⊆ Gsb).
   rewrite ninit_sb_same_tid.
   rewrite <- seqA.
-  rewrite <- !AuxRel.seq_eqv_inter_rr.
+  rewrite <- !seq_eqv_inter_rr.
   arewrite (Gsb⁻¹ ⨾ ⦗set_compl Init⦘ ⊆ same_tid).
   { generalize (@ninit_sb_same_tid G).
     unfold same_tid; unfolder; clear; ins; desf; symmetry; eauto. }

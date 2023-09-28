@@ -1,8 +1,8 @@
 Require Import Arith.
 Require Import Lia.
 From hahn Require Import Hahn.
+From hahnExt Require Import HahnExt.
 Require Import PromisingLib.
-From imm Require Import AuxRel2.
 
 From imm Require Import Events.
 From imm Require Import Execution.
@@ -53,7 +53,6 @@ From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import TraversalOrder. 
 From imm Require Import TlsEventSets.
-From imm Require Import AuxRel. 
 From imm Require Import EventsTraversalOrder.
 
 Set Implicit Arguments.
@@ -120,9 +119,9 @@ Section CertGraphInit.
     { eapply set_finite_mori; [red; intro; apply proj2| ].
       rewrite set_map_union. relsf. split; by apply tls_fin_event_set. }
     rewrite <- dom_eqv1. 
-    rewrite <- seqA. apply fin_dom_rel_fsupp.
-    { rewrite set_map_union. relsf. split; by apply tls_fin_event_set. }
-    by apply fsupp_sb.
+    rewrite <- seqA.
+    apply fin_dom_rel_fsupp; auto using fsupp_sb.
+    rewrite set_map_union. relsf. split; by apply tls_fin_event_set.
   Qed.  
      
   Lemma G_fin_threads: fin_threads G.
@@ -1369,7 +1368,7 @@ T⦘)
         erewrite <- cert_co_for_split with (G:=rstG Gf T thread); eauto.
         unfold cert_co_base.
         hahn_frame. apply eqv_rel_mori.
-        apply AuxRel.set_compl_mori. red.
+        apply set_compl_mori. red.
         erewrite Grfi_in_cert_rfi with (G:=rstG Gf T thread); eauto.
         2-4: eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. 
         fold G. rewrite <- reserved_certT with (G := G). 

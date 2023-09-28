@@ -14,7 +14,7 @@ From imm Require Import CombRelationsMore.
 From imm Require Import RMWinstrProps.
 From imm Require Import SimClosure.
 
-From imm Require Import AuxRel2.
+From hahnExt Require Import HahnExt.
 Require Import MemoryClosedness.
 Require Import MaxValue.
 Require Import ViewRel.

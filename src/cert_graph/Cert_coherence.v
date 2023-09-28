@@ -10,7 +10,7 @@ From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
 
-From imm Require Import AuxDef.
+From hahnExt Require Import HahnExt.
 Require Import ExtTraversalConfig.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
@@ -572,7 +572,7 @@ basic_solver 21. }
   rotate 1.
   sin_rewrite set_compl_D_helper.
   unfold fr. rewrite !seqA.
-  rewrite AuxRel.immediate_in.
+  rewrite immediate_in.
   arewrite (cert_co ⨾ Grmw⁻¹ \ Gsb ⊆ cert_co ⨾ Grmw⁻¹).
 rotate 1.
 sin_rewrite (transp_rmw_sb WF).

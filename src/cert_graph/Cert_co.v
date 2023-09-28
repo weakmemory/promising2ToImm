@@ -1,4 +1,5 @@
 From hahn Require Import Hahn.
+From hahnExt Require Import HahnExt.
 
 From imm Require Import Events.
 From imm Require Import Execution.
@@ -9,20 +10,17 @@ From imm Require Import imm_s.
 From imm Require Import imm_common_more.
 From imm Require Import CertCOhelper.
 From imm Require Import CombRelations.
-From imm Require Import AuxDef.
 From imm Require Import FairExecution.
 From imm Require Import FinExecution.
 
 
 (* From imm Require Import Events Execution Execution_eco *)
-(*      imm_bob imm_s_ppo imm_s imm_s_hb CombRelations AuxDef. *)
+(*      imm_bob imm_s_ppo imm_s imm_s_hb CombRelations. *)
 
-From imm Require Import AuxRel2.
 (* From imm Require Import TraversalConfig. *)
 (* From imm Require Import TraversalConfigAlt. *)
 (* From imm Require Import TraversalConfigAltOld. *)
 Require Import ExtTraversalConfig.
-From imm Require Import AuxRel.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
@@ -316,7 +314,7 @@ Lemma cert_co_for_split :
 Proof using WF S_in_W S_I_in_W_ex ST_in_E IT_new_co COH.
   arewrite (immediate cert_co ⊆
             ⦗cert_co_base ∪₁ set_compl cert_co_base⦘ ⨾ immediate cert_co).
-  { rewrite AuxRel.set_compl_union_id. unfold set_full. by rewrite seq_id_l. }
+  { rewrite set_compl_union_id. unfold set_full. by rewrite seq_id_l. }
   rewrite id_union, seq_union_l, seq_union_r. unionL.
   2: { rewrite cert_co_for_split_helper. clear. basic_solver. }
   rewrite <- seqA. rewrite <- id_inter.

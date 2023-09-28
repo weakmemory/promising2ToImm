@@ -6,8 +6,8 @@ From imm Require Import imm_bob.
 From imm Require Import imm_s_hb.
 From imm Require Import imm_s.
 From imm Require Import imm_s_ppo.
-From imm Require Import AuxDef.
-From imm Require Import AuxRel2.
+From hahnExt Require Import HahnExt.
+From hahnExt Require Import HahnExt.
 Require Import ExtTraversalConfig.
 From imm Require Import TraversalOrder.
 From imm Require Import TLSCoherency.

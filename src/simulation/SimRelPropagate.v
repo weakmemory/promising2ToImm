@@ -3,9 +3,9 @@ From hahn Require Import Hahn.
 Require Import PromisingLib.
 From Promising2 Require Import Configuration TView View Time Event Cell Thread Memory Local.
 
-From imm Require Import AuxRel.
-From imm Require Import AuxRel2.
-From imm Require Import AuxDef. 
+From hahnExt Require Import HahnExt.
+From hahnExt Require Import HahnExt.
+From hahnExt Require Import HahnExt. 
 From imm Require Import TLSCoherency.
 From imm Require Import IordCoherency.
 From imm Require Import TlsEventSets.

@@ -5,7 +5,7 @@ From hahn Require Import Hahn.
 From imm Require Import imm_s.
 From imm Require Import imm_hb.
 
-From imm Require Import AuxRel.
+From hahnExt Require Import HahnExt.
 Import ListNotations. 
 
 Definition trim_events (G: execution) :=

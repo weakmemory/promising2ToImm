@@ -1,4 +1,5 @@
 From hahn Require Import Hahn.
+From hahnExt Require Import HahnExt.
 From imm Require Import Events.
 From imm Require Import Execution.
 From imm Require Import TraversalOrder.
@@ -7,7 +8,6 @@ From imm Require Import IordCoherency.
 From imm Require Import SimClosure.
 From imm Require Import TlsEventSets.
 From imm Require Import EventsTraversalOrder.
-From imm Require Import AuxDef.
 
 Section CertT.
 Variables (G: execution) (sc: relation actid) (T: trav_label -> Prop). 
@@ -124,7 +124,7 @@ Lemma certT_alt:
     ((eq ta_cover) <*> (E ∩₁ NTid_ thread)). 
 Proof using.
   clear. 
-  unfold certT. rewrite !set_pair_alt. apply AuxRel.set_equiv_exp_equiv.
+  unfold certT. rewrite !set_pair_alt. apply set_equiv_exp_equiv.
   unfolder. intros [t a]. split; ins; des; destruct t; ins; splits. 
   all: try (by vauto || tauto).
   all: try by (repeat left; vauto). 
