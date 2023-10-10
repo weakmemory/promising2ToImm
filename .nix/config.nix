@@ -39,7 +39,7 @@
     coqPackages.sflib.override.version = "master";
     coqPackages.promising2.override.version = "8.17";
     coqPackages.promising-lib.override.version = "master";
-    coqPackages.imm.override.version = "1.6";
+    coqPackages.imm.override.version = "1.6.1";
   };
   bundles."8.17" = {
     push-branches = [ "master" ];
@@ -49,7 +49,7 @@
     coqPackages.sflib.override.version = "master";
     coqPackages.promising2.override.version = "8.17";
     coqPackages.promising-lib.override.version = "master";
-    coqPackages.imm.override.version = "1.6";
+    coqPackages.imm.override.version = "1.6.1";
   };
   bundles."8.18" = {
     push-branches = [ "**" ];
@@ -59,7 +59,7 @@
     coqPackages.sflib.override.version = "master";
     coqPackages.promising2.override.version = "8.17";
     coqPackages.promising-lib.override.version = "master";
-    coqPackages.imm.override.version = "1.6";
+    coqPackages.imm.override.version = "1.6.1";
   };
 
   ## Cachix caches to use in CI
