@@ -111,10 +111,10 @@ Section ExtTraversalCounting.
            destruct H; [by apply TCOH| ]. 
            apply IND in H as INDk. desc. subst.
            destruct ALLT. by vauto. }
-         unfold trav_prefix. 
-         forward eapply set_size_finite as [n SIZE]; eauto.
+         edestruct (@set_size_finite trav_label) as [QQ _].
+         forward eapply QQ as [n SIZE]; eauto.
          assert (set_size (exec_tls G) = NOnum n) as EQ_SIZE.
-         { rewrite <- SIZE. symmetry. apply set_size_equiv.
+         { rewrite <- SIZE. symmetry. eapply set_size_equiv.
            rewrite H. unfold init_tls, exec_tls.
            rewrite !set_pair_alt. basic_solver 10. }
          exists n. split.
@@ -168,7 +168,6 @@ Section ExtTraversalCounting.
     2: { apply proj2 in NTm. destruct NTm. congruence. }
     destruct H. exists i. splits; eauto. congruence.
   Qed. 
-
   
   (* TODO: move *)
   Lemma sim_traversal_inf' T
@@ -266,7 +265,8 @@ Section ExtTraversalCounting.
     forward eapply sim_traversal_inf' with (T := T) as TRAV; eauto.
     { eapply fin_exec_tls_fin; eauto. }
     desc.
-    forward eapply set_size_finite as [n SIZE].
+    edestruct (@set_size_finite trav_label) as [AA _].
+    forward eapply AA as [n SIZE].
     { eapply fin_exec_exec_tls; eauto. }
     exists (sim_enum n). simpl. splits.
     { apply COH. rewrite SIZE. simpl. lia. }
