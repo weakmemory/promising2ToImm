@@ -408,8 +408,8 @@ Section CertGraphInit.
     exists (1 + mindex). splits.
     { ins. apply CTALT in CTMAX.
       apply CTALT. split; auto.
-      apply NPeano.Nat.lt_eq_cases in LT. destruct LT as [LT|LT].
-      2: { inv LT. apply CTMAX. }
+      assert (index < mindex \/ index = mindex) as [ALT|] by lia; subst.
+      2: now apply CTMAX.
       assert ((ProgToExecution.G state').(acts_set) (ThreadEvent thread mindex)) as PP.
       { apply (tr_acts_set TEH). by split. }
       assert ((acts_set Gf) (ThreadEvent thread index)) as EEE.
@@ -419,7 +419,7 @@ Section CertGraphInit.
       { red.
         apply seq_eqv_l. split; auto.
         apply seq_eqv_r. split; auto.
-        red. split; auto. lia. }
+        red. split; auto. }
       destruct CTMAX as [[[AA|AA]|[z AA]] _].
       { do 2 left. eapply dom_sb_covered; eauto.  basic_solver 10. }
       { right. exists (ThreadEvent thread mindex).

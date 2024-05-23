@@ -1163,7 +1163,7 @@ Proof using All.
     { apply TCSTEP.
       destruct len; ins. destruct n0.
       { lia. }
-      apply NPeano.Nat.eqb_neq in NLST. lia. }
+      apply Const.eqb_neq in NLST. lia. }
     desc.
     enough (exists y : ntc_type, proj1_sig y = (S n, conf')) as [y NTCy].
     { exists y. ins. rewrite NTCy. splits; ins.
@@ -1174,7 +1174,7 @@ Proof using All.
     red. splits; eauto. ins.
     destruct len; ins. destruct n0.
     { lia. }
-    apply NPeano.Nat.eqb_neq in NLST. lia. }
+    apply Const.eqb_neq in NLST. lia. }
   desf; ins.
   assert (forall n, NOmega.lt_nat_l n len -> fst (proj1_sig (TR n)) = n) as NNTR.
   { clear -AA0 STNTC. induction n.

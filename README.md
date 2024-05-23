@@ -9,9 +9,36 @@ Please visit the [project website](https://sf.snu.ac.kr/promising2.0/) for more 
 This repository contains Coq code of Promising 2.0 to IMM compilation correctness proof
 supplementing the paper *Promising 2.0: Global Optimizations and Relaxed Memory Concurrency*.
 
-## Build
+### Requirements
+* [Coq](https://coq.inria.fr)
+* [Our fork](https://github.com/weakmemory/hahn) of [the Hahn library](https://github.com/vafeiadis/hahn)
+* [HahnExt library](https://github.com/weakmemory/hahnExt)
+* [IMM library](https://github.com/weakmemory/imm)
+* [The Coq supplementary library w/ basic data types](https://github.com/snu-sf/promising-lib)
+To check precise requirements with version numbers, please, check [the Nix configuration file](.nix/config.nix).
 
-- Requirement: [Coq 8.9.1](https://coq.inria.fr/download), opam, Make, Rsync.
+### Building via Nix (preferred and mainly supported way)
+First, you need to install Nix (see https://nixos.org/download.html) and set-up Nix as recommended by [Coq Nix Toolbox](https://github.com/coq-community/coq-nix-toolbox).
+That is, run
+```
+nix-env -iA nixpkgs.cachix && cachix use coq && cachix use coq-community && cachix use math-comp
+```
+in order to use binary caches from recognized organizations.
+Additionally, we recommend add our binary cache with IMM and related packages as well:
+```
+cachix use weakmemory
+```
+Then, you may just run `nix-build` in the root folder of the project to build it.
+Alternatively, you may run `nix-shell` and then, in the Nix-configured environment, run `make -j`.
+
+#### Working on the project in VS Code
+You may use the [Nix Environment Selector](https://marketplace.visualstudio.com/items?itemName=arrterian.nix-env-selector) plugin in VS Code for it to use proper configuration.
+Alternatively, 
+you may run `nix-shell` in the root of the project and then `code .`--VSCoq or CoqLSP should be able to pick up the environment.
+
+## (OUT-DATED) Build w/ opam
+
+- Requirement: [Coq](https://coq.inria.fr/download), opam, Make, Rsync.
 
 - Installing dependencies with opam
 

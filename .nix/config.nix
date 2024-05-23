@@ -29,37 +29,30 @@
   ## If not specified, it defaults to "_CoqProject"
   # coqproject = "_CoqProject";
 
-  default-bundle = "8.18";
+  default-bundle = "8.19";
 
-  bundles."8.16" = {
-    push-branches = [ "master" ];
-    coqPackages.coq.override.version = "8.16";
-    coqPackages.hahn.override.version = "master";
-    coqPackages.hahnExt.override.version = "main";
-    coqPackages.sflib.override.version = "master";
-    coqPackages.promising2.override.version = "8.17";
-    coqPackages.promising-lib.override.version = "master";
-    coqPackages.imm.override.version = "1.6.1";
-  };
-  bundles."8.17" = {
-    push-branches = [ "master" ];
-    coqPackages.coq.override.version = "8.17";
-    coqPackages.hahn.override.version = "master";
-    coqPackages.hahnExt.override.version = "main";
-    coqPackages.sflib.override.version = "master";
-    coqPackages.promising2.override.version = "8.17";
-    coqPackages.promising-lib.override.version = "master";
-    coqPackages.imm.override.version = "1.6.1";
-  };
   bundles."8.18" = {
     push-branches = [ "**" ];
+    coqPackages.vscoq-language-server.override.version = "v2.0.3+coq8.18";
     coqPackages.coq.override.version = "8.18";
-    coqPackages.hahn.override.version = "master";
-    coqPackages.hahnExt.override.version = "main";
+    coqPackages.hahn.override.version = "1.19.1";
+    coqPackages.hahnExt.override.version = "0.9.5";
     coqPackages.sflib.override.version = "master";
+    coqPackages.promising-lib.override.version = "1.19.0";
     coqPackages.promising2.override.version = "8.17";
-    coqPackages.promising-lib.override.version = "master";
-    coqPackages.imm.override.version = "1.6.1";
+    coqPackages.imm.override.version = "1.6.2";
+  };
+
+  bundles."8.19" = {
+    push-branches = [ "**" ];
+    coqPackages.vscoq-language-server.override.version = "v2.1.2";
+    coqPackages.coq.override.version = "8.19";
+    coqPackages.hahn.override.version = "1.19.1";
+    coqPackages.hahnExt.override.version = "0.9.5";
+    coqPackages.sflib.override.version = "master";
+    coqPackages.promising-lib.override.version = "1.19.0";
+    coqPackages.promising2.override.version = "8.17";
+    coqPackages.imm.override.version = "1.6.2";
   };
 
   ## Cachix caches to use in CI
