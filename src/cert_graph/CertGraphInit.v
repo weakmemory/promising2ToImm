@@ -810,14 +810,15 @@ T⦘)
       rewrite cert_rfD; auto. rewrite !seqA.
       repeat seq_rewrite <- id_inter. 
       red. intros x y ?%seq_eqv_lr. unfold set_inter in *. desc. 
-      rewrite <- H in *.
+      (* Only in H3: rewriting `in *` would also rewrite the section hypotheses
+         (e.g. SIMREL), and Rocq 9.3 then rejects lemmas that depend on them. *)
+      rewrite <- H in H3.
       apply (@same_thread G) in H3; try done.
       2: { intro K; eapply init_w in K; try edone; type_solver. }
       destruct H3 as [X|Y].
       2: { unfold sb in Y; unfolder in Y; desf. }
       destruct X; [subst; type_solver|].  
       exfalso.
-      rewrite -> H in *. 
 
 
 
