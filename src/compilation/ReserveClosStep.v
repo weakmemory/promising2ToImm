@@ -177,6 +177,171 @@ Proof using WF WFSC.
   hahn_frame; eauto with hahn.
 Qed.
 
+(* Adding reservations taken from a reserve-coherent T0 keeps a state
+   reserve-coherent, as long as T0 has issued and covered no more. *)
+Lemma reserve_coherent_add_base A T0 S
+  (W_EX_IS_XACQ : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G))
+  (RA : reserve_coherent G A)
+  (R0 : reserve_coherent G T0)
+  (SUB : S ⊆₁ reserved T0)
+  (ISS : issued T0 ⊆₁ issued A)
+  (COV : covered T0 ⊆₁ covered A) :
+  reserve_coherent G (A ∪₁ eq ta_reserve <*> S).
+Proof using WF.
+  (* Fields of the form dom_rel (r ⨾ ⦗reserved _⦘) ⊆₁ X. *)
+  Local Ltac add_base_dom RA R0 SUB X :=
+    rewrite id_union, !seq_union_r, dom_union;
+    apply set_subset_union_l; split;
+    [ now apply RA
+    | rewrite SUB; etransitivity; [now apply R0 | exact X] ].
+  constructor.
+  all: rewrite ?reserved_union, ?issued_union, ?covered_union,
+         ?reserved_ta_reserve, ?issued_ta_reserve, ?covered_ta_reserve,
+         ?set_union_empty_r.
+  { apply set_subset_union_l. split; [now apply RA|].
+    rewrite SUB. now apply R0. }
+  { rewrite (rcoh_I_in_S RA). eauto with hahn. }
+  { rewrite set_minus_union_l. apply set_subset_union_l. split; [now apply RA|].
+    intros x [Sx NIx]. apply (rcoh_S_I_in_W_ex R0). split; [now apply SUB|].
+    intros II. apply NIx, ISS, II. }
+  { add_base_dom RA R0 SUB COV. }
+  { add_base_dom RA R0 SUB ISS. }
+  { add_base_dom RA R0 SUB ISS. }
+  { rewrite dom_sb_S_rfrmw_union_P. apply set_subset_union_l. split.
+    { etransitivity; [now apply RA| eauto with hahn]. }
+    unfold dom_sb_S_rfrmw. rewrite reserved_ta_reserve.
+    transitivity (issued A); [| rewrite (rcoh_I_in_S RA); eauto with hahn].
+    transitivity (dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗S⦘)).
+    { rewrite rmw_W_ex. clear. basic_solver. }
+    rewrite W_EX_IS_XACQ, SUB, <- ISS. apply R0. }
+  { add_base_dom RA R0 SUB ISS. }
+  { add_base_dom RA R0 SUB ISS. }
+  rewrite set_inter_union_l. apply set_subset_union_l. split; [now apply RA|].
+  intros x [Sx Wx].
+  destruct (rcoh_S_W_ex_rfrmw_I R0 (conj (SUB x Sx) Wx)) as [y HH].
+  exists y. generalize HH ISS. clear. basic_solver 10.
+Qed.
+
+(* Like reserve_clos_reserve_coherent, but tc may also keep reservations of
+   unissued writes, as long as they come from a reserve-coherent T0 that has
+   issued and covered no more than tc. *)
+Lemma reserve_clos_reserve_coherent_gen tc T0
+  (W_EX_IS_XACQ : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G))
+  (IMMCONS : imm_consistent G sc)
+  (TCOH : tls_coherent G tc)
+  (ICOH : iord_coherent G sc tc)
+  (R0 : reserve_coherent G T0)
+  (ISS0 : issued T0 ⊆₁ issued tc)
+  (COV0 : covered T0 ⊆₁ covered tc)
+  (RES : reserved tc ⊆₁ issued tc ∪₁ reserved T0) :
+  reserve_coherent G (reserve_clos tc).
+Proof using WF WFSC.
+  (* tc without the reservations of unissued writes *)
+  set (tcI := tc \₁ eq ta_reserve <*> set_compl (issued tc)).
+  assert (ISSI : issued tcI ≡₁ issued tc).
+  { subst tcI. unfold issued, set_pair. clear.
+    split; unfolder; ins; desf; eexists; splits; eauto.
+    destruct y as [a e]; ins. intros [AA _]. congruence. }
+  assert (COVI : covered tcI ≡₁ covered tc).
+  { subst tcI. unfold covered, set_pair. clear.
+    split; unfolder; ins; desf; eexists; splits; eauto.
+    destruct y as [a e]; ins. intros [AA _]. congruence. }
+  assert (RESI : reserved tcI ⊆₁ issued tcI).
+  { rewrite ISSI. subst tcI. unfold reserved, set_pair. clear.
+    intros e [[a e'] [[[TCy NP] AA] EE]]. ins. subst.
+    apply NNPP. intros NI. apply NP. split; auto. }
+  assert (TCOHI : tls_coherent G tcI).
+  { constructor.
+    2: { transitivity tc; [subst tcI; clear; basic_solver | apply TCOH]. }
+    intros [a e] INIT. split; [now apply TCOH|].
+    intros [_ NI]. apply NI. ins.
+    eapply init_issued; eauto.
+    unfold init_tls, set_pair in INIT. destruct INIT as [_ [EE II]].
+    split; auto. }
+  assert (ICOHI : iord_coherent G sc tcI).
+  { eapply iord_coherent_equiv_wo_reserved with (T1 := tc); auto.
+    subst tcI. clear. unfold set_pair.
+    split; unfolder; ins; desf; splits; auto.
+    intros [AA _]. subst. auto. }
+  assert (EQ : reserve_clos tc ≡₁
+                reserve_clos tcI ∪₁ eq ta_reserve <*> (reserved tc \₁ issued tc)).
+  { unfold reserve_clos. rewrite ISSI. subst tcI.
+    unfold reserved, set_pair. clear. unfolder.
+    split; intros [t a]; ins.
+    { destruct H as [TC | [RT II]].
+      2: { left. right. auto. }
+      destruct (classic (ta_reserve = t /\ ~ issued tc a)) as [[RT NI] | NOT].
+      { right. splits; auto. exists (t, a). splits; auto. }
+      left. left. auto. }
+    destruct H as [[[TC _] | [RT II]] | [RT [[[b e] [[TCy RY] EY]] NI]]].
+    { now left. }
+    { now right. }
+    ins. subst. now left. }
+  rewrite EQ.
+  apply reserve_coherent_add_base with (T0 := T0); auto.
+  { now apply reserve_clos_reserve_coherent. }
+  { intros x [RR NI]. apply RES in RR. destruct RR; auto. exfalso. auto. }
+  { rewrite issued_reserve_clos, ISSI. auto. }
+  rewrite covered_reserve_clos, COVI. auto.
+Qed.
+
+(* Like dom_sb_S_rfrmw_reserve_clos, with reservations from a base T0. *)
+Lemma dom_sb_S_rfrmw_reserve_clos_gen r s tc T0
+  (W_EX_IS_XACQ : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G))
+  (TCOH : tls_coherent G tc)
+  (ICOH : iord_coherent G sc tc)
+  (R0 : reserve_coherent G T0)
+  (ISS0 : issued T0 ⊆₁ issued tc)
+  (RES : reserved tc ⊆₁ issued tc ∪₁ reserved T0) :
+  dom_sb_S_rfrmw G (reserve_clos tc) r s ⊆₁ issued tc.
+Proof using WF.
+  unfold dom_sb_S_rfrmw. rewrite reserved_reserve_clos, RES.
+  transitivity (dom_rel (⦗W_ex G⦘ ⨾ sb G ⨾ ⦗issued tc ∪₁ reserved T0⦘)).
+  { rewrite rmw_W_ex. clear. basic_solver 10. }
+  rewrite W_EX_IS_XACQ.
+  rewrite id_union, !seq_union_r, dom_union. apply set_subset_union_l. split.
+  { eapply dom_wex_sb_issued; eauto. }
+  rewrite <- ISS0. apply R0.
+Qed.
+
+(* Replaces the reservations of tc by those of R; generalizes
+   reserve_init_clos (which uses the initial writes). *)
+Definition reserve_fix_clos (R : actid -> Prop) tc :=
+  (tc \₁ action ↓₁ (eq ta_reserve)) ∪₁ eq ta_reserve <*> R.
+
+Lemma reserve_fix_clos_sim_coherent R tc
+  (SCOH : sim_coherent G tc) :
+  sim_coherent G (reserve_fix_clos R tc).
+Proof using.
+  unfold reserve_fix_clos. red.
+  split.
+  { unfold sim_clos. eauto with hahn. }
+  unfold sim_clos.
+  apply set_subset_union_l; split.
+  apply set_subset_union_l; split; eauto with hahn.
+  all: unionR left.
+  all: rewrite set_minusE at 2.
+  all: apply set_subset_inter_r; split.
+  all: try now (unfold rmw_clos, rel_clos, set_pair; unfolder; ins; do 2 desf).
+  all: transitivity (sim_clos G tc); try now apply SCOH.
+  all: unfold sim_clos.
+  1: transitivity (rmw_clos G tc); eauto with hahn.
+  2: transitivity (rel_clos G tc); eauto with hahn.
+  all: unfold rmw_clos, rel_clos.
+  all: apply set_pair_mori; eauto with hahn.
+  all: autorewrite with cir_simplify.
+  all: clear; basic_solver.
+Qed.
+
+Lemma reserve_fix_clos_isim_clos_step R tl tc1 tc2
+  (STEP : isim_clos_step G sc tl tc1 tc2) :
+  (isim_clos_step G sc tl)^? (reserve_fix_clos R tc1) (reserve_fix_clos R tc2).
+Proof using.
+  unfold reserve_fix_clos.
+  eapply isim_clos_step_fixed_reserve; eauto.
+  unfold set_pair. clear. unfolder. ins. do 2 desf.
+Qed.
+
 End ReserveClos.
   
 Section ReserveClosSteps.
@@ -222,7 +387,6 @@ Hint Rewrite issued_eq_ta_cover issued_eq_ta_reserve issued_singleton
 (* TODO: move *)
 Lemma reserve_coherent_ext_reserve tc tc' r w
   (RCRCOHTC1 : reserve_coherent G (reserve_clos tc))
-  (RESEMPTC1 : reserved tc ⊆₁ issued tc)
   (EW : acts_set G w)
   (RMW : rmw G r w)
   (TCOH : tls_coherent G tc')
