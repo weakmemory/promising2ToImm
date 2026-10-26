@@ -1027,25 +1027,8 @@ Proof using All.
                                    (ext_sim_trav_step G sc)^* (TCtr n) (TCtr (1 + n)) >> /\
              ⟪ TRAV: acts_set G ≡₁ ⋃₁ i ∈ (flip NOmega.lt_nat_l len),
                  covered (TCtr i) ⟫); desc.
-  { destruct (classic (fin_exec G)) as [FIN|NFIN].
-    { admit. }
-    (* { destruct (sim_traversal_trace WF WFSC CG FIN IMMCON) as [lst [TCtr HH]]; desc. *)
-    (*   assert (forall n, n < S lst -> etc_coherent G sc (TCtr n)) as ETCN. *)
-    (*   { induction n; ins.  *)
-    (*     { rewrite TCINIT. now apply ext_init_trav_coherent. } *)
-    (*     eapply ext_sim_trav_step_coherence. *)
-    (*     apply TCSTEP. lia. } *)
-    (*   exists (NOnum (1 + lst)), TCtr. splits; auto. *)
-    (*   { ins. lia. } *)
-    (*   { ins. apply rt_step. apply TCSTEP. lia. } *)
-    (*   split. *)
-    (*   { etransitivity; [now apply TCLAST|]. *)
-    (*     unfold set_bunion. *)
-    (*     red; ins. exists lst. splits; ins. } *)
-    (*   apply set_subset_bunion_l. ins. *)
-    (*   red in COND. red in COND. *)
-    (*   erewrite <- etc_dom with (sc:=sc) (T:=TCtr x); eauto with hahn. } *)
-
+  { (* The traversal is built from init_tls, which is finite, so this works
+       whether or not G itself is finite. *)
     forward eapply sim_traversal_inf' with (T:=init_tls G);
       eauto using init_tls_fin, init_tls_tls_coherent, init_tls_iord_coherent.
     intros. desc.
@@ -1204,7 +1187,7 @@ Proof using All.
   { apply NTCtt. }
   specialize (NNTR i). rewrite <- Heqtt in NNTR. ins.
   rewrite NNTR; auto.
-Admitted. 
+Qed.
 
 (* Theorem promise2imm_finite *)
 (*         (FIN: fin_exec G) : *)
