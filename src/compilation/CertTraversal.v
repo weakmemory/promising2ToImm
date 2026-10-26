@@ -331,4 +331,56 @@ Proof using WF WFSC IMMCON FRELACQ W_EX_IS_XACQ TCOH ICOH RCOH NCOV.
   red. eapply cert_clos_step_thread; eauto.
 Qed.
 
+Lemma sim_clos_steps2ext_cert X Y
+  (TX : T ⊆₁ X)
+  (TCOHY : tls_coherent G Y)
+  (STEPS : (sim_clos_step G sc)^* X Y) :
+  (ext_isim_trav_step G sc thread)^* (reserve_clos (cert_clos X))
+                                     (reserve_clos (cert_clos Y)).
+Proof using WF WFSC IMMCON FRELACQ W_EX_IS_XACQ TCOH ICOH RCOH NCOV.
+  revert TX TCOHY. induction STEPS as [x y STEP | x | x y z S1 IH1 S2 IH2]; intros.
+  { now apply sim_clos_step2ext_cert. }
+  { apply rt_refl. }
+  assert (XY : x ⊆₁ y) by (eapply sim_clos_step_crt_incl; eauto).
+  assert (YZ : y ⊆₁ z) by (eapply sim_clos_step_crt_incl; eauto).
+  assert (TCOHy : tls_coherent G y).
+  { constructor.
+    { rewrite <- XY, <- TX. apply TCOH. }
+    rewrite YZ. apply TCOHY. }
+  eapply rt_trans; [apply IH1 | apply IH2]; auto.
+  now rewrite TX.
+Qed.
+
+(* Starting from a certification state, steps of [thread] alone reach a
+   state that covers every event. *)
+Lemma sim_step_cov_full_traversal_cert
+  (FINDOM : fin_exec G)
+  (FAIR : mem_fair G)
+  (FIN_THREADS : fin_threads G)
+  (IMM_FAIR : imm_s_fair G sc)
+  (RELCOV : (fun x => is_true (is_w (lab G) x)) ∩₁ (fun x => is_true (is_rel (lab G) x))
+            ∩₁ issued T ⊆₁ covered T)
+  (RMWCOV : forall r w, rmw G r w -> covered T r <-> covered T w) :
+  exists T', (ext_isim_trav_step G sc thread)＊ T T' /\ acts_set G ⊆₁ covered T'.
+Proof using WF WFSC IMMCON FRELACQ W_EX_IS_XACQ TCOH ICOH RCOH NCOV.
+  assert (COMP : complete G) by apply IMMCON.
+  forward eapply sim_traversal_inf'_fin with (T := T) as TRAV; eauto.
+  simpl in TRAV. desc.
+  assert (T_ALT : T ≡₁ sim_clos G T ∪₁ init_tls G).
+  { forward eapply sim_coherent_alt with (T := T) as SCOH; eauto.
+    rewrite <- set_union_absorb_r with (s' := T) (s := init_tls G) at 1.
+    2: { apply TCOH. }
+    apply set_equiv_union; [| done]. apply SCOH. }
+  assert (STEPS : (sim_clos_step G sc)^* T T').
+  { apply set_extensionality in T_ALT. rewrite T_ALT at 1. apply STEPS2. }
+  exists (reserve_clos (cert_clos T')). split.
+  2: { rewrite covered_reserve_clos, covered_cert_clos. auto. }
+  arewrite (T = reserve_clos (cert_clos T)) at 1.
+  { apply set_extensionality. rewrite cert_clos_T. unfold reserve_clos.
+    split; [clear; basic_solver|].
+    apply set_subset_union_l; split; [clear; basic_solver|].
+    rewrite (rcoh_I_in_S RCOH). apply reserve_labels_of_reserved. }
+  apply sim_clos_steps2ext_cert; eauto with hahn.
+Qed.
+
 End CertTraversal.
