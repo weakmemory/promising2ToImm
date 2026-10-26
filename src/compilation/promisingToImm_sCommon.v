@@ -61,6 +61,7 @@ From imm Require Import ReserveClos.
 From imm Require Import ReserveInitClos.
 
 Require Import ReserveClosStep.
+Require Import CertTraversal.
 
 Set Implicit Arguments.
 
@@ -140,7 +141,10 @@ Lemma cert_simulation G sc thread PC T f_to f_from
       (FIN: fin_exec G)
       (FIN_THREADS: fin_threads G)
       (FAIR: mem_fair G)
-      (IMM_FAIR: imm_s_fair G sc):
+      (IMM_FAIR: imm_s_fair G sc)
+      (FRELACQ : (acts_set G) ∩₁ (fun a => is_true (is_f (lab G) a))
+                 ⊆₁ (fun a => is_true (is_ra (lab G) a)))
+      (W_EX_IS_XACQ : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G)):
   exists T' PC' f_to' f_from',
     ⟪ FINALT : (acts_set G) ⊆₁ covered T' ⟫ /\
     ⟪ PSTEP  : (plain_step MachineEvent.silent thread)＊ PC PC' ⟫ /\
@@ -149,7 +153,7 @@ Proof using.
   assert (complete G) as CG by apply IMMCON.
   assert (wf_sc G sc) as WFSC by apply IMMCON.  
  
-  forward eapply sim_step_cov_full_traversal as H; eauto.
+  forward eapply sim_step_cov_full_traversal_cert as H; eauto.
   all: try by apply SIMREL. 
     
   destruct H as [T']. desc.
@@ -828,7 +832,8 @@ Lemma sim_step PC T T' f_to f_from
       (STEP : ext_sim_trav_step G sc T T')
       (T_FIN: tls_fin T)
       (SIMREL : simrel G sc PC T f_to f_from)
-      (FAIR: mem_fair G) :
+      (FAIR: mem_fair G)
+      (W_EX_IS_XACQ : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G)) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : (conf_step)^? PC PC' ⟫ /\
       ⟪ SIMREL : simrel G sc PC' T' f_to' f_from' ⟫.
@@ -952,7 +957,8 @@ Lemma sim_steps PC TS TS' f_to f_from
       (TCSTEPS : (ext_sim_trav_step G sc)^* TS TS')
       (T_FIN: tls_fin TS)
       (SIMREL  : simrel G sc PC TS f_to f_from)
-      (FAIR: mem_fair G) :
+      (FAIR: mem_fair G)
+      (W_EX_IS_XACQ : W_ex G ⊆₁ W_ex G ∩₁ is_xacq (lab G)) :
     exists PC' f_to' f_from',
       ⟪ PSTEP : conf_step＊ PC PC' ⟫ /\
       ⟪ SIMREL : simrel G sc PC' TS' f_to' f_from' ⟫.

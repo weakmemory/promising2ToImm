@@ -1608,7 +1608,10 @@ T⦘)
     
   End SimRelCert.
 
-  Lemma cert_graph_init:
+  Lemma cert_graph_init
+    (FRELACQf : acts_set Gf ∩₁ (fun a => is_true (is_f (lab Gf) a))
+                ⊆₁ (fun a => is_true (is_ra (lab Gf) a)))
+    (WEXf : W_ex Gf ⊆₁ W_ex Gf ∩₁ is_xacq (lab Gf)) :
     exists G' sc' T',
       ⟪ WF : Wf G' ⟫ /\
       ⟪ IMMCON : imm_consistent G' sc' ⟫ /\
@@ -1616,7 +1619,10 @@ T⦘)
       ⟪ SIMREL : simrel_thread G' sc' PC T' f_to f_from thread sim_certification ⟫ /\
       ⟪ FIN': fin_exec G' ⟫ /\
       ⟪ FAIR': mem_fair G' ⟫ /\
-      ⟪ FIN_THREADS': fin_threads G' ⟫. 
+      ⟪ FIN_THREADS': fin_threads G' ⟫ /\
+      ⟪ FRELACQ' : acts_set G' ∩₁ (fun a => is_true (is_f (lab G') a))
+                   ⊆₁ (fun a => is_true (is_ra (lab G') a)) ⟫ /\
+      ⟪ WEX' : W_ex G' ⊆₁ W_ex G' ∩₁ is_xacq (lab G') ⟫. 
   Proof using WF T SIMREL IMMCON FAIRf TLS_FIN Gf_FIN_THREADS.
     cdes SIMREL.
     forward eapply (proj1 (simrel_thread_local_equiv sim_normal)); eauto.
@@ -1643,6 +1649,8 @@ T⦘)
     assert (fin_exec (certG G Gsc T thread (lab' s'))) as FIN'. 
     { apply fin_exec_same_events with (G := G); done. }
 
+    assert (SL : same_lab_u2v (lab' s') (lab G)) by (eapply SAME'; eauto).
+
     exists (certG G Gsc T thread (lab' s')).
     exists Gsc.
     exists (certT G T thread). 
@@ -1653,7 +1661,18 @@ T⦘)
       1-3: by eauto using TCOH_rst_certT, ICOH_rst_certT, INIT_TLS_T. }
     { rewrite covered_certT. basic_solver. }
     { red. splits; eauto using simrel_cert_common, simrel_cert_local. }
-    apply fin_exec_fair; eauto using WF_CERT.     
+    { apply fin_exec_fair; eauto using WF_CERT. }
+    { (* certG has the events of G and labels equal to G's up to values *)
+      simpl. intros x [EX FX].
+      apply (proj2 (same_lab_u2v_is_ra SL)). rewrite lab_G_eq_lab_Gf.
+      apply FRELACQf. split; [now apply acts_G_in_acts_Gf|].
+      rewrite <- lab_G_eq_lab_Gf. now apply (proj1 (same_lab_u2v_is_f SL)). }
+    simpl. intros x WX. split; auto.
+    destruct WX as [r RMW]. simpl in RMW.
+    apply rmw_G_rmw_Gf in RMW. apply seq_eqv_lr in RMW as [_ [RMWf _]].
+    assert (W_ex Gf x) as WXf by (exists r; auto).
+    apply WEXf in WXf as [_ XA].
+    apply (proj2 (same_lab_u2v_is_xacq SL)). now rewrite lab_G_eq_lab_Gf.
   Qed.
 
 End CertGraphInit.

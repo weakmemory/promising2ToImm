@@ -297,65 +297,6 @@ Section ExtTraversalCounting.
     by rewrite SIZE in H.
   Qed.
 
-  Lemma sim_clos_step2ext_isim_trav_step thread T1 T2
-        (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T1)
-        (STEP: (sim_clos_step G sc) T1 T2)
-        (RCOH: reserve_coherent G T1)
-        (TCOH2: tls_coherent G T2)
-        (RCOH2: reserve_coherent G T2) :
-    (ext_isim_trav_step G sc thread) T1 T2.
-  Proof using.
-    (* TODO: use SimClosure from imm *)
-    destruct STEP. desc. red in H.
-    repeat (destr; try done).
-    { destruct H as ([NT1e T2_EQ]%seq_eqv_l & ICOH1 & ICOH2).
-      destruct (classic (tid e = thread)) as [<- | Nte].
-      2: { destruct NT1e. apply tls_set_alt, NCOV. split; auto.
-           replace e with (event (ta_cover, e)) by done. 
-           eapply tlsc_E; eauto. apply T2_EQ. vauto. }
-      destruct (lab_rwf lab e) as [R | [W | F]].
-      { rename e into r. 
-        destruct (classic (dom_rel rmw r)) as [RMWe | NRMWe].
-        2: { eapply ext_read_trav_step; eauto.
-             split; eauto.
-             { ins. }
-             simpl. rewrite set_pair_alt. rewrite T2_EQ. basic_solver. }
-        destruct RMWe as [w RMW].
-        destruct NT1e. 
-        
-        red in H1. unfold sim_clos, rmw_clos in H1.
-        admit. }
-      { admit. }
-      admit. }
-  Admitted. 
-
-  Lemma sim_clos_step2ext_isim_trav_step_crt thread T1 T2
-        (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T1)
-        (STEP: (sim_clos_step G sc)^* T1 T2)
-        (TCOH1: tls_coherent G T1)
-        (TCOH2: tls_coherent G T2)
-        (RCOH: reserve_coherent G T1)
-        (RCOH2: reserve_coherent G T2):
-    (ext_isim_trav_step G sc thread)^* T1 T2.
-  Proof using. 
-    induction STEP.
-    { apply rt_step, sim_clos_step2ext_isim_trav_step; auto. }
-    { apply rt_refl. }
-    assert (x ⊆₁ y) as XY by now apply sim_clos_step_crt_incl.
-    assert (y ⊆₁ z) as YZ by now apply sim_clos_step_crt_incl.
-    assert (tls_coherent G y) as TLSY.
-    { constructor.
-      { transitivity x; auto. apply TCOH1. }
-      transitivity z; auto. apply TCOH2. }
-    assert (reserve_coherent G y) as RCOHY.
-    { clear IHSTEP1 IHSTEP2.
-      admit. }
-    eapply rt_trans; [apply IHSTEP1 | apply IHSTEP2]; eauto.
-    etransitivity; eauto.
-    now apply covered_mori.
-  Admitted. 
-
-
   Lemma sim_coherent_alt T
         (TCOH: tls_coherent G T)
         (ICOH: iord_coherent G sc T)
@@ -379,31 +320,7 @@ Section ExtTraversalCounting.
     eapply issuedW in H1; eauto.
   Qed.
 
-  Lemma sim_step_cov_full_traversal T thread
-        (IMMCON : imm_consistent G sc)
-        (FAIR: mem_fair G)
-        (FIN_THREADS: fin_threads G)
-        (IMM_FAIR: imm_s_fair G sc)
-        (TCOH: tls_coherent G T)
-        (ICOH: iord_coherent G sc T)
-        (RCOH: reserve_coherent G T)
-        (NCOV : NTid_ thread ∩₁ (acts_set G) ⊆₁ covered T)
-        (RELCOV : W ∩₁ Rel ∩₁ issued T ⊆₁ covered T)
-        (RMWCOV : forall r w : actid, rmw r w -> covered T r <-> covered T w) :
-    exists T', (ext_isim_trav_step G sc thread)＊ T T' /\ ((acts_set G) ⊆₁ covered T').
-  Proof using WF WFSC FINDOM COMP.
-    forward eapply sim_traversal_inf'_fin with (T := T); eauto.
-    ins. desc. eexists. splits; eauto. 
-    assert (T ≡₁ sim_clos G T ∪₁ init_tls G) as T_ALT. 
-    { forward eapply (@sim_coherent_alt T) as SCOH; eauto. red in SCOH.
-      rewrite <- set_union_absorb_r with (s' := T) (s := init_tls G) at 1. 
-      2: { apply TCOH. }
-      apply set_equiv_union; [| done].
-      by apply sim_coherent_alt. }    
-    apply sim_clos_step2ext_isim_trav_step_crt; eauto.
-    { apply set_extensionality in T_ALT as T_ALT'. by rewrite T_ALT'. }
-    (* TODO: show that reserve_coherent is preserved by sim_clos_step *)
-    admit.
-  Admitted. 
-      
+  (* sim_step_cov_full_traversal is proven in compilation/CertTraversal.v
+     (sim_step_cov_full_traversal_cert). *)
+
 End ExtTraversalCounting.
